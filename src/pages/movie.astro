@@ -1,0 +1,12 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Movie Planner">
+  <movie-details></movie-details>
+</Layout>
+
+<script>
+  import "../components/movie-details";
+</script>

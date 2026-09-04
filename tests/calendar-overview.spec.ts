@@ -77,19 +77,23 @@ test.describe("calendar overview", () => {
     await expect(rows.nth(1)).toContainText("Paddington");
   });
 
-  test("renders full metadata for a logged viewing", async ({ page }) => {
+  test("renders its own columns for a logged viewing, and leaves the rest to the details page", async ({
+    page,
+  }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
     const row = page.locator("tbody tr");
     await expect(row).toContainText("Dune (2021)");
     await expect(row).toContainText("Grand Vista Cinema");
-    await expect(row).toContainText("Denis Villeneuve");
-    await expect(row).toContainText("Timothée Chalamet, Zendaya");
-    await expect(row).toContainText("Action, Adventure, Drama");
-    await expect(row).toContainText("IMDb 8.0");
     await expect(row).toContainText("cinema");
     await expect(row.locator("img")).toHaveAttribute("src", DUNE.posterUrl);
+    // #38: director/actors/genre/ratings live on the details page (one
+    // click away via the title link), not as their own overview columns
+    // — that's what keeps this table's column count fixed and narrow
+    // enough to fit a phone screen without horizontal scroll.
+    await expect(row).not.toContainText("Denis Villeneuve");
+    await expect(row).not.toContainText("Action, Adventure, Drama");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

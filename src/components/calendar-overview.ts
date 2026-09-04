@@ -1,6 +1,7 @@
 import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { lookupMovie } from "../lib/omdb/client";
+import { imdbUrl, letterboxdSearchUrl, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -15,19 +16,6 @@ import {
   TH,
   TR_BODY,
 } from "../lib/ui/classes";
-
-// #37: OMDb doesn't expose a stable per-title ID for Rotten Tomatoes or
-// Letterboxd the way it does for IMDb (imdbID) — these are constructed
-// search links, not a guarantee the first result is the right one.
-function imdbUrl(imdbId: string): string {
-  return `https://www.imdb.com/title/${imdbId}/`;
-}
-function rottenTomatoesSearchUrl(title: string): string {
-  return `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`;
-}
-function letterboxdSearchUrl(title: string): string {
-  return `https://letterboxd.com/search/${encodeURIComponent(title)}/`;
-}
 
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
@@ -215,19 +203,7 @@ export class CalendarOverview extends HTMLElement {
     const thead = document.createElement("thead");
     thead.className = "bg-slate-50 dark:bg-slate-900/40";
     const headerRow = document.createElement("tr");
-    for (const heading of [
-      "Poster",
-      "Title",
-      "Start",
-      "End",
-      "Medium",
-      "Venue",
-      "Director",
-      "Actors",
-      "Genre",
-      "Ratings",
-      "Actions",
-    ]) {
+    for (const heading of ["Poster", "Title", "Start", "End", "Medium", "Venue", "Actions"]) {
       const th = document.createElement("th");
       th.className = TH;
       th.scope = "col";
@@ -267,7 +243,13 @@ export class CalendarOverview extends HTMLElement {
 
     const titleCell = document.createElement("td");
     titleCell.className = TD;
-    const titleLine = document.createElement("div");
+    // #38: the details page — a query-string ?uid=, not a dynamic
+    // /movie/[uid] route, since this build is fully static (no
+    // getStaticPaths could ever know a visitor's own private CalDAV
+    // UIDs at build time).
+    const titleLine = document.createElement("a");
+    titleLine.href = `/movie?uid=${encodeURIComponent(viewing.uid)}`;
+    titleLine.className = "font-medium text-indigo-600 hover:underline dark:text-indigo-400";
     titleLine.textContent = viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title;
     titleCell.appendChild(titleLine);
     const links = [
@@ -291,22 +273,15 @@ export class CalendarOverview extends HTMLElement {
     }
     row.appendChild(titleCell);
 
-    const ratings = [
-      viewing.ratingImdb && `IMDb ${viewing.ratingImdb}`,
-      viewing.ratingRottenTomatoes && `RT ${viewing.ratingRottenTomatoes}`,
-      viewing.ratingMetacritic && `Metacritic ${viewing.ratingMetacritic}`,
-    ]
-      .filter(Boolean)
-      .join(", ");
+    // Director/actors/genre/ratings live on the details page (#38, one
+    // click away via the title link) rather than as their own columns
+    // here — keeping this table to a fixed, narrow column count is what
+    // lets it fit a phone screen without horizontal scroll.
     for (const value of [
       new Date(viewing.start).toLocaleString(),
       new Date(viewing.end).toLocaleString(),
       viewing.medium,
       viewing.venue ?? "",
-      viewing.director ?? "",
-      viewing.actors ?? "",
-      viewing.genre ?? "",
-      ratings,
     ]) {
       const td = document.createElement("td");
       td.className = TD;
@@ -360,7 +335,7 @@ export class CalendarOverview extends HTMLElement {
     // read-only row layout has no column-per-field mapping for anyway.
     const editCell = document.createElement("td");
     editCell.className = `${TD} bg-slate-50 dark:bg-slate-900/40`;
-    editCell.colSpan = 11;
+    editCell.colSpan = 7;
     const grid = document.createElement("div");
     grid.className = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
     editCell.appendChild(grid);
@@ -439,7 +414,11 @@ export class CalendarOverview extends HTMLElement {
   private async handleRefresh(viewing: LoggedViewing) {
     if (!this.config || !this.omdbApiKey || !this.actionStatusEl) return;
     try {
-      const metadata = await lookupMovie(this.omdbApiKey, viewing.title);
+      const metadata = await lookupMovie(
+        this.omdbApiKey,
+        viewing.title,
+        new Date(viewing.start).getFullYear().toString(),
+      );
       if (!metadata) {
         this.actionStatusEl.textContent = "OMDb had no match for this title.";
         return;
