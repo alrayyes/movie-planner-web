@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.17.0...movie-planner-web-v0.17.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **build:** don't fail bun install when lefthook can't install ([#60](https://github.com/alrayyes/movie-planner-web/issues/60)) ([6c0e00c](https://github.com/alrayyes/movie-planner-web/commit/6c0e00c53a5abce95f24b71288e437217b2be7b6))
+
 ## [0.17.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.16.0...movie-planner-web-v0.17.0) (2026-09-04)
 
 
