@@ -8,6 +8,12 @@ ignores:
   - CHANGELOG.md # written by the release job, not by hand
   - "**/node_modules/**"
   - "**/.bun-cache/**"
+  # Playwright's own run artifacts — a failed test's error-context.md
+  # trips MD025/MD013/MD040 on content Playwright generated, not prose
+  # this repo wrote. Already gitignored; markdownlint-cli2's own glob
+  # doesn't read .gitignore, so it needs listing here too.
+  - "test-results/**"
+  - "playwright-report/**"
   # Vale's style packages, downloaded by `vale sync`. Somebody else's docs,
   # held to somebody else's rules.
   - "styles/Google/**"

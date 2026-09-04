@@ -32,6 +32,11 @@ An uninstalled hook silently does nothing, which is worse than not having
 one, so the `prepare` script runs `lefthook install` for you. You find out
 at the pipeline otherwise, not at the commit.
 
+`lefthook install` failing (no `.git` directory, no network) doesn't fail
+`bun install` itself — Cloudflare's own build runs `bun install` too, and
+a hook-installation failure there has no business blocking a deploy. Real
+contributors always have a `.git` checkout, so this never bites locally.
+
 ## Everyday commands
 
 Every one of these is what a hook or CI runs — see `lefthook.yml` and
