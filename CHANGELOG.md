@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.8.0...movie-planner-web-v0.9.0) (2026-09-04)
+
+
+### Features
+
+* **location-management:** offer picklist suggestions on the log form ([#26](https://github.com/alrayyes/movie-planner-web/issues/26)) ([2b4c417](https://github.com/alrayyes/movie-planner-web/commit/2b4c417a3374c8211af620c0045b7adb43f125e2))
+
 ## [0.8.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.7.0...movie-planner-web-v0.8.0) (2026-09-04)
 
 
