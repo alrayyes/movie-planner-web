@@ -48,7 +48,36 @@ for the full design and what's left.
   server (which would otherwise reject the credential-less preflight
   request with a 401), fails before your credentials are ever checked.
   `test/integration/Caddyfile` in this repo is a complete, tested Caddy
-  example fronting a real Baikal instance.
+  example fronting a real Baikal instance. For nginx:
+
+  ```nginx
+  location / {
+      if ($request_method = OPTIONS) {
+          add_header Access-Control-Allow-Origin "https://your-movie-planner-web-origin" always;
+          add_header Access-Control-Allow-Methods "GET, PUT, DELETE, REPORT, PROPFIND, OPTIONS" always;
+          add_header Access-Control-Allow-Headers "Authorization, Content-Type, Depth" always;
+          add_header Access-Control-Max-Age 3600 always;
+          add_header Content-Length 0;
+          return 204;
+      }
+
+      add_header Access-Control-Allow-Origin "https://your-movie-planner-web-origin" always;
+      add_header Access-Control-Allow-Methods "GET, PUT, DELETE, REPORT, PROPFIND, OPTIONS" always;
+      add_header Access-Control-Allow-Headers "Authorization, Content-Type, Depth" always;
+
+      proxy_pass http://your-baikal-backend;
+  }
+  ```
+
+  Two nginx-specific gotchas, confirmed against a real deployment: without
+  the `if ($request_method = OPTIONS) { return 204; }` block, nginx
+  proxies the preflight straight through to sabre/dav, which rejects it
+  (browsers never send credentials on a preflight) — the request fails
+  before your credentials are ever checked, and the browser reports it as
+  a plain CORS failure with no further detail. And `add_header` only
+  attaches to 2xx/3xx responses without `always`, so an actual request
+  that comes back as anything else (like an unreachable-origin 5xx) still
+  fails CORS on top of whatever else was wrong.
 
 ## Installation
 
