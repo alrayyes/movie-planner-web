@@ -79,6 +79,27 @@ for the full design and what's left.
   that comes back as anything else (like an unreachable-origin 5xx) still
   fails CORS on top of whatever else was wrong.
 
+  If Baikal runs in Docker behind **Traefik** (common with an image like
+  `ckulka/baikal`, which bundles its own internal nginx you don't
+  otherwise edit), attach a CORS middleware to the router instead of
+  touching any nginx configuration directly:
+
+  ```yaml
+  labels:
+    - "traefik.http.middlewares.baikal-cors.headers.accessControlAllowMethods=GET,PUT,DELETE,REPORT,PROPFIND,OPTIONS"
+    - "traefik.http.middlewares.baikal-cors.headers.accessControlAllowHeaders=Authorization,Content-Type,Depth"
+    - "traefik.http.middlewares.baikal-cors.headers.accessControlAllowOriginList=https://your-movie-planner-web-origin"
+    - "traefik.http.middlewares.baikal-cors.headers.accessControlMaxAge=3600"
+    - "traefik.http.middlewares.baikal-cors.headers.addVaryHeader=true"
+    - "traefik.http.routers.<your-baikal-router>.middlewares=baikal-cors"
+  ```
+
+  Once `accessControlAllowOriginList`/`accessControlAllowMethods` are set
+  on a router's middleware, Traefik answers the preflight `OPTIONS`
+  request itself and never forwards it to the backend — the same
+  short-circuit the preceding nginx `if` block does by hand, without adding a
+  second reverse proxy in front of the one already there.
+
 ## Installation
 
 ```sh
