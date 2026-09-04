@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.6.0...movie-planner-web-v0.7.0) (2026-09-04)
+
+
+### Features
+
+* **movie-editing:** update and delete from the overview ([#17](https://github.com/alrayyes/movie-planner-web/issues/17)) ([f26e0cc](https://github.com/alrayyes/movie-planner-web/commit/f26e0ccb4ba2862e971411f7f063c882299e930b))
+
 ## [0.6.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.5.0...movie-planner-web-v0.6.0) (2026-09-04)
 
 
