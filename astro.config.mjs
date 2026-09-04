@@ -1,12 +1,13 @@
 // @ts-check
-import cloudflare from "@astrojs/cloudflare";
 import { defineConfig } from "astro/config";
 
-// The CalDAV proxy needs real server-side request handlers (src/pages/api/*),
-// not a static build — output: "server" plus the Cloudflare adapter runs the
-// whole app, page routes and API routes alike, as one Worker.
+// Fully static — the CalDAV and OMDb clients run in the browser and call
+// the visitor's own servers directly (see design.md's "Decisions": no
+// server-side proxy, so no visitor's credentials ever transit a server
+// this project runs, and no `src/pages/api/*` needing a Worker to execute
+// it). No adapter needed; Cloudflare serves the static `dist/` output
+// directly as Worker assets (`wrangler.jsonc`).
 // https://astro.build/config
 export default defineConfig({
-  output: "server",
-  adapter: cloudflare(),
+  output: "static",
 });

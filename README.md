@@ -8,16 +8,18 @@ A public web client for
 [movie-planner](https://github.com/alrayyes/movie-planner) (the CLI that
 logs the movies you've watched and syncs them to a CalDAV calendar). Point
 it at your own CalDAV server and browse, log, and edit your watch history
-from any browser — no install, no account with this service. CalDAV is the
-only data store; there's no shared database and no server-side credential
-storage. Only tested against [Baikal](https://sabre.io/baikal/) so far —
-other CalDAV servers may or may not work.
+from any browser — no install, no account with this service. It's a fully
+static site: your browser talks straight to your CalDAV server, with
+nothing in between. There's no shared database and no server, of any
+kind, that ever sees your credentials — not even in transit. Only tested
+against [Baikal](https://sabre.io/baikal/) so far — other CalDAV servers
+may or may not work.
 
-**Status:** early scaffold. The full design — credentials, the CalDAV
-proxy, the calendar overview, logging, editing, import, and location
-management — is planned in
-[`openspec/changes/add-movie-planner-web-app/`](openspec/changes/add-movie-planner-web-app/);
-most of it isn't built yet.
+**Status:** credentials, the calendar overview, logging (manual and Pathé
+email parsing), editing, and bulk CSV/JSON import are built. Location
+management (media/venue picklists) is still planned — see
+[`openspec/changes/add-movie-planner-web-app/`](openspec/changes/add-movie-planner-web-app/)
+for the full design and what's left.
 
 ## Requirements
 
@@ -30,7 +32,23 @@ most of it isn't built yet.
   pull request, production on `main`); there's no deploy step to run by
   hand or configure here.
 - Your own **CalDAV calendar** (Baikal or otherwise) to point the app at —
-  this project doesn't provision one.
+  this project doesn't provision one. **It has to send CORS headers
+  permitting this app's origin**, since your browser talks to it directly:
+
+  ```text
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, PUT, DELETE, REPORT, PROPFIND, OPTIONS
+  Access-Control-Allow-Headers: Authorization, Content-Type, Depth
+  ```
+
+  Baikal (and sabre/dav generally) doesn't send these by default — add them
+  at whatever sits in front of it (a reverse proxy like Caddy or nginx). A
+  request without `Authorization` in the allowed headers, or without a
+  preflight `OPTIONS` response answered _before_ it reaches your CalDAV
+  server (which would otherwise reject the credential-less preflight
+  request with a 401), fails before your credentials are ever checked.
+  `test/integration/Caddyfile` in this repo is a complete, tested Caddy
+  example fronting a real Baikal instance.
 
 ## Installation
 
@@ -44,7 +62,7 @@ bun install
 
 ```sh
 bun run dev       # dev server with hot reload, at localhost:4321
-bun run build     # writes the Worker build to dist/
+bun run build     # writes the static build to dist/
 bun run preview   # serves the build through wrangler — what the real deploy runs
 bun run check     # astro check — type-checks .astro and .ts files together
 bun run test      # unit tests, then Playwright against a build served through wrangler

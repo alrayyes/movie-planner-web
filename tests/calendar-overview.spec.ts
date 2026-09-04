@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -9,11 +10,25 @@ const CREDENTIALS = {
   "caldav-password": "secret",
 };
 
+// Relative to `now` rather than fixed calendar dates, so the fixtures stay
+// inside the component's own "last 3 months" default window regardless of
+// when the suite runs — DUNE ~1 month back, PADDINGTON ~2 months back, both
+// inside the default; a cutoff ~45 days back (below) separates them for
+// the explicit-range tests. Plain day-based arithmetic, not setMonth —
+// setMonth's fractional-month handling is unreliable, and calendar months
+// vary in length anyway.
+function daysAgo(n: number): Date {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
+const ONE_MONTH_AGO = daysAgo(30);
+const TWO_MONTHS_AGO = daysAgo(60);
+const CUTOFF = daysAgo(45);
+
 const DUNE = {
   uid: "dune-uid",
   title: "Dune",
-  start: "2026-01-01T19:00:00.000Z",
-  end: "2026-01-01T21:30:00.000Z",
+  start: ONE_MONTH_AGO.toISOString(),
+  end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
   medium: "cinema",
   venue: "Grand Vista Cinema",
   director: "Denis Villeneuve",
@@ -26,10 +41,15 @@ const DUNE = {
 const PADDINGTON = {
   uid: "paddington-uid",
   title: "Paddington",
-  start: "2025-06-01T18:00:00.000Z",
-  end: "2025-06-01T19:40:00.000Z",
+  start: TWO_MONTHS_AGO.toISOString(),
+  end: new Date(TWO_MONTHS_AGO.getTime() + 1.5 * 60 * 60 * 1000).toISOString(),
   medium: "netflix",
 };
+
+function toDateInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 async function connect(page: Page) {
   await page.goto("/");
@@ -39,32 +59,9 @@ async function connect(page: Page) {
   await page.getByRole("button", { name: "Connect" }).click();
 }
 
-// Mocks the proxy's own /api/caldav/events/list route at the browser level
-// — the calendar-overview spec's "mocked calendar" — rather than a real or
-// fake CalDAV server, since this page's own logic (rendering, filtering,
-// which config it sends) is what's under test here, not the proxy's wire
-// protocol (that's src/lib/caldav/*.test.ts and test/integration/).
-function mockEventList(page: Page, viewings: (typeof DUNE | typeof PADDINGTON)[]) {
-  const requestBodies: unknown[] = [];
-  page.route("**/api/caldav/events/list", async (route: Route) => {
-    const body = route.request().postDataJSON() as {
-      config: { username: string };
-      range: { from: string; to: string };
-    };
-    requestBodies.push(body);
-    const matching = viewings.filter((v) => v.start >= body.range.from && v.start <= body.range.to);
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(matching),
-    });
-  });
-  return requestBodies;
-}
-
 test.describe("calendar overview", () => {
   test("renders full metadata for a logged viewing", async ({ page }) => {
-    mockEventList(page, [DUNE]);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
     const row = page.locator("tbody tr");
@@ -79,15 +76,15 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
-  test("filters to a date range by re-querying the proxy", async ({ page }) => {
-    mockEventList(page, [DUNE, PADDINGTON]);
+  test("filters to a date range by re-querying the CalDAV server", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
 
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
-    await page.locator("#overview-from").fill("2025-12-01");
-    await page.locator("#overview-to").fill("2026-02-01");
-    await page.getByRole("button", { name: "Filter" }).click();
+    await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
+    await page.locator("#overview-to").fill(toDateInputValue(new Date()));
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
@@ -96,31 +93,71 @@ test.describe("calendar overview", () => {
   test("filters by medium client-side, over whatever the date range already returned", async ({
     page,
   }) => {
-    const requests = mockEventList(page, [DUNE, PADDINGTON]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     await page.locator("#overview-medium").fill("cinema");
-    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
     // Medium isn't part of the CalDAV query — both requests carry the same
     // (unchanged, to-the-day) default date range, confirming the medium
-    // filter is applied to the response rather than sent to the proxy.
-    // Not exact-equal: the default range is computed fresh from `now` on
-    // each request, so the two calls can differ by a few milliseconds.
-    const ranges = (requests as { range: { from: string; to: string } }[]).map((r) => r.range);
-    expect(ranges[0]?.from.slice(0, 10)).toBe(ranges[1]?.from.slice(0, 10));
-    expect(ranges[0]?.to.slice(0, 10)).toBe(ranges[1]?.to.slice(0, 10));
+    // filter is applied to the response rather than sent to the server.
+    expect(server.listRequests).toHaveLength(2);
+    expect(server.listRequests[0]?.from.toDateString()).toBe(
+      server.listRequests[1]?.from.toDateString(),
+    );
+    expect(server.listRequests[0]?.to.toDateString()).toBe(
+      server.listRequests[1]?.to.toDateString(),
+    );
   });
 
   test("sends the visitor's own stored credentials, not anyone else's", async ({ page }) => {
-    const requests = mockEventList(page, [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(1);
 
-    const [request] = requests as { config: { username: string } }[];
-    expect(request.config.username).toBe(CREDENTIALS["caldav-username"]);
+    expect(server.authHeaders[0]).toBe(
+      `Basic ${Buffer.from(`${CREDENTIALS["caldav-username"]}:${CREDENTIALS["caldav-password"]}`).toString("base64")}`,
+    );
+  });
+
+  test("defaults to roughly the last 3 months", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await expect(page.getByRole("status").first()).toHaveText("0 logged viewings.");
+
+    const from = server.listRequests[0]?.from as Date;
+    const now = new Date();
+    const expectedFrom = new Date(now);
+    expectedFrom.setMonth(now.getMonth() - 3);
+
+    // Within a day of "3 months back" — allows for the test run's own clock
+    // drift against the fixed default computed inside the component.
+    expect(Math.abs(from.getTime() - expectedFrom.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
+  });
+
+  test("clear filter resets the date range and medium, and reloads", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
+    await page.locator("#overview-to").fill(toDateInputValue(new Date()));
+    await page.locator("#overview-medium").fill("cinema");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Clear filter" }).click();
+
+    await expect(page.locator("#overview-from")).toHaveValue("");
+    await expect(page.locator("#overview-to")).toHaveValue("");
+    await expect(page.locator("#overview-medium")).toHaveValue("");
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    const lastRequest = server.listRequests.at(-1);
+    expect(lastRequest?.from.toDateString()).not.toBe(CUTOFF.toDateString());
   });
 });

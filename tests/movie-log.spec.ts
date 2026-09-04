@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Route, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -29,38 +30,8 @@ Booking number
 N°ABC123456
 `;
 
-function mockEmptyEventList(page: Page) {
-  page.route("**/api/caldav/events/list", async (route: Route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
-  });
-}
-
-function trackCreatesAndUpdates(page: Page) {
-  const creates: unknown[] = [];
-  const updates: unknown[] = [];
-  page.route("**/api/caldav/events/create", async (route: Route) => {
-    const body = route.request().postDataJSON();
-    creates.push(body);
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ uid: "new-uid", ...body.viewing }),
-    });
-  });
-  page.route("**/api/caldav/events/update", async (route: Route) => {
-    const body = route.request().postDataJSON();
-    updates.push(body);
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ uid: body.uid, ...body.viewing }),
-    });
-  });
-  return { creates, updates };
-}
-
 async function connect(page: Page, omdbApiKey?: string) {
-  mockEmptyEventList(page);
+  const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
@@ -69,12 +40,12 @@ async function connect(page: Page, omdbApiKey?: string) {
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
   await page.getByRole("link", { name: "Log a viewing" }).click();
+  return server;
 }
 
 test.describe("manual log form", () => {
   test("submits and creates the resulting CalDAV event", async ({ page }) => {
-    await connect(page);
-    const { creates } = trackCreatesAndUpdates(page);
+    const server = await connect(page);
 
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-start").fill("2026-02-01T18:00");
@@ -83,10 +54,9 @@ test.describe("manual log form", () => {
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
-    expect(creates).toHaveLength(1);
-    const [request] = creates as { viewing: { title: string; medium: string } }[];
-    expect(request.viewing.title).toBe("Paddington");
-    expect(request.viewing.medium).toBe("netflix");
+    expect(server.creates).toHaveLength(1);
+    expect(server.creates[0]?.title).toBe("Paddington");
+    expect(server.creates[0]?.medium).toBe("netflix");
   });
 
   test("a11y scan on the log screen", async ({ page }) => {
@@ -98,8 +68,7 @@ test.describe("manual log form", () => {
 
 test.describe("Pathé email parsing", () => {
   test("shows the parsed result for confirmation before writing", async ({ page }) => {
-    await connect(page);
-    const { creates } = trackCreatesAndUpdates(page);
+    const server = await connect(page);
 
     await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
     await page.getByRole("button", { name: "Parse" }).click();
@@ -107,11 +76,11 @@ test.describe("Pathé email parsing", () => {
     await expect(page.getByText("Dune: Part Two")).toBeVisible();
     await expect(page.getByText("N°ABC123456")).toBeVisible();
     // Not written yet — only Parse was clicked, not Confirm.
-    expect(creates).toHaveLength(0);
+    expect(server.creates).toHaveLength(0);
 
     await page.getByRole("button", { name: "Confirm and log" }).click();
     await expect(page.getByRole("status")).toHaveText("Logged.");
-    expect(creates).toHaveLength(1);
+    expect(server.creates).toHaveLength(1);
   });
 
   test("a re-submitted booking number updates the existing entry instead of duplicating", async ({
@@ -123,28 +92,29 @@ test.describe("Pathé email parsing", () => {
     await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
 
     // The dedup check lists the booking's own day looking for a matching
-    // bookingRef — simulate one already logged.
-    page.route("**/api/caldav/events/list", async (route: Route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([{ uid: "existing-uid", bookingRef: "N°ABC123456" }]),
-      });
-    });
+    // bookingRef — seed an existing viewing on that same day with the
+    // booking's own reference already logged.
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "existing-uid",
+        title: "Dune: Part Two",
+        start: "2025-01-15T18:30:00.000Z",
+        end: "2025-01-15T20:50:00.000Z",
+        medium: "cinema",
+        bookingRef: "N°ABC123456",
+      },
+    ]);
     await page.getByRole("button", { name: "Connect" }).click();
     await page.getByRole("link", { name: "Log a viewing" }).click();
-
-    const { creates, updates } = trackCreatesAndUpdates(page);
 
     await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
     await page.getByRole("button", { name: "Parse" }).click();
     await page.getByRole("button", { name: "Confirm and log" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Updated the existing entry.");
-    expect(creates).toHaveLength(0);
-    expect(updates).toHaveLength(1);
-    const [update] = updates as { uid: string }[];
-    expect(update.uid).toBe("existing-uid");
+    expect(server.creates).toHaveLength(0);
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.uid).toBe("existing-uid");
   });
 });
 
@@ -152,15 +122,18 @@ test.describe("OMDb enrichment", () => {
   test("attaches a best-effort match when a key is set, without a disambiguation prompt", async ({
     page,
   }) => {
-    await connect(page, "test-omdb-key");
-    const { creates } = trackCreatesAndUpdates(page);
-    page.route("**/api/omdb/lookup", async (route: Route) => {
-      const body = route.request().postDataJSON();
-      expect(body.apiKey).toBe("test-omdb-key");
+    const server = await connect(page, "test-omdb-key");
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      expect(url.searchParams.get("apikey")).toBe("test-omdb-key");
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ ratingImdb: "8.0", director: "Denis Villeneuve" }),
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Denis Villeneuve",
+          Ratings: [{ Source: "Internet Movie Database", Value: "8.0/10" }],
+        }),
       });
     });
 
@@ -171,16 +144,14 @@ test.describe("OMDb enrichment", () => {
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
-    const [request] = creates as { viewing: { ratingImdb?: string; director?: string } }[];
-    expect(request.viewing.ratingImdb).toBe("8.0");
-    expect(request.viewing.director).toBe("Denis Villeneuve");
+    expect(server.creates[0]?.ratingImdb).toBe("8.0/10");
+    expect(server.creates[0]?.director).toBe("Denis Villeneuve");
     // No disambiguation UI of any kind should appear.
     await expect(page.getByText(/which movie/i)).toHaveCount(0);
   });
 
   test("logs successfully with no OMDb key set", async ({ page }) => {
-    await connect(page);
-    const { creates } = trackCreatesAndUpdates(page);
+    const server = await connect(page);
 
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-start").fill("2026-02-01T18:00");
@@ -189,7 +160,6 @@ test.describe("OMDb enrichment", () => {
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
-    const [request] = creates as { viewing: { ratingImdb?: string } }[];
-    expect(request.viewing.ratingImdb).toBeUndefined();
+    expect(server.creates[0]?.ratingImdb).toBeUndefined();
   });
 });

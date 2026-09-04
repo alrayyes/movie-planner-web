@@ -1,10 +1,40 @@
 # Baikal's own dav_auth_type=Basic (set by provision-baikal.sh) only accepts
-# requests over TLS in the sense the caldav-proxy validates — this terminates
+# requests over TLS in the sense the caldav-client validates — this terminates
 # TLS with Caddy's internal self-signed CA so integration tests exercise the
-# proxy's real https:// path rather than testing around it. Tests trust the
+# real https:// path rather than testing around it. Tests trust the
 # self-signed cert the same way (see CONTRIBUTING.md's "Integration tests"
 # section) — never disable certificate verification outside test code.
+#
+# The CORS headers below are what makes this a viable target for the app's
+# browser-side CalDAV client at all — README.md documents this exact
+# config as what any visitor's own reverse proxy needs in front of their
+# CalDAV server. Two things a naive CORS setup misses:
+#   - A preflight OPTIONS request never carries the visitor's Basic Auth
+#     header (browsers send preflights unauthenticated by design), so it
+#     has to be answered here, before Baikal ever sees it — forwarding it
+#     through would get a 401 from Baikal and fail the whole request.
+#   - The actual REPORT/PUT/GET/DELETE responses need the same headers too,
+#     not just the preflight, or the browser discards a response it can't
+#     otherwise read cross-origin.
 localhost:8443 {
 	tls internal
+
+	@preflight {
+		method OPTIONS
+	}
+	handle @preflight {
+		header Access-Control-Allow-Origin "*"
+		header Access-Control-Allow-Methods "GET, PUT, DELETE, REPORT, PROPFIND, OPTIONS"
+		header Access-Control-Allow-Headers "Authorization, Content-Type, Depth"
+		header Access-Control-Max-Age "3600"
+		respond 204
+	}
+
+	header {
+		Access-Control-Allow-Origin "*"
+		Access-Control-Allow-Methods "GET, PUT, DELETE, REPORT, PROPFIND, OPTIONS"
+		Access-Control-Allow-Headers "Authorization, Content-Type, Depth"
+	}
+
 	reverse_proxy baikal:80
 }

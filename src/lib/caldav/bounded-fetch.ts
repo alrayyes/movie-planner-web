@@ -1,9 +1,9 @@
 import { CaldavRequestTimeoutError, CaldavResponseTooLargeError } from "./errors";
 
-// caldav-proxy spec, "Bounded outbound requests": every outbound call to a
-// visitor's CalDAV server gets a timeout and a response size cap, as defense
-// in depth alongside the Workers platform's own SSRF blocking (see
-// design.md's Decisions).
+// caldav-client spec, "Bounded outbound requests": every outbound call to a
+// visitor's CalDAV server gets a timeout and a response size cap, so a slow
+// or misbehaving server doesn't hang the tab indefinitely or stream an
+// unbounded response into memory.
 export const REQUEST_TIMEOUT_MS = 10_000;
 export const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5 MiB
 

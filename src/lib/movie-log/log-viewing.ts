@@ -1,6 +1,7 @@
-import { createViewing, listViewings, updateViewing } from "../caldav/api-client";
+import { createViewing, listViewings, updateViewing } from "../caldav/client";
 import type { CaldavConfig, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
+import { lookupMovie } from "../omdb/client";
 import type { PatheBooking } from "./pathe-email";
 
 // Shared write path for both the manual form and the Pathé-email confirm
@@ -12,13 +13,7 @@ async function enrichWithOmdb(
 ): Promise<Partial<NewViewing>> {
   if (!credentials.omdbApiKey) return {};
   try {
-    const response = await fetch("/api/omdb/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: credentials.omdbApiKey, title }),
-    });
-    if (!response.ok) return {};
-    const metadata = (await response.json()) as Partial<NewViewing> | null;
+    const metadata = await lookupMovie(credentials.omdbApiKey, title);
     return metadata ?? {};
   } catch {
     return {};

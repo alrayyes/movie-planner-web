@@ -1,4 +1,4 @@
-import { createViewing, listViewings } from "../caldav/api-client";
+import { createViewing, listViewings } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
 import { isLikelyDuplicateTitle } from "./duplicates";

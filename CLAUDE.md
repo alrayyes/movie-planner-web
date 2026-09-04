@@ -2,9 +2,12 @@
 
 Bootstrapped from `alrayyes/scaffold-astro-site`, then adapted: CalDAV is
 the app's sole data store (see `openspec/changes/add-movie-planner-web-app/`
-for the full design), and the deploy target is a Cloudflare **Worker**, not
-Pages — the CalDAV proxy needs real server-side request handlers, which a
-static Pages build can't provide.
+for the full design). Fully static — the CalDAV and OMDb clients run in
+the browser and call the visitor's own servers directly, so there's no
+server-side application code at all, only static assets served by a
+Cloudflare Worker (`wrangler.jsonc`). This means any CalDAV server a
+visitor points the app at must send CORS headers permitting this app's
+origin — see README.md's requirements section for the exact headers.
 
 ## Commands
 
@@ -27,8 +30,8 @@ Full list and what each one does: [CONTRIBUTING.md](CONTRIBUTING.md).
   breaks Playwright's `webServer`, which needs a process it can manage the
   lifecycle of. `wrangler dev` is used instead everywhere a local server is
   needed (`playwright.config.ts`, `bun run preview`) — it's also the more
-  representative choice, since it's what the deploy step in `release.yml`
-  actually runs on.
+  representative choice, since it serves the same static build Cloudflare's
+  own deploy does.
 - **TypeScript is pinned to 6.0.3, not latest.** `astro check`'s compiler
   API isn't exposed by TypeScript 7's native compiler yet — confirmed by
   actually running `astro check` under 7.0.2 and reading the error, not

@@ -1,8 +1,9 @@
 import { InvalidCaldavUrlError } from "./errors";
 import type { CaldavConfig } from "./types";
 
-// caldav-proxy spec, "HTTPS-only CalDAV targets": reject before any outbound
-// call, not after a failed connection attempt.
+// caldav-client spec, "HTTPS-only CalDAV targets": reject before any
+// outbound call, not after a failed connection attempt or an opaque
+// mixed-content browser error.
 export function validateCaldavConfig(config: CaldavConfig): void {
   let url: URL;
   try {

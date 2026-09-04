@@ -2,12 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "movie-planner-web",
   "compatibility_date": "2026-08-20",
-  // The CalDAV proxy's API routes need a real Worker, not a static Pages
-  // build — main points at the Cloudflare adapter's own server entrypoint
-  // rather than a hand-written one.
-  "main": "@astrojs/cloudflare/entrypoints/server",
+  // No "main" — there's no server-side application logic to run. The
+  // CalDAV and OMDb clients run in the browser (see astro.config.mjs), so
+  // this Worker only serves the static build's assets.
   "assets": {
-    "directory": "./dist/client",
-    "binding": "ASSETS"
+    "directory": "./dist"
   }
 }
