@@ -17,6 +17,10 @@ const VIEWING: NewViewing = {
   director: "Denis Villeneuve",
   actors: "Timothée Chalamet, Zendaya",
   ratingImdb: "8.0",
+  genre: "Action, Adventure, Drama",
+  year: "2021",
+  posterUrl: "https://example.com/dune-poster.jpg",
+  imdbId: "tt1160419",
 };
 
 describe("VEVENT round trip", () => {

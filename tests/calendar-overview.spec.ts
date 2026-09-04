@@ -36,6 +36,10 @@ const DUNE = {
   ratingImdb: "8.0",
   ratingRottenTomatoes: "83%",
   ratingMetacritic: "74",
+  genre: "Action, Adventure, Drama",
+  year: "2021",
+  posterUrl: "https://example.com/dune-poster.jpg",
+  imdbId: "tt1160419",
 };
 
 const PADDINGTON = {
@@ -78,15 +82,48 @@ test.describe("calendar overview", () => {
     await connect(page);
 
     const row = page.locator("tbody tr");
-    await expect(row).toContainText("Dune");
+    await expect(row).toContainText("Dune (2021)");
     await expect(row).toContainText("Grand Vista Cinema");
     await expect(row).toContainText("Denis Villeneuve");
     await expect(row).toContainText("Timothée Chalamet, Zendaya");
+    await expect(row).toContainText("Action, Adventure, Drama");
     await expect(row).toContainText("IMDb 8.0");
     await expect(row).toContainText("cinema");
+    await expect(row.locator("img")).toHaveAttribute("src", DUNE.posterUrl);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
+  });
+
+  test("cross-links the title out to IMDb, Rotten Tomatoes and Letterboxd", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    await expect(row.getByRole("link", { name: "IMDb" })).toHaveAttribute(
+      "href",
+      "https://www.imdb.com/title/tt1160419/",
+    );
+    await expect(row.getByRole("link", { name: "RT" })).toHaveAttribute(
+      "href",
+      "https://www.rottentomatoes.com/search?search=Dune",
+    );
+    await expect(row.getByRole("link", { name: "Letterboxd" })).toHaveAttribute(
+      "href",
+      "https://letterboxd.com/search/Dune/",
+    );
+  });
+
+  test("omits the IMDb link (but still shows the search links) without an imdbId", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    await expect(row.getByRole("link", { name: "IMDb" })).toHaveCount(0);
+    await expect(row.getByRole("link", { name: "RT" })).toBeVisible();
+    await expect(row.getByRole("link", { name: "Letterboxd" })).toBeVisible();
   });
 
   test("filters to a date range by re-querying the CalDAV server", async ({ page }) => {

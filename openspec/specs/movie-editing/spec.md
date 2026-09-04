@@ -5,15 +5,32 @@ CLI's `update` and `delete` commands.
 
 ## Requirements
 
-### Requirement: Update a logged viewing
+### Requirement: Update a logged viewing's own fields
 
-The system SHALL let a visitor edit any field of an existing logged
-viewing and SHALL write the change to the corresponding CalDAV event.
+The system SHALL let a visitor edit a logged viewing's title, start
+time, end time, medium, and venue, and SHALL write the change to the
+corresponding CalDAV event. The system SHALL NOT offer OMDb-sourced
+fields (director, actors, ratings, genre, year, poster, IMDb ID) as
+directly editable — see "Refresh OMDb metadata" for how those are
+corrected instead, since a value hand-typed there would drift from what
+OMDb actually reports and there would be no way to tell the two apart.
 
-#### Scenario: Correct a mismatched OMDb match
+#### Scenario: Edit a viewing's own field
 
-- **WHEN** a visitor edits a logged viewing's title or ratings after a best-effort OMDb match guessed wrong
-- **THEN** the system SHALL update the CalDAV event to reflect the correction
+- **WHEN** a visitor edits a logged viewing's title, time, medium, or venue
+- **THEN** the system SHALL update the CalDAV event to reflect the change, leaving every OMDb-sourced field on that event untouched
+
+### Requirement: Refresh OMDb metadata
+
+The system SHALL let a visitor re-run the best-effort OMDb lookup for an
+already-logged viewing, using its stored title, and SHALL overwrite the
+CalDAV event's OMDb-sourced fields with the new result. The system SHALL
+only offer this when the visitor has an OMDb key set.
+
+#### Scenario: Stale metadata refreshed
+
+- **WHEN** a visitor with an OMDb key set refreshes a logged viewing
+- **THEN** the system SHALL re-fetch the best-effort match for its stored title and overwrite its director, actors, ratings, genre, year, poster, and IMDb ID with the new result
 
 ### Requirement: Delete a logged viewing
 

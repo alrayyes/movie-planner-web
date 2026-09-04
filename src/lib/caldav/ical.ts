@@ -13,6 +13,10 @@ const X_PROPERTIES: Record<string, keyof NewViewing> = {
   "X-RATING-IMDB": "ratingImdb",
   "X-RATING-ROTTEN-TOMATOES": "ratingRottenTomatoes",
   "X-RATING-METACRITIC": "ratingMetacritic",
+  "X-GENRE": "genre",
+  "X-YEAR": "year",
+  "X-POSTER-URL": "posterUrl",
+  "X-IMDB-ID": "imdbId",
   "X-BOOKING-REF": "bookingRef",
 };
 
