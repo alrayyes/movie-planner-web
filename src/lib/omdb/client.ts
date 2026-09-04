@@ -42,17 +42,7 @@ function field(value: string | undefined): string | undefined {
   return value && value !== "N/A" ? value : undefined;
 }
 
-export async function lookupMovie(apiKey: string, title: string): Promise<MovieMetadata | null> {
-  const url = new URL("https://www.omdbapi.com/");
-  url.searchParams.set("apikey", apiKey);
-  url.searchParams.set("t", title);
-
-  const response = await fetch(url);
-  if (!response.ok) return null;
-
-  const data = (await response.json()) as OmdbResponse;
-  if (data.Response === "False") return null;
-
+function toMetadata(data: OmdbResponse): MovieMetadata {
   return {
     ratingImdb: rating(data.Ratings, "Internet Movie Database"),
     ratingRottenTomatoes: rating(data.Ratings, "Rotten Tomatoes"),
@@ -64,4 +54,36 @@ export async function lookupMovie(apiKey: string, title: string): Promise<MovieM
     posterUrl: field(data.Poster),
     imdbId: field(data.imdbID),
   };
+}
+
+async function search(apiKey: string, title: string, year: string | undefined) {
+  const url = new URL("https://www.omdbapi.com/");
+  url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("t", title);
+  if (year) url.searchParams.set("y", year);
+
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  const data = (await response.json()) as OmdbResponse;
+  return data.Response === "True" ? data : null;
+}
+
+// `year`, not part of the CLI's own omdb.py, is the year the entry was
+// watched (movie-log/movie-editing's own `start` field) — a fuzzy hint
+// for a title OMDb otherwise has to guess between several releases of,
+// not an exact release-year filter: OMDb's own `y` parameter matches
+// strictly, and a watched-year that doesn't equal the actual release
+// year (any re-watch of an older film) would turn a real match into
+// "not found" if there were nothing to fall back to. Trying the
+// year-scoped search first and falling back to a plain title search on
+// no match means this can only ever do as well as, never worse than,
+// omitting the year entirely.
+export async function lookupMovie(
+  apiKey: string,
+  title: string,
+  year?: string,
+): Promise<MovieMetadata | null> {
+  const scoped = year ? await search(apiKey, title, year) : null;
+  const data = scoped ?? (await search(apiKey, title, undefined));
+  return data ? toMetadata(data) : null;
 }

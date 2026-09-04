@@ -50,6 +50,48 @@ describe("lookupMovie", () => {
     });
   });
 
+  test("tries a year-scoped search first when a year is given", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("y=2021");
+      return new Response(JSON.stringify({ Response: "True", imdbID: "tt1160419", Ratings: [] }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await lookupMovie("test-key", "Dune", "2021");
+    expect(result?.imdbId).toBe("tt1160419");
+  });
+
+  test("falls back to a plain title search when the year-scoped search finds nothing", async () => {
+    let call = 0;
+    globalThis.fetch = (async (url: URL) => {
+      call++;
+      if (call === 1) {
+        expect(url.toString()).toContain("y=1999");
+        return new Response(JSON.stringify({ Response: "False" }), { status: 200 });
+      }
+      // Second call: plain title search, no year — a re-watch of an
+      // older film logged in a different year than its release.
+      expect(url.toString()).not.toContain("&y=");
+      return new Response(JSON.stringify({ Response: "True", imdbID: "tt1160419", Ratings: [] }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await lookupMovie("test-key", "Dune", "1999");
+    expect(call).toBe(2);
+    expect(result?.imdbId).toBe("tt1160419");
+  });
+
+  test("returns null when both the year-scoped and plain searches find nothing", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ Response: "False" }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    expect(await lookupMovie("test-key", "Not A Real Movie", "2021")).toBeNull();
+  });
+
   test("returns null when OMDb has no match", async () => {
     globalThis.fetch = (async () =>
       new Response(JSON.stringify({ Response: "False" }), {
