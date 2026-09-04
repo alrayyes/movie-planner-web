@@ -2,10 +2,19 @@
 // imperatively (design.md: vanilla TS, no frontend framework) rather than
 // through Astro/JSX templates. One place for these keeps every form/table/
 // button visually consistent without a component system to enforce it.
-export const FIELD_WRAPPER = "flex flex-col gap-1";
+export const FIELD_WRAPPER = "flex min-w-0 flex-col gap-1";
 export const LABEL = "text-sm font-medium text-slate-700";
+// text-base (16px), not text-sm — iOS Safari auto-zooms the whole page on
+// focusing any input styled under 16px, and the resulting zoomed viewport
+// is then pannable, which reads as "the page scrolls horizontally" even
+// though there's no actual layout overflow (confirmed: neither Chromium
+// nor Firefox show real overflow here — this is a Safari-only zoom
+// behavior, not a layout bug, so it never shows up in either engine's
+// scrollWidth/clientWidth). w-full since a bare <input> otherwise falls
+// back to its own intrinsic ~20-character width instead of filling its
+// flex container.
 export const INPUT =
-  "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40";
+  "w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40";
 
 export const FORM = "flex flex-col gap-4";
 
