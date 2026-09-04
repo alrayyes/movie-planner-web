@@ -14,10 +14,10 @@
 
 ## 3. CalDAV Proxy
 
-- [ ] 3.1 Implement the Astro API routes (Worker functions) for the fixed CalDAV operation set: list events in range, get/create/update/delete event, get/update sidecar; verify each has a unit test against a mocked CalDAV response
-- [ ] 3.2 Add HTTPS-only validation on the supplied base URL; verify a test confirms a `http://` URL is rejected without an outbound call
-- [ ] 3.3 Add request timeout and response size cap; verify tests cover both an unresponsive and an oversized mock response
-- [ ] 3.4 Verify `caldav-proxy` spec scenarios all have a corresponding automated test
+- [x] 3.1 Implement the Astro API routes (Worker functions) for the fixed CalDAV operation set: list events in range, get/create/update/delete event, get/update sidecar; verify each has a unit test against a mocked CalDAV response
+- [x] 3.2 Add HTTPS-only validation on the supplied base URL; verify a test confirms a `http://` URL is rejected without an outbound call
+- [x] 3.3 Add request timeout and response size cap; verify tests cover both an unresponsive and an oversized mock response
+- [x] 3.4 Verify `caldav-proxy` spec scenarios all have a corresponding automated test
 
 ## 4. Calendar Overview
 

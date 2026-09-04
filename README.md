@@ -47,7 +47,7 @@ bun run dev       # dev server with hot reload, at localhost:4321
 bun run build     # writes the Worker build to dist/
 bun run preview   # serves the build through wrangler — what the real deploy runs
 bun run check     # astro check — type-checks .astro and .ts files together
-bun run test      # playwright, against a build served through wrangler
+bun run test      # unit tests, then Playwright against a build served through wrangler
 ```
 
 Deploying isn't a local command or part of this repo's own CI — Cloudflare's
