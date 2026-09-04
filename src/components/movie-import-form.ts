@@ -50,7 +50,7 @@ export class MovieImportForm extends HTMLElement {
     label.textContent = "Choose a CSV or JSON export";
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.className = "text-sm text-slate-600";
+    fileInput.className = "text-sm text-slate-600 dark:text-slate-400";
     fileInput.id = "import-file";
     fileInput.accept = ".csv,.json,text/csv,application/json";
     fileInput.addEventListener("change", () => void this.handleFileSelected(fileInput));
@@ -88,7 +88,7 @@ export class MovieImportForm extends HTMLElement {
 
     if (this.parseErrors.length > 0) {
       const errorList = document.createElement("ul");
-      errorList.className = "list-inside list-disc text-sm text-red-700";
+      errorList.className = "list-inside list-disc text-sm text-red-700 dark:text-red-400";
       for (const { rowNumber, error } of this.parseErrors) {
         const li = document.createElement("li");
         li.textContent = `Row ${rowNumber}: ${error}`;
@@ -104,7 +104,7 @@ export class MovieImportForm extends HTMLElement {
     const table = document.createElement("table");
     table.className = TABLE;
     const thead = document.createElement("thead");
-    thead.className = "bg-slate-50";
+    thead.className = "bg-slate-50 dark:bg-slate-900/40";
     const headerRow = document.createElement("tr");
     for (const heading of ["Include", "Title", "Date", "Medium", "Duplicate of"]) {
       const th = document.createElement("th");
@@ -116,7 +116,7 @@ export class MovieImportForm extends HTMLElement {
     thead.appendChild(headerRow);
 
     const tbody = document.createElement("tbody");
-    tbody.className = "divide-y divide-slate-200";
+    tbody.className = "divide-y divide-slate-200 dark:divide-slate-700";
     const checkboxes = new Map<number, HTMLInputElement>();
     for (const entry of this.plan) {
       const row = document.createElement("tr");
@@ -126,13 +126,14 @@ export class MovieImportForm extends HTMLElement {
       includeCell.className = `${TD} flex items-center gap-2`;
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.className = "size-4 rounded border-slate-300 text-indigo-600";
+      checkbox.className =
+        "size-4 rounded border-slate-300 text-indigo-600 dark:border-slate-600 dark:bg-slate-800";
       checkbox.id = `import-include-${entry.rowNumber}`;
       // bulk-import spec: a likely duplicate needs explicit confirmation —
       // starts unchecked, unlike every non-duplicate row.
       checkbox.checked = !entry.isDuplicate;
       const checkboxLabel = document.createElement("label");
-      checkboxLabel.className = "text-sm text-slate-700";
+      checkboxLabel.className = "text-sm text-slate-700 dark:text-slate-300";
       checkboxLabel.htmlFor = checkbox.id;
       checkboxLabel.textContent = entry.isDuplicate ? "Import anyway" : "Import";
       includeCell.append(checkbox, checkboxLabel);

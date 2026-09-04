@@ -189,7 +189,7 @@ export class MovieLogForm extends HTMLElement {
 
   private buildPatheEmailSection(): HTMLElement {
     const section = document.createElement("section");
-    section.className = "flex flex-col gap-4 border-t border-slate-200 pt-6";
+    section.className = "flex flex-col gap-4 border-t border-slate-200 pt-6 dark:border-slate-700";
     section.setAttribute("aria-label", "Log from a Pathé booking email");
 
     const heading = document.createElement("h2");
@@ -205,7 +205,7 @@ export class MovieLogForm extends HTMLElement {
     textarea.className = `${INPUT} min-h-32`;
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.className = "text-sm text-slate-600";
+    fileInput.className = "text-sm text-slate-600 dark:text-slate-400";
     fileInput.accept = ".eml,message/rfc822";
     fileInput.setAttribute("aria-label", "Upload a Pathé booking confirmation .eml file");
     fileInput.addEventListener("change", async () => {
@@ -219,7 +219,7 @@ export class MovieLogForm extends HTMLElement {
     parseButton.textContent = "Parse";
 
     const confirmArea = document.createElement("div");
-    confirmArea.className = "flex flex-col gap-3 rounded-lg bg-slate-50 p-4";
+    confirmArea.className = "flex flex-col gap-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-900/40";
     confirmArea.hidden = true;
 
     let parsedBooking: PatheBooking | undefined;
