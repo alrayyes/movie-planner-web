@@ -5,16 +5,20 @@ logged, showing the metadata the CLI already captures for each viewing.
 
 ## Requirements
 
-### Requirement: Overview lists all logged viewings with full metadata
+### Requirement: Overview lists logged viewings, linking out for full metadata
 
-The system SHALL display, for each logged viewing, at minimum its
-title, start and end time, medium, venue, and any available OMDb
-metadata (ratings, director, actors, genre, release year, poster).
+The system SHALL display, for each logged viewing, its poster
+thumbnail (if any), title, release year (if any), start and end time,
+medium, and venue, as a fixed set of columns — narrow and predictable
+enough to fit a phone screen without horizontal scroll. Director,
+actors, genre, and ratings are not overview columns; the movie-details
+capability's own page is where a visitor sees those, one click away via
+the title.
 
 #### Scenario: Viewing with full metadata
 
 - **WHEN** a visitor opens the overview and has a logged viewing with metadata enriched from OMDb
-- **THEN** the system SHALL display its title, release year, start/end time, cinema/venue, director, actors, genre, ratings, and poster thumbnail
+- **THEN** the system SHALL display its title, release year, start/end time, cinema/venue, and poster thumbnail, and SHALL link the title to that viewing's details page for the rest
 
 ### Requirement: Overview cross-links to external sources
 
