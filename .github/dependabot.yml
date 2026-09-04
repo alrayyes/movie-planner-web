@@ -1,0 +1,47 @@
+# Dependabot raises the pull request; CI decides whether it lands. Everything
+# here is pinned to an exact version, which is the whole reason this works —
+# a floating range drifts silently and there's nothing to raise a pull
+# request about.
+#
+# Two pins Dependabot can't see, and which are updated by hand: the Vale
+# version in prose.yml/CONTRIBUTING.md and the gitleaks version in
+# gitleaks.yml. Neither lives anywhere Dependabot's ecosystems look.
+version: 2
+
+updates:
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 10
+    commit-message:
+      # Conventional Commits, because commitlint checks these messages and
+      # the version number is computed from them. This scaffold ships as an
+      # Astro static site, so a bump here is a change to what ships whether
+      # or not it's security-relevant, and fix: cuts the patch release the
+      # same way any other fix does. github-actions below stays ci: — it
+      # changes the pipeline, not the artifact.
+      prefix: fix
+      include: scope
+    groups:
+      bun-dependencies:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]

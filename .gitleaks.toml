@@ -1,0 +1,11 @@
+# Secret scanning for movie-planner-web.
+#
+# This extends the ruleset that ships with the pinned gitleaks version rather
+# than replacing it, so new upstream rules arrive with the version bump instead
+# of having to be copied in by hand.
+#
+# Nothing is allowlisted yet. A false positive gets an entry here rather than
+# an ignore comment, scoped as narrowly as the finding allows.
+
+[extend]
+useDefault = true
