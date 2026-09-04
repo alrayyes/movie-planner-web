@@ -182,4 +182,142 @@ test.describe("OMDb enrichment", () => {
     await expect(page.getByRole("status")).toHaveText("Logged.");
     expect(server.creates[0]?.ratingImdb).toBeUndefined();
   });
+
+  test("offers a disambiguation picker when there's no confident match, and attaches the chosen candidate", async ({
+    page,
+  }) => {
+    const server = await connect(page, "test-omdb-key");
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("t")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "False" }),
+        });
+        return;
+      }
+      if (url.searchParams.get("s")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "2021",
+                imdbID: "tt1160419",
+                Poster: "https://example.com/dune-2021.jpg",
+              },
+              {
+                Title: "Dune",
+                Year: "1984",
+                imdbID: "tt0087182",
+                Poster: "https://example.com/dune-1984.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      // i=<imdbID>: the chosen candidate's full details.
+      expect(url.searchParams.get("i")).toBe("tt1160419");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Denis Villeneuve",
+          Year: "2021",
+          imdbID: "tt1160419",
+          Ratings: [{ Source: "Internet Movie Database", Value: "8.0/10" }],
+        }),
+      });
+    });
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates[0]?.ratingImdb).toBeUndefined();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (2021)" })).toBeVisible();
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await picker.getByRole("button", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged and matched.");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
+    expect(server.updates[0]?.ratingImdb).toBe("8.0/10");
+    await expect(picker).toHaveCount(0);
+  });
+
+  test("dismissing the disambiguation picker leaves the entry without metadata", async ({
+    page,
+  }) => {
+    const server = await connect(page, "test-omdb-key");
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("s")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "2021",
+                imdbID: "tt1160419",
+                Poster: "https://example.com/dune.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False" }),
+      });
+    });
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Continue without metadata" }).click();
+
+    await expect(picker).toHaveCount(0);
+    expect(server.updates).toHaveLength(0);
+    expect(server.creates[0]?.ratingImdb).toBeUndefined();
+  });
+
+  test("no picker appears when OMDb's search also finds no candidates", async ({ page }) => {
+    const server = await connect(page, "test-omdb-key");
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False" }),
+      });
+    });
+
+    await page.locator("#log-title").fill("Not A Real Movie");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    await expect(page.getByLabel("Choose the matching title")).toHaveCount(0);
+    expect(server.creates[0]?.ratingImdb).toBeUndefined();
+  });
 });

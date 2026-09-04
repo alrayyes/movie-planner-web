@@ -100,6 +100,65 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     await expect(page.getByRole("status").last()).toHaveText("OMDb had no match for this title.");
   });
 
+  test("offers a disambiguation picker when refreshing finds no confident match", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("t")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "False" }),
+        });
+        return;
+      }
+      if (url.searchParams.get("s")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "2021",
+                imdbID: "tt1160419",
+                Poster: "https://example.com/dune.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      expect(url.searchParams.get("i")).toBe("tt1160419");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Denis Villeneuve",
+          imdbID: "tt1160419",
+          Ratings: [{ Source: "Internet Movie Database", Value: "8.0/10" }],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (2021)" })).toBeVisible();
+    await picker.getByRole("button", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
+    await expect(picker).toHaveCount(0);
+  });
+
   test("no Refresh all control appears without an OMDb key set", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

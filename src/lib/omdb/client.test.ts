@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { lookupMovie } from "./client";
+import { lookupByImdbId, lookupMovie, searchMovies } from "./client";
 
 let originalFetch: typeof fetch;
 
@@ -129,5 +129,113 @@ describe("lookupMovie", () => {
     expect(result?.genre).toBeUndefined();
     expect(result?.year).toBeUndefined();
     expect(result?.posterUrl).toBeUndefined();
+  });
+});
+
+describe("searchMovies", () => {
+  test("returns candidates from OMDb's search endpoint", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("s=Dune");
+      expect(url.toString()).not.toContain("t=Dune");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [
+            {
+              Title: "Dune",
+              Year: "2021",
+              imdbID: "tt1160419",
+              Poster: "https://example.com/dune-2021.jpg",
+            },
+            {
+              Title: "Dune",
+              Year: "1984",
+              imdbID: "tt0087182",
+              Poster: "https://example.com/dune-1984.jpg",
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("test-key", "Dune");
+
+    expect(result).toEqual([
+      {
+        title: "Dune",
+        year: "2021",
+        imdbId: "tt1160419",
+        posterUrl: "https://example.com/dune-2021.jpg",
+      },
+      {
+        title: "Dune",
+        year: "1984",
+        imdbId: "tt0087182",
+        posterUrl: "https://example.com/dune-1984.jpg",
+      },
+    ]);
+  });
+
+  test("returns an empty array when OMDb's search has no results", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ Response: "False", Error: "Movie not found!" }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    expect(await searchMovies("test-key", "Not A Real Movie")).toEqual([]);
+  });
+
+  test("returns an empty array on a non-ok response rather than throwing", async () => {
+    globalThis.fetch = (async () => new Response("", { status: 401 })) as unknown as typeof fetch;
+
+    expect(await searchMovies("bad-key", "Dune")).toEqual([]);
+  });
+
+  test("drops a candidate with no imdbID rather than an unselectable entry", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [{ Title: "Dune", Year: "2021", Poster: "https://example.com/dune.jpg" }],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch;
+
+    expect(await searchMovies("test-key", "Dune")).toEqual([]);
+  });
+});
+
+describe("lookupByImdbId", () => {
+  test("returns full metadata for a chosen imdbID", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("i=tt1160419");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Director: "Denis Villeneuve",
+          Year: "2021",
+          imdbID: "tt1160419",
+          Ratings: [{ Source: "Internet Movie Database", Value: "8.5/10" }],
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await lookupByImdbId("test-key", "tt1160419");
+
+    expect(result?.director).toBe("Denis Villeneuve");
+    expect(result?.year).toBe("2021");
+    expect(result?.imdbId).toBe("tt1160419");
+    expect(result?.ratingImdb).toBe("8.5/10");
+  });
+
+  test("returns null when OMDb has nothing for that imdbID", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ Response: "False" }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    expect(await lookupByImdbId("test-key", "tt0000000")).toBeNull();
   });
 });
