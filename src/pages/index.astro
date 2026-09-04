@@ -1,28 +1,23 @@
 ---
-
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>movie-planner-web</title>
-  </head>
-  <body>
-    <main>
-      <h1>movie-planner-web</h1>
-      <p>
-        A public web client for <a
-          href="https://github.com/alrayyes/movie-planner">movie-planner</a
-        >, reading and writing straight to your own CalDAV calendar.
-      </p>
-      <credentials-gate></credentials-gate>
-    </main>
-    <script>
-      import "../components/credentials-gate";
-    </script>
-  </body>
-</html>
+<Layout title="movie-planner-web">
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+    movie-planner-web
+  </h1>
+  <p class="mt-2 text-sm text-slate-600">
+    A public web client for <a
+      class="font-medium text-indigo-600 hover:underline"
+      href="https://github.com/alrayyes/movie-planner">movie-planner</a
+    >, reading and writing straight to your own CalDAV calendar.
+  </p>
+  <div class="mt-6">
+    <credentials-gate></credentials-gate>
+  </div>
+</Layout>
+
+<script>
+  import "../components/credentials-gate";
+</script>

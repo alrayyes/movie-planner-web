@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Scoped to src/** — the visitor-facing app, not node_modules or config
+   files — so the shipped CSS only carries utility classes this project
+   actually uses. */
+@source "../**/*.{astro,ts}";
+
+:root {
+	color-scheme: light;
+}
+
+body {
+	@apply min-h-screen bg-slate-50 text-slate-900 antialiased;
+}

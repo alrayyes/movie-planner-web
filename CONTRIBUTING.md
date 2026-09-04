@@ -84,16 +84,20 @@ their own browser's IndexedDB, per `src/lib/credentials/`). This means any
 CalDAV server a visitor points the app at has to send CORS headers
 permitting this app's origin — README.md documents the exact headers, and
 `test/integration/Caddyfile` is a real, tested example. See
-`openspec/changes/add-movie-planner-web-app/` for the rest of what's
-planned.
+`openspec/specs/` for the capability specs this app was built against
+(`openspec/changes/archive/` holds the completed change that shipped
+them).
 
-Biome doesn't parse the `.astro` file format at all, so it's scoped off
-`public/` and never touches `.astro` files either way — Prettier (with
-`prettier-plugin-astro`) formats those, and `astro check` is what actually
-type-checks them. `tests/smoke.spec.ts` is the one Playwright test so
-far, demonstrating the pattern against the built output rather than the
-dev server — see `playwright.config.ts`'s comment for why `wrangler dev`
-serves it instead of `astro preview`.
+Biome only lints a `.astro` file's frontmatter script, not the template
+below it — a frontmatter import or prop used only in the template reads
+as unused unless that line carries a `// biome-ignore` comment (see any
+page under `src/pages/`, or `src/layouts/Layout.astro`). `public/` is
+scoped off Biome entirely — Prettier (with `prettier-plugin-astro`)
+formats `.astro` files, and `astro check` is what actually type-checks
+them, template included. `tests/smoke.spec.ts` demonstrates the
+Playwright pattern against the built output rather than the dev server —
+see `playwright.config.ts`'s comment for why `wrangler dev` serves it
+instead of `astro preview`.
 
 ## Commit messages
 

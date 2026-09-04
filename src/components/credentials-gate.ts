@@ -2,6 +2,15 @@ import "./calendar-overview";
 import type { CaldavConfig } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
+import {
+  BUTTON_PRIMARY,
+  FIELD_WRAPPER,
+  FORM,
+  INPUT,
+  LABEL,
+  NAV,
+  NAV_LINK,
+} from "../lib/ui/classes";
 
 // The first thing a visitor with no stored credentials sees, and what a
 // returning visitor's stored credentials skip past — see the `credentials`
@@ -33,13 +42,17 @@ export class CredentialsGate extends HTMLElement {
   private renderConnected(credentials: Credentials) {
     this.innerHTML = "";
     const nav = document.createElement("nav");
+    nav.className = NAV;
     const logLink = document.createElement("a");
+    logLink.className = NAV_LINK;
     logLink.href = "/log";
     logLink.textContent = "Log a viewing";
     const importLink = document.createElement("a");
+    importLink.className = NAV_LINK;
     importLink.href = "/import";
     importLink.textContent = "Import";
     const link = document.createElement("a");
+    link.className = NAV_LINK;
     link.href = "/settings";
     link.textContent = "Settings";
     nav.append(logLink, importLink, link);
@@ -63,6 +76,7 @@ export function buildCredentialsForm(options: {
 }): HTMLFormElement {
   const { submitLabel, values } = options;
   const form = document.createElement("form");
+  form.className = FORM;
 
   form.append(
     labelledField("caldav-url", "CalDAV server URL", "url", values?.caldavUrl ?? "", true),
@@ -85,6 +99,7 @@ export function buildCredentialsForm(options: {
 
   const submit = document.createElement("button");
   submit.type = "submit";
+  submit.className = BUTTON_PRIMARY;
   submit.textContent = submitLabel;
   form.appendChild(submit);
 
@@ -99,10 +114,13 @@ function labelledField(
   required: boolean,
 ): HTMLDivElement {
   const wrapper = document.createElement("div");
+  wrapper.className = FIELD_WRAPPER;
   const label = document.createElement("label");
+  label.className = LABEL;
   label.htmlFor = id;
   label.textContent = labelText;
   const input = document.createElement("input");
+  input.className = INPUT;
   input.id = id;
   input.name = id;
   input.type = type;

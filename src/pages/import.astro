@@ -1,23 +1,17 @@
 ---
-
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Import viewings — movie-planner-web</title>
-  </head>
-  <body>
-    <main>
-      <h1>Import viewings</h1>
-      <movie-import-form></movie-import-form>
-    </main>
-    <script>
-      import "../components/movie-import-form";
-    </script>
-  </body>
-</html>
+<Layout title="Import viewings — movie-planner-web">
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+    Import viewings
+  </h1>
+  <div class="mt-6">
+    <movie-import-form></movie-import-form>
+  </div>
+</Layout>
+
+<script>
+  import "../components/movie-import-form";
+</script>

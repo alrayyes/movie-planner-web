@@ -1,4 +1,5 @@
 import { getCredentialsStore } from "../lib/credentials/store";
+import { STATUS_TEXT } from "../lib/ui/classes";
 import { buildCredentialsForm, readCredentialsForm } from "./credentials-gate";
 
 // The settings screen a returning visitor edits stored credentials from —
@@ -12,6 +13,7 @@ export class CredentialsSettingsForm extends HTMLElement {
 
     const form = buildCredentialsForm({ submitLabel: "Save", values });
     const status = document.createElement("p");
+    status.className = `mt-3 ${STATUS_TEXT}`;
     status.setAttribute("role", "status");
 
     form.addEventListener("submit", async (event) => {

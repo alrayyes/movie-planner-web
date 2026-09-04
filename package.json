@@ -27,9 +27,11 @@
     "test:unit": "bun test src"
   },
   "dependencies": {
+    "@tailwindcss/vite": "4.3.3",
     "astro": "7.3.1",
     "fuzzball": "2.2.6",
-    "postal-mime": "3.0.0"
+    "postal-mime": "3.0.0",
+    "tailwindcss": "4.3.3"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

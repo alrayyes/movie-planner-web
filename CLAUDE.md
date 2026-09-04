@@ -37,9 +37,14 @@ Full list and what each one does: [CONTRIBUTING.md](CONTRIBUTING.md).
   actually running `astro check` under 7.0.2 and reading the error, not
   guessed. Check <https://github.com/withastro/roadmap/discussions/1321>
   before bumping past 6.x.
-- **Biome doesn't parse `.astro` files at all**, and `public/` is scoped
-  out of it entirely (static assets, not source). Prettier
+- **Biome only lints a `.astro` file's frontmatter script, not the
+  template below it** — confirmed live, not assumed: a frontmatter
+  import/prop used only in the template reads as unused
+  (`noUnusedImports`/`noUnusedVariables`) unless the specific line carries
+  a `// biome-ignore` comment, which every page's `Layout` import and
+  `Layout.astro`'s own `title` prop need. `public/` is scoped out of
+  Biome entirely (static assets, not source). Prettier
   (`prettier-plugin-astro`) formats `.astro` files; `astro check`
-  type-checks them.
+  type-checks them, template included.
 - **Renovate can't reach this repo.** It's GitHub-primary; Dependabot
   (`.github/dependabot.yml`) is what raises dependency pull requests here.
