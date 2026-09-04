@@ -15,7 +15,7 @@
     "lint:md": "markdownlint-cli2",
     "lint:mechanics": "./scripts/lint-mechanics.sh",
     "lint:prose": "./scripts/lint-prose.sh",
-    "prepare": "lefthook install",
+    "prepare": "lefthook install || true",
     "preview": "wrangler dev --port 4321",
     "sort-package-json": "sort-package-json",
     "sort-package-json:check": "sort-package-json --check",
