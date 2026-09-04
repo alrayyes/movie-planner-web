@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.3.0...movie-planner-web-v0.4.0) (2026-09-04)
+
+
+### Features
+
+* **caldav-proxy:** the seven CalDAV operations, real WebDAV wire calls ([#9](https://github.com/alrayyes/movie-planner-web/issues/9)) ([ec48e2e](https://github.com/alrayyes/movie-planner-web/commit/ec48e2edfd26338405abb798c95be29e356767d4))
+
 ## [0.3.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.2.0...movie-planner-web-v0.3.0) (2026-09-04)
 
 
