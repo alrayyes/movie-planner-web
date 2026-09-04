@@ -197,7 +197,7 @@ export class CalendarOverview extends HTMLElement {
     const table = document.createElement("table");
     table.className = TABLE;
     const thead = document.createElement("thead");
-    thead.className = "bg-slate-50";
+    thead.className = "bg-slate-50 dark:bg-slate-900/40";
     const headerRow = document.createElement("tr");
     for (const heading of [
       "Title",
@@ -219,7 +219,7 @@ export class CalendarOverview extends HTMLElement {
     thead.appendChild(headerRow);
 
     const tbody = document.createElement("tbody");
-    tbody.className = "divide-y divide-slate-200";
+    tbody.className = "divide-y divide-slate-200 dark:divide-slate-700";
     for (const viewing of viewings) {
       tbody.appendChild(
         viewing.uid === this.editingUid ? this.renderEditRow(viewing) : this.renderRow(viewing),
@@ -270,7 +270,7 @@ export class CalendarOverview extends HTMLElement {
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
-    deleteButton.className = `${BUTTON_SM} text-red-700 hover:bg-red-50`;
+    deleteButton.className = `${BUTTON_SM} text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950`;
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
       void this.handleDelete(viewing);
@@ -289,7 +289,7 @@ export class CalendarOverview extends HTMLElement {
     // "edit any field" covers fields (director/actors/ratings) the
     // read-only row layout has no column-per-field mapping for anyway.
     const editCell = document.createElement("td");
-    editCell.className = `${TD} bg-slate-50`;
+    editCell.className = `${TD} bg-slate-50 dark:bg-slate-900/40`;
     editCell.colSpan = 9;
     const grid = document.createElement("div");
     grid.className = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
@@ -315,7 +315,7 @@ export class CalendarOverview extends HTMLElement {
     }
 
     const buttonRow = document.createElement("div");
-    buttonRow.className = "mt-4 flex gap-2 border-t border-slate-200 pt-4";
+    buttonRow.className = "mt-4 flex gap-2 border-t border-slate-200 pt-4 dark:border-slate-700";
     editCell.appendChild(buttonRow);
     row.appendChild(editCell);
 
