@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.15.0...movie-planner-web-v0.15.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **omdb:** fall back to a plain title search when a year-scoped one finds nothing ([#52](https://github.com/alrayyes/movie-planner-web/issues/52)) ([6d6516c](https://github.com/alrayyes/movie-planner-web/commit/6d6516cd1ba195981cb4e0e5d3cac822dc138afc))
+
 ## [0.15.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.14.0...movie-planner-web-v0.15.0) (2026-09-04)
 
 
