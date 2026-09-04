@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.10.0...movie-planner-web-v0.11.0) (2026-09-04)
+
+
+### Features
+
+* **movie-log:** make end time optional on the manual log form ([#31](https://github.com/alrayyes/movie-planner-web/issues/31)) ([6902fc1](https://github.com/alrayyes/movie-planner-web/commit/6902fc18c9019553bc9c836c4ce661e6493f452f))
+
 ## [0.10.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.9.0...movie-planner-web-v0.10.0) (2026-09-04)
 
 
