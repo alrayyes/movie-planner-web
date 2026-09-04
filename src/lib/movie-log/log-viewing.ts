@@ -10,10 +10,12 @@ import type { PatheBooking } from "./pathe-email";
 async function enrichWithOmdb(
   credentials: Credentials,
   title: string,
+  watchedAt: string,
 ): Promise<Partial<NewViewing>> {
   if (!credentials.omdbApiKey) return {};
   try {
-    const metadata = await lookupMovie(credentials.omdbApiKey, title);
+    const year = new Date(watchedAt).getFullYear().toString();
+    const metadata = await lookupMovie(credentials.omdbApiKey, title, year);
     return metadata ?? {};
   } catch {
     return {};
@@ -26,7 +28,7 @@ export async function logManualViewing(credentials: Credentials, viewing: NewVie
     username: credentials.caldavUsername,
     password: credentials.caldavPassword,
   };
-  const enrichment = await enrichWithOmdb(credentials, viewing.title);
+  const enrichment = await enrichWithOmdb(credentials, viewing.title, viewing.start);
   return createViewing(config, { ...viewing, ...enrichment });
 }
 
@@ -61,7 +63,7 @@ export async function logPatheBooking(credentials: Credentials, booking: PatheBo
     venue: booking.cinema,
     bookingRef: booking.bookingRef,
   };
-  const enrichment = await enrichWithOmdb(credentials, booking.title);
+  const enrichment = await enrichWithOmdb(credentials, booking.title, booking.start);
   const merged = { ...viewing, ...enrichment };
 
   if (duplicate) {

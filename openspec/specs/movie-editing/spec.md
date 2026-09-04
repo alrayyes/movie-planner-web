@@ -23,14 +23,23 @@ OMDb actually reports and there would be no way to tell the two apart.
 ### Requirement: Refresh OMDb metadata
 
 The system SHALL let a visitor re-run the best-effort OMDb lookup for an
-already-logged viewing, using its stored title, and SHALL overwrite the
-CalDAV event's OMDb-sourced fields with the new result. The system SHALL
-only offer this when the visitor has an OMDb key set.
+already-logged viewing, using its stored title and the year it was
+watched as a fuzzy disambiguation hint, and SHALL overwrite the CalDAV
+event's OMDb-sourced fields with the new result. The system SHALL only
+offer this when the visitor has an OMDb key set. A year-scoped search
+that finds nothing SHALL fall back to a plain title search rather than
+reporting no match, since a re-watch of an older film is logged in a
+different year than its actual release.
 
 #### Scenario: Stale metadata refreshed
 
 - **WHEN** a visitor with an OMDb key set refreshes a logged viewing
-- **THEN** the system SHALL re-fetch the best-effort match for its stored title and overwrite its director, actors, ratings, genre, year, poster, and IMDb ID with the new result
+- **THEN** the system SHALL re-fetch the best-effort match for its stored title, using its watched year as a hint, and overwrite its director, actors, ratings, genre, year, poster, and IMDb ID with the new result
+
+#### Scenario: Watched year doesn't match the film's actual release year
+
+- **WHEN** a visitor refreshes a viewing whose watched year returns no OMDb match for that title
+- **THEN** the system SHALL fall back to a plain title search and use that result instead of reporting no match
 
 ### Requirement: Delete a logged viewing
 
