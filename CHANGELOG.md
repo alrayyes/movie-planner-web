@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.17.1...movie-planner-web-v0.18.0) (2026-09-04)
+
+
+### Features
+
+* **omdb:** offer a disambiguation picker when there's no confident match ([#62](https://github.com/alrayyes/movie-planner-web/issues/62)) ([6fed955](https://github.com/alrayyes/movie-planner-web/commit/6fed95527c505ed6a13cde091a60f35ec53779c4))
+
 ## [0.17.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.17.0...movie-planner-web-v0.17.1) (2026-09-04)
 
 
