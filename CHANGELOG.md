@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.16.0...movie-planner-web-v0.17.0) (2026-09-04)
+
+
+### Features
+
+* **calendar-overview:** add a bulk "Refresh all metadata" button ([#57](https://github.com/alrayyes/movie-planner-web/issues/57)) ([92244bd](https://github.com/alrayyes/movie-planner-web/commit/92244bd31d3b1589060f082b8dc1dbaf5665d140))
+
 ## [0.16.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.15.1...movie-planner-web-v0.16.0) (2026-09-04)
 
 
