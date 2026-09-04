@@ -48,8 +48,9 @@ test.describe("manual log form", () => {
     const server = await connect(page);
 
     await page.locator("#log-title").fill("Paddington");
-    await page.locator("#log-start").fill("2026-02-01T18:00");
-    await page.locator("#log-end").fill("2026-02-01T19:40");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.locator("#log-start-time").fill("18:00");
+    await page.locator("#log-end-time").fill("19:40");
     await page.locator("#log-medium").fill("netflix");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
@@ -57,6 +58,23 @@ test.describe("manual log form", () => {
     expect(server.creates).toHaveLength(1);
     expect(server.creates[0]?.title).toBe("Paddington");
     expect(server.creates[0]?.medium).toBe("netflix");
+  });
+
+  test("logs with just a date — start and end time are both optional", async ({ page }) => {
+    const server = await connect(page);
+
+    await page.locator("#log-title").fill("Paddington");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.locator("#log-medium").fill("netflix");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates).toHaveLength(1);
+    // No time given defaults to midnight; no end time given defaults to
+    // the (also-defaulted) start time — same rule the CSV/JSON importer
+    // already applies to a row with no times at all.
+    expect(server.creates[0]?.start).toBe(new Date("2026-02-01T00:00:00").toISOString());
+    expect(server.creates[0]?.end).toBe(server.creates[0]?.start);
   });
 
   test("a11y scan on the log screen", async ({ page }) => {
@@ -138,8 +156,9 @@ test.describe("OMDb enrichment", () => {
     });
 
     await page.locator("#log-title").fill("Dune");
-    await page.locator("#log-start").fill("2026-01-01T19:00");
-    await page.locator("#log-end").fill("2026-01-01T21:30");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-start-time").fill("19:00");
+    await page.locator("#log-end-time").fill("21:30");
     await page.locator("#log-medium").fill("cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
@@ -154,8 +173,9 @@ test.describe("OMDb enrichment", () => {
     const server = await connect(page);
 
     await page.locator("#log-title").fill("Paddington");
-    await page.locator("#log-start").fill("2026-02-01T18:00");
-    await page.locator("#log-end").fill("2026-02-01T19:40");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.locator("#log-start-time").fill("18:00");
+    await page.locator("#log-end-time").fill("19:40");
     await page.locator("#log-medium").fill("netflix");
     await page.getByRole("button", { name: "Log viewing" }).click();
 

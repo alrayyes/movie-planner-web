@@ -34,8 +34,9 @@ test.describe("location-management", () => {
     const server = await connect(page, { media: [], venues: [] });
 
     await page.locator("#log-title").fill("Dune");
-    await page.locator("#log-start").fill("2026-01-01T19:00");
-    await page.locator("#log-end").fill("2026-01-01T21:30");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-start-time").fill("19:00");
+    await page.locator("#log-end-time").fill("21:30");
     await page.locator("#log-medium").fill("cinema");
     await page.locator("#log-venue").fill("Grand Vista Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();

@@ -56,10 +56,12 @@ export function importCheckRange(): { from: string; to: string } {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
-function toIsoDateTime(date: string, time: string | undefined): string {
-  // No timezone in the import format, same as the manual log form's
-  // datetime-local inputs — interpreted as the visitor's own browser
-  // timezone, not assumed to be anywhere specific.
+// No timezone in the import format, same as the manual log form's date +
+// optional time fields — interpreted as the visitor's own browser
+// timezone, not assumed to be anywhere specific. A missing time defaults
+// to midnight; shared with movie-log-form.ts so both entry points treat
+// "no time given" identically.
+export function toIsoDateTime(date: string, time: string | undefined): string {
   return new Date(`${date}T${time ?? "00:00"}:00`).toISOString();
 }
 

@@ -4,6 +4,7 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
+import { toIsoDateTime } from "../lib/movie-log/run-import";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -123,8 +124,9 @@ export class MovieLogForm extends HTMLElement {
 
     const fields: [string, string, string, boolean, string?][] = [
       ["log-title", "Title", "text", true],
-      ["log-start", "Start", "datetime-local", true],
-      ["log-end", "End", "datetime-local", true],
+      ["log-date", "Date", "date", true],
+      ["log-start-time", "Start time (optional)", "time", false],
+      ["log-end-time", "End time (optional)", "time", false],
       ["log-medium", "Medium", "text", true, "log-medium-choices"],
       ["log-venue", "Venue", "text", false, "log-venue-choices"],
     ];
@@ -156,15 +158,19 @@ export class MovieLogForm extends HTMLElement {
       event.preventDefault();
       if (!this.credentials || !this.statusEl) return;
       const data = new FormData(form);
-      const start = String(data.get("log-start"));
-      const end = String(data.get("log-end"));
+      const date = String(data.get("log-date"));
+      const startTime = String(data.get("log-start-time") || "") || undefined;
+      const endTime = String(data.get("log-end-time") || "") || undefined;
       const medium = String(data.get("log-medium"));
       const venue = String(data.get("log-venue") || "") || undefined;
       try {
         await logManualViewing(this.credentials, {
           title: String(data.get("log-title")),
-          start: new Date(start).toISOString(),
-          end: new Date(end).toISOString(),
+          // A missing time defaults to midnight; a missing end time
+          // defaults to the start time — same as the CSV/JSON importer
+          // (run-import.ts) for a row that only gives a date.
+          start: toIsoDateTime(date, startTime),
+          end: toIsoDateTime(date, endTime ?? startTime),
           medium,
           venue,
         });
