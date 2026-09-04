@@ -1,5 +1,19 @@
 import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
+import {
+  BUTTON_PRIMARY,
+  BUTTON_SECONDARY,
+  BUTTON_SM,
+  FIELD_WRAPPER,
+  INPUT,
+  LABEL,
+  STATUS_TEXT,
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TH,
+  TR_BODY,
+} from "../lib/ui/classes";
 
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
@@ -50,15 +64,18 @@ export class CalendarOverview extends HTMLElement {
     }
     this.config = config;
 
+    this.className = "flex flex-col gap-4";
     this.innerHTML = "";
     this.buildFilters();
     this.statusEl = document.createElement("p");
+    this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
     // Separate from statusEl (the result count, rewritten on every reload)
     // so a "Saved."/"Deleted." confirmation isn't clobbered the instant
     // the post-write reload runs — see the movie-editing tests for why
     // this used to disappear before anyone could read it.
     this.actionStatusEl = document.createElement("p");
+    this.actionStatusEl.className = STATUS_TEXT;
     this.actionStatusEl.setAttribute("role", "status");
     this.listContainer = document.createElement("div");
     this.append(this.statusEl, this.actionStatusEl, this.listContainer);
@@ -68,39 +85,54 @@ export class CalendarOverview extends HTMLElement {
 
   private buildFilters() {
     const form = document.createElement("form");
+    form.className = "flex flex-wrap items-end gap-3";
     form.setAttribute("aria-label", "Filter logged viewings");
 
     const fromLabel = document.createElement("label");
-    fromLabel.textContent = "From";
+    fromLabel.className = FIELD_WRAPPER;
+    const fromText = document.createElement("span");
+    fromText.className = LABEL;
+    fromText.textContent = "From";
     this.fromInput = document.createElement("input");
+    this.fromInput.className = INPUT;
     this.fromInput.type = "date";
     fromLabel.htmlFor = "overview-from";
     this.fromInput.id = "overview-from";
-    fromLabel.appendChild(this.fromInput);
+    fromLabel.append(fromText, this.fromInput);
 
     const toLabel = document.createElement("label");
-    toLabel.textContent = "To";
+    toLabel.className = FIELD_WRAPPER;
+    const toText = document.createElement("span");
+    toText.className = LABEL;
+    toText.textContent = "To";
     this.toInput = document.createElement("input");
+    this.toInput.className = INPUT;
     this.toInput.type = "date";
     toLabel.htmlFor = "overview-to";
     this.toInput.id = "overview-to";
-    toLabel.appendChild(this.toInput);
+    toLabel.append(toText, this.toInput);
 
     const mediumLabel = document.createElement("label");
-    mediumLabel.textContent = "Medium";
+    mediumLabel.className = FIELD_WRAPPER;
+    const mediumText = document.createElement("span");
+    mediumText.className = LABEL;
+    mediumText.textContent = "Medium";
     this.mediumInput = document.createElement("input");
+    this.mediumInput.className = INPUT;
     this.mediumInput.type = "text";
     this.mediumInput.placeholder = "e.g. cinema";
     mediumLabel.htmlFor = "overview-medium";
     this.mediumInput.id = "overview-medium";
-    mediumLabel.appendChild(this.mediumInput);
+    mediumLabel.append(mediumText, this.mediumInput);
 
     const submit = document.createElement("button");
     submit.type = "submit";
+    submit.className = BUTTON_PRIMARY;
     submit.textContent = "Filter";
 
     const clear = document.createElement("button");
     clear.type = "button";
+    clear.className = BUTTON_SECONDARY;
     clear.textContent = "Clear filter";
     clear.addEventListener("click", () => {
       form.reset();
@@ -153,8 +185,12 @@ export class CalendarOverview extends HTMLElement {
 
     if (viewings.length === 0) return;
 
+    const wrap = document.createElement("div");
+    wrap.className = TABLE_WRAP;
     const table = document.createElement("table");
+    table.className = TABLE;
     const thead = document.createElement("thead");
+    thead.className = "bg-slate-50";
     const headerRow = document.createElement("tr");
     for (const heading of [
       "Title",
@@ -168,6 +204,7 @@ export class CalendarOverview extends HTMLElement {
       "Actions",
     ]) {
       const th = document.createElement("th");
+      th.className = TH;
       th.scope = "col";
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -175,6 +212,7 @@ export class CalendarOverview extends HTMLElement {
     thead.appendChild(headerRow);
 
     const tbody = document.createElement("tbody");
+    tbody.className = "divide-y divide-slate-200";
     for (const viewing of viewings) {
       tbody.appendChild(
         viewing.uid === this.editingUid ? this.renderEditRow(viewing) : this.renderRow(viewing),
@@ -182,11 +220,13 @@ export class CalendarOverview extends HTMLElement {
     }
 
     table.append(thead, tbody);
-    this.listContainer.appendChild(table);
+    wrap.appendChild(table);
+    this.listContainer.appendChild(wrap);
   }
 
   private renderRow(viewing: LoggedViewing): HTMLTableRowElement {
     const row = document.createElement("tr");
+    row.className = TR_BODY;
     const ratings = [
       viewing.ratingImdb && `IMDb ${viewing.ratingImdb}`,
       viewing.ratingRottenTomatoes && `RT ${viewing.ratingRottenTomatoes}`,
@@ -205,13 +245,16 @@ export class CalendarOverview extends HTMLElement {
       ratings,
     ]) {
       const td = document.createElement("td");
+      td.className = TD;
       td.textContent = value;
       row.appendChild(td);
     }
 
     const actions = document.createElement("td");
+    actions.className = `${TD} flex gap-2`;
     const editButton = document.createElement("button");
     editButton.type = "button";
+    editButton.className = BUTTON_SM;
     editButton.textContent = "Edit";
     editButton.addEventListener("click", () => {
       this.editingUid = viewing.uid;
@@ -220,6 +263,7 @@ export class CalendarOverview extends HTMLElement {
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
+    deleteButton.className = `${BUTTON_SM} text-red-700 hover:bg-red-50`;
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
       void this.handleDelete(viewing);
@@ -238,28 +282,39 @@ export class CalendarOverview extends HTMLElement {
     // "edit any field" covers fields (director/actors/ratings) the
     // read-only row layout has no column-per-field mapping for anyway.
     const editCell = document.createElement("td");
-    editCell.colSpan = 8;
+    editCell.className = `${TD} bg-slate-50`;
+    editCell.colSpan = 9;
+    const grid = document.createElement("div");
+    grid.className = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
+    editCell.appendChild(grid);
     for (const field of EDITABLE_FIELDS) {
       const wrapper = document.createElement("div");
+      wrapper.className = FIELD_WRAPPER;
       const label = document.createElement("label");
+      label.className = LABEL;
       const id = `edit-${viewing.uid}-${field.key}`;
       label.htmlFor = id;
       label.textContent = field.label;
       const input = document.createElement("input");
+      input.className = INPUT;
       input.id = id;
       input.type = field.type;
       const value = viewing[field.key];
       input.value =
         (field.type === "datetime-local" ? toDatetimeLocal(String(value)) : value) ?? "";
       wrapper.append(label, input);
-      editCell.appendChild(wrapper);
+      grid.appendChild(wrapper);
       inputs.set(field.key, input);
     }
+
+    const buttonRow = document.createElement("div");
+    buttonRow.className = "mt-4 flex gap-2 border-t border-slate-200 pt-4";
+    editCell.appendChild(buttonRow);
     row.appendChild(editCell);
 
-    const actions = document.createElement("td");
     const saveButton = document.createElement("button");
     saveButton.type = "button";
+    saveButton.className = BUTTON_PRIMARY;
     saveButton.textContent = "Save";
     saveButton.addEventListener("click", async () => {
       if (!this.config || !this.actionStatusEl) return;
@@ -288,14 +343,14 @@ export class CalendarOverview extends HTMLElement {
 
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
+    cancelButton.className = BUTTON_SECONDARY;
     cancelButton.textContent = "Cancel";
     cancelButton.addEventListener("click", () => {
       this.editingUid = undefined;
       this.render();
     });
 
-    actions.append(saveButton, cancelButton);
-    row.appendChild(actions);
+    buttonRow.append(saveButton, cancelButton);
     return row;
   }
 

@@ -4,6 +4,19 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
+import {
+  BUTTON_PRIMARY,
+  BUTTON_SECONDARY,
+  DD,
+  DL,
+  DT,
+  FIELD_WRAPPER,
+  FORM,
+  INPUT,
+  LABEL,
+  SECTION_HEADING,
+  STATUS_TEXT,
+} from "../lib/ui/classes";
 
 // movie-log spec: logging a viewing, via the manual form or by parsing a
 // Pathé booking email, with best-effort OMDb enrichment. See
@@ -36,8 +49,10 @@ export class MovieLogForm extends HTMLElement {
       throw new Error("<movie-log-form> requires stored credentials");
     }
 
+    this.className = "flex flex-col gap-8";
     this.innerHTML = "";
     this.statusEl = document.createElement("p");
+    this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
     this.mediumList = document.createElement("datalist");
     this.mediumList.id = "log-medium-choices";
@@ -95,8 +110,15 @@ export class MovieLogForm extends HTMLElement {
     }
   }
 
-  private buildManualForm(): HTMLFormElement {
+  private buildManualForm(): HTMLElement {
+    const wrapperSection = document.createElement("section");
+    wrapperSection.className = "flex flex-col gap-4";
+    const heading = document.createElement("h2");
+    heading.className = SECTION_HEADING;
+    heading.textContent = "Log manually";
+
     const form = document.createElement("form");
+    form.className = FORM;
     form.setAttribute("aria-label", "Log a viewing manually");
 
     const fields: [string, string, string, boolean, string?][] = [
@@ -108,10 +130,13 @@ export class MovieLogForm extends HTMLElement {
     ];
     for (const [id, labelText, type, required, listId] of fields) {
       const wrapper = document.createElement("div");
+      wrapper.className = FIELD_WRAPPER;
       const label = document.createElement("label");
+      label.className = LABEL;
       label.htmlFor = id;
       label.textContent = labelText;
       const input = document.createElement("input");
+      input.className = INPUT;
       input.id = id;
       input.name = id;
       input.type = type;
@@ -123,6 +148,7 @@ export class MovieLogForm extends HTMLElement {
 
     const submit = document.createElement("button");
     submit.type = "submit";
+    submit.className = `${BUTTON_PRIMARY} self-start`;
     submit.textContent = "Log viewing";
     form.appendChild(submit);
 
@@ -151,20 +177,29 @@ export class MovieLogForm extends HTMLElement {
       }
     });
 
-    return form;
+    wrapperSection.append(heading, form);
+    return wrapperSection;
   }
 
   private buildPatheEmailSection(): HTMLElement {
     const section = document.createElement("section");
+    section.className = "flex flex-col gap-4 border-t border-slate-200 pt-6";
     section.setAttribute("aria-label", "Log from a Pathé booking email");
 
+    const heading = document.createElement("h2");
+    heading.className = SECTION_HEADING;
+    heading.textContent = "Log from a Pathé booking email";
+
     const label = document.createElement("label");
+    label.className = LABEL;
     label.htmlFor = "pathe-email-text";
     label.textContent = "Paste the booking confirmation email, or upload the .eml file";
     const textarea = document.createElement("textarea");
     textarea.id = "pathe-email-text";
+    textarea.className = `${INPUT} min-h-32`;
     const fileInput = document.createElement("input");
     fileInput.type = "file";
+    fileInput.className = "text-sm text-slate-600";
     fileInput.accept = ".eml,message/rfc822";
     fileInput.setAttribute("aria-label", "Upload a Pathé booking confirmation .eml file");
     fileInput.addEventListener("change", async () => {
@@ -174,9 +209,11 @@ export class MovieLogForm extends HTMLElement {
 
     const parseButton = document.createElement("button");
     parseButton.type = "button";
+    parseButton.className = `${BUTTON_SECONDARY} self-start`;
     parseButton.textContent = "Parse";
 
     const confirmArea = document.createElement("div");
+    confirmArea.className = "flex flex-col gap-3 rounded-lg bg-slate-50 p-4";
     confirmArea.hidden = true;
 
     let parsedBooking: PatheBooking | undefined;
@@ -197,6 +234,7 @@ export class MovieLogForm extends HTMLElement {
 
     const confirmButton = document.createElement("button");
     confirmButton.type = "button";
+    confirmButton.className = `${BUTTON_PRIMARY} self-start`;
     confirmButton.textContent = "Confirm and log";
     confirmButton.addEventListener("click", async () => {
       if (!parsedBooking || !this.credentials || !this.statusEl) return;
@@ -214,7 +252,7 @@ export class MovieLogForm extends HTMLElement {
     });
     confirmArea.appendChild(confirmButton);
 
-    section.append(label, textarea, fileInput, parseButton, confirmArea);
+    section.append(heading, label, textarea, fileInput, parseButton, confirmArea);
     return section;
   }
 
@@ -222,6 +260,7 @@ export class MovieLogForm extends HTMLElement {
     const existingButton = confirmArea.querySelector("button");
     confirmArea.innerHTML = "";
     const summary = document.createElement("dl");
+    summary.className = DL;
     for (const [term, value] of [
       ["Title", booking.title],
       ["Start", new Date(booking.start).toLocaleString()],
@@ -230,8 +269,10 @@ export class MovieLogForm extends HTMLElement {
       ["Booking number", booking.bookingRef],
     ]) {
       const dt = document.createElement("dt");
+      dt.className = DT;
       dt.textContent = term;
       const dd = document.createElement("dd");
+      dd.className = DD;
       dd.textContent = value;
       summary.append(dt, dd);
     }

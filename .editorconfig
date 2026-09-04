@@ -8,7 +8,7 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yml,yaml}]
+[*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yml,yaml,astro,css}]
 indent_style = space
 indent_size = 2
 

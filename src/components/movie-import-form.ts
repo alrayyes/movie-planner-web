@@ -7,6 +7,16 @@ import {
   importRow,
   planImport,
 } from "../lib/movie-log/run-import";
+import {
+  BUTTON_PRIMARY,
+  LABEL,
+  STATUS_TEXT,
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TH,
+  TR_BODY,
+} from "../lib/ui/classes";
 
 // bulk-import spec: CSV/JSON import with duplicate detection (against both
 // the existing calendar and rows earlier in the same file), confirmed
@@ -24,21 +34,29 @@ export class MovieImportForm extends HTMLElement {
       throw new Error("<movie-import-form> requires stored credentials");
     }
 
+    this.className = "flex flex-col gap-4";
     this.innerHTML = "";
     this.statusEl = document.createElement("p");
+    this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
     this.reviewContainer = document.createElement("div");
+    this.reviewContainer.className = "flex flex-col gap-4";
 
+    const fieldWrapper = document.createElement("div");
+    fieldWrapper.className = "flex flex-col gap-1";
     const label = document.createElement("label");
+    label.className = LABEL;
     label.htmlFor = "import-file";
     label.textContent = "Choose a CSV or JSON export";
     const fileInput = document.createElement("input");
     fileInput.type = "file";
+    fileInput.className = "text-sm text-slate-600";
     fileInput.id = "import-file";
     fileInput.accept = ".csv,.json,text/csv,application/json";
     fileInput.addEventListener("change", () => void this.handleFileSelected(fileInput));
+    fieldWrapper.append(label, fileInput);
 
-    this.append(label, fileInput, this.statusEl, this.reviewContainer);
+    this.append(fieldWrapper, this.statusEl, this.reviewContainer);
   }
 
   private async handleFileSelected(fileInput: HTMLInputElement) {
@@ -70,6 +88,7 @@ export class MovieImportForm extends HTMLElement {
 
     if (this.parseErrors.length > 0) {
       const errorList = document.createElement("ul");
+      errorList.className = "list-inside list-disc text-sm text-red-700";
       for (const { rowNumber, error } of this.parseErrors) {
         const li = document.createElement("li");
         li.textContent = `Row ${rowNumber}: ${error}`;
@@ -80,11 +99,16 @@ export class MovieImportForm extends HTMLElement {
 
     if (this.plan.length === 0) return;
 
+    const wrap = document.createElement("div");
+    wrap.className = TABLE_WRAP;
     const table = document.createElement("table");
+    table.className = TABLE;
     const thead = document.createElement("thead");
+    thead.className = "bg-slate-50";
     const headerRow = document.createElement("tr");
     for (const heading of ["Include", "Title", "Date", "Medium", "Duplicate of"]) {
       const th = document.createElement("th");
+      th.className = TH;
       th.scope = "col";
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -92,18 +116,23 @@ export class MovieImportForm extends HTMLElement {
     thead.appendChild(headerRow);
 
     const tbody = document.createElement("tbody");
+    tbody.className = "divide-y divide-slate-200";
     const checkboxes = new Map<number, HTMLInputElement>();
     for (const entry of this.plan) {
       const row = document.createElement("tr");
+      row.className = TR_BODY;
 
       const includeCell = document.createElement("td");
+      includeCell.className = `${TD} flex items-center gap-2`;
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
+      checkbox.className = "size-4 rounded border-slate-300 text-indigo-600";
       checkbox.id = `import-include-${entry.rowNumber}`;
       // bulk-import spec: a likely duplicate needs explicit confirmation —
       // starts unchecked, unlike every non-duplicate row.
       checkbox.checked = !entry.isDuplicate;
       const checkboxLabel = document.createElement("label");
+      checkboxLabel.className = "text-sm text-slate-700";
       checkboxLabel.htmlFor = checkbox.id;
       checkboxLabel.textContent = entry.isDuplicate ? "Import anyway" : "Import";
       includeCell.append(checkbox, checkboxLabel);
@@ -117,19 +146,22 @@ export class MovieImportForm extends HTMLElement {
         entry.duplicateOfTitle ?? "",
       ]) {
         const td = document.createElement("td");
+        td.className = TD;
         td.textContent = value;
         row.appendChild(td);
       }
       tbody.appendChild(row);
     }
     table.append(thead, tbody);
+    wrap.appendChild(table);
 
     const importButton = document.createElement("button");
     importButton.type = "button";
+    importButton.className = `${BUTTON_PRIMARY} self-start`;
     importButton.textContent = "Import checked rows";
     importButton.addEventListener("click", () => void this.runImport(checkboxes));
 
-    this.reviewContainer.append(table, importButton);
+    this.reviewContainer.append(wrap, importButton);
   }
 
   private async runImport(checkboxes: Map<number, HTMLInputElement>) {

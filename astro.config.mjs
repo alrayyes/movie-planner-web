@@ -1,4 +1,5 @@
 // @ts-check
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
 // Fully static — the CalDAV and OMDb clients run in the browser and call
@@ -10,4 +11,7 @@ import { defineConfig } from "astro/config";
 // https://astro.build/config
 export default defineConfig({
   output: "static",
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });
