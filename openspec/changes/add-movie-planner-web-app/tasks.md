@@ -37,9 +37,9 @@
 
 ## 6. Editing a Viewing
 
-- [ ] 6.1 Build update (edit any field) from the overview; verify a Playwright test edits an entry and confirms the CalDAV event changed
-- [ ] 6.2 Build delete with a confirmation step; verify a Playwright test confirms the CalDAV event is removed only after confirming
-- [ ] 6.3 Verify `movie-editing` spec scenarios all have a corresponding automated test
+- [x] 6.1 Build update (edit any field) from the overview; verify a Playwright test edits an entry and confirms the CalDAV event changed
+- [x] 6.2 Build delete with a confirmation step; verify a Playwright test confirms the CalDAV event is removed only after confirming
+- [x] 6.3 Verify `movie-editing` spec scenarios all have a corresponding automated test
 
 ## 7. Bulk Import
 
