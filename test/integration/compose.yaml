@@ -1,4 +1,4 @@
-# A real Baikal instance for the caldav-proxy integration tests — the
+# A real Baikal instance for the caldav-client integration tests — the
 # testing rule's "container / integration: real HTTP in containers, not
 # mocks" layer. Unit tests (src/lib/caldav/*.test.ts) already cover branches
 # and edge cases against a mocked fetch; this layer exists to catch what

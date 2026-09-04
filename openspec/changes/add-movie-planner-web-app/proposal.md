@@ -19,10 +19,17 @@ service.
   an optional OMDb API key; stored in the visitor's own browser
   (IndexedDB), never on a server. A `/settings` screen edits these after
   the first visit.
-- A stateless serverless proxy function relays CalDAV requests from the
-  browser (to work around CORS), with SSRF hardening on the
-  server-supplied URL — no server-side accounts, nothing logged or
-  persisted server-side.
+- Fully static — the browser calls the visitor's own CalDAV (and, when
+  set, OMDb) server directly, with no server-side relay of any kind.
+  **BREAKING** (of an earlier revision of this same proposal, not a
+  released API): an earlier version routed these calls through a
+  stateless serverless proxy to work around CORS; that's reversed here
+  because even a stateless, nothing-logged relay still sees a visitor's
+  plaintext credentials in memory for each request, and the goal is zero
+  credential exposure to any server this project runs, not just zero
+  persistence. The trade-off: any CalDAV server a visitor points the app
+  at now has to send CORS headers permitting this app's origin — see
+  design.md's Risks/Trade-offs.
 - CalDAV is the sole source of truth for the web app: every read and
   write goes straight to the visitor's calendar. No shared database, no
   dependency on the CLI's local SQLite store.
@@ -50,9 +57,10 @@ service.
 
 - `credentials`: first-load CalDAV/OMDb credential capture, browser-only
   storage, and the `/settings` screen for editing them later.
-- `caldav-proxy`: the stateless serverless function that relays CalDAV
-  requests for the browser, including SSRF hardening on the
-  server-supplied calendar URL.
+- `caldav-client`: the browser-side module that speaks CalDAV/WebDAV
+  directly to the visitor's own server — no server-side relay, so any
+  CalDAV server a visitor uses has to send CORS headers permitting this
+  app's origin.
 - `calendar-overview`: the main screen — browsing and filtering logged
   viewings with full metadata.
 - `movie-log`: logging a viewing, via form or Pathé email parsing, with
@@ -70,10 +78,13 @@ service.
 
 - New repo (`movie-planner-web`), currently empty — this change is its
   first implementation.
-- Deploys to Cloudflare Workers (preview builds per pull request, and
-  production on `main`); Cloudflare project setup is tracked separately
-  in a forge issue, not part of this change's tasks.
+- Deploys to Cloudflare (preview builds per pull request, and production
+  on `main`) as a static site served by a Worker with no application
+  logic (`wrangler.jsonc`'s `assets` config, no `main` script);
+  Cloudflare project setup is tracked separately in a forge issue, not
+  part of this change's tasks.
 - No changes to the `movie-planner` CLI or its repo — the two share no
   code, only the CalDAV data they both read/write.
-- Every visitor's CalDAV and OMDb credentials pass through the proxy
-  function per-request only; the operator never stores them.
+- A visitor's CalDAV and OMDb credentials never leave their own browser
+  except to reach their own CalDAV/OMDb server directly; no server this
+  project runs ever receives or sees them, not even transiently.

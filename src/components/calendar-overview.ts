@@ -1,4 +1,4 @@
-import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/api-client";
+import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 
 // calendar-overview spec: the main screen — every logged viewing with full
@@ -8,7 +8,7 @@ import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/type
 // than anything this element does itself). Also carries the
 // movie-editing capability's update/delete controls, since both act on
 // the same rows this screen already renders.
-const DEFAULT_RANGE_YEARS_BACK = 10;
+const DEFAULT_RANGE_MONTHS_BACK = 3;
 const DEFAULT_RANGE_YEARS_FORWARD = 1;
 
 const EDITABLE_FIELDS: { key: keyof NewViewing; label: string; type: string }[] = [
@@ -99,7 +99,15 @@ export class CalendarOverview extends HTMLElement {
     submit.type = "submit";
     submit.textContent = "Filter";
 
-    form.append(fromLabel, toLabel, mediumLabel, submit);
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.textContent = "Clear filter";
+    clear.addEventListener("click", () => {
+      form.reset();
+      void this.reload();
+    });
+
+    form.append(fromLabel, toLabel, mediumLabel, submit, clear);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       void this.reload();
@@ -111,7 +119,7 @@ export class CalendarOverview extends HTMLElement {
   private currentRange() {
     const now = new Date();
     const defaultFrom = new Date(now);
-    defaultFrom.setFullYear(now.getFullYear() - DEFAULT_RANGE_YEARS_BACK);
+    defaultFrom.setMonth(now.getMonth() - DEFAULT_RANGE_MONTHS_BACK);
     const defaultTo = new Date(now);
     defaultTo.setFullYear(now.getFullYear() + DEFAULT_RANGE_YEARS_FORWARD);
 

@@ -1,4 +1,5 @@
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -11,30 +12,6 @@ Paddington,2026-02-01,18:00,19:40,netflix,,
 Paddington in Peru,2026-02-15,18:00,19:45,netflix,,
 `;
 
-function mockEventList(page: Page, viewings: unknown[]) {
-  page.route("**/api/caldav/events/list", async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(viewings),
-    });
-  });
-}
-
-function trackCreates(page: Page) {
-  const creates: unknown[] = [];
-  page.route("**/api/caldav/events/create", async (route: Route) => {
-    const body = route.request().postDataJSON();
-    creates.push(body);
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ uid: `uid-${creates.length}`, ...body.viewing }),
-    });
-  });
-  return creates;
-}
-
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -46,9 +23,8 @@ async function connect(page: Page) {
 
 test.describe("CSV/JSON import", () => {
   test("uploads a CSV file and creates a CalDAV event for each valid row", async ({ page }) => {
-    mockEventList(page, []);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
-    const creates = trackCreates(page);
 
     await page.locator("#import-file").setInputFiles({
       name: "movies.csv",
@@ -60,13 +36,13 @@ test.describe("CSV/JSON import", () => {
     await page.getByRole("button", { name: "Import checked rows" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Imported 2, skipped 0, failed 0.");
-    expect(creates).toHaveLength(2);
+    expect(server.creates).toHaveLength(2);
   });
 });
 
 test.describe("duplicate detection", () => {
   test("flags a row matching the existing calendar and requires confirmation", async ({ page }) => {
-    mockEventList(page, [
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {
         uid: "existing-uid",
         title: "Paddington",
@@ -76,7 +52,6 @@ test.describe("duplicate detection", () => {
       },
     ]);
     await connect(page);
-    const creates = trackCreates(page);
 
     await page.locator("#import-file").setInputFiles({
       name: "movies.csv",
@@ -94,12 +69,12 @@ test.describe("duplicate detection", () => {
     // Confirm without checking the duplicate's box.
     await page.getByRole("button", { name: "Import checked rows" }).click();
     await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 1, failed 0.");
-    expect(creates).toHaveLength(1);
-    expect((creates[0] as { viewing: { title: string } }).viewing.title).toBe("Paddington in Peru");
+    expect(server.creates).toHaveLength(1);
+    expect(server.creates[0]?.title).toBe("Paddington in Peru");
   });
 
   test("a duplicate can still be imported once explicitly confirmed", async ({ page }) => {
-    mockEventList(page, [
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {
         uid: "existing-uid",
         title: "Paddington",
@@ -109,7 +84,6 @@ test.describe("duplicate detection", () => {
       },
     ]);
     await connect(page);
-    const creates = trackCreates(page);
 
     await page.locator("#import-file").setInputFiles({
       name: "movies.csv",
@@ -121,6 +95,6 @@ test.describe("duplicate detection", () => {
     await page.getByRole("button", { name: "Import checked rows" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Imported 2, skipped 0, failed 0.");
-    expect(creates).toHaveLength(2);
+    expect(server.creates).toHaveLength(2);
   });
 });

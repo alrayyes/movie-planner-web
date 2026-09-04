@@ -1,6 +1,7 @@
-// The visitor's own CalDAV server + credentials, sent per-request — see the
-// caldav-proxy capability spec's "Stateless per-request relay" requirement.
-// Never persisted server-side beyond handling one request.
+// The visitor's own CalDAV server + credentials — held only in the
+// visitor's own browser storage and used to call their CalDAV server
+// directly, per the caldav-client capability spec. Never sent to, or held
+// by, any server this project runs.
 export interface CaldavConfig {
   baseUrl: string;
   username: string;

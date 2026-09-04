@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -14,9 +15,7 @@ const CREDENTIALS = {
 // credentials-focused tests don't also need a real (or fake) CalDAV server
 // to reach a stable, testable "connected" state.
 function mockEmptyEventList(page: Page) {
-  page.route("**/api/caldav/events/list", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
-  });
+  mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
 }
 
 async function connect(page: Page, omdbApiKey?: string) {

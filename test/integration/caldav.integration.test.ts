@@ -87,3 +87,50 @@ describe("caldav client against a real Baikal instance", () => {
     });
   }, 20_000);
 });
+
+// caldav-client spec, "Cross-origin access requires the visitor's own
+// server to opt in": there's no proxy any more, so the browser talks to
+// this Caddy+Baikal stack directly — this is what actually proves the
+// CORS config README.md tells visitors to add in front of their own
+// CalDAV server is sufficient, not just plausible-looking.
+describe("CORS, for the browser-side client talking to this server directly", () => {
+  const FOREIGN_ORIGIN = "https://movie-planner-web.example";
+
+  test("answers a preflight OPTIONS without ever reaching Baikal's own auth", async () => {
+    const response = await fetch(CONFIG.baseUrl, {
+      method: "OPTIONS",
+      headers: {
+        Origin: FOREIGN_ORIGIN,
+        "Access-Control-Request-Method": "REPORT",
+        "Access-Control-Request-Headers": "authorization,content-type,depth",
+      },
+    });
+
+    expect(response.status).toBeLessThan(300);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toContain("REPORT");
+    expect(response.headers.get("access-control-allow-headers")?.toLowerCase()).toContain(
+      "authorization",
+    );
+  });
+
+  test("carries the same CORS headers on a real, authenticated request", async () => {
+    const listed = await fetch(CONFIG.baseUrl, {
+      method: "REPORT",
+      headers: {
+        Origin: FOREIGN_ORIGIN,
+        Authorization: `Basic ${Buffer.from(`${CONFIG.username}:${CONFIG.password}`).toString("base64")}`,
+        Depth: "1",
+        "Content-Type": "application/xml; charset=utf-8",
+      },
+      body: `<?xml version="1.0" encoding="utf-8" ?>
+<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:prop><C:calendar-data/></D:prop>
+  <C:filter><C:comp-filter name="VCALENDAR"/></C:filter>
+</C:calendar-query>`,
+    });
+
+    expect(listed.status).toBe(207);
+    expect(listed.headers.get("access-control-allow-origin")).toBe("*");
+  });
+});

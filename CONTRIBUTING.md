@@ -76,11 +76,16 @@ Baikal has no non-interactive install path.
 
 ## How it fits together
 
-`Astro`'s file-based routing means a new file under `src/pages/` is a new
-route, nothing to wire up — the CalDAV proxy's seven operations each live
-under `src/pages/api/caldav/` this way, as thin adapters over
-`src/lib/caldav/client.ts`. See `openspec/changes/add-movie-planner-web-app/`
-for the rest of what's planned.
+There's no server-side application code — `astro.config.mjs` builds a
+fully static site. `src/lib/caldav/client.ts` and `src/lib/omdb/client.ts`
+run in the browser and call the visitor's own CalDAV/OMDb servers
+directly, using whatever credentials the visitor entered (held only in
+their own browser's IndexedDB, per `src/lib/credentials/`). This means any
+CalDAV server a visitor points the app at has to send CORS headers
+permitting this app's origin — README.md documents the exact headers, and
+`test/integration/Caddyfile` is a real, tested example. See
+`openspec/changes/add-movie-planner-web-app/` for the rest of what's
+planned.
 
 Biome doesn't parse the `.astro` file format at all, so it's scoped off
 `public/` and never touches `.astro` files either way — Prettier (with

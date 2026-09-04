@@ -1,4 +1,5 @@
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -6,44 +7,20 @@ const CREDENTIALS = {
   "caldav-password": "secret",
 };
 
+// Relative to `now`, not a fixed calendar date — the mock CalDAV server
+// filters by the requested time-range like a real one would, and
+// calendar-overview's default range is only the last 3 months.
+const ONE_MONTH_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
 const DUNE = {
   uid: "dune-uid",
   title: "Dune",
-  start: "2026-01-01T19:00:00.000Z",
-  end: "2026-01-01T21:30:00.000Z",
+  start: ONE_MONTH_AGO.toISOString(),
+  end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
   medium: "cinema",
   venue: "Grand Vista Cinema",
   ratingImdb: "5.0",
 };
-
-function mockEventList(page: Page, viewings: unknown[]) {
-  page.route("**/api/caldav/events/list", async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(viewings),
-    });
-  });
-}
-
-function trackUpdatesAndDeletes(page: Page) {
-  const updates: unknown[] = [];
-  const deletes: unknown[] = [];
-  page.route("**/api/caldav/events/update", async (route: Route) => {
-    const body = route.request().postDataJSON();
-    updates.push(body);
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ uid: body.uid, ...body.viewing }),
-    });
-  });
-  page.route("**/api/caldav/events/delete", async (route: Route) => {
-    deletes.push(route.request().postDataJSON());
-    await route.fulfill({ status: 204, body: "" });
-  });
-  return { updates, deletes };
-}
 
 async function connect(page: Page) {
   await page.goto("/");
@@ -55,9 +32,8 @@ async function connect(page: Page) {
 
 test.describe("updating a logged viewing", () => {
   test("corrects a mismatched OMDb rating and writes the change", async ({ page }) => {
-    mockEventList(page, [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
-    const { updates } = trackUpdatesAndDeletes(page);
 
     await page.getByRole("button", { name: "Edit" }).click();
     const ratingInput = page.locator("#edit-dune-uid-ratingImdb");
@@ -66,51 +42,46 @@ test.describe("updating a logged viewing", () => {
     await page.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByRole("status").last()).toHaveText("Saved.");
-    expect(updates).toHaveLength(1);
-    const [update] = updates as { uid: string; viewing: { ratingImdb?: string } }[];
-    expect(update.uid).toBe("dune-uid");
-    expect(update.viewing.ratingImdb).toBe("8.0");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.uid).toBe("dune-uid");
+    expect(server.updates[0]?.ratingImdb).toBe("8.0");
   });
 
   test("cancel discards changes without writing", async ({ page }) => {
-    mockEventList(page, [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
-    const { updates } = trackUpdatesAndDeletes(page);
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.locator("#edit-dune-uid-title").fill("Something else entirely");
     await page.getByRole("button", { name: "Cancel" }).click();
 
     await expect(page.getByRole("button", { name: "Edit" })).toBeVisible();
-    expect(updates).toHaveLength(0);
+    expect(server.updates).toHaveLength(0);
   });
 });
 
 test.describe("deleting a logged viewing", () => {
   test("asks for confirmation before removing the event", async ({ page }) => {
-    mockEventList(page, [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
-    const { deletes } = trackUpdatesAndDeletes(page);
 
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.getByRole("button", { name: "Delete" }).click();
 
     // Dismissed — nothing should have been deleted.
     await page.waitForTimeout(100);
-    expect(deletes).toHaveLength(0);
+    expect(server.deletes).toHaveLength(0);
   });
 
   test("removes the event once confirmed", async ({ page }) => {
-    mockEventList(page, [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
-    const { deletes } = trackUpdatesAndDeletes(page);
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Delete" }).click();
 
     await expect(page.getByRole("status").last()).toHaveText("Deleted.");
-    expect(deletes).toHaveLength(1);
-    const [request] = deletes as { uid: string }[];
-    expect(request.uid).toBe("dune-uid");
+    expect(server.deletes).toHaveLength(1);
+    expect(server.deletes[0]).toBe("dune-uid");
   });
 });
