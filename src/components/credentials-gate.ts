@@ -36,10 +36,13 @@ export class CredentialsGate extends HTMLElement {
     const logLink = document.createElement("a");
     logLink.href = "/log";
     logLink.textContent = "Log a viewing";
+    const importLink = document.createElement("a");
+    importLink.href = "/import";
+    importLink.textContent = "Import";
     const link = document.createElement("a");
     link.href = "/settings";
     link.textContent = "Settings";
-    nav.append(logLink, link);
+    nav.append(logLink, importLink, link);
 
     const overview = document.createElement("calendar-overview");
     (overview as unknown as { config: CaldavConfig }).config = {

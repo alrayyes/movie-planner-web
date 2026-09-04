@@ -43,9 +43,9 @@
 
 ## 7. Bulk Import
 
-- [ ] 7.1 Build CSV/JSON file upload using the CLI's import field format; verify a test confirms both formats parse correctly
-- [ ] 7.2 Implement duplicate detection (fuzzy title + date) against both the import file and the existing calendar, with a confirm step; verify a test covers a within-file and an against-calendar duplicate
-- [ ] 7.3 Verify `bulk-import` spec scenarios all have a corresponding automated test
+- [x] 7.1 Build CSV/JSON file upload using the CLI's import field format; verify a test confirms both formats parse correctly
+- [x] 7.2 Implement duplicate detection (fuzzy title + date) against both the import file and the existing calendar, with a confirm step; verify a test covers a within-file and an against-calendar duplicate
+- [x] 7.3 Verify `bulk-import` spec scenarios all have a corresponding automated test
 
 ## 8. Location Management
 
