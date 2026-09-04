@@ -18,7 +18,11 @@ ignores:
   # OpenSpec's own template shape (`## Why`/`## Purpose` openers, one
   # logical line per requirement/scenario/task so the checkbox and delta
   # parsers stay line-addressable) isn't this repo's prose style either.
+  # openspec/specs/ is the archived form of the same template (`openspec
+  # archive` copies a change's delta specs into it near-verbatim), so it
+  # inherits the same exemption.
   - "openspec/changes/**"
+  - "openspec/specs/**"
 
 config:
   # markdownlint/style/prettier drops MD013 because Prettier reflows prose on

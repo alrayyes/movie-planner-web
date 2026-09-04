@@ -39,6 +39,7 @@ pre-commit:
         - "CHANGELOG.md"
         - ".claude/**"
         - "openspec/changes/**"
+        - "openspec/specs/**"
       run: vale {staged_files}
 
 commit-msg:
