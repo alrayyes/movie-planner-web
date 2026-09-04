@@ -1,10 +1,12 @@
-import { getPicklists, updatePicklists } from "../lib/caldav/client";
-import type { CaldavConfig, Picklists } from "../lib/caldav/types";
+import { getPicklists, updatePicklists, updateViewing } from "../lib/caldav/client";
+import type { CaldavConfig, LoggedViewing, Picklists } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
 import { toIsoDateTime } from "../lib/movie-log/run-import";
+import { lookupByImdbId, type OmdbCandidate } from "../lib/omdb/client";
+import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -31,6 +33,7 @@ import {
 export class MovieLogForm extends HTMLElement {
   private credentials: Credentials | null | undefined;
   private statusEl: HTMLElement | undefined;
+  private pickerArea: HTMLElement | undefined;
   private picklists: Picklists = { media: [], venues: [] };
   private mediumList: HTMLDataListElement | undefined;
   private venueList: HTMLDataListElement | undefined;
@@ -55,6 +58,7 @@ export class MovieLogForm extends HTMLElement {
     this.statusEl = document.createElement("p");
     this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
+    this.pickerArea = document.createElement("div");
     this.mediumList = document.createElement("datalist");
     this.mediumList.id = "log-medium-choices";
     this.venueList = document.createElement("datalist");
@@ -66,6 +70,7 @@ export class MovieLogForm extends HTMLElement {
       this.mediumList,
       this.venueList,
       this.statusEl,
+      this.pickerArea,
     );
 
     // Best-effort — a picklist fetch failure shouldn't block logging, same
@@ -109,6 +114,39 @@ export class MovieLogForm extends HTMLElement {
     } catch {
       // The next log attempt just re-learns it; not worth failing on.
     }
+  }
+
+  // #49: shown after logging (either flow) finds no confident OMDb match
+  // but OMDb's search has candidates — selecting one fetches its full
+  // details and attaches them to the just-created/updated viewing, same
+  // as a Refresh would; dismissing leaves it without metadata, same as
+  // if there'd been no candidates at all.
+  private showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
+    if (!this.pickerArea || !this.statusEl) return;
+    this.pickerArea.innerHTML = "";
+    this.pickerArea.appendChild(
+      buildOmdbPicker(
+        candidates,
+        async (candidate) => {
+          if (!this.credentials?.omdbApiKey || !this.statusEl || !this.pickerArea) return;
+          try {
+            const metadata = await lookupByImdbId(this.credentials.omdbApiKey, candidate.imdbId);
+            if (metadata) {
+              await updateViewing(this.caldavConfig, viewing.uid, { ...viewing, ...metadata });
+            }
+            this.statusEl.textContent = "Logged and matched.";
+          } catch (error) {
+            this.statusEl.textContent =
+              error instanceof Error ? error.message : "Failed to attach the selected match.";
+          } finally {
+            this.pickerArea.innerHTML = "";
+          }
+        },
+        () => {
+          this.pickerArea?.replaceChildren();
+        },
+      ),
+    );
   }
 
   private buildManualForm(): HTMLElement {
@@ -164,7 +202,7 @@ export class MovieLogForm extends HTMLElement {
       const medium = String(data.get("log-medium"));
       const venue = String(data.get("log-venue") || "") || undefined;
       try {
-        await logManualViewing(this.credentials, {
+        const result = await logManualViewing(this.credentials, {
           title: String(data.get("log-title")),
           // A missing time defaults to midnight; a missing end time
           // defaults to the start time — same as the CSV/JSON importer
@@ -177,6 +215,9 @@ export class MovieLogForm extends HTMLElement {
         this.statusEl.textContent = "Logged.";
         form.reset();
         await this.learnFromViewing(medium, venue);
+        if (result.omdbCandidates?.length) {
+          this.showOmdbPicker(result.viewing, result.omdbCandidates);
+        }
       } catch (error) {
         this.statusEl.textContent =
           error instanceof Error ? error.message : "Failed to log viewing.";
@@ -245,12 +286,15 @@ export class MovieLogForm extends HTMLElement {
     confirmButton.addEventListener("click", async () => {
       if (!parsedBooking || !this.credentials || !this.statusEl) return;
       try {
-        const { wasUpdate } = await logPatheBooking(this.credentials, parsedBooking);
-        this.statusEl.textContent = wasUpdate ? "Updated the existing entry." : "Logged.";
+        const result = await logPatheBooking(this.credentials, parsedBooking);
+        this.statusEl.textContent = result.wasUpdate ? "Updated the existing entry." : "Logged.";
         confirmArea.hidden = true;
         await this.learnFromViewing("cinema", parsedBooking.cinema);
         textarea.value = "";
         parsedBooking = undefined;
+        if (result.omdbCandidates?.length) {
+          this.showOmdbPicker(result.viewing, result.omdbCandidates);
+        }
       } catch (error) {
         this.statusEl.textContent =
           error instanceof Error ? error.message : "Failed to log viewing.";

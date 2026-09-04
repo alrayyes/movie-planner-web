@@ -1,8 +1,9 @@
 import { deleteViewing, getViewing, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
-import { lookupMovie } from "../lib/omdb/client";
+import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 import { imdbUrl, letterboxdSearchUrl, rottenTomatoesSearchUrl } from "../lib/omdb/links";
+import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -290,17 +291,54 @@ export class MovieDetails extends HTMLElement {
         viewing.title,
         new Date(viewing.start).getFullYear().toString(),
       );
-      if (!metadata) {
-        this.statusEl.textContent = "OMDb had no match for this title.";
+      if (metadata) {
+        await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+        await this.load();
+        this.statusEl.textContent = "Refreshed.";
         return;
       }
-      await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
-      await this.load();
-      this.statusEl.textContent = "Refreshed.";
+      // #49: no single confident match — offer a disambiguation picker
+      // if OMDb's search has candidates, rather than reporting no match
+      // outright.
+      const candidates = await searchMovies(this.omdbApiKey, viewing.title);
+      if (candidates.length > 0) {
+        this.showOmdbPicker(viewing, candidates);
+        return;
+      }
+      this.statusEl.textContent = "OMDb had no match for this title.";
     } catch (error) {
       this.statusEl.textContent =
         error instanceof Error ? error.message : "Failed to refresh metadata.";
     }
+  }
+
+  private showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
+    if (!this.container || !this.config || !this.omdbApiKey || !this.statusEl) return;
+    this.container.innerHTML = "";
+    this.container.appendChild(this.backLink());
+    this.container.appendChild(
+      buildOmdbPicker(
+        candidates,
+        async (candidate) => {
+          if (!this.config || !this.omdbApiKey || !this.statusEl) return;
+          try {
+            const metadata = await lookupByImdbId(this.omdbApiKey, candidate.imdbId);
+            if (metadata) {
+              await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+            }
+            await this.load();
+            this.statusEl.textContent = "Refreshed.";
+          } catch (error) {
+            this.statusEl.textContent =
+              error instanceof Error ? error.message : "Failed to attach the selected match.";
+          }
+        },
+        () => {
+          if (this.statusEl) this.statusEl.textContent = "OMDb had no match for this title.";
+          this.render();
+        },
+      ),
+    );
   }
 
   private async handleDelete(viewing: LoggedViewing) {

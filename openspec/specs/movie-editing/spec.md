@@ -41,6 +41,11 @@ different year than its actual release.
 - **WHEN** a visitor refreshes a viewing whose watched year returns no OMDb match for that title
 - **THEN** the system SHALL fall back to a plain title search and use that result instead of reporting no match
 
+#### Scenario: No confident match on refresh
+
+- **WHEN** a visitor refreshes a viewing and neither the year-scoped nor the plain title search finds a confident match
+- **THEN** the system SHALL follow the movie-log capability's "Disambiguation picker on no confident match" behaviour — a picker when OMDb's search has candidates, otherwise a plain "no match" report
+
 ### Requirement: Refresh all metadata on screen
 
 The system SHALL let a visitor re-run the Refresh OMDb metadata action

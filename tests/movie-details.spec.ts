@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const CREDENTIALS = {
@@ -26,11 +26,12 @@ const DUNE = {
   imdbId: "tt1160419",
 };
 
-async function connect(page: Page) {
+async function connect(page: Page, omdbApiKey?: string) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+  if (omdbApiKey) await page.locator("#omdb-api-key").fill(omdbApiKey);
   await page.getByRole("button", { name: "Connect" }).click();
   // Credential storage is async (see credentials-gate.ts's renderForm) —
   // wait for its result to actually render before doing anything else, so
@@ -87,6 +88,66 @@ test.describe("movie details page", () => {
     await page.getByRole("button", { name: "Delete" }).click();
     await expect(page.getByRole("status")).toHaveText("Deleted.");
     expect(server.deletes).toEqual(["dune-uid"]);
+  });
+
+  test("offers a disambiguation picker when refreshing finds no confident match", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune" }).click();
+
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("t")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "False" }),
+        });
+        return;
+      }
+      if (url.searchParams.get("s")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "1984",
+                imdbID: "tt0087182",
+                Poster: "https://example.com/dune-1984.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      expect(url.searchParams.get("i")).toBe("tt0087182");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "David Lynch",
+          imdbID: "tt0087182",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await picker.getByRole("button", { name: "Dune (1984)" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Refreshed.");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.director).toBe("David Lynch");
+    await expect(picker).toHaveCount(0);
   });
 
   test("a missing uid shows a clear not-found state, not an error", async ({ page }) => {

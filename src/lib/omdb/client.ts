@@ -15,6 +15,17 @@ export interface MovieMetadata {
   imdbId?: string;
 }
 
+// #49: a disambiguation candidate — the shape OMDb's search endpoint
+// (`s=`) returns, distinct from MovieMetadata (which needs a full `i=`/
+// `t=` lookup to populate ratings/genre/director/actors, none of which
+// the search endpoint carries).
+export interface OmdbCandidate {
+  title: string;
+  year?: string;
+  imdbId: string;
+  posterUrl?: string;
+}
+
 interface OmdbRating {
   Source?: string;
   Value?: string;
@@ -29,6 +40,18 @@ interface OmdbResponse {
   Year?: string;
   Poster?: string;
   imdbID?: string;
+}
+
+interface OmdbSearchResult {
+  Title?: string;
+  Year?: string;
+  imdbID?: string;
+  Poster?: string;
+}
+
+interface OmdbSearchResponse {
+  Response: "True" | "False";
+  Search?: OmdbSearchResult[];
 }
 
 function rating(ratings: OmdbRating[] | undefined, source: string): string | undefined {
@@ -86,4 +109,45 @@ export async function lookupMovie(
   const scoped = year ? await search(apiKey, title, year) : null;
   const data = scoped ?? (await search(apiKey, title, undefined));
   return data ? toMetadata(data) : null;
+}
+
+// #49: when `lookupMovie` finds no single confident match, this is what
+// backs the disambiguation picker — OMDb's `s=` search endpoint, which
+// (unlike `t=`) returns a list of candidates rather than OMDb's own
+// best guess. A candidate with no imdbID is dropped rather than shown
+// unselectable, since imdbID is what `lookupByImdbId` needs to fetch
+// its full details.
+export async function searchMovies(apiKey: string, title: string): Promise<OmdbCandidate[]> {
+  const url = new URL("https://www.omdbapi.com/");
+  url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("s", title);
+
+  const response = await fetch(url);
+  if (!response.ok) return [];
+  const data = (await response.json()) as OmdbSearchResponse;
+  if (data.Response !== "True" || !data.Search) return [];
+
+  return data.Search.filter((r) => r.imdbID).map((r) => ({
+    title: r.Title ?? "",
+    year: field(r.Year),
+    imdbId: r.imdbID as string,
+    posterUrl: field(r.Poster),
+  }));
+}
+
+// #49: fetches a chosen disambiguation candidate's full details by its
+// imdbID — OMDb's `i=` parameter, the same full-detail response shape
+// as `t=`/`y=`, just addressed by ID instead of title.
+export async function lookupByImdbId(
+  apiKey: string,
+  imdbId: string,
+): Promise<MovieMetadata | null> {
+  const url = new URL("https://www.omdbapi.com/");
+  url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("i", imdbId);
+
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  const data = (await response.json()) as OmdbResponse;
+  return data.Response === "True" ? toMetadata(data) : null;
 }

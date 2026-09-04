@@ -1,8 +1,23 @@
 import { createViewing, listViewings, updateViewing } from "../caldav/client";
-import type { CaldavConfig, NewViewing } from "../caldav/types";
+import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
-import { lookupMovie } from "../omdb/client";
+import { lookupMovie, type OmdbCandidate, searchMovies } from "../omdb/client";
 import type { PatheBooking } from "./pathe-email";
+
+// #49: the outcome of a logged/refreshed OMDb lookup — either a confident
+// match (attached automatically) or, when there's none, the candidates a
+// visitor can pick from (empty/absent when OMDb's search itself found
+// nothing, in which case the entry is silently left without metadata,
+// same as before this feature existed).
+interface OmdbEnrichment {
+  fields: Partial<NewViewing>;
+  candidates?: OmdbCandidate[];
+}
+
+export interface LogResult {
+  viewing: LoggedViewing;
+  omdbCandidates?: OmdbCandidate[];
+}
 
 // Shared write path for both the manual form and the Pathé-email confirm
 // step — OMDb enrichment and (for a Pathé booking) re-submission dedup
@@ -11,25 +26,31 @@ async function enrichWithOmdb(
   credentials: Credentials,
   title: string,
   watchedAt: string,
-): Promise<Partial<NewViewing>> {
-  if (!credentials.omdbApiKey) return {};
+): Promise<OmdbEnrichment> {
+  if (!credentials.omdbApiKey) return { fields: {} };
   try {
     const year = new Date(watchedAt).getFullYear().toString();
     const metadata = await lookupMovie(credentials.omdbApiKey, title, year);
-    return metadata ?? {};
+    if (metadata) return { fields: metadata };
+    const candidates = await searchMovies(credentials.omdbApiKey, title);
+    return candidates.length > 0 ? { fields: {}, candidates } : { fields: {} };
   } catch {
-    return {};
+    return { fields: {} };
   }
 }
 
-export async function logManualViewing(credentials: Credentials, viewing: NewViewing) {
+export async function logManualViewing(
+  credentials: Credentials,
+  viewing: NewViewing,
+): Promise<LogResult> {
   const config: CaldavConfig = {
     baseUrl: credentials.caldavUrl,
     username: credentials.caldavUsername,
     password: credentials.caldavPassword,
   };
   const enrichment = await enrichWithOmdb(credentials, viewing.title, viewing.start);
-  return createViewing(config, { ...viewing, ...enrichment });
+  const created = await createViewing(config, { ...viewing, ...enrichment.fields });
+  return { viewing: created, omdbCandidates: enrichment.candidates };
 }
 
 // movie-log spec, "Re-submitted booking confirmation": a booking number
@@ -37,7 +58,10 @@ export async function logManualViewing(credentials: Credentials, viewing: NewVie
 // Detected by listing the booking's own day and matching on bookingRef —
 // no dedicated CalDAV query needed, since the fixed operation set has no
 // "find by custom property" operation and doesn't need one for this.
-export async function logPatheBooking(credentials: Credentials, booking: PatheBooking) {
+export async function logPatheBooking(
+  credentials: Credentials,
+  booking: PatheBooking,
+): Promise<LogResult & { wasUpdate: boolean }> {
   const config: CaldavConfig = {
     baseUrl: credentials.caldavUrl,
     username: credentials.caldavUsername,
@@ -64,10 +88,12 @@ export async function logPatheBooking(credentials: Credentials, booking: PatheBo
     bookingRef: booking.bookingRef,
   };
   const enrichment = await enrichWithOmdb(credentials, booking.title, booking.start);
-  const merged = { ...viewing, ...enrichment };
+  const merged = { ...viewing, ...enrichment.fields };
 
   if (duplicate) {
-    return { viewing: await updateViewing(config, duplicate.uid, merged), wasUpdate: true };
+    const updated = await updateViewing(config, duplicate.uid, merged);
+    return { viewing: updated, omdbCandidates: enrichment.candidates, wasUpdate: true };
   }
-  return { viewing: await createViewing(config, merged), wasUpdate: false };
+  const created = await createViewing(config, merged);
+  return { viewing: created, omdbCandidates: enrichment.candidates, wasUpdate: false };
 }

@@ -1,7 +1,8 @@
 import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
-import { lookupMovie } from "../lib/omdb/client";
+import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 import { imdbUrl, letterboxdSearchUrl, rottenTomatoesSearchUrl } from "../lib/omdb/links";
+import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -57,6 +58,7 @@ export class CalendarOverview extends HTMLElement {
   private toInput: HTMLInputElement | undefined;
   private mediumInput: HTMLInputElement | undefined;
   private editingUid: string | undefined;
+  private pickerArea: HTMLElement | undefined;
 
   async connectedCallback() {
     const config = (this as unknown as { config?: CaldavConfig }).config;
@@ -91,8 +93,9 @@ export class CalendarOverview extends HTMLElement {
       refreshAllButton.addEventListener("click", () => void this.handleRefreshAll());
       this.appendChild(refreshAllButton);
     }
+    this.pickerArea = document.createElement("div");
     this.listContainer = document.createElement("div");
-    this.append(this.statusEl, this.actionStatusEl, this.listContainer);
+    this.append(this.statusEl, this.actionStatusEl, this.pickerArea, this.listContainer);
 
     await this.reload();
   }
@@ -434,17 +437,56 @@ export class CalendarOverview extends HTMLElement {
         viewing.title,
         new Date(viewing.start).getFullYear().toString(),
       );
-      if (!metadata) {
-        this.actionStatusEl.textContent = "OMDb had no match for this title.";
+      if (metadata) {
+        await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+        await this.reload();
+        this.actionStatusEl.textContent = "Refreshed.";
         return;
       }
-      await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
-      await this.reload();
-      this.actionStatusEl.textContent = "Refreshed.";
+      // #49: no single confident match — offer a disambiguation picker
+      // if OMDb's search has candidates, rather than reporting no match
+      // outright.
+      const candidates = await searchMovies(this.omdbApiKey, viewing.title);
+      if (candidates.length > 0) {
+        this.showOmdbPicker(viewing, candidates);
+        return;
+      }
+      this.actionStatusEl.textContent = "OMDb had no match for this title.";
     } catch (error) {
       this.actionStatusEl.textContent =
         error instanceof Error ? error.message : "Failed to refresh metadata.";
     }
+  }
+
+  private showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
+    if (!this.pickerArea || !this.config || !this.omdbApiKey || !this.actionStatusEl) return;
+    this.pickerArea.innerHTML = "";
+    this.pickerArea.appendChild(
+      buildOmdbPicker(
+        candidates,
+        async (candidate) => {
+          if (!this.config || !this.omdbApiKey || !this.actionStatusEl || !this.pickerArea) return;
+          try {
+            const metadata = await lookupByImdbId(this.omdbApiKey, candidate.imdbId);
+            if (metadata) {
+              await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+            }
+            await this.reload();
+            this.actionStatusEl.textContent = "Refreshed.";
+          } catch (error) {
+            this.actionStatusEl.textContent =
+              error instanceof Error ? error.message : "Failed to attach the selected match.";
+          } finally {
+            this.pickerArea.innerHTML = "";
+          }
+        },
+        () => {
+          this.pickerArea?.replaceChildren();
+          if (this.actionStatusEl)
+            this.actionStatusEl.textContent = "OMDb had no match for this title.";
+        },
+      ),
+    );
   }
 
   // Runs the same per-row refresh across every viewing currently on
