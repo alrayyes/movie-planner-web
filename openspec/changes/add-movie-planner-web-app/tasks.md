@@ -3,7 +3,7 @@
 - [x] 1.1 Scaffold the repo with pinned Astro/Cloudflare Workers tooling (Bun, Biome, Playwright+axe, Vale/LTeX, release-please, Dependabot); verify `bun install` and `bun run dev` both succeed
 - [x] 1.2 Add a single hello-world placeholder page at `/`; verify `bun run build` produces a `dist/` output
 - [x] 1.3 Wire the Cloudflare Workers deploy config (`wrangler.jsonc`, `@astrojs/cloudflare` adapter) so the placeholder is deployable; verify `bun run build` and `bun run preview` (wrangler dev) both serve it correctly
-- [ ] 1.4 Confirm with the user that their Cloudflare preview/prod build setup (tracked in a separate forge issue) is working against this placeholder before continuing past this section
+- [x] 1.4 Confirm with the user that their Cloudflare preview/prod build setup (tracked in a separate forge issue) is working against this placeholder before continuing past this section
 
 ## 2. Credentials & Settings
 
