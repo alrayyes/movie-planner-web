@@ -16,6 +16,9 @@ export interface CaldavConfig {
 //   X-MEDIUM       -> medium
 //   X-DIRECTOR, X-ACTORS, X-RATING-IMDB, X-RATING-ROTTEN-TOMATOES,
 //   X-RATING-METACRITIC -> OMDb-enriched metadata, all optional
+//   X-BOOKING-REF -> the Pathé booking number, when logged from an email —
+//     what a re-submission is matched against, per the movie-log spec's
+//     "Re-submitted booking confirmation" scenario
 export interface LoggedViewing {
   uid: string;
   title: string;
@@ -28,6 +31,7 @@ export interface LoggedViewing {
   ratingImdb?: string;
   ratingRottenTomatoes?: string;
   ratingMetacritic?: string;
+  bookingRef?: string;
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;

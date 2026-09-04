@@ -32,9 +32,14 @@ export class CredentialsGate extends HTMLElement {
 
   private renderConnected(credentials: Credentials) {
     this.innerHTML = "";
+    const nav = document.createElement("nav");
+    const logLink = document.createElement("a");
+    logLink.href = "/log";
+    logLink.textContent = "Log a viewing";
     const link = document.createElement("a");
     link.href = "/settings";
     link.textContent = "Settings";
+    nav.append(logLink, link);
 
     const overview = document.createElement("calendar-overview");
     (overview as unknown as { config: CaldavConfig }).config = {
@@ -43,7 +48,7 @@ export class CredentialsGate extends HTMLElement {
       password: credentials.caldavPassword,
     };
 
-    this.append(link, overview);
+    this.append(nav, overview);
   }
 }
 

@@ -13,6 +13,7 @@ const X_PROPERTIES: Record<string, keyof NewViewing> = {
   "X-RATING-IMDB": "ratingImdb",
   "X-RATING-ROTTEN-TOMATOES": "ratingRottenTomatoes",
   "X-RATING-METACRITIC": "ratingMetacritic",
+  "X-BOOKING-REF": "bookingRef",
 };
 
 function formatDateTimeUtc(iso: string): string {
