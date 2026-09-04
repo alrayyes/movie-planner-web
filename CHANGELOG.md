@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.11.0...movie-planner-web-v0.12.0) (2026-09-04)
+
+
+### Features
+
+* **ui:** display the app as "Movie Planner", not movie-planner-web ([#39](https://github.com/alrayyes/movie-planner-web/issues/39)) ([cf6de18](https://github.com/alrayyes/movie-planner-web/commit/cf6de18b9dfb6e29906e1711810ee93a7b380815)), closes [#33](https://github.com/alrayyes/movie-planner-web/issues/33)
+
 ## [0.11.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.10.0...movie-planner-web-v0.11.0) (2026-09-04)
 
 
