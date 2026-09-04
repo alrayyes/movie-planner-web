@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.14.0...movie-planner-web-v0.15.0) (2026-09-04)
+
+
+### Features
+
+* **omdb:** add poster, genre, year, cross-links and a refresh control ([#47](https://github.com/alrayyes/movie-planner-web/issues/47)) ([05babb1](https://github.com/alrayyes/movie-planner-web/commit/05babb10e16645d62179737e90262e7a14c6453f)), closes [#37](https://github.com/alrayyes/movie-planner-web/issues/37)
+
 ## [0.14.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.13.1...movie-planner-web-v0.14.0) (2026-09-04)
 
 
