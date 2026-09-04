@@ -81,6 +81,16 @@ export class CalendarOverview extends HTMLElement {
     this.actionStatusEl = document.createElement("p");
     this.actionStatusEl.className = STATUS_TEXT;
     this.actionStatusEl.setAttribute("role", "status");
+    // Only offered once an OMDb key is set, same as the per-row Refresh
+    // control — nothing to refresh from without one.
+    if (this.omdbApiKey) {
+      const refreshAllButton = document.createElement("button");
+      refreshAllButton.type = "button";
+      refreshAllButton.className = BUTTON_SECONDARY;
+      refreshAllButton.textContent = "Refresh all metadata";
+      refreshAllButton.addEventListener("click", () => void this.handleRefreshAll());
+      this.appendChild(refreshAllButton);
+    }
     this.listContainer = document.createElement("div");
     this.append(this.statusEl, this.actionStatusEl, this.listContainer);
 
@@ -176,9 +186,10 @@ export class CalendarOverview extends HTMLElement {
     }
   }
 
-  private render() {
-    if (!this.listContainer || !this.statusEl) return;
-
+  // Shared by render() and handleRefreshAll(), so "refresh all" always acts
+  // on exactly what's currently on screen, not the unfiltered/unsorted
+  // full set.
+  private currentlyDisplayed(): LoggedViewing[] {
     const mediumFilter = this.mediumInput?.value.trim().toLowerCase();
     const filtered = mediumFilter
       ? this.allViewings.filter((v) => v.medium.toLowerCase() === mediumFilter)
@@ -187,9 +198,13 @@ export class CalendarOverview extends HTMLElement {
     // enough here since a filtered subset can be re-sorted after every
     // reload, so this always sorts fresh rather than relying on
     // insertion order from the CalDAV response.
-    const viewings = [...filtered].sort(
-      (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
-    );
+    return [...filtered].sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+  }
+
+  private render() {
+    if (!this.listContainer || !this.statusEl) return;
+
+    const viewings = this.currentlyDisplayed();
 
     this.statusEl.textContent = `${viewings.length} logged viewing${viewings.length === 1 ? "" : "s"}.`;
     this.listContainer.innerHTML = "";
@@ -430,6 +445,44 @@ export class CalendarOverview extends HTMLElement {
       this.actionStatusEl.textContent =
         error instanceof Error ? error.message : "Failed to refresh metadata.";
     }
+  }
+
+  // Runs the same per-row refresh across every viewing currently on
+  // screen (the filtered/sorted set, not the whole calendar) — sequential
+  // rather than parallel, since it's hitting OMDb's own rate limits, not
+  // just this app's.
+  private async handleRefreshAll() {
+    if (!this.config || !this.omdbApiKey || !this.actionStatusEl) return;
+    const targets = this.currentlyDisplayed();
+    if (targets.length === 0) return;
+
+    this.actionStatusEl.textContent = `Refreshing 0 of ${targets.length}…`;
+    let refreshed = 0;
+    let misses = 0;
+    for (const viewing of targets) {
+      try {
+        const metadata = await lookupMovie(
+          this.omdbApiKey,
+          viewing.title,
+          new Date(viewing.start).getFullYear().toString(),
+        );
+        if (metadata) {
+          await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+          refreshed++;
+        } else {
+          misses++;
+        }
+      } catch {
+        misses++;
+      }
+      this.actionStatusEl.textContent = `Refreshing ${refreshed + misses} of ${targets.length}…`;
+    }
+
+    await this.reload();
+    this.actionStatusEl.textContent =
+      misses > 0
+        ? `Refreshed ${refreshed} of ${targets.length} (${misses} had no OMDb match or failed).`
+        : `Refreshed ${refreshed} of ${targets.length}.`;
   }
 
   private async handleDelete(viewing: LoggedViewing) {
