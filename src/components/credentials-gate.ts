@@ -58,11 +58,13 @@ export class CredentialsGate extends HTMLElement {
     nav.append(logLink, importLink, link);
 
     const overview = document.createElement("calendar-overview");
-    (overview as unknown as { config: CaldavConfig }).config = {
+    (overview as unknown as { config: CaldavConfig; omdbApiKey?: string }).config = {
       baseUrl: credentials.caldavUrl,
       username: credentials.caldavUsername,
       password: credentials.caldavPassword,
     };
+    (overview as unknown as { config: CaldavConfig; omdbApiKey?: string }).omdbApiKey =
+      credentials.omdbApiKey;
 
     this.append(nav, overview);
   }

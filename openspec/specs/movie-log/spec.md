@@ -37,4 +37,4 @@ prompting the visitor to disambiguate between multiple candidates.
 #### Scenario: Ambiguous title match
 
 - **WHEN** a logged title matches more than one OMDb result
-- **THEN** the system SHALL attach its best-effort match automatically, and the visitor SHALL be able to correct it afterward via editing the entry
+- **THEN** the system SHALL attach its best-effort match automatically; a visitor who gets a wrong match SHALL be able to correct it by adjusting the logged title (movie-editing capability) to something OMDb's search resolves more precisely, then refreshing — the OMDb-sourced fields themselves aren't directly editable, since re-running the lookup against the same unchanged title would just repeat the same match

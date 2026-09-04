@@ -31,19 +31,52 @@ async function connect(page: Page) {
 }
 
 test.describe("updating a logged viewing", () => {
-  test("corrects a mismatched OMDb rating and writes the change", async ({ page }) => {
+  test("edits the viewing's own fields and writes the change", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
     await page.getByRole("button", { name: "Edit" }).click();
-    const ratingInput = page.locator("#edit-dune-uid-ratingImdb");
-    await expect(ratingInput).toHaveValue("5.0");
-    await ratingInput.fill("8.0");
+    const venueInput = page.locator("#edit-dune-uid-venue");
+    await expect(venueInput).toHaveValue("Grand Vista Cinema");
+    await venueInput.fill("Regal Union Square");
     await page.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByRole("status").last()).toHaveText("Saved.");
     expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.uid).toBe("dune-uid");
+    expect(server.updates[0]?.venue).toBe("Regal Union Square");
+  });
+
+  // movie-editing spec, "Update a logged viewing's own fields": OMDb-
+  // sourced data isn't offered as an editable field at all — a
+  // hand-typed value would drift from what OMDb actually reports, with
+  // no way to tell the two apart later.
+  test("doesn't offer OMDb-sourced fields (ratings, director, actors) as editable", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await expect(page.locator("#edit-dune-uid-ratingImdb")).toHaveCount(0);
+    await expect(page.locator("#edit-dune-uid-director")).toHaveCount(0);
+    await expect(page.locator("#edit-dune-uid-actors")).toHaveCount(0);
+  });
+
+  test("editing preserves the viewing's existing OMDb-sourced fields untouched", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, director: "Denis Villeneuve", ratingImdb: "8.0" },
+    ]);
+    await connect(page);
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await page.locator("#edit-dune-uid-venue").fill("Regal Union Square");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Saved.");
+    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
     expect(server.updates[0]?.ratingImdb).toBe("8.0");
   });
 

@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 describe("lookupMovie", () => {
-  test("returns ratings, director and actors on a match", async () => {
+  test("returns ratings, director, actors, genre, year, poster and imdbId on a match", async () => {
     globalThis.fetch = (async (url: URL) => {
       expect(url.toString()).toContain("t=Dune");
       expect(url.toString()).toContain("apikey=test-key");
@@ -21,6 +21,10 @@ describe("lookupMovie", () => {
           Response: "True",
           Director: "Denis Villeneuve",
           Actors: "Timothée Chalamet, Rebecca Ferguson",
+          Genre: "Action, Adventure, Drama",
+          Year: "2021",
+          Poster: "https://example.com/dune-poster.jpg",
+          imdbID: "tt1160419",
           Ratings: [
             { Source: "Internet Movie Database", Value: "8.5/10" },
             { Source: "Rotten Tomatoes", Value: "92%" },
@@ -39,6 +43,10 @@ describe("lookupMovie", () => {
       ratingMetacritic: "79/100",
       director: "Denis Villeneuve",
       actors: "Timothée Chalamet, Rebecca Ferguson",
+      genre: "Action, Adventure, Drama",
+      year: "2021",
+      posterUrl: "https://example.com/dune-poster.jpg",
+      imdbId: "tt1160419",
     });
   });
 
@@ -60,7 +68,15 @@ describe("lookupMovie", () => {
   test("omits fields OMDb reports as N/A", async () => {
     globalThis.fetch = (async () =>
       new Response(
-        JSON.stringify({ Response: "True", Director: "N/A", Actors: "N/A", Ratings: [] }),
+        JSON.stringify({
+          Response: "True",
+          Director: "N/A",
+          Actors: "N/A",
+          Genre: "N/A",
+          Year: "N/A",
+          Poster: "N/A",
+          Ratings: [],
+        }),
         { status: 200 },
       )) as unknown as typeof fetch;
 
@@ -68,5 +84,8 @@ describe("lookupMovie", () => {
 
     expect(result?.director).toBeUndefined();
     expect(result?.actors).toBeUndefined();
+    expect(result?.genre).toBeUndefined();
+    expect(result?.year).toBeUndefined();
+    expect(result?.posterUrl).toBeUndefined();
   });
 });

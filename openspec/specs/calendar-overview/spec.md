@@ -7,14 +7,26 @@ logged, showing the metadata the CLI already captures for each viewing.
 
 ### Requirement: Overview lists all logged viewings with full metadata
 
-The system SHALL display, for each logged viewing, at minimum its title,
-start and end time, medium, venue, and any available ratings/director/
-actor metadata.
+The system SHALL display, for each logged viewing, at minimum its
+title, start and end time, medium, venue, and any available OMDb
+metadata (ratings, director, actors, genre, release year, poster).
 
 #### Scenario: Viewing with full metadata
 
 - **WHEN** a visitor opens the overview and has a logged viewing with metadata enriched from OMDb
-- **THEN** the system SHALL display its title, start/end time, cinema/venue, director, actors, and ratings
+- **THEN** the system SHALL display its title, release year, start/end time, cinema/venue, director, actors, genre, ratings, and poster thumbnail
+
+### Requirement: Overview cross-links to external sources
+
+The system SHALL link a logged viewing's title out to IMDb, Rotten
+Tomatoes, and Letterboxd. Only IMDb exposes a stable per-title ID
+(`imdbID`, from OMDb); Rotten Tomatoes and Letterboxd links are
+constructed searches, not a guarantee of the exact match.
+
+#### Scenario: Cross-links shown for an enriched viewing
+
+- **WHEN** a visitor opens the overview and has a logged viewing enriched with an IMDb ID
+- **THEN** the system SHALL show a link to that title's IMDb page, alongside constructed Rotten Tomatoes and Letterboxd search links
 
 ### Requirement: Overview defaults to most-recently-watched first
 

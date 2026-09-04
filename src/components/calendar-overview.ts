@@ -1,5 +1,6 @@
 import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
+import { lookupMovie } from "../lib/omdb/client";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -15,6 +16,19 @@ import {
   TR_BODY,
 } from "../lib/ui/classes";
 
+// #37: OMDb doesn't expose a stable per-title ID for Rotten Tomatoes or
+// Letterboxd the way it does for IMDb (imdbID) — these are constructed
+// search links, not a guarantee the first result is the right one.
+function imdbUrl(imdbId: string): string {
+  return `https://www.imdb.com/title/${imdbId}/`;
+}
+function rottenTomatoesSearchUrl(title: string): string {
+  return `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`;
+}
+function letterboxdSearchUrl(title: string): string {
+  return `https://letterboxd.com/search/${encodeURIComponent(title)}/`;
+}
+
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
 // own calendar (their own stored credentials are the only config this ever
@@ -25,17 +39,17 @@ import {
 const DEFAULT_RANGE_MONTHS_BACK = 3;
 const DEFAULT_RANGE_YEARS_FORWARD = 1;
 
+// #37: OMDb-sourced fields (director/actors/ratings/genre/year/poster/
+// imdbId) are deliberately not in this list — that's "foreign" data a
+// visitor shouldn't hand-edit field by field. The Refresh control
+// re-fetches it from OMDb instead of trusting a manual override that'd
+// drift from what OMDb actually reports.
 const EDITABLE_FIELDS: { key: keyof NewViewing; label: string; type: string }[] = [
   { key: "title", label: "Title", type: "text" },
   { key: "start", label: "Start", type: "datetime-local" },
   { key: "end", label: "End", type: "datetime-local" },
   { key: "medium", label: "Medium", type: "text" },
   { key: "venue", label: "Venue", type: "text" },
-  { key: "director", label: "Director", type: "text" },
-  { key: "actors", label: "Actors", type: "text" },
-  { key: "ratingImdb", label: "IMDb rating", type: "text" },
-  { key: "ratingRottenTomatoes", label: "Rotten Tomatoes rating", type: "text" },
-  { key: "ratingMetacritic", label: "Metacritic rating", type: "text" },
 ];
 
 function toDatetimeLocal(iso: string): string {
@@ -47,6 +61,7 @@ function toDatetimeLocal(iso: string): string {
 export class CalendarOverview extends HTMLElement {
   private allViewings: LoggedViewing[] = [];
   private config: CaldavConfig | undefined;
+  private omdbApiKey: string | undefined;
   private listContainer: HTMLElement | undefined;
   private statusEl: HTMLElement | undefined;
   private actionStatusEl: HTMLElement | undefined;
@@ -63,6 +78,7 @@ export class CalendarOverview extends HTMLElement {
       );
     }
     this.config = config;
+    this.omdbApiKey = (this as unknown as { omdbApiKey?: string }).omdbApiKey;
 
     this.className = "flex flex-col gap-4";
     this.innerHTML = "";
@@ -200,6 +216,7 @@ export class CalendarOverview extends HTMLElement {
     thead.className = "bg-slate-50 dark:bg-slate-900/40";
     const headerRow = document.createElement("tr");
     for (const heading of [
+      "Poster",
       "Title",
       "Start",
       "End",
@@ -207,6 +224,7 @@ export class CalendarOverview extends HTMLElement {
       "Venue",
       "Director",
       "Actors",
+      "Genre",
       "Ratings",
       "Actions",
     ]) {
@@ -234,6 +252,45 @@ export class CalendarOverview extends HTMLElement {
   private renderRow(viewing: LoggedViewing): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.className = TR_BODY;
+
+    const posterCell = document.createElement("td");
+    posterCell.className = TD;
+    if (viewing.posterUrl) {
+      const img = document.createElement("img");
+      img.src = viewing.posterUrl;
+      img.alt = `${viewing.title} poster`;
+      img.className = "h-16 w-auto rounded";
+      img.loading = "lazy";
+      posterCell.appendChild(img);
+    }
+    row.appendChild(posterCell);
+
+    const titleCell = document.createElement("td");
+    titleCell.className = TD;
+    const titleLine = document.createElement("div");
+    titleLine.textContent = viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title;
+    titleCell.appendChild(titleLine);
+    const links = [
+      viewing.imdbId && { label: "IMDb", href: imdbUrl(viewing.imdbId) },
+      { label: "RT", href: rottenTomatoesSearchUrl(viewing.title) },
+      { label: "Letterboxd", href: letterboxdSearchUrl(viewing.title) },
+    ].filter((l): l is { label: string; href: string } => Boolean(l));
+    if (links.length > 0) {
+      const linkRow = document.createElement("div");
+      linkRow.className = "mt-1 flex gap-2 text-xs";
+      for (const { label, href } of links) {
+        const a = document.createElement("a");
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "text-indigo-600 hover:underline dark:text-indigo-400";
+        a.textContent = label;
+        linkRow.appendChild(a);
+      }
+      titleCell.appendChild(linkRow);
+    }
+    row.appendChild(titleCell);
+
     const ratings = [
       viewing.ratingImdb && `IMDb ${viewing.ratingImdb}`,
       viewing.ratingRottenTomatoes && `RT ${viewing.ratingRottenTomatoes}`,
@@ -242,13 +299,13 @@ export class CalendarOverview extends HTMLElement {
       .filter(Boolean)
       .join(", ");
     for (const value of [
-      viewing.title,
       new Date(viewing.start).toLocaleString(),
       new Date(viewing.end).toLocaleString(),
       viewing.medium,
       viewing.venue ?? "",
       viewing.director ?? "",
       viewing.actors ?? "",
+      viewing.genre ?? "",
       ratings,
     ]) {
       const td = document.createElement("td");
@@ -267,6 +324,19 @@ export class CalendarOverview extends HTMLElement {
       this.editingUid = viewing.uid;
       this.render();
     });
+    actions.appendChild(editButton);
+
+    // #37: only offered once an OMDb key is set, matching the
+    // best-effort/optional-key behaviour everywhere else this app calls
+    // OMDb — there's nothing to refresh from without one.
+    if (this.omdbApiKey) {
+      const refreshButton = document.createElement("button");
+      refreshButton.type = "button";
+      refreshButton.className = BUTTON_SM;
+      refreshButton.textContent = "Refresh metadata";
+      refreshButton.addEventListener("click", () => void this.handleRefresh(viewing));
+      actions.appendChild(refreshButton);
+    }
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
@@ -275,8 +345,8 @@ export class CalendarOverview extends HTMLElement {
     deleteButton.addEventListener("click", () => {
       void this.handleDelete(viewing);
     });
+    actions.appendChild(deleteButton);
 
-    actions.append(editButton, deleteButton);
     row.appendChild(actions);
     return row;
   }
@@ -290,7 +360,7 @@ export class CalendarOverview extends HTMLElement {
     // read-only row layout has no column-per-field mapping for anyway.
     const editCell = document.createElement("td");
     editCell.className = `${TD} bg-slate-50 dark:bg-slate-900/40`;
-    editCell.colSpan = 9;
+    editCell.colSpan = 11;
     const grid = document.createElement("div");
     grid.className = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
     editCell.appendChild(grid);
@@ -325,17 +395,17 @@ export class CalendarOverview extends HTMLElement {
     saveButton.textContent = "Save";
     saveButton.addEventListener("click", async () => {
       if (!this.config || !this.actionStatusEl) return;
+      // Only the editable fields come from the form — everything else
+      // (OMDb-sourced metadata, the booking ref) carries over from the
+      // viewing as it already was, since none of it has an input here
+      // to have changed.
       const updated: NewViewing = {
+        ...viewing,
         title: inputs.get("title")?.value ?? "",
         start: new Date(inputs.get("start")?.value ?? "").toISOString(),
         end: new Date(inputs.get("end")?.value ?? "").toISOString(),
         medium: inputs.get("medium")?.value ?? "",
         venue: inputs.get("venue")?.value || undefined,
-        director: inputs.get("director")?.value || undefined,
-        actors: inputs.get("actors")?.value || undefined,
-        ratingImdb: inputs.get("ratingImdb")?.value || undefined,
-        ratingRottenTomatoes: inputs.get("ratingRottenTomatoes")?.value || undefined,
-        ratingMetacritic: inputs.get("ratingMetacritic")?.value || undefined,
       };
       try {
         await updateViewing(this.config, viewing.uid, updated);
@@ -359,6 +429,28 @@ export class CalendarOverview extends HTMLElement {
 
     buttonRow.append(saveButton, cancelButton);
     return row;
+  }
+
+  // #37: re-runs the best-effort OMDb lookup against the viewing's
+  // stored title and overwrites the stored director/actors/ratings/
+  // genre/year/poster/imdbId with the new result — the corrective
+  // action for stale or since-updated OMDb data, now that those fields
+  // aren't hand-editable (see EDITABLE_FIELDS's own comment).
+  private async handleRefresh(viewing: LoggedViewing) {
+    if (!this.config || !this.omdbApiKey || !this.actionStatusEl) return;
+    try {
+      const metadata = await lookupMovie(this.omdbApiKey, viewing.title);
+      if (!metadata) {
+        this.actionStatusEl.textContent = "OMDb had no match for this title.";
+        return;
+      }
+      await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+      await this.reload();
+      this.actionStatusEl.textContent = "Refreshed.";
+    } catch (error) {
+      this.actionStatusEl.textContent =
+        error instanceof Error ? error.message : "Failed to refresh metadata.";
+    }
   }
 
   private async handleDelete(viewing: LoggedViewing) {
