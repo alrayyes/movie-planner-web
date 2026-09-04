@@ -1,3 +1,5 @@
+import "./calendar-overview";
+import type { CaldavConfig } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 
@@ -30,12 +32,18 @@ export class CredentialsGate extends HTMLElement {
 
   private renderConnected(credentials: Credentials) {
     this.innerHTML = "";
-    const p = document.createElement("p");
-    p.textContent = `Connected to ${credentials.caldavUrl}.`;
     const link = document.createElement("a");
     link.href = "/settings";
     link.textContent = "Settings";
-    this.append(p, link);
+
+    const overview = document.createElement("calendar-overview");
+    (overview as unknown as { config: CaldavConfig }).config = {
+      baseUrl: credentials.caldavUrl,
+      username: credentials.caldavUsername,
+      password: credentials.caldavPassword,
+    };
+
+    this.append(link, overview);
   }
 }
 
