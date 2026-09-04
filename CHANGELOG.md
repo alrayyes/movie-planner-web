@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.15.1...movie-planner-web-v0.16.0) (2026-09-04)
+
+
+### Features
+
+* **movie-details:** add a dedicated details page per logged viewing ([#54](https://github.com/alrayyes/movie-planner-web/issues/54)) ([53825b7](https://github.com/alrayyes/movie-planner-web/commit/53825b7ba68933b4d08c3dfb89ce574f334f2f8e))
+
 ## [0.15.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.15.0...movie-planner-web-v0.15.1) (2026-09-04)
 
 
