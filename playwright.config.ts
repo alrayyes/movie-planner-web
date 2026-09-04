@@ -3,6 +3,15 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
+  // The default (one worker per core) crashes the shared `wrangler dev`
+  // instance under concurrent load — confirmed by hand: reproducible
+  // workerd "Network connection lost" crashes at 8 workers (roughly 1 run
+  // in 3), none at 3 workers across 8 repeated runs. A wrangler/workerd
+  // local-dev stability limit, not an application bug. Once it crashes,
+  // every subsequent test fails with connection-refused, retries included,
+  // since the webServer isn't restarted between them — so CI's own
+  // retries: 2 below can't recover from it either.
+  workers: 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
