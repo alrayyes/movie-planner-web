@@ -176,9 +176,16 @@ export class CalendarOverview extends HTMLElement {
     if (!this.listContainer || !this.statusEl) return;
 
     const mediumFilter = this.mediumInput?.value.trim().toLowerCase();
-    const viewings = mediumFilter
+    const filtered = mediumFilter
       ? this.allViewings.filter((v) => v.medium.toLowerCase() === mediumFilter)
       : this.allViewings;
+    // Most recently watched first — a plain string-date fallback isn't
+    // enough here since a filtered subset can be re-sorted after every
+    // reload, so this always sorts fresh rather than relying on
+    // insertion order from the CalDAV response.
+    const viewings = [...filtered].sort(
+      (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
+    );
 
     this.statusEl.textContent = `${viewings.length} logged viewing${viewings.length === 1 ? "" : "s"}.`;
     this.listContainer.innerHTML = "";
