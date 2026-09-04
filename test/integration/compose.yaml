@@ -1,0 +1,51 @@
+# A real Baikal instance for the caldav-proxy integration tests — the
+# testing rule's "container / integration: real HTTP in containers, not
+# mocks" layer. Unit tests (src/lib/caldav/*.test.ts) already cover branches
+# and edge cases against a mocked fetch; this layer exists to catch what
+# mocks can't: whether the REPORT/PUT/GET/DELETE calls and the iCalendar
+# codec actually work against a real CalDAV server, not just against each
+# other.
+#
+# `docker compose -f test/integration/compose.yaml up -d --wait`, then
+# `./test/integration/provision-baikal.sh`, then `bun run test:integration`.
+# See CONTRIBUTING.md's "Integration tests" section.
+#
+# No cap_drop/read_only here despite the containers rule's usual runtime
+# hardening list: both images are third-party (ckulka/baikal, caddy), used
+# ephemerally and locally/in-CI only, never shipped or exposed beyond this
+# test run — nginx/php-fpm and Caddy's own cert storage both need real
+# write access this isn't worth verifying against for a throwaway
+# container. mem_limit and no-new-privileges cost nothing to keep, so they
+# stay.
+services:
+  baikal:
+    image: ckulka/baikal@sha256:1a901125d121a3e414cda87c617bd322c57ae86b9d2aedbff7b3a7ac84bb23aa
+    mem_limit: 512m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-sf",
+          "-o",
+          "/dev/null",
+          "http://localhost/admin/install/",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  caddy:
+    image: caddy@sha256:df7f1c2fb114453b951de51a98efc010db1655a92c2e86be6706714e2417a78d
+    mem_limit: 256m
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      baikal:
+        condition: service_healthy
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

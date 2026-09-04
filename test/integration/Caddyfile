@@ -1,0 +1,10 @@
+# Baikal's own dav_auth_type=Basic (set by provision-baikal.sh) only accepts
+# requests over TLS in the sense the caldav-proxy validates — this terminates
+# TLS with Caddy's internal self-signed CA so integration tests exercise the
+# proxy's real https:// path rather than testing around it. Tests trust the
+# self-signed cert the same way (see CONTRIBUTING.md's "Integration tests"
+# section) — never disable certificate verification outside test code.
+localhost:8443 {
+	tls internal
+	reverse_proxy baikal:80
+}
