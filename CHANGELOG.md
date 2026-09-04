@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.5.0...movie-planner-web-v0.6.0) (2026-09-04)
+
+
+### Features
+
+* **movie-log:** manual form, Pathé email parsing, OMDb enrichment ([#13](https://github.com/alrayyes/movie-planner-web/issues/13)) ([7f23a3b](https://github.com/alrayyes/movie-planner-web/commit/7f23a3b37ef67aded5ffbc020c03ee1def5bb660))
+
 ## [0.5.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.4.0...movie-planner-web-v0.5.0) (2026-09-04)
 
 
