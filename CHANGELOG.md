@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.13.1...movie-planner-web-v0.14.0) (2026-09-04)
+
+
+### Features
+
+* **theme:** add a dark mode toggle ([#45](https://github.com/alrayyes/movie-planner-web/issues/45)) ([11a8b08](https://github.com/alrayyes/movie-planner-web/commit/11a8b084b7f939ed50e9aaa14bedbbedbe11cd32)), closes [#36](https://github.com/alrayyes/movie-planner-web/issues/36)
+
 ## [0.13.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.13.0...movie-planner-web-v0.13.1) (2026-09-04)
 
 
