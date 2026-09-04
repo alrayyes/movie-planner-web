@@ -19,6 +19,14 @@ const DUNE = {
   ratingImdb: "1.0",
 };
 
+const PADDINGTON = {
+  uid: "paddington-uid",
+  title: "Paddington",
+  start: ONE_MONTH_AGO.toISOString(),
+  end: new Date(ONE_MONTH_AGO.getTime() + 1.5 * 60 * 60 * 1000).toISOString(),
+  medium: "netflix",
+};
+
 async function connect(page: Page, omdbApiKey?: string) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -90,5 +98,73 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     await page.getByRole("button", { name: "Refresh metadata" }).click();
 
     await expect(page.getByRole("status").last()).toHaveText("OMDb had no match for this title.");
+  });
+
+  test("no Refresh all control appears without an OMDb key set", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await expect(page.getByRole("button", { name: "Refresh all metadata" })).toHaveCount(0);
+  });
+
+  test("refresh all re-fetches every viewing currently on screen", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page, "test-omdb-key");
+
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const title = new URL(route.request().url()).searchParams.get("t");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: `${title} director`,
+          Ratings: [{ Source: "Internet Movie Database", Value: "9.0/10" }],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 2 of 2.");
+    expect(server.updates).toHaveLength(2);
+    expect(server.updates.map((u) => u.director).sort()).toEqual([
+      "Dune director",
+      "Paddington director",
+    ]);
+  });
+
+  test("refresh all reports misses without failing the whole batch", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page, "test-omdb-key");
+
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const title = new URL(route.request().url()).searchParams.get("t");
+      if (title === "Paddington") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "False" }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Denis Villeneuve",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText(
+      "Refreshed 1 of 2 (1 had no OMDb match or failed).",
+    );
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.title).toBe("Dune");
   });
 });

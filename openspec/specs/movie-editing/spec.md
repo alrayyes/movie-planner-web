@@ -41,6 +41,25 @@ different year than its actual release.
 - **WHEN** a visitor refreshes a viewing whose watched year returns no OMDb match for that title
 - **THEN** the system SHALL fall back to a plain title search and use that result instead of reporting no match
 
+### Requirement: Refresh all metadata on screen
+
+The system SHALL let a visitor re-run the Refresh OMDb metadata action
+across every logged viewing currently displayed on the overview (the
+filtered, sorted set — not the visitor's whole calendar), in one action,
+and SHALL report how many succeeded and how many had no match or
+failed. The system SHALL only offer this when the visitor has an OMDb
+key set.
+
+#### Scenario: Bulk refresh over a filtered set
+
+- **WHEN** a visitor with an OMDb key set refreshes all metadata while a medium filter is applied
+- **THEN** the system SHALL refresh only the viewings currently shown under that filter, not the visitor's whole calendar
+
+#### Scenario: Some titles have no match
+
+- **WHEN** a bulk refresh includes a title OMDb has no match for
+- **THEN** the system SHALL still refresh every other title and report the count that had no match or failed, rather than aborting the whole batch
+
 ### Requirement: Delete a logged viewing
 
 The system SHALL let a visitor delete an existing logged viewing,
