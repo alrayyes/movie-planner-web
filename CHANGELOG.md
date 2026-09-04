@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.13.0...movie-planner-web-v0.13.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ui:** stop iOS Safari auto-zoom from reading as horizontal scroll ([#43](https://github.com/alrayyes/movie-planner-web/issues/43)) ([697f08e](https://github.com/alrayyes/movie-planner-web/commit/697f08e8fd40ea70542873e245d1573df662e8d7)), closes [#35](https://github.com/alrayyes/movie-planner-web/issues/35)
+
 ## [0.13.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.12.0...movie-planner-web-v0.13.0) (2026-09-04)
 
 
