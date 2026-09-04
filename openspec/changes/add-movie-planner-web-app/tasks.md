@@ -7,10 +7,10 @@
 
 ## 2. Credentials & Settings
 
-- [ ] 2.1 Build the first-load credentials screen (CalDAV URL, username, password, optional OMDb key); verify a Playwright test confirms it's the only thing shown with no stored credentials
-- [ ] 2.2 Implement browser-only credential storage (IndexedDB); verify a test confirms a reload with stored credentials skips the first-load screen
-- [ ] 2.3 Build the `/settings` screen for editing stored credentials; verify a Playwright test edits and re-saves a credential and confirms it's used on the next CalDAV call
-- [ ] 2.4 Verify `credentials` spec scenarios all have a corresponding automated test
+- [x] 2.1 Build the first-load credentials screen (CalDAV URL, username, password, optional OMDb key); verify a Playwright test confirms it's the only thing shown with no stored credentials
+- [x] 2.2 Implement browser-only credential storage (IndexedDB); verify a test confirms a reload with stored credentials skips the first-load screen
+- [x] 2.3 Build the `/settings` screen for editing stored credentials; verify a Playwright test edits and re-saves a credential and confirms it's used on the next CalDAV call
+- [x] 2.4 Verify `credentials` spec scenarios all have a corresponding automated test
 
 ## 3. CalDAV Proxy
 
