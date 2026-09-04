@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.2.0...movie-planner-web-v0.3.0) (2026-09-04)
+
+
+### Features
+
+* **credentials:** first-load capture, browser storage, settings ([#6](https://github.com/alrayyes/movie-planner-web/issues/6)) ([a45488d](https://github.com/alrayyes/movie-planner-web/commit/a45488dedc95520808975a06175c0e24b7102056))
+
 ## [0.2.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.1.0...movie-planner-web-v0.2.0) (2026-09-04)
 
 
