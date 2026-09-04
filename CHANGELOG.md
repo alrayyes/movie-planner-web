@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.7.0...movie-planner-web-v0.8.0) (2026-09-04)
+
+
+### Features
+
+* **import:** add CSV/JSON bulk import with duplicate detection ([#19](https://github.com/alrayyes/movie-planner-web/issues/19)) ([b349868](https://github.com/alrayyes/movie-planner-web/commit/b34986893ee673b61a409106ecb25a49029c5933))
+
 ## [0.7.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.6.0...movie-planner-web-v0.7.0) (2026-09-04)
 
 
