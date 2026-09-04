@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.4.0...movie-planner-web-v0.5.0) (2026-09-04)
+
+
+### Features
+
+* **calendar-overview:** the main screen, filterable, full metadata ([#11](https://github.com/alrayyes/movie-planner-web/issues/11)) ([898ae6f](https://github.com/alrayyes/movie-planner-web/commit/898ae6fab6ee7d60d44048aab81c931dc7441a7c))
+
 ## [0.4.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.3.0...movie-planner-web-v0.4.0) (2026-09-04)
 
 
