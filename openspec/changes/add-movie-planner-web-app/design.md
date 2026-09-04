@@ -38,6 +38,18 @@ constraints that shape this design:
 
 ## Decisions
 
+**No frontend framework — vanilla TypeScript and Web Components.**
+Interactive UI (the credentials form, later the filterable calendar
+overview and edit/log/delete flows) is built with plain `<script>`
+modules and custom elements in `.astro` files, not a reactive framework.
+Keeps the dependency footprint matching the project's minimal style so
+far (no React/Preact/Solid/Svelte in `package.json`), at the cost of more
+handwritten DOM wiring once the calendar overview's filtering and forms
+arrive. Alternative considered: Preact islands (Astro's own recommended
+lightweight choice, ~3kb, less hand-wiring for lists/forms) - rejected in
+favour of the smaller dependency surface; revisit if hand-wiring the
+overview's filtering turns out to be genuinely painful.
+
 **One Astro app, frontend + proxy together, deployed as a Cloudflare
 Worker.** Astro's server endpoints (`src/pages/api/*`) run as Worker
 functions in this deploy mode, so the "stateless proxy function" from the

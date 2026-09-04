@@ -9,20 +9,15 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <title>movie-planner-web</title>
+    <title>Settings — movie-planner-web</title>
   </head>
   <body>
     <main>
-      <h1>movie-planner-web</h1>
-      <p>
-        A public web client for <a
-          href="https://github.com/alrayyes/movie-planner">movie-planner</a
-        >, reading and writing straight to your own CalDAV calendar.
-      </p>
-      <credentials-gate></credentials-gate>
+      <h1>Settings</h1>
+      <credentials-settings-form></credentials-settings-form>
     </main>
     <script>
-      import "../components/credentials-gate";
+      import "../components/credentials-settings-form";
     </script>
   </body>
 </html>
