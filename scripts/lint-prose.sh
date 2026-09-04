@@ -28,7 +28,9 @@ fi
 # requirement/scenario names starting a heading, precise tool names like
 # "CLI" over Google style's "command-line tool") is a house style dictated
 # by that tool's format, not a choice this repository's prose made.
-files=$(git ls-files '*.md' | grep -v '^CHANGELOG.md$' | grep -v '^\.claude/' | grep -v '^openspec/changes/')
+# openspec/specs/** is the archived form of the same template and inherits
+# the same exemption.
+files=$(git ls-files '*.md' | grep -v '^CHANGELOG.md$' | grep -v '^\.claude/' | grep -v '^openspec/changes/' | grep -v '^openspec/specs/')
 
 echo "Checking:"
 echo "$files"
