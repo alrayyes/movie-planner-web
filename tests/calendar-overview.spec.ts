@@ -60,6 +60,19 @@ async function connect(page: Page) {
 }
 
 test.describe("calendar overview", () => {
+  test("defaults to most-recently-watched first", async ({ page }) => {
+    // PADDINGTON (2 months back) is older than DUNE (1 month back) —
+    // seeded in that order so the assertion actually proves sorting
+    // happened rather than just preserving fixture/response order.
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON, DUNE]);
+    await connect(page);
+
+    const rows = page.locator("tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText("Dune");
+    await expect(rows.nth(1)).toContainText("Paddington");
+  });
+
   test("renders full metadata for a logged viewing", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

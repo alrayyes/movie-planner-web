@@ -16,6 +16,17 @@ actor metadata.
 - **WHEN** a visitor opens the overview and has a logged viewing with metadata enriched from OMDb
 - **THEN** the system SHALL display its title, start/end time, cinema/venue, director, actors, and ratings
 
+### Requirement: Overview defaults to most-recently-watched first
+
+The system SHALL sort the overview by start date descending by
+default, so the most recently watched viewing appears first, and SHALL
+preserve that order under a medium filter.
+
+#### Scenario: Default ordering
+
+- **WHEN** a visitor opens the overview with multiple logged viewings and no explicit sort applied
+- **THEN** the system SHALL display them ordered by start date descending
+
 ### Requirement: Overview filters by date range and medium
 
 The system SHALL let a visitor filter the overview by a date range and
