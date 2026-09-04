@@ -11,15 +11,22 @@ it at your own CalDAV server and browse, log, and edit your watch history
 from any browser — no install, no account with this service. It's a fully
 static site: your browser talks straight to your CalDAV server, with
 nothing in between. There's no shared database and no server, of any
-kind, that ever sees your credentials — not even in transit. Only tested
-against [Baikal](https://sabre.io/baikal/) so far — other CalDAV servers
-may or may not work.
+kind, that ever sees your credentials — not even in transit. You can
+verify this claim yourself: `src/lib/credentials/store.ts` is the only
+place credentials are held (the visitor's own browser storage), and
+`src/lib/caldav/client.ts`/`src/lib/omdb/client.ts` are the only places
+they're ever sent anywhere — straight to the CalDAV/OMDb URLs you
+configured, with no server-side code in this repo's build output at all
+(there's no `src/pages/api/` any more — the build is fully static, see
+`astro.config.mjs`). Only tested against
+[Baikal](https://sabre.io/baikal/) so far — other CalDAV servers may or
+may not work.
 
 **Status:** credentials, the calendar overview, logging (manual and Pathé
-email parsing), editing, and bulk CSV/JSON import are built. Location
-management (media/venue picklists) is still planned — see
+email parsing), editing, bulk CSV/JSON import, and location management
+(media/venue picklists) are all built — see
 [`openspec/changes/add-movie-planner-web-app/`](openspec/changes/add-movie-planner-web-app/)
-for the full design and what's left.
+for the full design.
 
 ## Requirements
 

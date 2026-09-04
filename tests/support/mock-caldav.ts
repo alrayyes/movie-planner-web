@@ -1,6 +1,12 @@
 import type { Page, Route } from "@playwright/test";
-import { parseVEventToViewing, serializeViewingToVEvent } from "../../src/lib/caldav/ical";
-import type { LoggedViewing } from "../../src/lib/caldav/types";
+import {
+  parsePicklistsFromVJournal,
+  parseVEventToViewing,
+  SIDECAR_UID,
+  serializePicklistsToVJournal,
+  serializeViewingToVEvent,
+} from "../../src/lib/caldav/ical";
+import type { LoggedViewing, Picklists } from "../../src/lib/caldav/types";
 
 export interface MockCaldavServer {
   creates: LoggedViewing[];
@@ -8,6 +14,7 @@ export interface MockCaldavServer {
   deletes: string[];
   listRequests: { from: Date; to: Date }[];
   authHeaders: string[];
+  picklists: Picklists;
 }
 
 function escapeXml(value: string): string {
@@ -55,6 +62,7 @@ export function mockCaldavServer(
   page: Page,
   baseUrl: string,
   initialViewings: LoggedViewing[] = [],
+  initialPicklists: Picklists = { media: [], venues: [] },
 ): MockCaldavServer {
   const viewings = new Map(initialViewings.map((v) => [v.uid, v]));
   const state: MockCaldavServer = {
@@ -63,6 +71,7 @@ export function mockCaldavServer(
     deletes: [],
     listRequests: [],
     authHeaders: [],
+    picklists: { media: [...initialPicklists.media], venues: [...initialPicklists.venues] },
   };
 
   const origin = new URL(baseUrl).origin;
@@ -72,6 +81,22 @@ export function mockCaldavServer(
     const url = new URL(request.url());
     const auth = await request.headerValue("authorization");
     if (auth) state.authHeaders.push(auth);
+    const isSidecar = uidFromResourceUrl(url) === SIDECAR_UID;
+
+    if (method === "PUT" && isSidecar) {
+      state.picklists = parsePicklistsFromVJournal(request.postData() ?? "");
+      await route.fulfill({ status: 201, body: "" });
+      return;
+    }
+
+    if (method === "GET" && isSidecar) {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/calendar",
+        body: serializePicklistsToVJournal(state.picklists),
+      });
+      return;
+    }
 
     if (method === "REPORT") {
       const body = request.postData() ?? "";

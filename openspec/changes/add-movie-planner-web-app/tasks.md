@@ -55,21 +55,21 @@ where the reversal is tracked and verified.
 
 ## 8. Location Management
 
-- [ ] 8.1 Implement the sidecar `VJOURNAL` (`movie-planner-web-config` UID) read/write, encoding media/venue picklists in its `DESCRIPTION`; verify a unit test round-trips the encoding
-- [ ] 8.2 Wire picklists into the log form's medium/venue fields; verify a Playwright test confirms a previously-added venue appears as a choice
-- [ ] 8.3 Handle a missing or unparsable sidecar as an empty picklist rather than an error; verify a test covers both cases
-- [ ] 8.4 Verify `location-management` spec scenarios all have a corresponding automated test
+- [x] 8.1 Implement the sidecar `VJOURNAL` (`movie-planner-web-config` UID) read/write, encoding media/venue picklists in its `DESCRIPTION`; verify a unit test round-trips the encoding
+- [x] 8.2 Wire picklists into the log form's medium/venue fields; verify a Playwright test confirms a previously-added venue appears as a choice
+- [x] 8.3 Handle a missing or unparsable sidecar as an empty picklist rather than an error; verify a test covers both cases
+- [x] 8.4 Verify `location-management` spec scenarios all have a corresponding automated test
 
 ## 9. Documentation
 
-- [ ] 9.1 Write the top-level `README.md` — what the app is, how to run it, its requirements, its configuration, where it deploys — per the project's README rule
-- [ ] 9.2 State plainly that this has only been tested against Baikal and other CalDAV servers may or may not work
-- [ ] 9.3 Document that the operator never stores visitor credentials, and where in the code that claim can be verified
+- [x] 9.1 Write the top-level `README.md` — what the app is, how to run it, its requirements, its configuration, where it deploys — per the project's README rule
+- [x] 9.2 State plainly that this has only been tested against Baikal and other CalDAV servers may or may not work
+- [x] 9.3 Document that the operator never stores visitor credentials, and where in the code that claim can be verified
 
 ## 10. Final Verification
 
-- [ ] 10.1 Run the full test suite (unit + Playwright + axe-core) and confirm it's green
-- [ ] 10.2 Run `openspec validate --change "add-movie-planner-web-app" --strict` and confirm it passes
+- [x] 10.1 Run the full test suite (unit + Playwright + axe-core) and confirm it's green
+- [x] 10.2 Run `openspec validate --change "add-movie-planner-web-app" --strict` and confirm it passes
 
 ## 11. CalDAV/OMDb: Remove the Server-Side Proxy
 
