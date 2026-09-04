@@ -21,10 +21,10 @@
 
 ## 4. Calendar Overview
 
-- [ ] 4.1 Build the overview screen rendering title, start/end time, medium, venue, director, actors, and ratings per entry; verify a Playwright test against a mocked calendar with full metadata
-- [ ] 4.2 Add date-range and medium filters; verify a Playwright test filters to an expected subset
-- [ ] 4.3 Add a Playwright journey test with an axe-core scan on this page, per the project's accessibility rule; verify it fails on an introduced violation and passes clean
-- [ ] 4.4 Verify `calendar-overview` spec scenarios all have a corresponding automated test
+- [x] 4.1 Build the overview screen rendering title, start/end time, medium, venue, director, actors, and ratings per entry; verify a Playwright test against a mocked calendar with full metadata
+- [x] 4.2 Add date-range and medium filters; verify a Playwright test filters to an expected subset
+- [x] 4.3 Add a Playwright journey test with an axe-core scan on this page, per the project's accessibility rule; verify it fails on an introduced violation and passes clean
+- [x] 4.4 Verify `calendar-overview` spec scenarios all have a corresponding automated test
 
 ## 5. Logging a Viewing
 
