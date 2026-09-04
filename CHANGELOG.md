@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.12.0...movie-planner-web-v0.13.0) (2026-09-04)
+
+
+### Features
+
+* **calendar-overview:** default sort by start date, descending ([#41](https://github.com/alrayyes/movie-planner-web/issues/41)) ([032fafc](https://github.com/alrayyes/movie-planner-web/commit/032fafc6b9dc56d636946824f0e4770cba57eb9c)), closes [#34](https://github.com/alrayyes/movie-planner-web/issues/34)
+
 ## [0.12.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.11.0...movie-planner-web-v0.12.0) (2026-09-04)
 
 
