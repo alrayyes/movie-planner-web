@@ -28,12 +28,12 @@
 
 ## 5. Logging a Viewing
 
-- [ ] 5.1 Build the manual log form (title, date, start/end time, medium, venue); verify a Playwright test submits it and confirms the resulting CalDAV event
-- [ ] 5.2 Build Pathé email paste/upload parsing (title, date, times, cinema, booking number) with a confirm-before-write step; verify unit tests cover parsing and a Playwright test covers the confirm flow
-- [ ] 5.3 Implement re-submission-updates-existing-entry behaviour keyed on booking number; verify a test covers a duplicate submission
-- [ ] 5.4 Implement best-effort OMDb enrichment (auto-pick the closest match, no disambiguation prompt) behind the optional API key; verify a test covers both the key-set and key-absent paths
-- [ ] 5.5 Add a Playwright + axe-core scan on the log screen; verify it passes clean
-- [ ] 5.6 Verify `movie-log` spec scenarios all have a corresponding automated test
+- [x] 5.1 Build the manual log form (title, date, start/end time, medium, venue); verify a Playwright test submits it and confirms the resulting CalDAV event
+- [x] 5.2 Build Pathé email paste/upload parsing (title, date, times, cinema, booking number) with a confirm-before-write step; verify unit tests cover parsing and a Playwright test covers the confirm flow
+- [x] 5.3 Implement re-submission-updates-existing-entry behaviour keyed on booking number; verify a test covers a duplicate submission
+- [x] 5.4 Implement best-effort OMDb enrichment (auto-pick the closest match, no disambiguation prompt) behind the optional API key; verify a test covers both the key-set and key-absent paths
+- [x] 5.5 Add a Playwright + axe-core scan on the log screen; verify it passes clean
+- [x] 5.6 Verify `movie-log` spec scenarios all have a corresponding automated test
 
 ## 6. Editing a Viewing
 
