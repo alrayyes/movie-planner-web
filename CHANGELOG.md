@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.9.0...movie-planner-web-v0.10.0) (2026-09-04)
+
+
+### Features
+
+* **ui:** redesign the layout with Tailwind CSS ([#29](https://github.com/alrayyes/movie-planner-web/issues/29)) ([9d7550b](https://github.com/alrayyes/movie-planner-web/commit/9d7550b4e560510a858d9702bf904eaa902f9aca))
+
 ## [0.9.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.8.0...movie-planner-web-v0.9.0) (2026-09-04)
 
 
