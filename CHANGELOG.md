@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.20.0...movie-planner-web-v0.20.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **calendar-overview:** stop distorting non-portrait poster thumbnails ([#77](https://github.com/alrayyes/movie-planner-web/issues/77)) ([2058bfe](https://github.com/alrayyes/movie-planner-web/commit/2058bfed275ecd3e8c140e7ef68b8bea0e9781f2)), closes [#76](https://github.com/alrayyes/movie-planner-web/issues/76)
+
 ## [0.20.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.19.0...movie-planner-web-v0.20.0) (2026-09-05)
 
 
