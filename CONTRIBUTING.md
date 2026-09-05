@@ -79,6 +79,13 @@ this layer exists at all, and `provision-baikal.sh`'s comment for why
 provisioning is a scripted form-post replay rather than an API call —
 Baikal has no non-interactive install path.
 
+`cli-import.integration.test.ts` is the cross-tool half of this layer: a
+real `movie-planner` CLI container (`ghcr.io/alrayyes/movie-planner:latest`,
+a public image — no registry auth needed) importing a file shaped like
+this app's own "Export as JSON", against the same Baikal instance. Needs
+nothing beyond what's already documented above — `bun run test:integration`
+pulls the image itself the first time it runs.
+
 ## How it fits together
 
 There's no server-side application code — `astro.config.mjs` builds a
