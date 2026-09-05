@@ -18,7 +18,7 @@ click away via the title.
 #### Scenario: Viewing with full metadata
 
 - **WHEN** a visitor opens the overview and has a logged viewing with metadata enriched from OMDb
-- **THEN** the system SHALL display its title, release year, start-end period, cinema/venue, and poster thumbnail, and SHALL link the title to that viewing's details page for the rest
+- **THEN** the system SHALL display its title, release year, start-end period, cinema/venue, and poster thumbnail, and SHALL link both the title and the poster thumbnail to that viewing's details page for the rest
 
 ### Requirement: Editing and deleting live only on the details page
 

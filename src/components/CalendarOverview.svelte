@@ -409,13 +409,18 @@ reload();
                   max-w-none — w-auto or aspect-* alone still leave the
                   image's effective width capped by Tailwind Preflight's
                   `img { max-width: 100% }` against whatever the table's
-                  own column layout assigns. -->
-                  <img
-                    src={viewing.posterUrl}
-                    alt={`${viewing.title} poster`}
-                    class="h-32 w-20 max-w-none rounded object-cover shadow-sm"
-                    loading="lazy"
-                  />
+                  own column layout assigns. #133: wrapped in the same
+                  details-page link the title uses — the image's own alt
+                  text ("<title> poster") gives this link a distinct
+                  accessible name from the title link right next to it. -->
+                  <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
+                    <img
+                      src={viewing.posterUrl}
+                      alt={`${viewing.title} poster`}
+                      class="h-32 w-20 max-w-none rounded object-cover shadow-sm"
+                      loading="lazy"
+                    />
+                  </a>
                 {/if}
               </td>
               <td class={TD}>
