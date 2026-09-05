@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.36.0...movie-planner-web-v0.37.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** add autocomplete to the medium filter ([#141](https://github.com/alrayyes/movie-planner-web/issues/141)) ([11b2602](https://github.com/alrayyes/movie-planner-web/commit/11b26023245b6b5967745836e43c23db62932082)), closes [#140](https://github.com/alrayyes/movie-planner-web/issues/140)
+
 ## [0.36.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.35.2...movie-planner-web-v0.36.0) (2026-09-05)
 
 
