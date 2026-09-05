@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.23.0...movie-planner-web-v0.24.0) (2026-09-05)
+
+
+### Features
+
+* **layout:** add a footer with legal pages, plus humans.txt ([#87](https://github.com/alrayyes/movie-planner-web/issues/87)) ([0e4cb35](https://github.com/alrayyes/movie-planner-web/commit/0e4cb35b19829c5858d7a41452814533c714c99c)), closes [#67](https://github.com/alrayyes/movie-planner-web/issues/67)
+
 ## [0.23.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.22.0...movie-planner-web-v0.23.0) (2026-09-05)
 
 
