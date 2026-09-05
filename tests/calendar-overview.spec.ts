@@ -126,6 +126,17 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #133
+  test("the poster thumbnail links to the details page, same as the title", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.locator("tbody tr img").click();
+
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
+    await expect(page.getByRole("heading", { name: "Dune (2021)" })).toBeVisible();
+  });
+
   test("cross-links the title out to IMDb, Rotten Tomatoes and Letterboxd", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

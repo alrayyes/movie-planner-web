@@ -61,7 +61,9 @@ test.describe("movie details page", () => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
-    await page.getByRole("link", { name: "Dune" }).click();
+    // #133: not just "Dune" — that now also matches the poster
+    // thumbnail's own link right next to it.
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
     // Astro's static build serves this as a directory (`movie/index.html`),
     // and the static server 30x-redirects the extensionless request to add
     // the trailing slash — hence the optional `/` here.
@@ -100,7 +102,7 @@ test.describe("movie details page", () => {
   test("edit and delete are reachable from the details page", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.locator("#details-venue").fill("Regal Union Square");
