@@ -55,6 +55,18 @@ function toDateInputValue(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+// #59: PAGE_SIZE (calendar-overview.ts) is 25 — one more than that forces
+// a second page without a magic number repeated in both places.
+function manyViewings(count: number, medium = "cinema") {
+  return Array.from({ length: count }, (_, i) => ({
+    uid: `viewing-${i}`,
+    title: `Movie ${String(i).padStart(2, "0")}`,
+    start: daysAgo(i).toISOString(),
+    end: new Date(daysAgo(i).getTime() + 60 * 60 * 1000).toISOString(),
+    medium,
+  }));
+}
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -218,5 +230,44 @@ test.describe("calendar overview", () => {
 
     const lastRequest = server.listRequests.at(-1);
     expect(lastRequest?.from.toDateString()).not.toBe(CUTOFF.toDateString());
+  });
+
+  test("paginates when there are more logged viewings than fit on one page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(30));
+    await connect(page);
+
+    await expect(page.locator("tbody tr")).toHaveCount(25);
+    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Previous page" })).toBeDisabled();
+
+    await page.getByRole("button", { name: "Next page" }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(5);
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Next page" })).toBeDisabled();
+
+    await page.getByRole("button", { name: "Previous page" }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(25);
+  });
+
+  test("no pagination controls appear when everything fits on one page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await expect(page.getByRole("button", { name: "Next page" })).toHaveCount(0);
+  });
+
+  test("changing the filter resets pagination to the first page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(30));
+    await connect(page);
+
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+
+    await page.locator("#overview-medium").fill("cinema");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+    await expect(page.locator("tbody tr")).toHaveCount(25);
   });
 });

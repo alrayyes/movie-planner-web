@@ -193,6 +193,41 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     ]);
   });
 
+  // #59: "refresh all" acts on the current page of the (filtered, sorted)
+  // set, not the whole thing — same rule the medium filter already had,
+  // now extended to pagination.
+  test("refresh all only refreshes the current page, not every page", async ({ page }) => {
+    const viewings = Array.from({ length: 26 }, (_, i) => ({
+      uid: `viewing-${i}`,
+      title: `Movie ${String(i).padStart(2, "0")}`,
+      start: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
+      end: new Date(Date.now() - i * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+    }));
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], viewings);
+    await connect(page, "test-omdb-key");
+
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Some Director",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    expect(server.updates).toHaveLength(1);
+  });
+
   test("refresh all reports misses without failing the whole batch", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page, "test-omdb-key");

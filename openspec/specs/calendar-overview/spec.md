@@ -55,6 +55,30 @@ preserve that order under a medium filter.
 - **WHEN** a visitor opens the overview with multiple logged viewings and no explicit sort applied
 - **THEN** the system SHALL display them ordered by start date descending
 
+### Requirement: Overview paginates a large result set
+
+The system SHALL bound how many logged viewings render at once to a fixed
+page size, with a way to reach the rest, rather than rendering the entire
+filtered result set in one table.
+
+#### Scenario: More viewings than fit on one page
+
+- **WHEN** a visitor's selected date range and medium filter return more
+  viewings than fit on one page
+- **THEN** the system SHALL show only the first page's worth, with a control
+  to reach later pages
+
+#### Scenario: Pagination resets on a new filter
+
+- **WHEN** a visitor changes the date range or medium filter
+- **THEN** the system SHALL reset to the first page of the new result set
+
+#### Scenario: Bulk refresh scoped to the current page
+
+- **WHEN** a visitor on a later page uses "Refresh all metadata"
+- **THEN** the system SHALL refresh only the viewings on that page, not the
+  whole filtered result set
+
 ### Requirement: Overview filters by date range and medium
 
 The system SHALL let a visitor filter the overview by a date range and
