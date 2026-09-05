@@ -253,7 +253,9 @@ export class CalendarOverview extends HTMLElement {
       const img = document.createElement("img");
       img.src = viewing.posterUrl;
       img.alt = `${viewing.title} poster`;
-      img.className = "h-16 w-auto rounded";
+      // #64: a UX audit flagged the previous h-16 (64px) thumbnail as too
+      // small to recognize a poster by — this is double that.
+      img.className = "h-32 w-auto rounded shadow-sm";
       img.loading = "lazy";
       posterCell.appendChild(img);
     }

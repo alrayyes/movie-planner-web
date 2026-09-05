@@ -20,6 +20,18 @@ the title.
 - **WHEN** a visitor opens the overview and has a logged viewing with metadata enriched from OMDb
 - **THEN** the system SHALL display its title, release year, start/end time, cinema/venue, and poster thumbnail, and SHALL link the title to that viewing's details page for the rest
 
+### Requirement: Poster thumbnails are large enough to recognize
+
+The system SHALL render the overview's poster thumbnail large enough to
+recognize a film at a glance, not merely as a decorative marker.
+
+#### Scenario: Poster thumbnail size
+
+- **WHEN** a visitor opens the overview and has a logged viewing with a poster
+- **THEN** the system SHALL render that poster substantially larger than a
+  small decorative icon, while the overview still fits a phone screen
+  without horizontal scroll
+
 ### Requirement: Overview cross-links to external sources
 
 The system SHALL link a logged viewing's title out to IMDb, Rotten

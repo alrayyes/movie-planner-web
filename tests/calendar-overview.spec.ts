@@ -88,6 +88,11 @@ test.describe("calendar overview", () => {
     await expect(row).toContainText("Grand Vista Cinema");
     await expect(row).toContainText("cinema");
     await expect(row.locator("img")).toHaveAttribute("src", DUNE.posterUrl);
+    // #64: a UX audit flagged the old h-16 (64px) thumbnail as too small
+    // to recognize a poster by — this asserts the fix actually rendered
+    // large enough, not just that a size class changed name.
+    const posterBox = await row.locator("img").boundingBox();
+    expect(posterBox?.height).toBeGreaterThanOrEqual(120);
     // #38: director/actors/genre/ratings live on the details page (one
     // click away via the title link), not as their own overview columns
     // — that's what keeps this table's column count fixed and narrow
