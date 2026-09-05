@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.49.0...movie-planner-web-v0.49.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **caldav:** supersede a stale in-flight request, not race it ([#207](https://github.com/alrayyes/movie-planner-web/issues/207)) ([8ddd8f0](https://github.com/alrayyes/movie-planner-web/commit/8ddd8f012b18f2f845d1d63119935ee0a55a72c4)), closes [#206](https://github.com/alrayyes/movie-planner-web/issues/206)
+
 ## [0.49.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.48.0...movie-planner-web-v0.49.0) (2026-09-05)
 
 
