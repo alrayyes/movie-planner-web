@@ -136,6 +136,7 @@ test.describe("viewing heatmap", () => {
 
     const dayValue = toDateInputValue(day);
     const cell = page.getByRole("button", { name: `${dayValue}: 1 viewing` });
+    const cellBox = await cell.boundingBox();
     await cell.click();
 
     const dialog = page.getByRole("dialog");
@@ -145,11 +146,60 @@ test.describe("viewing heatmap", () => {
     await expect(link).toHaveAttribute("href", "/movie?uid=dune-uid");
     await expect(dialog).toContainText("cinema · Grand Vista Cinema");
 
+    // Anchored next to the clicked cell, not the browser's default
+    // viewport-centered placement — asserting it lands within a small
+    // margin of the cell rather than, say, vertically centered on a
+    // ~800px-tall viewport (which a regression to the default centering
+    // would produce).
+    const dialogBox = await dialog.boundingBox();
+    expect(cellBox).not.toBeNull();
+    expect(dialogBox).not.toBeNull();
+    if (cellBox && dialogBox) {
+      expect(Math.abs(dialogBox.x - cellBox.x)).toBeLessThan(100);
+      expect(dialogBox.y).toBeGreaterThan(cellBox.y - 50);
+    }
+
     // Still on /calendar — the popup didn't navigate anywhere.
     await expect(page).toHaveURL(/\/calendar/);
 
     await dialog.getByRole("button", { name: "Close" }).click();
     await expect(dialog).toBeHidden();
+  });
+
+  test("the popup shows a poster, showtime, director/genre and rating when known", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+        venue: "Grand Vista Cinema",
+        year: "2021",
+        posterUrl: "https://example.com/dune-poster.jpg",
+        director: "Denis Villeneuve",
+        genre: "Sci-Fi",
+        ratingImdb: "8.0",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    await page.getByRole("button", { name: `${dayValue}: 1 viewing` }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.locator("img")).toHaveAttribute(
+      "src",
+      "https://example.com/dune-poster.jpg",
+    );
+    await expect(dialog).toContainText("Denis Villeneuve");
+    await expect(dialog).toContainText("Sci-Fi");
+    await expect(dialog).toContainText("IMDb 8.0");
   });
 
   test("a day with several viewings lists all of them in the popup", async ({ page }) => {
