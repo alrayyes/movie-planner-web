@@ -44,8 +44,14 @@ export const SECTION_HEADING = "text-base font-semibold text-slate-900 dark:text
 export const TABLE_WRAP =
   "overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700";
 export const TABLE = "min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700";
-export const TH = "px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300";
-export const TD = "px-3 py-2 align-top text-slate-700 dark:text-slate-300";
+// #93/#217: px-2 not px-3 below the sm breakpoint — a real, ordinary row
+// (nothing pathological, just a title/date/venue of normal length) on
+// a real phone-width viewport still needed its own table wider than
+// its overview column count could fit in ~307px of available width,
+// forcing the table's own overflow-x-auto wrapper to scroll — every
+// px of padding across 5 columns adds up fast at that width.
+export const TH = "px-2 py-2 text-left font-semibold text-slate-700 sm:px-3 dark:text-slate-300";
+export const TD = "px-2 py-2 align-top text-slate-700 sm:px-3 dark:text-slate-300";
 export const TR_BODY = "even:bg-slate-50 dark:even:bg-slate-800/60";
 
 export const DL = "grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm";

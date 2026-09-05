@@ -127,6 +127,25 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+// #217: an ordinary row (nothing pathological — a title/venue/director of
+// real-world length) still forced the table's own overflow-x-auto wrapper
+// to scroll at a real phone width, which is undesirable even though the
+// page itself never overflowed (that's what assertNoHorizontalOverflow
+// above already covers). This asserts the table's own footprint fits its
+// wrapper too, distinct from — and stricter than — the page-level check.
+test("an ordinary row doesn't force the table's own inner scrollbar at phone width", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await connect(page);
+  const overflow = await page.evaluate(() => {
+    const wrapper = document.querySelector("table")?.parentElement;
+    if (!wrapper) throw new Error("no table wrapper found");
+    return wrapper.scrollWidth - wrapper.clientWidth;
+  });
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
 // Genuinely long, unbroken text (no spaces to wrap at) is what actually
 // stresses the layout — the fixtures above never get close to it. This
 // is the reproduction from the #35 investigation: the wide table stays

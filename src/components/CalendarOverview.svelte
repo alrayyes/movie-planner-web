@@ -580,7 +580,12 @@ getPicklists(config).then((picklists) => {
             Poster and Refresh aren't real data columns to sort by. -->
             <th class={TH} scope="col">Poster</th>
             {#each SORTABLE_COLUMNS as [key, heading] (key)}
-              <th class={TH} scope="col">
+              <!-- #217: Venue is also shown under the title on narrow
+              screens (see the Title cell below) — this column itself
+              is hidden there rather than shown twice, one of several
+              changes that keep the table's own required width under
+              what a real phone viewport has to give it. -->
+              <th class={key === "venue" ? `${TH} hidden sm:table-cell` : TH} scope="col">
                 <button
                   type="button"
                   class="flex items-center gap-1 font-semibold"
@@ -611,19 +616,25 @@ getPicklists(config).then((picklists) => {
                 {#if viewing.posterUrl}
                   <!-- #64: a UX audit flagged the previous h-16 (64px)
                   thumbnail as too small to recognize a poster by — this
-                  is double that. #76: an explicit fixed width plus
-                  max-w-none — w-auto or aspect-* alone still leave the
-                  image's effective width capped by Tailwind Preflight's
-                  `img { max-width: 100% }` against whatever the table's
-                  own column layout assigns. #133: wrapped in the same
-                  details-page link the title uses — the image's own alt
-                  text ("<title> poster") gives this link a distinct
-                  accessible name from the title link right next to it. -->
+                  is double that at the sm breakpoint and up. #217: back
+                  down near that original h-16 below sm — a real,
+                  ordinary row's own table needed more width than a real
+                  phone viewport could give it without its own
+                  overflow-x-auto wrapper kicking in, and the poster was
+                  the single biggest fixed contributor. #76: an explicit
+                  fixed width plus max-w-none — w-auto or aspect-* alone
+                  still leave the image's effective width capped by
+                  Tailwind Preflight's `img { max-width: 100% }` against
+                  whatever the table's own column layout assigns. #133:
+                  wrapped in the same details-page link the title uses —
+                  the image's own alt text ("<title> poster") gives this
+                  link a distinct accessible name from the title link
+                  right next to it. -->
                   <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
-                      class="h-40 w-24 max-w-none rounded object-cover shadow-sm"
+                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-40 sm:w-24"
                       loading="lazy"
                     />
                   </a>
@@ -640,6 +651,16 @@ getPicklists(config).then((picklists) => {
                 >
                   {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
                 </a>
+                {#if viewing.venue}
+                  <!-- #217: the Venue column itself is hidden below sm
+                  (see the header row above) — shown here instead, so
+                  the information stays reachable rather than dropped,
+                  just relocated under the title the same way the
+                  cross-link icons already are. -->
+                  <p class="text-xs text-slate-500 sm:hidden dark:text-slate-400">
+                    {viewing.venue}
+                  </p>
+                {/if}
                 {#if links.length > 0}
                   <div class="mt-1 flex gap-2">
                     {#each links as link (link.label)}
@@ -670,7 +691,7 @@ getPicklists(config).then((picklists) => {
               table to a fixed, narrow column count is what lets it fit
               a phone screen without horizontal scroll. -->
               <td class={TD}>{formatPeriod(viewing.start, viewing.end)}</td>
-              <td class={TD}>{viewing.venue ?? ""}</td>
+              <td class={`${TD} hidden sm:table-cell`}>{viewing.venue ?? ""}</td>
               <!-- #93: editing and deleting now live only on the
               movie-details page (its own independent edit form/delete
               button, unaffected by this) — this cell is refresh-only,
