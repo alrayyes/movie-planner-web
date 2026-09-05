@@ -18,6 +18,8 @@ const X_PROPERTIES: Record<string, keyof NewViewing> = {
   "X-POSTER-URL": "posterUrl",
   "X-IMDB-ID": "imdbId",
   "X-BOOKING-REF": "bookingRef",
+  "X-LETTERBOXD-URL": "letterboxdUrl",
+  "X-LETTERBOXD-RATING": "letterboxdRating",
 };
 
 function formatDateTimeUtc(iso: string): string {
@@ -133,6 +135,81 @@ function parseProperties(
   return properties;
 }
 
+const IMDB_URL_RE = /https:\/\/www\.imdb\.com\/title\/(tt\d+)\/?/;
+
+// #79: the movie-planner CLI (movie_planner/calendar_sync.py's
+// build_vevent) writes ratings and links as plain DESCRIPTION lines
+// rather than this app's own X-* properties — it never reads the
+// calendar back, so it has no reason to know about those. This is the
+// fallback that lets a CLI-logged viewing show its data here without a
+// fresh, possibly-different OMDb lookup. Line shapes, straight from the
+// CLI's own schema:
+//   IMDb: {rating}                         — before the CLI's own
+//                                             imdb_url field existed
+//   IMDb: {rating} ({imdb_url})            — the current form
+//   IMDb: {imdb_url}                       — rating not set
+//   Rotten Tomatoes: {rating}
+//   Metacritic: {rating}
+//   Letterboxd: {letterboxd_url}
+//   Letterboxd: {letterboxd_url} ({letterboxd_rating})
+// A fifth, unlabeled free-text line (Pathé screening details) exists in
+// the CLI's format too, but this app has no field for it and doesn't
+// attempt to parse it out.
+function parseDescriptionMetadata(
+  description: string,
+): Partial<
+  Pick<
+    LoggedViewing,
+    | "ratingImdb"
+    | "imdbId"
+    | "ratingRottenTomatoes"
+    | "ratingMetacritic"
+    | "letterboxdUrl"
+    | "letterboxdRating"
+  >
+> {
+  const result: ReturnType<typeof parseDescriptionMetadata> = {};
+  for (const rawLine of description.split("\n")) {
+    const line = rawLine.trim();
+
+    const imdb = /^IMDb:\s*(.+)$/.exec(line);
+    if (imdb?.[1]) {
+      const value = imdb[1];
+      const urlMatch = IMDB_URL_RE.exec(value);
+      if (urlMatch?.[1]) {
+        result.imdbId = urlMatch[1];
+        const rating = value
+          .slice(0, urlMatch.index)
+          .replace(/\(\s*$/, "")
+          .trim();
+        if (rating) result.ratingImdb = rating;
+      } else {
+        result.ratingImdb = value;
+      }
+      continue;
+    }
+
+    const rt = /^Rotten Tomatoes:\s*(.+)$/.exec(line);
+    if (rt?.[1]) {
+      result.ratingRottenTomatoes = rt[1];
+      continue;
+    }
+
+    const metacritic = /^Metacritic:\s*(.+)$/.exec(line);
+    if (metacritic?.[1]) {
+      result.ratingMetacritic = metacritic[1];
+      continue;
+    }
+
+    const letterboxd = /^Letterboxd:\s*(\S+)(?:\s+\((.+)\))?$/.exec(line);
+    if (letterboxd?.[1]) {
+      result.letterboxdUrl = letterboxd[1];
+      if (letterboxd[2]) result.letterboxdRating = letterboxd[2];
+    }
+  }
+  return result;
+}
+
 export function parseVEventToViewing(raw: string): LoggedViewing {
   const properties = parseProperties(unfoldLines(raw), "BEGIN:VEVENT", "END:VEVENT");
   const uid = properties.UID;
@@ -155,6 +232,17 @@ export function parseVEventToViewing(raw: string): LoggedViewing {
     if (field === "medium") continue;
     const value = properties[xProp];
     if (value) viewing[field] = value;
+  }
+  // #79: a fallback, not an override — this app's own X-* properties
+  // (set above) always win when present.
+  if (properties.DESCRIPTION) {
+    const fromDescription = parseDescriptionMetadata(properties.DESCRIPTION);
+    for (const [field, value] of Object.entries(fromDescription)) {
+      const key = field as keyof typeof fromDescription;
+      if (viewing[key] === undefined && value !== undefined) {
+        viewing[key] = value;
+      }
+    }
   }
   return viewing;
 }

@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -304,5 +304,61 @@ test.describe("calendar overview", () => {
       expect(ratio).toBeGreaterThan(0.5);
       expect(ratio).toBeLessThan(0.8);
     }
+  });
+
+  // #79: a viewing logged by the movie-planner CLI carries its ratings
+  // and links as DESCRIPTION text, not this app's own X-* properties —
+  // this proves the whole pipeline (REPORT response -> parse -> render)
+  // shows that data without ever calling OMDb, not just the parser in
+  // isolation (already covered in ical.test.ts).
+  test("shows metadata from a CLI-logged viewing's DESCRIPTION, with no OMDb call", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({ status: 200, body: "" });
+    });
+    const cliVEvent = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:cli-uid",
+      "SUMMARY:Dune: Part Two",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "DESCRIPTION:IMDb: 8.5/10 (https://www.imdb.com/title/tt1160419/)\\nRotten Tomatoes: 91%\\nLetterboxd: https://letterboxd.com/film/dune-part-two/ (4.2)",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    // Overrides mockCaldavServer's own REPORT handling — registered
+    // after it, so this one wins.
+    await page.route(`${CREDENTIALS["caldav-url"]}**`, async (route: Route) => {
+      if (route.request().method() !== "REPORT") return route.fallback();
+      await route.fulfill({
+        status: 207,
+        contentType: "application/xml",
+        body: `<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:response><D:propstat><D:prop><C:calendar-data>${cliVEvent
+          .replace(/&/g, "&amp;")
+          .replace(
+            /</g,
+            "&lt;",
+          )}</C:calendar-data></D:prop></D:propstat></D:response></D:multistatus>`,
+      });
+    });
+
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    await expect(row).toContainText("Dune: Part Two");
+    await expect(row.getByRole("link", { name: "IMDb" })).toHaveAttribute(
+      "href",
+      "https://www.imdb.com/title/tt1160419/",
+    );
+    await expect(row.getByRole("link", { name: "Letterboxd" })).toHaveAttribute(
+      "href",
+      "https://letterboxd.com/film/dune-part-two/",
+    );
+    expect(omdbCalls).toBe(0);
   });
 });

@@ -19,6 +19,7 @@
       "ltex-cli-plus",
       "ltex-ls-plus",
       "markdownlint",
+      "Metacritic",
       "movie-planner-web",
       "multistatus",
       "Traefik",
@@ -38,6 +39,7 @@
       "toolchains",
       "uid",
       "unparsable",
+      "VEVENT",
       "VJOURNAL",
       "WebDAV",
       "wrangler"

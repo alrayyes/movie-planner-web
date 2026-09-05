@@ -52,3 +52,23 @@ stream an unbounded response into memory.
 
 - **WHEN** a visitor's CalDAV server does not respond within the client's timeout
 - **THEN** the system SHALL abort the request and surface an error rather than waiting indefinitely
+
+### Requirement: Reads the movie-planner CLI's own calendar format
+
+The system SHALL extract IMDb, Rotten Tomatoes, Metacritic, and
+Letterboxd ratings/links from a VEVENT's `DESCRIPTION` when this app's
+own `X-*` metadata properties aren't present, matching the plain-text
+format the `movie-planner` CLI writes there — so a viewing logged by
+the CLI shows its already-known data without a fresh OMDb call. This
+app's own `X-*` properties, when present, always take priority over
+`DESCRIPTION` parsing.
+
+#### Scenario: CLI-logged viewing has no X-* properties
+
+- **WHEN** a visitor's calendar has a viewing logged by the CLI, with ratings/links only in its `DESCRIPTION` text
+- **THEN** the system SHALL display that title's IMDb/Rotten Tomatoes/Metacritic ratings and its IMDb/Letterboxd links, without calling OMDb
+
+#### Scenario: Both sources present
+
+- **WHEN** a VEVENT has both this app's own `X-*` metadata and a `DESCRIPTION` with conflicting values
+- **THEN** the system SHALL use the `X-*` values
