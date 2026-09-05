@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.29.0...movie-planner-web-v0.30.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** convert to Svelte, add a busy spinner on refresh ([#107](https://github.com/alrayyes/movie-planner-web/issues/107)) ([136d1e7](https://github.com/alrayyes/movie-planner-web/commit/136d1e727f32aee1df32642a3319c8e778d3275d)), closes [#97](https://github.com/alrayyes/movie-planner-web/issues/97)
+
 ## [0.29.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.28.0...movie-planner-web-v0.29.0) (2026-09-05)
 
 
