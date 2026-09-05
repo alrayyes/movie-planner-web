@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.34.0...movie-planner-web-v0.35.0) (2026-09-05)
+
+
+### Features
+
+* **venues:** add a date-range filter ([#125](https://github.com/alrayyes/movie-planner-web/issues/125)) ([58e6409](https://github.com/alrayyes/movie-planner-web/commit/58e64092ff49a4c44555713e1d6bd40d4a0fbf36)), closes [#123](https://github.com/alrayyes/movie-planner-web/issues/123)
+
 ## [0.34.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.33.0...movie-planner-web-v0.34.0) (2026-09-05)
 
 
