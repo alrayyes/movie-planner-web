@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.32.0...movie-planner-web-v0.32.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **omdb-refresh:** stop treating a bare imdbId as an already-confirmed match ([#114](https://github.com/alrayyes/movie-planner-web/issues/114)) ([a0e1a7d](https://github.com/alrayyes/movie-planner-web/commit/a0e1a7dea9cd9fecd9e20ce19af38d81588d374a)), closes [#113](https://github.com/alrayyes/movie-planner-web/issues/113)
+
 ## [0.32.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.31.0...movie-planner-web-v0.32.0) (2026-09-05)
 
 
