@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.32.1...movie-planner-web-v0.32.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **venues:** show a venue that only exists on a calendar entry ([#117](https://github.com/alrayyes/movie-planner-web/issues/117)) ([ba98e46](https://github.com/alrayyes/movie-planner-web/commit/ba98e4635089896ca934730c5f8ad5d376fd28b1)), closes [#116](https://github.com/alrayyes/movie-planner-web/issues/116)
+
 ## [0.32.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.32.0...movie-planner-web-v0.32.1) (2026-09-05)
 
 
