@@ -33,12 +33,26 @@ function formatDateTimeUtc(iso: string): string {
 }
 
 function parseDateTimeUtc(value: string): string {
-  const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/.exec(value);
-  if (!match) {
-    throw new Error(`not a recognised iCalendar date-time: "${value}"`);
+  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/.exec(value);
+  if (dateTime) {
+    const [, year, month, day, hour, minute, second] = dateTime;
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
   }
-  const [, year, month, day, hour, minute, second] = match;
-  return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+  // #233: an all-day event's DTSTART/DTEND (RFC 5545 §3.3.4's DATE
+  // value, not DATE-TIME — no "T", no time component at all) used to
+  // fail this function's own regex, throw, and get silently swallowed
+  // by parseViewingsFromMultistatus's own try/catch — a real calendar
+  // entry vanishing from the app with zero indication. Many calendar
+  // apps default to an all-day event unless a time is explicitly set,
+  // so this is a real shape to expect, not just a spec technicality.
+  // Treated as midnight UTC of that date — the simplest sensible
+  // reading for a viewing that otherwise always carries a real time.
+  const dateOnly = /^(\d{4})(\d{2})(\d{2})$/.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return `${year}-${month}-${day}T00:00:00.000Z`;
+  }
+  throw new Error(`not a recognised iCalendar date-time: "${value}"`);
 }
 
 // RFC 5545 §3.3.11: comma, semicolon, backslash and newline are escaped in
