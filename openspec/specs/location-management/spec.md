@@ -40,11 +40,16 @@ as the log form already does.
 
 ### Requirement: Venues overview page
 
-The system SHALL provide a `/venues` page listing every venue in the
-visitor's picklist alongside a count of logged viewings at that venue,
-computed over the visitor's whole history rather than the calendar
-overview's narrower default window. A venue with zero logged viewings
-SHALL still be listed, with a count of zero, rather than omitted.
+The system SHALL provide a `/venues` page listing every venue that
+either appears on a logged viewing or is in the visitor's picklist (a
+CalDAV entry not logged through this app's own log form, such as one
+created by the CLI, carries a venue that was never typed into this
+app and so was never added to the picklist), alongside a count of
+logged viewings at that venue, computed over the visitor's whole
+history rather than the calendar overview's narrower default window.
+A venue with zero logged viewings SHALL still be listed, with a count
+of zero, rather than omitted. A venue appearing in both sources SHALL
+be listed exactly once.
 
 #### Scenario: Venues listed with counts
 
@@ -55,6 +60,11 @@ SHALL still be listed, with a count of zero, rather than omitted.
 
 - **WHEN** a venue exists in the picklist but has no logged viewings
 - **THEN** the system SHALL still list it, with a count of zero
+
+#### Scenario: Venue only known from a calendar entry
+
+- **WHEN** a logged viewing has a venue that was never added to the picklist (for example, an entry logged by the CLI)
+- **THEN** the system SHALL still list that venue, with its real count
 
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 

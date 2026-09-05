@@ -66,6 +66,66 @@ test.describe("venues overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #116: a CLI-logged entry's venue was never typed into this app's own
+  // log form, so it's never in the location-management picklist — but
+  // it's still real LOCATION text on the calendar entry, and the page
+  // used to drop it silently instead of showing it.
+  test("shows a venue that only exists on a calendar entry, never added to the picklist", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "cli-logged-uid",
+          title: "Paddington",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "A CLI-Logged Cinema",
+        },
+      ],
+      // The picklist knows nothing about this venue at all.
+      { media: ["cinema"], venues: [] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+    const rows = page.locator("tbody tr");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.nth(0)).toContainText("A CLI-Logged Cinema");
+    await expect(rows.nth(0)).toContainText("1");
+  });
+
+  test("the same venue on both the picklist and a calendar entry appears once, with its real count", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    const rows = page.locator("tbody tr");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.nth(0)).toContainText("Grand Vista Cinema");
+    await expect(rows.nth(0)).toContainText("1");
+  });
+
   test("queries a wide enough range to cover the visitor's whole history, not just the overview's default window", async ({
     page,
   }) => {
