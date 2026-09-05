@@ -6,6 +6,8 @@ import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from ".
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -291,22 +293,28 @@ init();
           href: letterboxdHref(viewing),
         },
       ]}
+      <!-- #163: each rating source as its own small badge rather than
+      one comma-joined string — lets a visitor scan for the source they
+      trust instead of parsing a run-on sentence. -->
       {@const ratings = [
         viewing.ratingImdb && `IMDb ${viewing.ratingImdb}`,
         viewing.ratingRottenTomatoes && `RT ${viewing.ratingRottenTomatoes}`,
         viewing.ratingMetacritic && `Metacritic ${viewing.ratingMetacritic}`,
         viewing.letterboxdRating && `Letterboxd ${viewing.letterboxdRating}`,
-      ].filter(Boolean).join(', ')}
+      ].filter(Boolean)}
+      <!-- #163: actors and genre as individually clickable chips, each
+      linking to the overview filtered to that exact value — matches
+      the venue-link-to-overview pattern (#131), split first so a click
+      matches one value exactly rather than the whole comma-joined
+      string. -->
+      {@const actorChips = splitMultiValue(viewing.actors)}
+      {@const genreChips = splitMultiValue(viewing.genre)}
       {@const fields = [
         ['Start', formatDateTime(viewing.start)],
         ['End', formatDateTime(viewing.end)],
         ['Medium', viewing.medium],
         ['Venue', viewing.venue],
         ['Director', viewing.director],
-        ['Actors', viewing.actors],
-        ['Genre', viewing.genre],
-        ['Ratings', ratings],
-        ['Notes', viewing.notes],
       ]}
       <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
         {#if viewing.posterUrl}
@@ -347,6 +355,54 @@ init();
                 <dd class={DD}>{value}</dd>
               {/if}
             {/each}
+            {#if actorChips.length > 0}
+              <dt class={DT}>Actors</dt>
+              <dd class={DD}>
+                <div class="flex flex-wrap gap-1">
+                  {#each actorChips as actor (actor)}
+                    <a
+                      href={`/?actor=${encodeURIComponent(actor)}`}
+                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
+                    >
+                      {actor}
+                    </a>
+                  {/each}
+                </div>
+              </dd>
+            {/if}
+            {#if genreChips.length > 0}
+              <dt class={DT}>Genre</dt>
+              <dd class={DD}>
+                <div class="flex flex-wrap gap-1">
+                  {#each genreChips as genre (genre)}
+                    <a
+                      href={`/?genre=${encodeURIComponent(genre)}`}
+                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
+                    >
+                      {genre}
+                    </a>
+                  {/each}
+                </div>
+              </dd>
+            {/if}
+            {#if ratings.length > 0}
+              <dt class={DT}>Ratings</dt>
+              <dd class={DD}>
+                <div class="flex flex-wrap gap-2">
+                  {#each ratings as rating (rating)}
+                    <span
+                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-700"
+                    >
+                      {rating}
+                    </span>
+                  {/each}
+                </div>
+              </dd>
+            {/if}
+            {#if viewing.notes}
+              <dt class={DT}>Notes</dt>
+              <dd class={DD}>{viewing.notes}</dd>
+            {/if}
           </dl>
           <div class="flex gap-2">
             <button type="button" class={BUTTON_SM} onclick={() => startEdit(viewing)}>

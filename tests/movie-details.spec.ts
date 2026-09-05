@@ -72,8 +72,14 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("heading", { name: "Dune (2021)" })).toBeVisible();
     await expect(page.getByText("Grand Vista Cinema")).toBeVisible();
     await expect(page.getByText("Denis Villeneuve")).toBeVisible();
-    await expect(page.getByText("Timothée Chalamet, Zendaya")).toBeVisible();
-    await expect(page.getByText("Action, Adventure, Drama")).toBeVisible();
+    // #163: actors/genre are individually clickable chips now, not one
+    // joined string — see the dedicated describe block below for the
+    // filtering behaviour those chips link to.
+    await expect(page.getByRole("link", { name: "Timothée Chalamet" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Zendaya" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Action", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Adventure" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Drama" })).toBeVisible();
     await expect(page.getByText("IMDb 8.0")).toBeVisible();
     await expect(page.getByText(DUNE.notes)).toBeVisible();
     await expect(page.getByRole("img", { name: "Dune poster" })).toHaveAttribute(
@@ -210,6 +216,58 @@ test.describe("movie details page", () => {
       "https://letterboxd.com/film/dune-2021/",
     );
     await expect(page.getByText("not linked")).toHaveCount(0);
+  });
+
+  // #163
+  test("shows each rating source as its own badge, and each actor/genre as its own clickable chip", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("IMDb 8.0")).toBeVisible();
+    await expect(page.getByText("RT 83%")).toBeVisible();
+
+    await expect(page.getByRole("link", { name: "Timothée Chalamet" })).toHaveAttribute(
+      "href",
+      "/?actor=Timoth%C3%A9e%20Chalamet",
+    );
+    await expect(page.getByRole("link", { name: "Zendaya" })).toHaveAttribute(
+      "href",
+      "/?actor=Zendaya",
+    );
+    await expect(page.getByRole("link", { name: "Action", exact: true })).toHaveAttribute(
+      "href",
+      "/?genre=Action",
+    );
+  });
+
+  test("clicking a genre chip filters the overview to viewings with exactly that genre value", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      {
+        uid: "other-uid",
+        title: "Something Else",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        // Deliberately NOT "Action" as a split value — a naive
+        // substring match against the whole genre string would
+        // wrongly match "Action" here too.
+        genre: "Live Action Adaptation, Comedy",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("link", { name: "Action", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/\?genre=Action/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
   test("a missing uid shows a clear not-found state, not an error", async ({ page }) => {
