@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.48.0...movie-planner-web-v0.49.0) (2026-09-05)
+
+
+### Features
+
+* **docs:** add a Starlight usage guide at /docs ([#201](https://github.com/alrayyes/movie-planner-web/issues/201)) ([8bf7fca](https://github.com/alrayyes/movie-planner-web/commit/8bf7fcafa30968b37e46b207bd005a6920a8bb95)), closes [#71](https://github.com/alrayyes/movie-planner-web/issues/71)
+
 ## [0.48.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.47.0...movie-planner-web-v0.48.0) (2026-09-05)
 
 
