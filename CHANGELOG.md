@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.40.0...movie-planner-web-v0.41.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** make Title/When/Venue columns sortable ([#170](https://github.com/alrayyes/movie-planner-web/issues/170)) ([727aa38](https://github.com/alrayyes/movie-planner-web/commit/727aa38db25964438c31aac5aaba297751c8a281)), closes [#169](https://github.com/alrayyes/movie-planner-web/issues/169)
+
 ## [0.40.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.39.0...movie-planner-web-v0.40.0) (2026-09-05)
 
 
