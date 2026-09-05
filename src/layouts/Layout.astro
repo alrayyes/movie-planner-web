@@ -49,13 +49,29 @@ const { title, wide = false } = Astro.props;
       // made one, has to land before first paint or there's a visible
       // flash of the wrong theme. <theme-toggle> (loaded later, as a
       // regular component) only reflects and changes this from here on.
-      try {
-        var stored = localStorage.getItem("movie-planner-web-theme");
-        var dark = stored
-          ? stored === "dark"
-          : matchMedia("(prefers-color-scheme: dark)").matches;
-        document.documentElement.classList.toggle("dark", dark);
-      } catch (_e) {}
+      //
+      // #185: named and reused, not run-once — ClientRouter's swap
+      // replaces document.documentElement with a fresh one carrying
+      // none of this, and an inline <script> already present on both
+      // the old and new page (byte-identical, as this one always is)
+      // doesn't get re-inserted and so never re-executes on its own.
+      // astro:before-swap fires before that replacement lands, so
+      // applying the class to the incoming document there — not just
+      // once, here, for the very first hard load — is what keeps dark
+      // mode from reverting on every soft navigation after the first.
+      function applyStoredTheme(root) {
+        try {
+          var stored = localStorage.getItem("movie-planner-web-theme");
+          var dark = stored
+            ? stored === "dark"
+            : matchMedia("(prefers-color-scheme: dark)").matches;
+          root.classList.toggle("dark", dark);
+        } catch (_e) {}
+      }
+      applyStoredTheme(document.documentElement);
+      document.addEventListener("astro:before-swap", function (event) {
+        applyStoredTheme(event.newDocument.documentElement);
+      });
     </script>
   </head>
   <body>
