@@ -155,7 +155,12 @@ test.describe("j/k/gg/G scroll the page", () => {
 
     await page.keyboard.press("g");
 
-    expect(await page.evaluate(() => window.scrollY)).toBe(afterG);
+    // #151: a bare read-then-assert here raced Chromium's own scroll
+    // anchoring under CI load (confirmed live — failed with a different,
+    // non-reproducible delta on each of 3 attempts) — poll like every
+    // neighboring test in this file, rather than asserting a single
+    // synchronous snapshot.
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(afterG);
   });
 });
 
