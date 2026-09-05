@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.38.1...movie-planner-web-v0.39.0) (2026-09-05)
+
+
+### Features
+
+* **site-nav:** add a Viewings link, reorder to match reading order ([#162](https://github.com/alrayyes/movie-planner-web/issues/162)) ([7efe744](https://github.com/alrayyes/movie-planner-web/commit/7efe744766ef96ed12f09cd624cfc35c8b0a6de8)), closes [#161](https://github.com/alrayyes/movie-planner-web/issues/161)
+
 ## [0.38.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.38.0...movie-planner-web-v0.38.1) (2026-09-05)
 
 
