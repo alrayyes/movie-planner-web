@@ -2,6 +2,7 @@ import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
+import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
   BUTTON_PRIMARY,
@@ -65,6 +66,8 @@ export class CalendarOverview extends HTMLElement {
   private editingUid: string | undefined;
   private pickerArea: HTMLElement | undefined;
   private currentPage = 0;
+  private refreshAllButton: HTMLButtonElement | undefined;
+  private refreshAllHint: HTMLElement | undefined;
 
   // #80: a key alone isn't enough — a visitor can pause lookups to stay
   // under OMDb's daily rate limit without clearing the stored key.
@@ -97,14 +100,22 @@ export class CalendarOverview extends HTMLElement {
     this.actionStatusEl.className = STATUS_TEXT;
     this.actionStatusEl.setAttribute("role", "status");
     // Only offered once OMDb lookups are actually usable (a key set and
-    // not paused), same as the per-row Refresh control.
+    // not paused), same as the per-row Refresh control. Created once
+    // here rather than per-render — render() only toggles its
+    // visibility (#89: hidden once nothing on the current page needs
+    // it), so getByRole-based "not offered at all" checks (no key,
+    // paused) still see it absent from the accessibility tree entirely.
     if (this.omdbActive) {
-      const refreshAllButton = document.createElement("button");
-      refreshAllButton.type = "button";
-      refreshAllButton.className = BUTTON_SECONDARY;
-      refreshAllButton.textContent = "Refresh all metadata";
-      refreshAllButton.addEventListener("click", () => void this.handleRefreshAll());
-      this.appendChild(refreshAllButton);
+      this.refreshAllButton = document.createElement("button");
+      this.refreshAllButton.type = "button";
+      this.refreshAllButton.className = BUTTON_SECONDARY;
+      this.refreshAllButton.textContent = "Refresh all metadata";
+      this.refreshAllButton.addEventListener("click", () => void this.handleRefreshAll());
+      this.refreshAllHint = document.createElement("p");
+      this.refreshAllHint.className = STATUS_TEXT;
+      this.refreshAllHint.textContent =
+        "Only touches titles missing metadata — the calendar entry is the source of truth once a title's matched.";
+      this.append(this.refreshAllButton, this.refreshAllHint);
     }
     this.pickerArea = document.createElement("div");
     this.listContainer = document.createElement("div");
@@ -247,6 +258,16 @@ export class CalendarOverview extends HTMLElement {
 
     this.statusEl.textContent = `${total} logged viewing${total === 1 ? "" : "s"}.`;
     this.listContainer.innerHTML = "";
+
+    // #89: nothing to bulk-refresh once every title on this page already
+    // has matched metadata — hide the control rather than offer an
+    // action that would call OMDb for nobody.
+    if (this.refreshAllButton) {
+      this.refreshAllButton.hidden = !viewings.some((v) => !hasOmdbMetadata(v));
+    }
+    if (this.refreshAllHint) {
+      this.refreshAllHint.hidden = this.refreshAllButton?.hidden ?? true;
+    }
 
     if (total === 0) return;
 
@@ -577,10 +598,13 @@ export class CalendarOverview extends HTMLElement {
   // screen (#59: the current page of the filtered/sorted set, not the
   // whole calendar or even the whole filtered result) — sequential
   // rather than parallel, since it's hitting OMDb's own rate limits, not
-  // just this app's.
+  // just this app's. #89: skips anything that already has matched
+  // metadata (an imdbId) — the calendar entry is the source of truth
+  // once it's been matched, so a bulk refresh doesn't spend quota
+  // re-confirming it.
   private async handleRefreshAll() {
     if (!this.config || !this.omdbActive || !this.omdbApiKey || !this.actionStatusEl) return;
-    const targets = this.currentPageItems();
+    const targets = this.currentPageItems().filter((v) => !hasOmdbMetadata(v));
     if (targets.length === 0) return;
 
     this.actionStatusEl.textContent = `Refreshing 0 of ${targets.length}…`;
