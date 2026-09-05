@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.27.0...movie-planner-web-v0.28.0) (2026-09-05)
+
+
+### Features
+
+* **movie-details:** offer venue autocomplete when editing ([#101](https://github.com/alrayyes/movie-planner-web/issues/101)) ([a1a7f2c](https://github.com/alrayyes/movie-planner-web/commit/a1a7f2c3b76bda6e4dbfa388b51bf438ea545301)), closes [#98](https://github.com/alrayyes/movie-planner-web/issues/98)
+
 ## [0.27.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.26.0...movie-planner-web-v0.27.0) (2026-09-05)
 
 
