@@ -77,10 +77,18 @@ for (const viewport of VIEWPORTS) {
       await assertInputFontSizeAtLeast16px(page);
     });
 
-    test("calendar overview (with a full-metadata row and edit mode) has no horizontal overflow", async ({
+    test("calendar overview (with a full-metadata row) has no horizontal overflow", async ({
       page,
     }) => {
       await connect(page);
+      await assertNoHorizontalOverflow(page);
+    });
+
+    // #93: editing moved to the details page — the "edit mode" half of
+    // the check above now lives here instead.
+    test("movie details edit form has no horizontal overflow", async ({ page }) => {
+      await connect(page);
+      await page.getByRole("link", { name: "Dune" }).click();
       await assertNoHorizontalOverflow(page);
 
       await page.getByRole("button", { name: "Edit" }).click();

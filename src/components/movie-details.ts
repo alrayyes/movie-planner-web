@@ -16,6 +16,7 @@ import {
   LABEL,
   STATUS_TEXT,
 } from "../lib/ui/classes";
+import { formatDateTime } from "../lib/ui/datetime";
 
 const EDITABLE_FIELDS: { key: keyof NewViewing; label: string; type: string }[] = [
   { key: "title", label: "Title", type: "text" },
@@ -177,8 +178,8 @@ export class MovieDetails extends HTMLElement {
     const dl = document.createElement("dl");
     dl.className = DL;
     const fields: [string, string | undefined][] = [
-      ["Start", new Date(viewing.start).toLocaleString()],
-      ["End", new Date(viewing.end).toLocaleString()],
+      ["Start", formatDateTime(viewing.start)],
+      ["End", formatDateTime(viewing.end)],
       ["Medium", viewing.medium],
       ["Venue", viewing.venue],
       ["Director", viewing.director],
