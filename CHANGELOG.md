@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.54.1...movie-planner-web-v0.54.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **caldav:** parse all-day VEVENTs instead of silently dropping them ([#234](https://github.com/alrayyes/movie-planner-web/issues/234)) ([a327ea0](https://github.com/alrayyes/movie-planner-web/commit/a327ea00376184709a1166be72fa1b3bb0391678)), closes [#233](https://github.com/alrayyes/movie-planner-web/issues/233)
+
 ## [0.54.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.54.0...movie-planner-web-v0.54.1) (2026-09-05)
 
 
