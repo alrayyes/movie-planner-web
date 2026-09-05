@@ -26,6 +26,19 @@ const DUNE = {
   imdbId: "tt1160419",
 };
 
+// #91: no imdbId — refresh now re-checks the calendar entry first and
+// skips OMDb entirely once an imdbId is already there, so a
+// disambiguation scenario needs a title that genuinely hasn't been
+// matched yet.
+const DUNE_UNMATCHED = {
+  uid: "dune-uid",
+  title: "Dune",
+  start: ONE_MONTH_AGO.toISOString(),
+  end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+  medium: "cinema",
+  venue: "Grand Vista Cinema",
+};
+
 async function connect(page: Page, omdbApiKey?: string) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -93,7 +106,7 @@ test.describe("movie details page", () => {
   test("offers a disambiguation picker when refreshing finds no confident match", async ({
     page,
   }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page, "test-omdb-key");
     await page.getByRole("link", { name: "Dune" }).click();
 

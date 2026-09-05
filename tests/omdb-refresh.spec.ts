@@ -1,4 +1,5 @@
 import { expect, type Page, type Route, test } from "@playwright/test";
+import { serializeViewingToVEvent } from "../src/lib/caldav/ical";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const CREDENTIALS = {
@@ -94,6 +95,79 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     // Unrelated fields the lookup doesn't touch stay as they were.
     expect(update?.title).toBe("Dune");
     expect(update?.medium).toBe("cinema");
+  });
+
+  // #91: re-checks the calendar entry itself first — it may have been
+  // matched elsewhere (the CLI's own sync, another tab/device) since
+  // this list was loaded, and only what's still actually missing from
+  // it should ever reach OMDb.
+  test("re-checks the calendar entry first, skipping OMDb if it's already matched elsewhere", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False" }),
+      });
+    });
+    // Overrides mockCaldavServer's own GET for just this resource —
+    // simulating the entry having been matched elsewhere since the
+    // overview's list loaded.
+    await page.route(`${CREDENTIALS["caldav-url"]}dune-uid.ics`, async (route: Route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: "text/calendar",
+        body: serializeViewingToVEvent("dune-uid", { ...DUNE, imdbId: "tt1160419" }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Already up to date.");
+    expect(omdbCalls).toBe(0);
+    expect(server.updates).toHaveLength(0);
+  });
+
+  test("writes the OMDb match on top of the freshly-fetched entry, not a stale in-memory copy", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          imdbID: "tt1160419",
+          Ratings: [],
+        }),
+      });
+    });
+    // The calendar's own copy has a venue the initially-loaded list
+    // doesn't know about yet (a concurrent edit since the list loaded).
+    await page.route(`${CREDENTIALS["caldav-url"]}dune-uid.ics`, async (route: Route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: "text/calendar",
+        body: serializeViewingToVEvent("dune-uid", { ...DUNE, venue: "Updated Elsewhere" }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.venue).toBe("Updated Elsewhere");
   });
 
   test("reports plainly when OMDb has no match to refresh with", async ({ page }) => {
