@@ -24,3 +24,50 @@ test.describe("Fork me on GitHub ribbon", () => {
     expect(results.violations).toEqual([]);
   });
 });
+
+// #67
+test.describe("footer", () => {
+  test("links to GitHub, the disclaimer, and the privacy page, with a copyright line", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const footer = page.locator("footer");
+    await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+      "href",
+      "https://github.com/alrayyes/movie-planner-web",
+    );
+    await expect(footer.getByRole("link", { name: "Disclaimer" })).toHaveAttribute(
+      "href",
+      "/disclaimer",
+    );
+    await expect(footer.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+    await expect(footer).toContainText("GPL-3.0-or-later");
+  });
+
+  test("privacy page states the fully static, browser-only storage claim, with a clean a11y scan", async ({
+    page,
+  }) => {
+    await page.goto("/privacy");
+
+    await expect(page.getByRole("heading", { name: "Privacy" })).toBeVisible();
+    await expect(page.getByText(/fully static/i)).toBeVisible();
+    await expect(page.getByText(/IndexedDB/i)).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("disclaimer page states the unaffiliated, as-is claim, with a clean a11y scan", async ({
+    page,
+  }) => {
+    await page.goto("/disclaimer");
+
+    await expect(page.getByRole("heading", { name: "Disclaimer" })).toBeVisible();
+    await expect(page.getByText(/independent hobby project/i)).toBeVisible();
+    await expect(page.locator("main").getByText(/GPL-3.0-or-later/)).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});

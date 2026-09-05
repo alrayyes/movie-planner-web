@@ -1,0 +1,31 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Disclaimer — Movie Planner">
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Disclaimer
+  </h1>
+  <div class="mt-6 flex flex-col gap-4 text-slate-700 dark:text-slate-300">
+    <p>
+      movie-planner-web is an independent hobby project. It isn't affiliated
+      with, endorsed by, or sponsored by OMDb, IMDb, Rotten Tomatoes,
+      Metacritic, Letterboxd, Pathé, or any CalDAV server vendor. Any product
+      names, logos, and brands mentioned are the property of their respective
+      owners.
+    </p>
+    <p>
+      This site relies on your own OMDb API key and your own CalDAV server — it
+      doesn't provision, guarantee, or take responsibility for either. Only
+      Baikal has been tested against so far; another CalDAV server may or may
+      not work correctly.
+    </p>
+    <p>
+      This software is provided as-is, without warranty of any kind, per the
+      terms of the GPL-3.0-or-later licence it's distributed under.
+    </p>
+  </div>
+</Layout>
