@@ -24,6 +24,12 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatDateTime } from "../lib/ui/datetime";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import IconImdb from "./icons/IconImdb.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import IconLetterboxd from "./icons/IconLetterboxd.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 
 // #38: a dedicated page per logged viewing, reached from the overview's
 // title link — see CalendarOverview.svelte's own comment for why this is
@@ -285,12 +291,13 @@ init();
       search guessing off the title alone. -->
       {@const links = [
         viewing.imdbId
-          ? { label: 'IMDb', href: imdbUrl(viewing.imdbId) }
-          : { label: 'IMDb not linked', href: undefined },
-        { label: 'RT', href: rottenTomatoesSearchUrl(viewing.title) },
+          ? { label: 'IMDb', href: imdbUrl(viewing.imdbId), icon: IconImdb }
+          : { label: 'IMDb not linked', href: undefined, icon: null },
+        { label: 'RT', href: rottenTomatoesSearchUrl(viewing.title), icon: IconRottenTomatoes },
         {
           label: viewing.letterboxdUrl ? 'Letterboxd' : 'Letterboxd (search)',
           href: letterboxdHref(viewing),
+          icon: IconLetterboxd,
         },
       ]}
       <!-- #163: each rating source as its own small badge rather than
@@ -332,19 +339,27 @@ init();
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
           </h1>
-          <div class="flex gap-3 text-sm">
+          <div class="flex gap-3">
+            <!-- #193: the brand mark stands in for the label visually;
+            the link's accessible name stays the plain text via sr-only,
+            same as the overview row's own cross-links. The "not linked"
+            gap indicator (#153) has nothing to link to, so it keeps
+            showing as plain text rather than a logo with no link. -->
             {#each links as link (link.label)}
               {#if link.href}
+                {@const Icon = link.icon}
                 <a
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  title={link.label}
+                  class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
                 >
-                  {link.label}
+                  <Icon class="h-5 w-5" />
+                  <span class="sr-only">{link.label}</span>
                 </a>
               {:else}
-                <span class="text-slate-400 dark:text-slate-500">{link.label}</span>
+                <span class="text-sm text-slate-400 dark:text-slate-500">{link.label}</span>
               {/if}
             {/each}
           </div>

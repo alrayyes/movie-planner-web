@@ -218,6 +218,25 @@ test.describe("movie details page", () => {
     await expect(page.getByText("not linked")).toHaveCount(0);
   });
 
+  // #193: brand marks stand in for the visible label on a real link, but
+  // the unlinked gap indicator (#153) has nothing to link to and keeps
+  // showing as plain text rather than a logo with no link.
+  test("shows IMDb/RT/Letterboxd cross-links as brand icons, keeping the not-linked gap indicator as plain text", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, imdbId: undefined }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    const rtLink = page.getByRole("link", { name: "RT" });
+    await expect(rtLink.locator("svg")).toBeVisible();
+    await expect(rtLink.locator("span.sr-only")).toHaveText("RT");
+
+    const gapIndicator = page.getByText("IMDb not linked");
+    await expect(gapIndicator).toBeVisible();
+    await expect(gapIndicator.locator("svg")).toHaveCount(0);
+  });
+
   // #163
   test("shows each rating source as its own badge, and each actor/genre as its own clickable chip", async ({
     page,

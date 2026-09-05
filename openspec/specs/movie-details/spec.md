@@ -32,6 +32,7 @@ cross-links the overview shows.
 
 - **WHEN** a visitor opens a logged viewing's details page and it has no real `imdbId` and/or no real `letterboxdUrl` (only a constructed search link)
 - **THEN** the system SHALL show "IMDb not linked" as plain text in place of the omitted IMDb link, and/or label the Letterboxd link "Letterboxd (search)", so a visitor can tell a confirmed match from a guess
+- **AND** the system SHALL show this gap indicator as plain text, not a brand icon — there's nothing to link to yet
 
 #### Scenario: Ratings shown as individual badges
 

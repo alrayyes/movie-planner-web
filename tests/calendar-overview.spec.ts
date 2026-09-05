@@ -184,6 +184,26 @@ test.describe("calendar overview", () => {
     );
   });
 
+  // #193: brand marks stand in for the visible label, but the link's own
+  // accessible name stays the plain text — every test above keeps working
+  // unmodified because of it, so this one just confirms the icon itself
+  // renders rather than plain text sitting there instead.
+  test("shows the IMDb/RT/Letterboxd cross-links as brand icons, not plain text labels", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    const imdbLink = row.getByRole("link", { name: "IMDb" });
+    await expect(imdbLink).toBeVisible();
+    await expect(imdbLink.locator("svg")).toBeVisible();
+    // The label text is still in the DOM (it's the link's accessible
+    // name), but only inside a visually-hidden span, not as the link's
+    // own directly-visible content.
+    await expect(imdbLink.locator("span.sr-only")).toHaveText("IMDb");
+  });
+
   test("omits the IMDb link (but still shows the search links) without an imdbId", async ({
     page,
   }) => {

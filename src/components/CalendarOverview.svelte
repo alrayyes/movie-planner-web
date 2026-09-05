@@ -25,6 +25,12 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatPeriod } from "../lib/ui/datetime";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import IconImdb from "./icons/IconImdb.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import IconLetterboxd from "./icons/IconLetterboxd.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
@@ -599,9 +605,11 @@ getPicklists(config).then((picklists) => {
         <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
           {#each currentPageItems as viewing (viewing.uid)}
             {@const links = [
-              viewing.imdbId ? { label: 'IMDb', href: imdbUrl(viewing.imdbId) } : null,
-              { label: 'RT', href: rottenTomatoesSearchUrl(viewing.title) },
-              { label: 'Letterboxd', href: letterboxdHref(viewing) },
+              viewing.imdbId
+                ? { label: 'IMDb', href: imdbUrl(viewing.imdbId), icon: IconImdb }
+                : null,
+              { label: 'RT', href: rottenTomatoesSearchUrl(viewing.title), icon: IconRottenTomatoes },
+              { label: 'Letterboxd', href: letterboxdHref(viewing), icon: IconLetterboxd },
             ].filter((l) => l !== null)}
             {@const isRefreshing = refreshingUid === viewing.uid}
             <tr class={TR_BODY} aria-busy={isRefreshing}>
@@ -639,15 +647,23 @@ getPicklists(config).then((picklists) => {
                   {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
                 </a>
                 {#if links.length > 0}
-                  <div class="mt-1 flex gap-2 text-xs">
+                  <div class="mt-1 flex gap-2">
                     {#each links as link (link.label)}
+                      {@const Icon = link.icon}
+                      <!-- #193: the brand mark stands in for the label
+                      visually, but the link's accessible name stays the
+                      plain text (via sr-only, not the icon's own decorative
+                      title) — nothing here depends on being able to see
+                      or recognize a logo. -->
                       <a
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="text-indigo-600 hover:underline dark:text-indigo-400"
+                        title={link.label}
+                        class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
                       >
-                        {link.label}
+                        <Icon class="h-4 w-4" />
+                        <span class="sr-only">{link.label}</span>
                       </a>
                     {/each}
                   </div>

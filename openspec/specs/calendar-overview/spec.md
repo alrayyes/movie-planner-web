@@ -74,12 +74,14 @@ recognize a film at a glance, not merely as a decorative marker.
 The system SHALL link a logged viewing's title out to IMDb, Rotten
 Tomatoes, and Letterboxd. Only IMDb exposes a stable per-title ID
 (`imdbID`, from OMDb); Rotten Tomatoes and Letterboxd links are
-constructed searches, not a guarantee of the exact match.
+constructed searches, not a guarantee of the exact match. Each
+cross-link SHALL show its service's own brand mark rather than a plain
+text label, while keeping that same text as the link's accessible name.
 
 #### Scenario: Cross-links shown for an enriched viewing
 
 - **WHEN** a visitor opens the overview and has a logged viewing enriched with an IMDb ID
-- **THEN** the system SHALL show a link to that title's IMDb page, alongside constructed Rotten Tomatoes and Letterboxd search links
+- **THEN** the system SHALL show a link to that title's IMDb page, alongside constructed Rotten Tomatoes and Letterboxd search links, each shown as its own brand icon
 
 ### Requirement: Overview defaults to most-recently-watched first, and is sortable
 
