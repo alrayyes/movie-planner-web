@@ -98,9 +98,13 @@ const monthGroups = $derived.by(() => {
 
 // A small fixed set of buckets, not a continuous gradient — easier to
 // keep distinguishable in both light and dark mode (design.md).
+// #230: an empty cell's own dark shade must never equal Layout.astro's
+// card background (dark:bg-slate-800) — it did, making every empty
+// cell on the page (the whole grid, on a fresh account with nothing
+// logged yet) genuinely invisible rather than just unshaded.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 function shadeClass(count: number): string {
-	if (count === 0) return "bg-slate-100 dark:bg-slate-800";
+	if (count === 0) return "bg-slate-100 dark:bg-slate-700";
 	if (count === 1) return "bg-indigo-200 dark:bg-indigo-900";
 	if (count <= 3) return "bg-indigo-400 dark:bg-indigo-600";
 	return "bg-indigo-600 dark:bg-indigo-400";

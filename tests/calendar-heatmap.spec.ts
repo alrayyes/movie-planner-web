@@ -274,6 +274,33 @@ test.describe("viewing heatmap", () => {
     await expect(page.locator('[role="img"]').first()).toBeVisible();
   });
 
+  // #230: an empty cell's own dark-mode shade used to equal the card's
+  // own dark background exactly, making every cell on a fresh account
+  // (or any long gap with nothing logged) genuinely invisible rather
+  // than just unshaded.
+  test("an empty cell is visually distinguishable from its card background in dark mode", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.getByRole("switch", { name: /switch to (dark|light) mode/i }).click();
+    await page.goto("/calendar");
+    await expect(page.getByText("No logged viewings yet.")).toBeVisible();
+
+    const cell = page.locator('[role="img"]').first();
+    const cellColor = await cell.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const cardColor = await page.evaluate(
+      (el) => {
+        const card = el.closest(".rounded-xl");
+        if (!card) throw new Error("no card wrapper found");
+        return getComputedStyle(card).backgroundColor;
+      },
+      await cell.elementHandle(),
+    );
+
+    expect(cellColor).not.toBe(cardColor);
+  });
+
   // #223: same bfcache-restore gap as the calendar overview's own test.
   test("a bfcache restore refreshes data that changed while this page was cached", async ({
     page,
