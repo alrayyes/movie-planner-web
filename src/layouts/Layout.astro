@@ -1,4 +1,13 @@
 ---
+// #177: Astro's own View Transitions support — a soft, same-origin
+// navigation (fetch + DOM diff) with a fade/cross-fade animation
+// instead of a full hard reload's flash-to-white — without turning
+// this app into a real client-side-routed SPA. Progressive
+// enhancement: a browser without View Transitions API support (or JS
+// disabled) still gets a plain hard navigation, nothing breaks either
+// way.
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import { ClientRouter } from "astro:transitions";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 import SiteFooter from "../components/SiteFooter.astro";
 import "../styles/global.css";
@@ -33,6 +42,7 @@ const { title, wide = false } = Astro.props;
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <ClientRouter />
     <script is:inline>
       // Runs before body paint, deliberately not a module (those defer)
       // — a visitor's explicit choice, or the OS default until they've

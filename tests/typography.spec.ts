@@ -52,6 +52,12 @@ test.describe("content column width on a desktop viewport", () => {
   test("a form page (log) keeps the narrower, original width", async ({ page }) => {
     await connect(page);
     await page.getByRole("link", { name: "Log a viewing" }).click();
+    // #177: a soft, client-side transition now — unlike a hard
+    // navigation, Playwright's click() doesn't implicitly wait for it
+    // to finish, so a raw evaluate() right after can still read the
+    // previous page's mid-transition DOM. Wait for content unique to
+    // the destination page first.
+    await expect(page.getByRole("heading", { name: "Log a viewing" })).toBeVisible();
     const width = await page
       .locator("#page-container")
       .evaluate((el) => el.getBoundingClientRect().width);
