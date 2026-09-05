@@ -1,0 +1,26 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import ViewingHeatmap from "../components/ViewingHeatmap.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Calendar — Movie Planner" wide>
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Calendar
+  </h1>
+  <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+    Viewing density across your whole history — click a day to see what you
+    watched.
+  </p>
+  <div class="mt-6">
+    {
+      /* client:only, not client:load — reads stored credentials on
+      mount, which doesn't exist during the static build (see
+      VenuesOverview's own identical note). */
+    }
+    <ViewingHeatmap client:only="svelte" />
+  </div>
+</Layout>

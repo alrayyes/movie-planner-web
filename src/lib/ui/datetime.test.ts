@@ -5,6 +5,8 @@ import {
   formatDateTime,
   formatPeriod,
   formatTime,
+  localDayBoundary,
+  toDateInputValue,
 } from "./datetime";
 
 // #93/#142: assertions are pattern-based rather than hardcoded clock
@@ -55,6 +57,50 @@ describe("formatPeriod", () => {
     // full date — the same-day form only carries one.
     expect(period.split(" - ")[0]).toMatch(/\d{4}/);
     expect(period.split(" - ")[1]).toMatch(/\d{4}/);
+  });
+});
+
+// #188/#199: moved from CalendarOverview.svelte's own private scope so
+// the heatmap could import the fixed local-day logic instead of
+// re-deriving it — these tests moved with them.
+describe("toDateInputValue / localDayBoundary", () => {
+  test("round-trips a local calendar day through toDateInputValue and back to its own start/end", () => {
+    const now = new Date();
+    const localDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 14, 30, 0);
+    const dayValue = toDateInputValue(localDay.toISOString());
+
+    // The date-input value itself is the same Y-M-D as the local
+    // components used to build it — not shifted by a day either way.
+    const pad = (n: number) => String(n).padStart(2, "0");
+    expect(dayValue).toBe(
+      `${localDay.getFullYear()}-${pad(localDay.getMonth() + 1)}-${pad(localDay.getDate())}`,
+    );
+
+    const start = new Date(localDayBoundary(dayValue, false));
+    const end = new Date(localDayBoundary(dayValue, true));
+    // Both boundaries land on the same local calendar day the input
+    // value named — not shifted to UTC's version of that day.
+    expect(start.getFullYear()).toBe(localDay.getFullYear());
+    expect(start.getMonth()).toBe(localDay.getMonth());
+    expect(start.getDate()).toBe(localDay.getDate());
+    expect(start.getHours()).toBe(0);
+    expect(end.getDate()).toBe(localDay.getDate());
+    expect(end.getHours()).toBe(23);
+    expect(end.getMinutes()).toBe(59);
+  });
+
+  test("localDayBoundary's end-of-day boundary includes a viewing that starts later that same local day", () => {
+    // #188's own bug: a bare UTC-midnight boundary excluded a viewing
+    // whose own start time was later that day. Constructed via local
+    // Y/M/D so this is deterministic regardless of the runner's own
+    // timezone offset.
+    const now = new Date();
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const laterThatDay = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 22, 0, 0);
+    const dayValue = toDateInputValue(day.toISOString());
+
+    const endOfDay = new Date(localDayBoundary(dayValue, true));
+    expect(laterThatDay.getTime()).toBeLessThanOrEqual(endOfDay.getTime());
   });
 });
 

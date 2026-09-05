@@ -43,6 +43,29 @@ export function formatPeriod(startIso: string, endIso: string): string {
   return `${formatDateTime(startIso)} - ${formatDateTime(endIso)}`;
 }
 
+// #188: a `<input type="date">` value is a bare "YYYY-MM-DD" naming the
+// visitor's own local calendar day (matching the local getters
+// toDateInputValue below builds one from). `new Date("YYYY-MM-DD")`
+// parses that same string as *UTC* midnight instead — a different
+// instant in any timezone but UTC, and one that can even land on the
+// wrong local day. Parsing the components by hand into the local-time
+// Date constructor keeps the boundary anchored to the calendar day the
+// field actually shows, both for the day's start and its end (the
+// whole day, not just its first instant).
+export function localDayBoundary(value: string, endOfDay: boolean): string {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = endOfDay
+    ? new Date(year, month - 1, day, 23, 59, 59, 999)
+    : new Date(year, month - 1, day, 0, 0, 0, 0);
+  return date.toISOString();
+}
+
+export function toDateInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export interface BlockedTimeBar {
   positionPercent: number;
   widthPercent: number;

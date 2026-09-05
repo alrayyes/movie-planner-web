@@ -8,6 +8,7 @@ import { NAV, NAV_LINK } from "../lib/ui/classes";
 const LINKS: [string, string][] = [
   ["/", "Viewings"],
   ["/venues", "Venues"],
+  ["/calendar", "Calendar"],
   ["/log", "Log a viewing"],
   ["/import", "Import"],
   ["/settings", "Settings"],
