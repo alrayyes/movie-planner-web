@@ -79,6 +79,7 @@ const { title, wide = false } = Astro.props;
         </div>
       </header>
       <site-nav></site-nav>
+      <export-json-button></export-json-button>
       <main
         class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-800"
       >
@@ -87,6 +88,7 @@ const { title, wide = false } = Astro.props;
       <SiteFooter />
     </div>
     <script>
+      import "../components/export-json-button";
       import "../components/keyboard-nav";
       import "../components/site-nav";
       import "../components/theme-toggle";
