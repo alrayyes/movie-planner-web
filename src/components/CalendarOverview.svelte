@@ -120,6 +120,19 @@ let actionStatusText = $state("");
 // or a narrower one a visitor picked there) wouldn't match what shows
 // up here, which otherwise defaults to a much narrower ~3-month window.
 const initialParams = new URLSearchParams(location.search);
+// #221: closed by default — seven fields plus buttons took up a lot of
+// vertical space for something most visits don't touch. Starts open
+// when a query param already carries an active filter (arriving from
+// the venues page, say), so a visitor who's clearly filtering doesn't
+// have to reopen it to see what's applied. bind:open (not a one-way
+// expression) — every reload() below touches other $state fields, and
+// a one-way `open={...}` got re-applied on those unrelated updates,
+// silently closing a visitor's own manually-opened filters right after
+// they submitted one.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+let filtersOpen = $state(
+	["from", "to", "venue", "director", "actor", "genre"].some((key) => initialParams.get(key)),
+);
 let fromValue = $state(initialParams.get("from") ?? "");
 let toValue = $state(initialParams.get("to") ?? "");
 let mediumValue = $state("");
@@ -433,104 +446,111 @@ getPicklists(config).then((picklists) => {
 </script>
 
 <div class="flex flex-col gap-4">
-  <form
-    class="flex flex-wrap items-end gap-3"
-    aria-label="Filter logged viewings"
-    onsubmit={handleFilterSubmit}
-  >
-    <label class={FIELD_WRAPPER} for="overview-from">
-      <span class={LABEL}>From</span>
-      <input class={INPUT} type="date" id="overview-from" bind:value={fromValue} />
-    </label>
-    <label class={FIELD_WRAPPER} for="overview-to">
-      <span class={LABEL}>To</span>
-      <input class={INPUT} type="date" id="overview-to" bind:value={toValue} />
-    </label>
-    <label class={FIELD_WRAPPER} for="overview-medium">
-      <span class={LABEL}>Medium</span>
-      <input
-        class={INPUT}
-        type="text"
-        id="overview-medium"
-        placeholder="e.g. cinema"
-        list="overview-medium-choices"
-        bind:value={mediumValue}
-      />
-      <datalist id="overview-medium-choices">
-        {#each mediumOptions as medium (medium)}
-          <option value={medium}></option>
-        {/each}
-      </datalist>
-    </label>
-    <label class={FIELD_WRAPPER} for="overview-venue">
-      <span class={LABEL}>Venue</span>
-      <input
-        class={INPUT}
-        type="text"
-        id="overview-venue"
-        placeholder="e.g. Grand Vista Cinema"
-        list="overview-venue-choices"
-        bind:value={venueValue}
-      />
-      <datalist id="overview-venue-choices">
-        {#each venueOptions as venue (venue)}
-          <option value={venue}></option>
-        {/each}
-      </datalist>
-    </label>
-    <label class={FIELD_WRAPPER} for="overview-director">
-      <span class={LABEL}>Director</span>
-      <input
-        class={INPUT}
-        type="text"
-        id="overview-director"
-        placeholder="e.g. Denis Villeneuve"
-        list="overview-director-choices"
-        bind:value={directorValue}
-      />
-      <datalist id="overview-director-choices">
-        {#each directorOptions as director (director)}
-          <option value={director}></option>
-        {/each}
-      </datalist>
-    </label>
-    <label class={FIELD_WRAPPER} for="overview-actor">
-      <span class={LABEL}>Actor</span>
-      <input
-        class={INPUT}
-        type="text"
-        id="overview-actor"
-        placeholder="e.g. Zendaya"
-        list="overview-actor-choices"
-        bind:value={actorValue}
-      />
-      <datalist id="overview-actor-choices">
-        {#each actorOptions as actor (actor)}
-          <option value={actor}></option>
-        {/each}
-      </datalist>
-    </label>
-    <label class={FIELD_WRAPPER} for="overview-genre">
-      <span class={LABEL}>Genre</span>
-      <input
-        class={INPUT}
-        type="text"
-        id="overview-genre"
-        placeholder="e.g. Drama"
-        list="overview-genre-choices"
-        bind:value={genreValue}
-      />
-      <datalist id="overview-genre-choices">
-        {#each genreOptions as genre (genre)}
-          <option value={genre}></option>
-        {/each}
-      </datalist>
-    </label>
-    <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
-    <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>
-      Clear filter
-    </button>
-  </form>
+  <details bind:open={filtersOpen}>
+    <summary
+      class="cursor-pointer text-sm font-medium text-slate-700 select-none dark:text-slate-300"
+    >
+      Filters
+    </summary>
+    <form
+      class="mt-3 flex flex-wrap items-end gap-3"
+      aria-label="Filter logged viewings"
+      onsubmit={handleFilterSubmit}
+    >
+      <label class={FIELD_WRAPPER} for="overview-from">
+        <span class={LABEL}>From</span>
+        <input class={INPUT} type="date" id="overview-from" bind:value={fromValue} />
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-to">
+        <span class={LABEL}>To</span>
+        <input class={INPUT} type="date" id="overview-to" bind:value={toValue} />
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-medium">
+        <span class={LABEL}>Medium</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-medium"
+          placeholder="e.g. cinema"
+          list="overview-medium-choices"
+          bind:value={mediumValue}
+        />
+        <datalist id="overview-medium-choices">
+          {#each mediumOptions as medium (medium)}
+            <option value={medium}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-venue">
+        <span class={LABEL}>Venue</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-venue"
+          placeholder="e.g. Grand Vista Cinema"
+          list="overview-venue-choices"
+          bind:value={venueValue}
+        />
+        <datalist id="overview-venue-choices">
+          {#each venueOptions as venue (venue)}
+            <option value={venue}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-director">
+        <span class={LABEL}>Director</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-director"
+          placeholder="e.g. Denis Villeneuve"
+          list="overview-director-choices"
+          bind:value={directorValue}
+        />
+        <datalist id="overview-director-choices">
+          {#each directorOptions as director (director)}
+            <option value={director}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-actor">
+        <span class={LABEL}>Actor</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-actor"
+          placeholder="e.g. Zendaya"
+          list="overview-actor-choices"
+          bind:value={actorValue}
+        />
+        <datalist id="overview-actor-choices">
+          {#each actorOptions as actor (actor)}
+            <option value={actor}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-genre">
+        <span class={LABEL}>Genre</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-genre"
+          placeholder="e.g. Drama"
+          list="overview-genre-choices"
+          bind:value={genreValue}
+        />
+        <datalist id="overview-genre-choices">
+          {#each genreOptions as genre (genre)}
+            <option value={genre}></option>
+          {/each}
+        </datalist>
+      </label>
+      <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
+      <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>
+        Clear filter
+      </button>
+    </form>
+  </details>
 
   {#if showRefreshAll}
     <button
