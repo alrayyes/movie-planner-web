@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* #65: a UX audit flagged the implicit browser default sans stack as
+   uncomfortable at the density this app's tables/forms use. Self-hosted
+   (fontsource, not a Google Fonts <link>) so a visitor's font request
+   never leaves this app's own origin — consistent with the privacy
+   page's "no third party in between" claim, and one less thing that can
+   fail if a font CDN is unreachable. */
+@import "@fontsource-variable/inter";
+
+@theme {
+  /* Overriding --font-sans also updates Preflight's --default-font-family
+     (theme.css), so this takes effect on `body` with no `font-sans`
+     utility needed anywhere. */
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+}
+
 /* Scoped to src/** — the visitor-facing app, not node_modules or config
    files — so the shipped CSS only carries utility classes this project
    actually uses. */
