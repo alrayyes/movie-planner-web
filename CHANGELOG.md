@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.30.0...movie-planner-web-v0.31.0) (2026-09-05)
+
+
+### Features
+
+* **movie-details:** show personal notes, convert to Svelte ([#109](https://github.com/alrayyes/movie-planner-web/issues/109)) ([dfd9130](https://github.com/alrayyes/movie-planner-web/commit/dfd913084c61eed14d98a496e85554450aad7558)), closes [#105](https://github.com/alrayyes/movie-planner-web/issues/105)
+
 ## [0.30.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.29.0...movie-planner-web-v0.30.0) (2026-09-05)
 
 
