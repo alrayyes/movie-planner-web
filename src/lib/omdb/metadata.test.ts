@@ -23,18 +23,27 @@ describe("hasOmdbMetadata", () => {
     expect(hasOmdbMetadata({})).toBe(false);
   });
 
-  test.each(["director", "actors", "genre", "year", "posterUrl"] as const)(
-    "imdbId plus %s counts as matched",
+  // #149: imdbId plus director/actors/genre/year alone used to count as
+  // matched — but a title OMDb has no poster for (or one whose poster
+  // was never fetched) could then never be refreshed to pick one up,
+  // even though nothing had actually filled it in yet.
+  test.each(["director", "actors", "genre", "year"] as const)(
+    "imdbId plus %s, without a poster, doesn't count as matched",
     (field) => {
-      expect(hasOmdbMetadata({ imdbId: "tt1160419", [field]: "some value" })).toBe(true);
+      expect(hasOmdbMetadata({ imdbId: "tt1160419", [field]: "some value" })).toBe(false);
     },
   );
+
+  test("imdbId plus a poster counts as matched, even with nothing else set", () => {
+    expect(
+      hasOmdbMetadata({ imdbId: "tt1160419", posterUrl: "https://example.com/dune.jpg" }),
+    ).toBe(true);
+  });
 
   test("a full OMDb match counts as matched", () => {
     expect(
       hasOmdbMetadata({
         imdbId: "tt1160419",
-        director: "Denis Villeneuve",
         posterUrl: "https://example.com/dune.jpg",
       }),
     ).toBe(true);

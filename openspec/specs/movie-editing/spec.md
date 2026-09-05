@@ -44,13 +44,18 @@ actual release.
 
 #### Scenario: Already matched elsewhere since the list loaded
 
-- **WHEN** a visitor refreshes a logged viewing and its freshly-fetched CalDAV entry already has both an IMDb ID and OMDb-sourced metadata (a director, actors, genre, year, or poster)
+- **WHEN** a visitor refreshes a logged viewing and its freshly-fetched CalDAV entry already has both an IMDb ID and a poster
 - **THEN** the system SHALL skip the OMDb call entirely and report the entry as already up to date
 
 #### Scenario: An IMDb link alone isn't a confident match
 
-- **WHEN** a visitor refreshes a logged viewing whose only field that looks like an OMDb match is an IMDb ID sourced from the CLI's own DESCRIPTION text, with no director, actors, genre, year, or poster
+- **WHEN** a visitor refreshes a logged viewing whose only field that looks like an OMDb match is an IMDb ID sourced from the CLI's own DESCRIPTION text, with no poster
 - **THEN** the system SHALL still call OMDb, since no actual OMDb lookup — this app's own or the CLI's — has ever run for that viewing
+
+#### Scenario: Matched but missing a poster
+
+- **WHEN** a visitor refreshes a logged viewing whose freshly-fetched CalDAV entry has an IMDb ID and other OMDb-sourced fields (director, actors, genre, year) but no poster
+- **THEN** the system SHALL still call OMDb, so a title matched before this field existed, or one OMDb had no poster for at the time, can pick one up
 
 #### Scenario: Watched year doesn't match the film's actual release year
 
