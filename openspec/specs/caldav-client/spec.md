@@ -56,17 +56,22 @@ stream an unbounded response into memory.
 ### Requirement: Reads the movie-planner CLI's own calendar format
 
 The system SHALL extract IMDb, Rotten Tomatoes, Metacritic, and
-Letterboxd ratings/links from a VEVENT's `DESCRIPTION` when this app's
-own `X-*` metadata properties aren't present, matching the plain-text
-format the `movie-planner` CLI writes there — so a viewing logged by
-the CLI shows its already-known data without a fresh OMDb call. This
-app's own `X-*` properties, when present, always take priority over
-`DESCRIPTION` parsing.
+Letterboxd ratings/links, and personal notes, from a VEVENT's
+`DESCRIPTION` when this app's own `X-*` metadata properties aren't
+present, matching the plain-text format the `movie-planner` CLI writes
+there — so a viewing logged by the CLI shows its already-known data
+without a fresh OMDb call. This app's own `X-*` properties, when
+present, always take priority over `DESCRIPTION` parsing.
 
 #### Scenario: CLI-logged viewing has no X-* properties
 
 - **WHEN** a visitor's calendar has a viewing logged by the CLI, with ratings/links only in its `DESCRIPTION` text
 - **THEN** the system SHALL display that title's IMDb/Rotten Tomatoes/Metacritic ratings and its IMDb/Letterboxd links, without calling OMDb
+
+#### Scenario: CLI-logged viewing has a notes line
+
+- **WHEN** a visitor's calendar has a viewing logged by the CLI whose `DESCRIPTION` has a labelled `Notes:` line
+- **THEN** the system SHALL parse it as that viewing's notes, distinguishing it from an unlabelled screening-details line the CLI may also write
 
 #### Scenario: Both sources present
 

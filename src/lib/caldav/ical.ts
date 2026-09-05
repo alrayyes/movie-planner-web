@@ -20,6 +20,7 @@ const X_PROPERTIES: Record<string, keyof NewViewing> = {
   "X-BOOKING-REF": "bookingRef",
   "X-LETTERBOXD-URL": "letterboxdUrl",
   "X-LETTERBOXD-RATING": "letterboxdRating",
+  "X-NOTES": "notes",
 };
 
 function formatDateTimeUtc(iso: string): string {
@@ -152,9 +153,12 @@ const IMDB_URL_RE = /https:\/\/www\.imdb\.com\/title\/(tt\d+)\/?/;
 //   Metacritic: {rating}
 //   Letterboxd: {letterboxd_url}
 //   Letterboxd: {letterboxd_url} ({letterboxd_rating})
-// A fifth, unlabeled free-text line (Pathé screening details) exists in
+//   Notes: {notes}
+// A sixth, unlabeled free-text line (Pathé screening details) exists in
 // the CLI's format too, but this app has no field for it and doesn't
-// attempt to parse it out.
+// attempt to parse it out — it's always last, after Notes, per
+// docs/calendar-schema.md, so the label on Notes is what keeps the two
+// from being confused when an entry carries both.
 function parseDescriptionMetadata(
   description: string,
 ): Partial<
@@ -166,6 +170,7 @@ function parseDescriptionMetadata(
     | "ratingMetacritic"
     | "letterboxdUrl"
     | "letterboxdRating"
+    | "notes"
   >
 > {
   const result: ReturnType<typeof parseDescriptionMetadata> = {};
@@ -205,6 +210,12 @@ function parseDescriptionMetadata(
     if (letterboxd?.[1]) {
       result.letterboxdUrl = letterboxd[1];
       if (letterboxd[2]) result.letterboxdRating = letterboxd[2];
+      continue;
+    }
+
+    const notes = /^Notes:\s*(.+)$/.exec(line);
+    if (notes?.[1]) {
+      result.notes = notes[1];
     }
   }
   return result;

@@ -44,6 +44,11 @@ export interface LoggedViewing {
   // constructed search this app falls back to without one).
   letterboxdUrl?: string;
   letterboxdRating?: string;
+  // #105: personal context (who it was watched with, a reaction) — the
+  // CLI's own field, never touched by OMDb. Round-trips through this
+  // app's own X-NOTES once written here; arrives via ical.ts's
+  // DESCRIPTION fallback for a viewing the CLI logged first.
+  notes?: string;
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;

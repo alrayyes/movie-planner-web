@@ -12,14 +12,21 @@ row offers.
 
 The system SHALL show, for a logged viewing reached from the overview's
 title link, its poster, title, release year, start/end time, medium,
-venue, director, actors, genre, and ratings (whichever of these are
-present), plus the same IMDb/Rotten Tomatoes/Letterboxd cross-links the
-overview shows.
+venue, director, actors, genre, ratings, and personal notes (whichever
+of these are present), plus the same IMDb/Rotten Tomatoes/Letterboxd
+cross-links the overview shows.
 
 #### Scenario: Full metadata on the details page
 
 - **WHEN** a visitor opens a logged viewing's details page
 - **THEN** the system SHALL display every available field for that viewing, not just the subset the overview's own row shows
+
+#### Scenario: Notes shown when present
+
+- **WHEN** a logged viewing has personal notes attached (set by the CLI, or previously by this app)
+- **THEN** the details page SHALL display them
+- **AND WHEN** a viewing has no notes
+- **THEN** the details page SHALL show no notes field at all, rather than an empty one
 
 ### Requirement: Details page offers edit, refresh, and delete
 
