@@ -1,0 +1,31 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Privacy — Movie Planner">
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Privacy
+  </h1>
+  <div class="mt-6 flex flex-col gap-4 text-slate-700 dark:text-slate-300">
+    <p>
+      This site is fully static. There's no server-side application code of any
+      kind in this repository's build output, and no server this project runs
+      ever holds — or even sees, not even in transit — your CalDAV or OMDb
+      credentials.
+    </p>
+    <p>
+      Your credentials are stored only in your own browser's storage
+      (IndexedDB), on this device, in this browser. They're never sent anywhere
+      except straight to the CalDAV and OMDb URLs you configured yourself.
+    </p>
+    <p>
+      Every CalDAV and OMDb request this site makes goes directly from your
+      browser to the servers you pointed it at — there's no proxy, relay, or
+      analytics service of any kind in between. Clearing your browser's site
+      data for this origin removes everything this site ever stored.
+    </p>
+  </div>
+</Layout>

@@ -1,0 +1,7 @@
+/* SITE */
+    Last update: 2026/09/05
+    Language: English
+    Doctype: HTML5
+    Standards: HTML5, CSS3
+    Components: Astro, Web Components, Tailwind CSS
+    Software: Bun, TypeScript, Biome, Playwright, Wrangler
