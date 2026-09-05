@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.1...movie-planner-web-v0.37.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **venues:** carry the venue page's date range through to the overview ([#147](https://github.com/alrayyes/movie-planner-web/issues/147)) ([768b429](https://github.com/alrayyes/movie-planner-web/commit/768b4290262adf798e61dcfca641f2e848f6a494)), closes [#146](https://github.com/alrayyes/movie-planner-web/issues/146)
+
 ## [0.37.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.0...movie-planner-web-v0.37.1) (2026-09-05)
 
 
