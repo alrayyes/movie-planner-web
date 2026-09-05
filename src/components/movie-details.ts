@@ -1,4 +1,4 @@
-import { deleteViewing, getViewing, updateViewing } from "../lib/caldav/client";
+import { deleteViewing, getPicklists, getViewing, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
@@ -46,6 +46,10 @@ export class MovieDetails extends HTMLElement {
   private container: HTMLElement | undefined;
   private statusEl: HTMLElement | undefined;
   private editing = false;
+  // #98: the same venue suggestions the log form already offers
+  // (location-management's own picklist), so editing a viewing doesn't
+  // mean retyping an exact venue name used before.
+  private venueList: HTMLDataListElement | undefined;
 
   // #80: a key alone isn't enough — a visitor can pause lookups to stay
   // under OMDb's daily rate limit without clearing the stored key.
@@ -72,9 +76,32 @@ export class MovieDetails extends HTMLElement {
     this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
     this.container = document.createElement("div");
-    this.append(this.container, this.statusEl);
+    this.venueList = document.createElement("datalist");
+    this.venueList.id = "details-venue-choices";
+    this.append(this.container, this.statusEl, this.venueList);
 
     await this.load();
+    await this.loadVenueSuggestions();
+  }
+
+  // #98: best-effort — a picklist fetch failure shouldn't block viewing
+  // or editing the page, same spirit as OMDb enrichment failing soft
+  // elsewhere in this app.
+  private async loadVenueSuggestions() {
+    if (!this.config || !this.venueList) return;
+    try {
+      const { venues } = await getPicklists(this.config);
+      this.venueList.replaceChildren(
+        ...venues.map((venue) => {
+          const option = document.createElement("option");
+          option.value = venue;
+          option.textContent = venue;
+          return option;
+        }),
+      );
+    } catch {
+      // Suggestions just stay empty; free-text entry still works.
+    }
   }
 
   private async load() {
@@ -256,6 +283,8 @@ export class MovieDetails extends HTMLElement {
       const value = viewing[field.key];
       input.value =
         (field.type === "datetime-local" ? toDatetimeLocal(String(value)) : value) ?? "";
+      // #98
+      if (field.key === "venue") input.setAttribute("list", "details-venue-choices");
       wrapper.append(label, input);
       grid.appendChild(wrapper);
       inputs.set(field.key, input);
