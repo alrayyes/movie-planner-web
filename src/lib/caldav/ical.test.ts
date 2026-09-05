@@ -156,6 +156,27 @@ describe("DESCRIPTION fallback for CLI-native events", () => {
     expect(parsed.letterboxdUrl).toBeUndefined();
   });
 
+  // #105
+  test("a labelled Notes line", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u11", "Notes: Watched with Sam, a rewatch after the extended cut"),
+    );
+    expect(parsed.notes).toBe("Watched with Sam, a rewatch after the extended cut");
+  });
+
+  test("Notes and an unlabelled screening-details line stay distinct, in the CLI's own order", () => {
+    const description = [
+      "Letterboxd: https://letterboxd.com/film/dune-part-two/ (4.2)",
+      "Notes: Watched with Sam",
+      "Auditorium 3, Seat A12",
+    ].join("\n");
+    const parsed = parseVEventToViewing(cliVEvent("u12", description));
+    expect(parsed.notes).toBe("Watched with Sam");
+    // The unlabelled screening-details line has no field to land on — it
+    // stays unparsed, same as when Notes is absent.
+    expect(Object.keys(parsed)).not.toContain("bookingRef");
+  });
+
   test("this app's own X-* properties win over DESCRIPTION when both are present", () => {
     const ical = [
       "BEGIN:VCALENDAR",
@@ -179,6 +200,29 @@ describe("DESCRIPTION fallback for CLI-native events", () => {
     const rewritten = parseVEventToViewing(serializeViewingToVEvent("u10", parsed));
     expect(rewritten.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
     expect(rewritten.letterboxdRating).toBe("4.2");
+  });
+
+  // #105
+  test("this app's own X-NOTES wins over a DESCRIPTION Notes line when both are present", () => {
+    const ical = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:u13",
+      "SUMMARY:Dune: Part Two",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "DESCRIPTION:Notes: stale note from the CLI",
+      "X-NOTES:edited here since",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    expect(parseVEventToViewing(ical).notes).toBe("edited here since");
+  });
+
+  test("a parsed notes field survives a subsequent write, same as any other OMDb-sourced field", () => {
+    const parsed = parseVEventToViewing(cliVEvent("u14", "Notes: Watched with Sam"));
+    const rewritten = parseVEventToViewing(serializeViewingToVEvent("u14", parsed));
+    expect(rewritten.notes).toBe("Watched with Sam");
   });
 });
 

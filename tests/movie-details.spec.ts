@@ -24,6 +24,7 @@ const DUNE = {
   year: "2021",
   posterUrl: "https://example.com/dune-poster.jpg",
   imdbId: "tt1160419",
+  notes: "Watched with Sam, a rewatch after the extended cut",
 };
 
 // #91: no imdbId — refresh now re-checks the calendar entry first and
@@ -72,6 +73,7 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Timothée Chalamet, Zendaya")).toBeVisible();
     await expect(page.getByText("Action, Adventure, Drama")).toBeVisible();
     await expect(page.getByText("IMDb 8.0")).toBeVisible();
+    await expect(page.getByText(DUNE.notes)).toBeVisible();
     await expect(page.getByRole("img", { name: "Dune poster" })).toHaveAttribute(
       "src",
       DUNE.posterUrl,
@@ -84,6 +86,15 @@ test.describe("movie details page", () => {
     await page.getByRole("link", { name: "Back to overview" }).click();
     await expect(page).toHaveURL("/");
     await expect(page.locator("tbody tr")).toHaveCount(1);
+  });
+
+  test("no notes field shows at all when the viewing has none", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune" }).click();
+
+    await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
+    await expect(page.getByText("Notes", { exact: true })).toHaveCount(0);
   });
 
   test("edit and delete are reachable from the details page", async ({ page }) => {
