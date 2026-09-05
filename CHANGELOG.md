@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.40.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.39.0...movie-planner-web-v0.40.0) (2026-09-05)
+
+
+### Features
+
+* **chrome:** add a real logo/favicon and PWA install support ([#160](https://github.com/alrayyes/movie-planner-web/issues/160)) ([1aeec61](https://github.com/alrayyes/movie-planner-web/commit/1aeec6106da62d87c6b05646d8fac4a78a35bd5a)), closes [#70](https://github.com/alrayyes/movie-planner-web/issues/70)
+* **chrome:** make poster thumbnails bigger ([#167](https://github.com/alrayyes/movie-planner-web/issues/167)) ([20c7f8a](https://github.com/alrayyes/movie-planner-web/commit/20c7f8abe4054626d39fd961003e0fb335908d9f)), closes [#166](https://github.com/alrayyes/movie-planner-web/issues/166)
+* **movie-details:** show ratings as badges, make actors/genre clickable ([#164](https://github.com/alrayyes/movie-planner-web/issues/164)) ([880be9c](https://github.com/alrayyes/movie-planner-web/commit/880be9c5ea564a9ebd29290010ca7baaeecc360a)), closes [#163](https://github.com/alrayyes/movie-planner-web/issues/163)
+
 ## [0.39.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.38.1...movie-planner-web-v0.39.0) (2026-09-05)
 
 
