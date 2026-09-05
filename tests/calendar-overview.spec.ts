@@ -81,6 +81,13 @@ async function connect(page: Page) {
   await expect(page.getByRole("status").first()).toBeVisible();
 }
 
+// #221: the filter fields sit inside a <details>, closed by default —
+// every test that fills or submits one needs it open first, same as a
+// visitor would click "Filters" before typing into it.
+async function openFilters(page: Page) {
+  await page.getByText("Filters", { exact: true }).click();
+}
+
 test.describe("calendar overview", () => {
   test("defaults to most-recently-watched first", async ({ page }) => {
     // PADDINGTON (2 months back) is older than DUNE (1 month back) —
@@ -222,6 +229,7 @@ test.describe("calendar overview", () => {
 
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
+    await openFilters(page);
     await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.getByRole("button", { name: "Filter", exact: true }).click();
@@ -264,6 +272,7 @@ test.describe("calendar overview", () => {
     // requests' own results genuinely differ, and only releasing the
     // first one *after* the second already resolved proves whether the
     // stale one still clobbers the fresh one.
+    await openFilters(page);
     await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.getByRole("button", { name: "Filter", exact: true }).click();
@@ -288,6 +297,7 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
+    await openFilters(page);
     await page.locator("#overview-medium").fill("cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
@@ -370,6 +380,7 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
+    await openFilters(page);
     await page.locator("#overview-venue").fill("Grand Vista Cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
@@ -390,6 +401,40 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-venue")).toHaveValue("Grand Vista Cinema");
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
+    // #221: a query param means the visitor is clearly already filtering
+    // — the section opens automatically rather than hiding the very
+    // filter that's currently applied.
+    await expect(page.locator("#overview-venue")).toBeVisible();
+  });
+
+  // #221
+  test("the filter section is closed by default, open only when a filter is already active", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await expect(page.getByRole("button", { name: "Filter", exact: true })).toBeHidden();
+    await expect(page.locator("#overview-venue")).toBeHidden();
+
+    await openFilters(page);
+    await expect(page.getByRole("button", { name: "Filter", exact: true })).toBeVisible();
+    await expect(page.locator("#overview-venue")).toBeVisible();
+  });
+
+  // #221: a real regression — submitting the form (any filter, any
+  // reload) used to silently re-close the section a visitor had just
+  // opened themselves, right after they used it.
+  test("the filter section stays open after submitting a filter", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await openFilters(page);
+    await page.locator("#overview-medium").fill("cinema");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("#overview-medium")).toBeVisible();
   });
 
   // #163: actor/genre match one exact split value, not a substring of
@@ -413,6 +458,7 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(3);
 
+    await openFilters(page);
     await page.locator("#overview-genre").fill("Action");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
@@ -446,6 +492,7 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(3);
 
+    await openFilters(page);
     await page.locator("#overview-director").fill("Denis Villeneuve");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
@@ -554,6 +601,7 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
+    await openFilters(page);
     await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.locator("#overview-medium").fill("cinema");
@@ -614,6 +662,7 @@ test.describe("calendar overview", () => {
     await page.getByRole("button", { name: "Next page" }).click();
     await expect(page.getByText("Page 2 of 2")).toBeVisible();
 
+    await openFilters(page);
     await page.locator("#overview-medium").fill("cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 

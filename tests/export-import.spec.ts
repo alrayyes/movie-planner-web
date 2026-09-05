@@ -64,6 +64,12 @@ async function connect(page: Page) {
   await expect(page.getByRole("link", { name: "Import" })).toBeVisible();
 }
 
+// #221: the overview's filter fields sit inside a <details>, closed by
+// default.
+async function openFilters(page: Page) {
+  await page.getByText("Filters", { exact: true }).click();
+}
+
 test.describe("Export as JSON", () => {
   test("downloads every viewing in the whole history with every field, using the CLI's own snake_case names", async ({
     page,
@@ -72,6 +78,7 @@ test.describe("Export as JSON", () => {
     await connect(page);
     // Filter down to nothing shown on screen — export should still
     // cover the visitor's whole history, not this filtered view.
+    await openFilters(page);
     await page.locator("#overview-medium").fill("netflix");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(0);
