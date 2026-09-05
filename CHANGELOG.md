@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.53.0...movie-planner-web-v0.54.0) (2026-09-05)
+
+
+### Features
+
+* **movie-details:** show a movie synopsis ([#228](https://github.com/alrayyes/movie-planner-web/issues/228)) ([ffa4c92](https://github.com/alrayyes/movie-planner-web/commit/ffa4c92ced2cba305dbce39d5dc9236307133894)), closes [#227](https://github.com/alrayyes/movie-planner-web/issues/227)
+
 ## [0.53.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.52.1...movie-planner-web-v0.53.0) (2026-09-05)
 
 
