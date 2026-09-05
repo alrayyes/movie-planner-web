@@ -6,13 +6,22 @@ import { importCheckRange } from "../lib/movie-log/run-import";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
 
-// #99: every venue the visitor has ever added to their picklist, each
-// with a count of logged viewings there — not a map (#8, deferred,
-// needs location data this app doesn't have), just a plain list built
-// from data already available: location-management's own picklist
-// plus a wide-range calendar query (importCheckRange's own 15-years-
-// back window, same one bulk-import already uses for "the whole
-// history", not calendar-overview's narrower 3-month default).
+// #99: every venue the visitor has ever logged a viewing at, or added
+// to their picklist, each with a count of logged viewings there — not
+// a map (#8, deferred, needs location data this app doesn't have),
+// just a plain list built from data already available: the union of
+// location-management's own picklist (so a venue with zero viewings
+// still shows, #99's own scenario) and a wide-range calendar query
+// (importCheckRange's own 15-years-back window, same one bulk-import
+// already uses for "the whole history", not calendar-overview's
+// narrower 3-month default).
+//
+// #116: the picklist alone isn't enough — it's this app's own
+// autocomplete suggestion list, populated only when a visitor types a
+// new venue into this app's log form. A CLI-logged entry's venue was
+// never typed in here, so it's never in the picklist even though it's
+// real LOCATION text on the calendar entry — counting only picklist
+// hits silently dropped every such venue.
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
 let venueCounts = $state<{ venue: string; count: number }[]>([]);
@@ -35,9 +44,8 @@ async function load() {
 		]);
 		const counts = new Map<string, number>(venues.map((venue) => [venue, 0]));
 		for (const viewing of viewings) {
-			if (viewing.venue && counts.has(viewing.venue)) {
-				counts.set(viewing.venue, (counts.get(viewing.venue) ?? 0) + 1);
-			}
+			if (!viewing.venue) continue;
+			counts.set(viewing.venue, (counts.get(viewing.venue) ?? 0) + 1);
 		}
 		venueCounts = [...counts.entries()]
 			.map(([venue, count]) => ({ venue, count }))
