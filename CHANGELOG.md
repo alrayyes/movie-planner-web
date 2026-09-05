@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.32.2...movie-planner-web-v0.33.0) (2026-09-05)
+
+
+### Features
+
+* **keyboard-nav:** add vim-style navigation and a help overlay ([#119](https://github.com/alrayyes/movie-planner-web/issues/119)) ([964ed7c](https://github.com/alrayyes/movie-planner-web/commit/964ed7c4bb2697b55f526cf014e22a5f7a47777e)), closes [#68](https://github.com/alrayyes/movie-planner-web/issues/68)
+
 ## [0.32.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.32.1...movie-planner-web-v0.32.2) (2026-09-05)
 
 
