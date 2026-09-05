@@ -27,6 +27,8 @@ const DUNE = {
   year: "2021",
   posterUrl: "https://example.com/dune-poster.jpg",
   imdbId: "tt1160419",
+  synopsis:
+    "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset.",
   notes: "Watched with Sam, a rewatch after the extended cut",
 };
 
@@ -84,6 +86,7 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("link", { name: "Adventure" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Drama" })).toBeVisible();
     await expect(page.getByText("IMDb 8.0")).toBeVisible();
+    await expect(page.getByText(DUNE.synopsis)).toBeVisible();
     await expect(page.getByText(DUNE.notes)).toBeVisible();
     await expect(page.getByRole("img", { name: "Dune poster" })).toHaveAttribute(
       "src",
@@ -128,6 +131,15 @@ test.describe("movie details page", () => {
 
     await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
     await expect(page.getByText("Notes", { exact: true })).toHaveCount(0);
+  });
+
+  test("no synopsis field shows at all when the viewing has none", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune" }).click();
+
+    await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
+    await expect(page.getByText("Synopsis", { exact: true })).toHaveCount(0);
   });
 
   test("edit and delete are reachable from the details page", async ({ page }) => {

@@ -13,6 +13,7 @@ export interface MovieMetadata {
   year?: string;
   posterUrl?: string;
   imdbId?: string;
+  synopsis?: string;
 }
 
 // #49: a disambiguation candidate — the shape OMDb's search endpoint
@@ -40,6 +41,7 @@ interface OmdbResponse {
   Year?: string;
   Poster?: string;
   imdbID?: string;
+  Plot?: string;
 }
 
 interface OmdbSearchResult {
@@ -76,6 +78,7 @@ function toMetadata(data: OmdbResponse): MovieMetadata {
     year: field(data.Year),
     posterUrl: field(data.Poster),
     imdbId: field(data.imdbID),
+    synopsis: field(data.Plot),
   };
 }
 
@@ -84,6 +87,9 @@ async function search(apiKey: string, title: string, year: string | undefined) {
   url.searchParams.set("apikey", apiKey);
   url.searchParams.set("t", title);
   if (year) url.searchParams.set("y", year);
+  // Full plot, not OMDb's default truncated one-liner — a synopsis
+  // worth showing on the details page.
+  url.searchParams.set("plot", "full");
 
   const response = await fetch(url);
   if (!response.ok) return null;
@@ -145,6 +151,7 @@ export async function lookupByImdbId(
   const url = new URL("https://www.omdbapi.com/");
   url.searchParams.set("apikey", apiKey);
   url.searchParams.set("i", imdbId);
+  url.searchParams.set("plot", "full");
 
   const response = await fetch(url);
   if (!response.ok) return null;

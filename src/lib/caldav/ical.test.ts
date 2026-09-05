@@ -21,6 +21,8 @@ const VIEWING: NewViewing = {
   year: "2021",
   posterUrl: "https://example.com/dune-poster.jpg",
   imdbId: "tt1160419",
+  synopsis:
+    "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset.",
 };
 
 describe("VEVENT round trip", () => {
