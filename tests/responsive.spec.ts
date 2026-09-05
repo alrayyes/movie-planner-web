@@ -116,6 +116,14 @@ for (const viewport of VIEWPORTS) {
       await assertNoHorizontalOverflow(page);
       await assertInputFontSizeAtLeast16px(page);
     });
+
+    // #198/#204: the heatmap grid's own auto-fill columns are the part
+    // most at risk of overflowing a narrow viewport.
+    test("calendar heatmap has no horizontal overflow", async ({ page }) => {
+      await connect(page);
+      await page.goto("/calendar");
+      await assertNoHorizontalOverflow(page);
+    });
   });
 }
 

@@ -1,0 +1,203 @@
+import AxeBuilder from "@axe-core/playwright";
+import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+
+const CREDENTIALS = {
+  "caldav-url": "https://caldav.example.com/calendars/me/movies/",
+  "caldav-username": "me",
+  "caldav-password": "secret",
+};
+
+function toDateInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function daysAgo(n: number): Date {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
+
+async function connect(page: Page) {
+  await page.goto("/");
+  await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+  await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+  await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+  await page.getByRole("button", { name: "Connect" }).click();
+  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+}
+
+test.describe("viewing heatmap", () => {
+  test("renders the page with a heatmap grid", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: daysAgo(3).toISOString(),
+        end: new Date(daysAgo(3).getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+  });
+
+  test("shades a day cell by its own viewing count, distinguishable from an empty day", async ({
+    page,
+  }) => {
+    const dayWithOne = daysAgo(10);
+    const dayWithThree = daysAgo(5);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "one-uid",
+        title: "One",
+        start: dayWithOne.toISOString(),
+        end: new Date(dayWithOne.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+      ...Array.from({ length: 3 }, (_, i) => ({
+        uid: `three-uid-${i}`,
+        title: `Three ${i}`,
+        start: new Date(dayWithThree.getTime() + i * 60 * 60 * 1000).toISOString(),
+        end: new Date(dayWithThree.getTime() + (i + 1) * 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+      })),
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("4 logged viewings.")).toBeVisible();
+
+    const oneLabel = `${toDateInputValue(dayWithOne)}: 1 viewing`;
+    const threeLabel = `${toDateInputValue(dayWithThree)}: 3 viewings`;
+    const oneCell = page.getByLabel(oneLabel, { exact: true });
+    const threeCell = page.getByLabel(threeLabel, { exact: true });
+    await expect(oneCell).toBeVisible();
+    await expect(threeCell).toBeVisible();
+
+    const oneClass = await oneCell.getAttribute("class");
+    const threeClass = await threeCell.getAttribute("class");
+    // Different bucket, different shade — not visually identical.
+    expect(oneClass).not.toBe(threeClass);
+  });
+
+  test("a day cell's accessible name states its date and real count, not shade alone", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    await expect(
+      page.getByLabel(`${toDateInputValue(day)}: 1 viewing`, { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("activating a day with viewings goes to the overview filtered to that day", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    const cell = page.getByRole("link", { name: `${dayValue}: 1 viewing` });
+    await expect(cell).toHaveAttribute("href", `/?from=${dayValue}&to=${dayValue}`);
+    await cell.click();
+
+    await expect(page).toHaveURL(new RegExp(`from=${dayValue}&to=${dayValue}`));
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  test("an empty day cell has no link and does nothing when activated", async ({ page }) => {
+    // Two viewings a few days apart, so the rendered range (earliest to
+    // latest viewing day) actually spans an empty day in between — a
+    // single viewing alone renders a one-cell grid with nothing empty
+    // to test.
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: daysAgo(7).toISOString(),
+        end: new Date(daysAgo(7).getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+      {
+        uid: "paddington-uid",
+        title: "Paddington",
+        start: daysAgo(3).toISOString(),
+        end: new Date(daysAgo(3).getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("2 logged viewings.")).toBeVisible();
+
+    const emptyDay = toDateInputValue(daysAgo(5));
+    const emptyCell = page.getByLabel(`${emptyDay}: 0 viewings`, { exact: true });
+    await expect(emptyCell).toBeVisible();
+    await expect(page.getByRole("link", { name: `${emptyDay}: 0 viewings` })).toHaveCount(0);
+  });
+
+  test("no logged viewings at all still renders the full grid, not an error", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.goto("/calendar");
+
+    await expect(page.getByText("No logged viewings yet.")).toBeVisible();
+    // Still a real, populated grid (the fallback 12-month range) — not
+    // empty and not an error.
+    await expect(page.locator('[role="img"]').first()).toBeVisible();
+  });
+
+  test("introduces no accessibility violations", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: daysAgo(3).toISOString(),
+        end: new Date(daysAgo(3).getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("reachable from the site nav", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+
+    await page.getByRole("link", { name: "Calendar" }).click();
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+  });
+});

@@ -24,7 +24,7 @@ import {
 	TR_BODY,
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { formatPeriod } from "../lib/ui/datetime";
+import { formatPeriod, localDayBoundary, toDateInputValue } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -222,36 +222,14 @@ const showRefreshAll = $derived(omdbActive && currentPageItems.some((v) => !hasO
 // letting reload() below fill fromValue/toValue in with the visitor's
 // own actual first/last watched dates, makes the fields honestly show
 // what's being applied instead of leaving them blank.
-// #188: a `<input type="date">` value is a bare "YYYY-MM-DD" naming the
-// visitor's own local calendar day (it's built from local getters below,
-// same as everywhere else this app reads one). `new Date("YYYY-MM-DD")`
-// parses that same string as *UTC* midnight instead — a different instant
-// in any timezone but UTC, and one that can even land on the wrong local
-// day. Parsing the components by hand into the local-time Date
-// constructor keeps the boundary anchored to the calendar day the field
-// actually shows, both for the day's start ("From") and, latent since
-// #93 until "To" started auto-filling with a viewing's own day, its end
-// ("To" — the whole day, not just its first instant, or a "To" matching a
-// viewing's own day excluded that viewing outright).
-function localDayBoundary(value: string, endOfDay: boolean): string {
-	const [year, month, day] = value.split("-").map(Number);
-	const date = endOfDay
-		? new Date(year, month - 1, day, 23, 59, 59, 999)
-		: new Date(year, month - 1, day, 0, 0, 0, 0);
-	return date.toISOString();
-}
-
+// #199: localDayBoundary/toDateInputValue moved to ../lib/ui/datetime —
+// this feature's own heatmap needs the exact same local-day handling,
+// and importing the fixed logic beats re-deriving it a third time.
 function currentRange() {
 	const wide = importCheckRange();
 	const from = fromValue ? localDayBoundary(fromValue, false) : wide.from;
 	const to = toValue ? localDayBoundary(toValue, true) : wide.to;
 	return { from, to };
-}
-
-function toDateInputValue(iso: string): string {
-	const d = new Date(iso);
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 // #171: `silent` skips the "Loading…"/count-line updates — used by a
