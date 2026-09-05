@@ -22,6 +22,9 @@ configured, with no server-side code in this repo's build output at all
 [Baikal](https://sabre.io/baikal/) so far — other CalDAV servers may or
 may not work.
 
+![The calendar overview in light mode](docs/screenshots/overview-light.png)
+![The calendar overview in dark mode](docs/screenshots/overview-dark.png)
+
 **Status:** credentials, the calendar overview, logging (manual and Pathé
 email parsing), editing, bulk CSV/JSON import and export, and location
 management (media/venue picklists) are all built — see

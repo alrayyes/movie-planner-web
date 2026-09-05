@@ -54,6 +54,17 @@ jobs:
         # webServer builds and serves through wrangler itself, the same
         # thing the Cloudflare Worker deploy runs — see playwright.config.ts.
         run: bun run test
+      # #195: tests/screenshots.spec.ts overwrites docs/screenshots/*.png
+      # on every run — uploaded here so a reviewer can eyeball whether the
+      # README's own checked-in copies (committed separately, since CI
+      # never commits on its own — see CLAUDE.md) still match, without
+      # needing to run the suite themselves.
+      - name: upload README screenshots
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: readme-screenshots
+          path: docs/screenshots/
+          retention-days: 7
       - name: upload the report on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
