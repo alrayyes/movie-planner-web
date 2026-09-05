@@ -43,6 +43,26 @@ test.describe("Fork me on GitHub ribbon", () => {
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
   });
+
+  // #135: the ribbon's diagonal banner used to sit close enough to the
+  // header's dark-mode toggle, on narrow and medium viewports, that a
+  // click meant for the toggle could land on the ribbon's link instead.
+  // A raw bounding-box comparison isn't the right check here: the
+  // rotated banner's untransformed box is much bigger than its visible
+  // diagonal strip, so two boxes "overlapping" doesn't mean a click
+  // would actually be intercepted. Clicking the toggle and confirming
+  // it actually flips is the real invariant.
+  test("a click on the dark-mode toggle reaches the toggle, not the ribbon", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 400 });
+    await page.goto("/");
+
+    const toggle = page.getByRole("switch", { name: /switch to (dark|light) mode/i });
+    const before = await toggle.getAttribute("aria-checked");
+
+    await toggle.click();
+
+    await expect(toggle).not.toHaveAttribute("aria-checked", before ?? "");
+  });
 });
 
 // #127: used to only ever appear on the home page (built inside
