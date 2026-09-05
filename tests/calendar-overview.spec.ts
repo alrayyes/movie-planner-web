@@ -270,4 +270,39 @@ test.describe("calendar overview", () => {
     await expect(page.getByText("Page 1 of 2")).toBeVisible();
     await expect(page.locator("tbody tr")).toHaveCount(25);
   });
+
+  // #76: a landscape or square source poster used to squeeze into
+  // whatever width the table column happened to have while height stayed
+  // fixed (h-32 w-auto) — the resulting box's aspect ratio depended on
+  // the table's own layout, not the intended poster shape, and matched
+  // neither the source image nor a normal portrait poster. A fixed
+  // aspect-ratio box + object-cover renders every source shape as the
+  // same predictable poster-shaped box instead.
+  test("crops the poster to a consistent poster-shaped box regardless of the source image's aspect ratio", async ({
+    page,
+  }) => {
+    const svg = (w: number, h: number) =>
+      `data:image/svg+xml;base64,${Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%"/></svg>`,
+      ).toString("base64")}`;
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, uid: "portrait", posterUrl: svg(300, 445) },
+      { ...PADDINGTON, uid: "landscape", posterUrl: svg(800, 300) },
+    ]);
+    await connect(page);
+
+    const images = page.locator("tbody tr img");
+    await expect(images).toHaveCount(2);
+    for (let i = 0; i < 2; i++) {
+      const box = await images.nth(i).boundingBox();
+      // A normal poster-shaped box (portrait, not extreme) — the
+      // landscape source above is 2.67 on its own and the previous,
+      // table-squeezed implementation measured 0.35, so this range only
+      // holds once the box itself is a fixed size rather than derived
+      // from the source image or the table's own column layout.
+      const ratio = (box?.width ?? 0) / (box?.height ?? 1);
+      expect(ratio).toBeGreaterThan(0.5);
+      expect(ratio).toBeLessThan(0.8);
+    }
+  });
 });

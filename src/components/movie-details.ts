@@ -120,7 +120,12 @@ export class MovieDetails extends HTMLElement {
       const img = document.createElement("img");
       img.src = viewing.posterUrl;
       img.alt = `${viewing.title} poster`;
-      img.className = "h-64 w-auto self-start rounded";
+      // #76: a fixed width + max-w-none, not h-64 w-auto — same fix as
+      // the overview's own poster (calendar-overview.ts), so a
+      // non-portrait source poster crops to a normal poster shape
+      // instead of rendering distorted or getting capped by a narrow
+      // container.
+      img.className = "h-64 w-40 max-w-none self-start rounded object-cover";
       wrap.appendChild(img);
     }
 
