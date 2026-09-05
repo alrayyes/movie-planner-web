@@ -206,6 +206,55 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     ]);
   });
 
+  // #89: the calendar entry is the source of truth once it's been
+  // matched (has an imdbId) — a bulk refresh shouldn't spend OMDb quota
+  // re-fetching it. The single per-row Refresh control is unaffected
+  // (still always offered) — that's the deliberate, spec'd way to
+  // correct one title's stale match.
+  test("refresh all skips titles that already have matched metadata", async ({ page }) => {
+    const already = { ...DUNE, imdbId: "tt1160419" };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [already, PADDINGTON]);
+    await connect(page, "test-omdb-key");
+
+    let omdbCalls = 0;
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      const title = new URL(route.request().url()).searchParams.get("t");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: `${title} director`,
+          imdbID: "tt0000000",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    expect(omdbCalls).toBe(1);
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.title).toBe("Paddington");
+  });
+
+  test("no Refresh all control appears when every title on the page already has matched metadata", async ({
+    page,
+  }) => {
+    const already = { ...DUNE, imdbId: "tt1160419" };
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [already]);
+    await connect(page, "test-omdb-key");
+
+    // Waits for the async post-connect render to actually settle before
+    // asserting an absence — otherwise "not rendered yet" and "correctly
+    // hidden" look identical and the assertion below passes for the
+    // wrong reason.
+    await expect(page.getByRole("button", { name: "Refresh metadata" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Refresh all metadata" })).toHaveCount(0);
+  });
+
   // #59: "refresh all" acts on the current page of the (filtered, sorted)
   // set, not the whole thing — same rule the medium filter already had,
   // now extended to pagination.

@@ -65,6 +65,20 @@ key set.
 - **WHEN** a bulk refresh includes a title OMDb has no match for
 - **THEN** the system SHALL still refresh every other title and report the count that had no match or failed, rather than aborting the whole batch
 
+#### Scenario: Already-matched titles are skipped
+
+- **WHEN** a visitor runs a bulk refresh and some titles on screen already have an IMDb ID
+- **THEN** the system SHALL not call OMDb for those titles, leaving them out of the refreshed/missed count, since the calendar entry is already the confirmed match
+
+#### Scenario: Nothing on screen needs a bulk refresh
+
+- **WHEN** every title currently on screen already has an IMDb ID
+- **THEN** the system SHALL not offer the bulk refresh control at all
+
+Note: the single per-viewing refresh (above) is unaffected by this —
+it stays available on any title regardless of existing metadata, since
+it's the deliberate way to correct a stale or wrong match.
+
 ### Requirement: Delete a logged viewing
 
 The system SHALL let a visitor delete an existing logged viewing,
