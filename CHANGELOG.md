@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.2...movie-planner-web-v0.37.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **omdb:** let refresh reach OMDb for a matched title missing its poster ([#150](https://github.com/alrayyes/movie-planner-web/issues/150)) ([47afb82](https://github.com/alrayyes/movie-planner-web/commit/47afb827b7108cb63f09ae35483407733bd4e265)), closes [#149](https://github.com/alrayyes/movie-planner-web/issues/149)
+
 ## [0.37.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.1...movie-planner-web-v0.37.2) (2026-09-05)
 
 
