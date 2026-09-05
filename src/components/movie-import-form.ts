@@ -1,15 +1,20 @@
+import type { LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
 import {
+  applyImportUpdate,
   fetchExistingForImportCheck,
   type ImportPlanEntry,
+  type ImportUpdateEntry,
   importRow,
   planImport,
+  planUpdates,
 } from "../lib/movie-log/run-import";
 import {
   BUTTON_PRIMARY,
   LABEL,
+  SECTION_HEADING,
   STATUS_TEXT,
   TABLE,
   TABLE_WRAP,
@@ -21,11 +26,20 @@ import {
 // bulk-import spec: CSV/JSON import with duplicate detection (against both
 // the existing calendar and rows earlier in the same file), confirmed
 // before writing a likely duplicate.
+//
+// #69: a row from the exported format whose uid matches an existing
+// entry is an *update* to that entry instead — its own review section,
+// with a checkbox per changed field rather than per row, since the
+// calendar is the source of truth and a visitor should be able to
+// accept a corrected rating while rejecting an unrelated changed title
+// on the same row.
 export class MovieImportForm extends HTMLElement {
   private credentials: Credentials | null | undefined;
   private statusEl: HTMLElement | undefined;
   private reviewContainer: HTMLElement | undefined;
   private plan: ImportPlanEntry[] = [];
+  private updates: ImportUpdateEntry[] = [];
+  private existingByUid = new Map<string, LoggedViewing>();
   private parseErrors: { rowNumber: number; error?: string }[] = [];
 
   async connectedCallback() {
@@ -40,7 +54,7 @@ export class MovieImportForm extends HTMLElement {
     this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
     this.reviewContainer = document.createElement("div");
-    this.reviewContainer.className = "flex flex-col gap-4";
+    this.reviewContainer.className = "flex flex-col gap-6";
 
     const fieldWrapper = document.createElement("div");
     fieldWrapper.className = "flex flex-col gap-1";
@@ -73,9 +87,14 @@ export class MovieImportForm extends HTMLElement {
 
     try {
       const existing = await fetchExistingForImportCheck(this.credentials);
+      this.existingByUid = new Map(existing.map((v) => [v.uid, v]));
       this.plan = planImport(parsed, existing);
+      this.updates = planUpdates(parsed, existing);
       this.renderReview();
-      this.statusEl.textContent = `${this.plan.length} row(s) ready to review${this.parseErrors.length ? `, ${this.parseErrors.length} failed to parse` : ""}.`;
+      const parts = [`${this.plan.length} new row(s)`];
+      if (this.updates.length > 0) parts.push(`${this.updates.length} existing entry update(s)`);
+      if (this.parseErrors.length > 0) parts.push(`${this.parseErrors.length} failed to parse`);
+      this.statusEl.textContent = `${parts.join(", ")} ready to review.`;
     } catch (error) {
       this.statusEl.textContent =
         error instanceof Error ? error.message : "Failed to check for duplicates.";
@@ -97,7 +116,25 @@ export class MovieImportForm extends HTMLElement {
       this.reviewContainer.appendChild(errorList);
     }
 
-    if (this.plan.length === 0) return;
+    const createCheckboxes = this.renderCreateTable();
+    const updateCheckboxes = this.renderUpdateSection();
+
+    if (this.plan.length === 0 && this.updates.length === 0) return;
+
+    const importButton = document.createElement("button");
+    importButton.type = "button";
+    importButton.className = `${BUTTON_PRIMARY} self-start`;
+    importButton.textContent = "Import checked rows";
+    importButton.addEventListener(
+      "click",
+      () => void this.runImport(createCheckboxes, updateCheckboxes),
+    );
+    this.reviewContainer.appendChild(importButton);
+  }
+
+  private renderCreateTable(): Map<number, HTMLInputElement> {
+    const checkboxes = new Map<number, HTMLInputElement>();
+    if (!this.reviewContainer || this.plan.length === 0) return checkboxes;
 
     const wrap = document.createElement("div");
     wrap.className = TABLE_WRAP;
@@ -117,7 +154,6 @@ export class MovieImportForm extends HTMLElement {
 
     const tbody = document.createElement("tbody");
     tbody.className = "divide-y divide-slate-200 dark:divide-slate-700";
-    const checkboxes = new Map<number, HTMLInputElement>();
     for (const entry of this.plan) {
       const row = document.createElement("tr");
       row.className = TR_BODY;
@@ -155,24 +191,68 @@ export class MovieImportForm extends HTMLElement {
     }
     table.append(thead, tbody);
     wrap.appendChild(table);
-
-    const importButton = document.createElement("button");
-    importButton.type = "button";
-    importButton.className = `${BUTTON_PRIMARY} self-start`;
-    importButton.textContent = "Import checked rows";
-    importButton.addEventListener("click", () => void this.runImport(checkboxes));
-
-    this.reviewContainer.append(wrap, importButton);
+    this.reviewContainer.appendChild(wrap);
+    return checkboxes;
   }
 
-  private async runImport(checkboxes: Map<number, HTMLInputElement>) {
+  // #69: one block per uid-matched entry, one checkbox per changed
+  // field (not per row) — old value → new value, so a visitor can
+  // approve exactly what they want written to that existing CalDAV
+  // event before anything touches the calendar.
+  private renderUpdateSection(): Map<string, HTMLInputElement> {
+    const checkboxes = new Map<string, HTMLInputElement>();
+    if (!this.reviewContainer || this.updates.length === 0) return checkboxes;
+
+    const section = document.createElement("section");
+    section.className = "flex flex-col gap-4";
+    const heading = document.createElement("h2");
+    heading.className = SECTION_HEADING;
+    heading.textContent = "Updates to existing entries";
+    section.appendChild(heading);
+
+    for (const entry of this.updates) {
+      const block = document.createElement("div");
+      block.className =
+        "flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700";
+      block.setAttribute("aria-label", `Changes for ${entry.title}`);
+      const title = document.createElement("p");
+      title.className = "text-sm font-medium text-slate-900 dark:text-slate-100";
+      title.textContent = entry.title;
+      block.appendChild(title);
+
+      for (const change of entry.changes) {
+        const row = document.createElement("label");
+        row.className = "flex items-start gap-2 text-sm";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className =
+          "mt-0.5 size-4 rounded border-slate-300 text-indigo-600 dark:border-slate-600 dark:bg-slate-800";
+        checkbox.checked = true;
+        const key = `${entry.rowNumber}:${change.field}`;
+        checkboxes.set(key, checkbox);
+        const text = document.createElement("span");
+        text.className = "text-slate-700 dark:text-slate-300";
+        text.textContent = `${change.label}: ${change.oldValue ?? "(none)"} → ${change.newValue}`;
+        row.append(checkbox, text);
+        block.appendChild(row);
+      }
+      section.appendChild(block);
+    }
+    this.reviewContainer.appendChild(section);
+    return checkboxes;
+  }
+
+  private async runImport(
+    createCheckboxes: Map<number, HTMLInputElement>,
+    updateCheckboxes: Map<string, HTMLInputElement>,
+  ) {
     if (!this.credentials || !this.statusEl) return;
     let imported = 0;
     let skipped = 0;
     let failed = 0;
 
     for (const entry of this.plan) {
-      if (!checkboxes.get(entry.rowNumber)?.checked) {
+      if (!createCheckboxes.get(entry.rowNumber)?.checked) {
         skipped++;
         continue;
       }
@@ -184,9 +264,37 @@ export class MovieImportForm extends HTMLElement {
       }
     }
 
-    this.statusEl.textContent = `Imported ${imported}, skipped ${skipped}, failed ${failed}.`;
+    let updated = 0;
+    for (const entry of this.updates) {
+      const current = this.existingByUid.get(entry.uid);
+      if (!current) {
+        failed++;
+        continue;
+      }
+      const approvedFields = new Set(
+        entry.changes
+          .filter((change) => updateCheckboxes.get(`${entry.rowNumber}:${change.field}`)?.checked)
+          .map((change) => change.field),
+      ) as Set<keyof NewViewing>;
+      if (approvedFields.size === 0) {
+        skipped++;
+        continue;
+      }
+      try {
+        await applyImportUpdate(this.credentials, current, entry, approvedFields);
+        updated++;
+      } catch {
+        failed++;
+      }
+    }
+
+    const parts = [`Imported ${imported}`];
+    if (this.updates.length > 0) parts.push(`updated ${updated}`);
+    parts.push(`skipped ${skipped}`, `failed ${failed}`);
+    this.statusEl.textContent = `${parts.join(", ")}.`;
     this.reviewContainer?.replaceChildren();
     this.plan = [];
+    this.updates = [];
   }
 }
 

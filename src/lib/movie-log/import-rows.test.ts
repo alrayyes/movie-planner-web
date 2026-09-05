@@ -43,7 +43,11 @@ describe("parseCsvImport", () => {
     expect(rows).toHaveLength(3);
     expect(rows.every((r) => !r.error)).toBe(true);
 
-    expect(rows[0]?.row).toEqual({
+    // toMatchObject, not toEqual — ImportRow always carries every
+    // optional field's key now (undefined when a plain minimal-format
+    // row doesn't set it), so an exact-equality check would have to
+    // spell out every one of those absent OMDb-derived fields too.
+    expect(rows[0]?.row).toMatchObject({
       title: "The Clockmaker's Daughter",
       date: "2024-03-15",
       medium: "cinema",
@@ -52,6 +56,8 @@ describe("parseCsvImport", () => {
       venue: "Grand Vista Cinema",
       imdbUrl: "https://www.imdb.com/title/tt0000101/",
     });
+    expect(rows[0]?.row?.imdbId).toBe("tt0000101");
+    expect(rows[0]?.row?.director).toBeUndefined();
     expect(rows[1]?.row?.startTime).toBe("20:30");
     expect(rows[1]?.row?.endTime).toBeUndefined();
     expect(rows[2]?.row?.startTime).toBeUndefined();
@@ -85,6 +91,113 @@ describe("parseJsonImport", () => {
   test("reports invalid JSON as a row-1 error rather than throwing", () => {
     const rows = parseJsonImport("not json");
     expect(rows[0]?.error).toBeTruthy();
+  });
+});
+
+describe("parseJsonImport with the exported/round-trip format (the CLI's own snake_case field names)", () => {
+  const EXPORTED = JSON.stringify([
+    {
+      uid: "dune-uid",
+      title: "Dune",
+      date: "2026-01-01",
+      start_time: "19:00",
+      end_time: "21:30",
+      start: "2026-01-01T19:00:00.000Z",
+      end: "2026-01-01T21:30:00.000Z",
+      medium: "cinema",
+      venue: "Grand Vista Cinema",
+      director: "Denis Villeneuve",
+      actors: "Timothée Chalamet, Zendaya",
+      imdb_rating: "8.0",
+      rotten_tomatoes_rating: "83%",
+      metacritic_rating: "74",
+      genre: "Action, Adventure, Drama",
+      release_year: "2021",
+      poster_url: "https://example.com/dune-poster.jpg",
+      imdb_url: "https://www.imdb.com/title/tt1160419/",
+      booking_ref: "ABC123",
+      letterboxd_url: "https://letterboxd.com/film/dune-part-two/",
+      letterboxd_rating: "4.2",
+      notes: "Watched with Sam",
+    },
+  ]);
+
+  test("carries every field, mapped from the CLI's own snake_case names", () => {
+    const rows = parseJsonImport(EXPORTED);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.error).toBeUndefined();
+    expect(rows[0]?.row).toEqual({
+      title: "Dune",
+      date: "2026-01-01",
+      medium: "cinema",
+      startTime: "19:00",
+      endTime: "21:30",
+      start: "2026-01-01T19:00:00.000Z",
+      end: "2026-01-01T21:30:00.000Z",
+      uid: "dune-uid",
+      venue: "Grand Vista Cinema",
+      director: "Denis Villeneuve",
+      actors: "Timothée Chalamet, Zendaya",
+      ratingImdb: "8.0",
+      ratingRottenTomatoes: "83%",
+      ratingMetacritic: "74",
+      genre: "Action, Adventure, Drama",
+      year: "2021",
+      posterUrl: "https://example.com/dune-poster.jpg",
+      imdbUrl: "https://www.imdb.com/title/tt1160419/",
+      imdbId: "tt1160419",
+      bookingRef: "ABC123",
+      letterboxdUrl: "https://letterboxd.com/film/dune-part-two/",
+      letterboxdRating: "4.2",
+      notes: "Watched with Sam",
+    });
+  });
+
+  test("a missing title still fails that row", () => {
+    const rows = parseJsonImport(
+      JSON.stringify([
+        { start: "2026-01-01T19:00:00.000Z", end: "2026-01-01T21:30:00.000Z", medium: "cinema" },
+      ]),
+    );
+    expect(rows[0]?.error).toContain("title");
+  });
+
+  test("an unparsable start fails that row", () => {
+    const rows = parseJsonImport(
+      JSON.stringify([
+        { title: "Dune", start: "not-a-date", end: "2026-01-01T21:30:00.000Z", medium: "cinema" },
+      ]),
+    );
+    expect(rows[0]?.error).toContain("start");
+  });
+
+  test("no uid at all (a hand-written exported-shape file) parses fine, just with no uid", () => {
+    const rows = parseJsonImport(
+      JSON.stringify([
+        {
+          title: "Dune",
+          start: "2026-01-01T19:00:00.000Z",
+          end: "2026-01-01T21:30:00.000Z",
+          medium: "cinema",
+        },
+      ]),
+    );
+    expect(rows[0]?.error).toBeUndefined();
+    expect(rows[0]?.row?.uid).toBeUndefined();
+  });
+
+  test("date is derived from `start` when the minimal format's own `date` field is absent", () => {
+    const rows = parseJsonImport(
+      JSON.stringify([
+        {
+          title: "Dune",
+          start: "2026-01-01T19:00:00.000Z",
+          end: "2026-01-01T21:30:00.000Z",
+          medium: "cinema",
+        },
+      ]),
+    );
+    expect(rows[0]?.row?.date).toBe("2026-01-01");
   });
 });
 
