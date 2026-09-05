@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.28.0...movie-planner-web-v0.29.0) (2026-09-05)
+
+
+### Features
+
+* **location-management:** add a venues overview page, first Svelte island ([#104](https://github.com/alrayyes/movie-planner-web/issues/104)) ([b73225f](https://github.com/alrayyes/movie-planner-web/commit/b73225fd4e6b3fc82a98c40ffd1ff83bf89e431e))
+
 ## [0.28.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.27.0...movie-planner-web-v0.28.0) (2026-09-05)
 
 
