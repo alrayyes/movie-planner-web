@@ -1,10 +1,15 @@
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import { NAV, NAV_LINK } from "../lib/ui/classes";
 
+// #161: Viewings first — it's the overview a visitor lands on after
+// connecting, and the nav previously gave it no link at all once a
+// visitor had navigated away (only the "Movie Planner" brand link did,
+// with no indication that's what it led back to).
 const LINKS: [string, string][] = [
+  ["/", "Viewings"],
+  ["/venues", "Venues"],
   ["/log", "Log a viewing"],
   ["/import", "Import"],
-  ["/venues", "Venues"],
   ["/settings", "Settings"],
 ];
 
