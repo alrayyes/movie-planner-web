@@ -307,6 +307,7 @@ init();
       the venue-link-to-overview pattern (#131), split first so a click
       matches one value exactly rather than the whole comma-joined
       string. -->
+      {@const directorChips = splitMultiValue(viewing.director)}
       {@const actorChips = splitMultiValue(viewing.actors)}
       {@const genreChips = splitMultiValue(viewing.genre)}
       {@const fields = [
@@ -314,7 +315,6 @@ init();
         ['End', formatDateTime(viewing.end)],
         ['Medium', viewing.medium],
         ['Venue', viewing.venue],
-        ['Director', viewing.director],
       ]}
       <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
         {#if viewing.posterUrl}
@@ -355,6 +355,21 @@ init();
                 <dd class={DD}>{value}</dd>
               {/if}
             {/each}
+            {#if directorChips.length > 0}
+              <dt class={DT}>Director</dt>
+              <dd class={DD}>
+                <div class="flex flex-wrap gap-1">
+                  {#each directorChips as director (director)}
+                    <a
+                      href={`/?director=${encodeURIComponent(director)}`}
+                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
+                    >
+                      {director}
+                    </a>
+                  {/each}
+                </div>
+              </dd>
+            {/if}
             {#if actorChips.length > 0}
               <dt class={DT}>Actors</dt>
               <dd class={DD}>

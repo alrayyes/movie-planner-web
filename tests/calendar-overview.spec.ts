@@ -271,6 +271,15 @@ test.describe("calendar overview", () => {
     expect(venueOptions.sort()).toEqual(["Grand Vista Cinema", "Regal Union Square"]);
     await expect(page.locator("#overview-venue")).toHaveAttribute("list", "overview-venue-choices");
 
+    const directorOptions = await page
+      .locator("#overview-director-choices option")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
+    expect(directorOptions).toEqual(["Denis Villeneuve"]);
+    await expect(page.locator("#overview-director")).toHaveAttribute(
+      "list",
+      "overview-director-choices",
+    );
+
     const actorOptions = await page
       .locator("#overview-actor-choices option")
       .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
@@ -349,11 +358,42 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
-  test("?actor= and ?genre= query params pre-populate their filter fields on load", async ({
+  // #183
+  test("filters by director on an exact split value, not a substring of the whole field", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      PADDINGTON,
+      {
+        uid: "other-director-uid",
+        title: "Something Else",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        director: "A Denis Villeneuve Impersonator",
+      },
+    ]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(3);
+
+    await page.locator("#overview-director").fill("Denis Villeneuve");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  test("?actor=, ?genre= and ?director= query params pre-populate their filter fields on load", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
+
+    await page.goto("/?director=Denis%20Villeneuve");
+    await expect(page.locator("#overview-director")).toHaveValue("Denis Villeneuve");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
 
     await page.goto("/?genre=Drama");
 
@@ -417,7 +457,7 @@ test.describe("calendar overview", () => {
     expect(Math.abs(from.getTime() - expectedFrom.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
   });
 
-  test("clear filter resets the date range, medium, venue, actor and genre, and reloads", async ({
+  test("clear filter resets the date range, medium, venue, director, actor and genre, and reloads", async ({
     page,
   }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
@@ -428,6 +468,7 @@ test.describe("calendar overview", () => {
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.locator("#overview-medium").fill("cinema");
     await page.locator("#overview-venue").fill("Grand Vista Cinema");
+    await page.locator("#overview-director").fill("Denis Villeneuve");
     await page.locator("#overview-actor").fill("Zendaya");
     await page.locator("#overview-genre").fill("Drama");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
@@ -439,6 +480,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-to")).toHaveValue("");
     await expect(page.locator("#overview-medium")).toHaveValue("");
     await expect(page.locator("#overview-venue")).toHaveValue("");
+    await expect(page.locator("#overview-director")).toHaveValue("");
     await expect(page.locator("#overview-actor")).toHaveValue("");
     await expect(page.locator("#overview-genre")).toHaveValue("");
     await expect(page.locator("tbody tr")).toHaveCount(2);

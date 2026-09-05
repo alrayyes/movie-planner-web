@@ -38,10 +38,10 @@ cross-links the overview shows.
 - **WHEN** a visitor opens a logged viewing's details page and it has ratings from more than one source
 - **THEN** the system SHALL show each source as its own badge, not one comma-joined string
 
-#### Scenario: Actors and genre are individually clickable
+#### Scenario: Director, actors and genre are individually clickable
 
-- **WHEN** a visitor opens a logged viewing's details page and it has multiple actors and/or genre values
-- **THEN** the system SHALL show each value as its own clickable chip, linking to the calendar-overview capability's own actor/genre filter for that exact value (calendar-overview's "Overview filters by date range, medium, and venue")
+- **WHEN** a visitor opens a logged viewing's details page and it has a director and/or multiple actors/genre values
+- **THEN** the system SHALL show each value as its own clickable chip, linking to the calendar-overview capability's own director/actor/genre filter for that exact value (calendar-overview's "Overview filters by date range, medium, venue, director, actor, and genre")
 
 ### Requirement: Details page offers edit, refresh, and delete
 

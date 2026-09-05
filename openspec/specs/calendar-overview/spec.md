@@ -126,26 +126,27 @@ filtered result set in one table.
 - **THEN** the system SHALL refresh only the viewings on that page, not the
   whole filtered result set
 
-### Requirement: Overview filters by date range, medium, venue, actor, and genre
+### Requirement: Overview filters by date range, medium, venue, director, actor, and genre
 
 The system SHALL let a visitor filter the overview by a date range, by
 medium, and by venue, matching the filters the CLI's `list` command
 supports (medium and date range) plus a venue filter of its own, and
-by actor and genre. The system SHALL read initial venue/actor/genre
-filter values from `venue`/`actor`/`genre` URL query parameters, so a
-link elsewhere in the app can land here pre-filtered, and SHALL show
-those values in the filter fields themselves rather than applying them
+by director, actor, and genre. The system SHALL read initial
+venue/director/actor/genre filter values from
+`venue`/`director`/`actor`/`genre` URL query parameters, so a link
+elsewhere in the app can land here pre-filtered, and SHALL show those
+values in the filter fields themselves rather than applying them
 invisibly. The system SHALL offer medium autocomplete suggestions
 drawn from the union of the location-management picklist and the
 medium values on the viewings already loaded, so a medium logged only
 via the CLI still suggests itself even though it was never typed into
-this app's own log form. Actor and genre are multi-value,
+this app's own log form. Director, actor, and genre are multi-value,
 comma-separated OMDb fields (unlike venue and medium): the system
 SHALL match a viewing when the filter value equals one of its
 individually split values exactly, not a substring of the whole
 comma-joined field. The system SHALL offer the same kind of
 autocomplete suggestions for venue (union of the location-management
-picklist and loaded viewings, same as medium) and for actor/genre
+picklist and loaded viewings, same as medium) and for director/actor/genre
 (every distinct individually-split value on the viewings already
 loaded — these have no picklist of their own, being OMDb-derived).
 
@@ -174,14 +175,16 @@ loaded — these have no picklist of their own, being OMDb-derived).
 - **WHEN** a visitor opens the overview with `from` and `to` query parameters set
 - **THEN** the system SHALL populate the From and To filter fields with those values instead of its own default range, so a link from elsewhere in the app (the venues page's own count, for one) lands on the same result set it was drawn from
 
-#### Scenario: Filter by actor or genre matches an exact split value
+#### Scenario: Filter by director, actor or genre matches an exact split value
 
 - **WHEN** a visitor filters the overview to genre "Action", and one logged viewing's genre is "Action, Drama" while another's is "Live Action Adaptation, Comedy"
 - **THEN** the system SHALL display only the first viewing, not the second
+- **AND WHEN** a visitor filters the overview to director "Denis Villeneuve", and one logged viewing's director is exactly that while another's is "A Denis Villeneuve Impersonator"
+- **THEN** the system SHALL display only the first viewing, not the second
 
-#### Scenario: Venue, actor and genre autocomplete
+#### Scenario: Venue, director, actor and genre autocomplete
 
-- **WHEN** a visitor opens the overview with logged viewings carrying various venues, actors and genres
+- **WHEN** a visitor opens the overview with logged viewings carrying various venues, directors, actors and genres
 - **THEN** the system SHALL offer each as an autocomplete suggestion in its own filter field
 
 #### Scenario: Arriving pre-filtered by actor or genre

@@ -71,10 +71,10 @@ test.describe("movie details page", () => {
 
     await expect(page.getByRole("heading", { name: "Dune (2021)" })).toBeVisible();
     await expect(page.getByText("Grand Vista Cinema")).toBeVisible();
-    await expect(page.getByText("Denis Villeneuve")).toBeVisible();
-    // #163: actors/genre are individually clickable chips now, not one
-    // joined string — see the dedicated describe block below for the
-    // filtering behaviour those chips link to.
+    // #163/#183: director/actors/genre are individually clickable chips
+    // now, not one joined string — see the dedicated describe block
+    // below for the filtering behaviour those chips link to.
+    await expect(page.getByRole("link", { name: "Denis Villeneuve" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Timothée Chalamet" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Zendaya" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Action", exact: true })).toBeVisible();
@@ -229,6 +229,10 @@ test.describe("movie details page", () => {
     await expect(page.getByText("IMDb 8.0")).toBeVisible();
     await expect(page.getByText("RT 83%")).toBeVisible();
 
+    await expect(page.getByRole("link", { name: "Denis Villeneuve" })).toHaveAttribute(
+      "href",
+      "/?director=Denis%20Villeneuve",
+    );
     await expect(page.getByRole("link", { name: "Timothée Chalamet" })).toHaveAttribute(
       "href",
       "/?actor=Timoth%C3%A9e%20Chalamet",
@@ -266,6 +270,31 @@ test.describe("movie details page", () => {
     await page.getByRole("link", { name: "Action", exact: true }).click();
 
     await expect(page).toHaveURL(/\/\?genre=Action/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  // #183
+  test("clicking the director chip filters the overview to viewings with exactly that director", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      {
+        uid: "other-uid",
+        title: "Something Else",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        director: "Someone Else",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("link", { name: "Denis Villeneuve" }).click();
+
+    await expect(page).toHaveURL(/\/\?director=Denis/);
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
