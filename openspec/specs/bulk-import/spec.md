@@ -35,19 +35,25 @@ existing entry by uid" below for a row whose `uid` does match.
 - **WHEN** an imported viewing has the same normalized title and date as an already-logged viewing
 - **THEN** the system SHALL flag it as a likely duplicate and ask for confirmation before creating a new event
 
-### Requirement: Export as JSON
+### Requirement: Export as JSON, reachable from any page
 
 The system SHALL let a visitor download their whole logged history —
 not merely the calendar overview's currently-filtered or paginated
 set — as a JSON array, one object per viewing, carrying every
 `LoggedViewing` field (including OMDb-derived metadata) using the same
 field names the extended-import requirement below reads, so the file
-is directly re-importable with no data loss.
+is directly re-importable with no data loss. The system SHALL offer
+this control on every connected page, not only the overview.
 
 #### Scenario: Export covers the whole history, not the active filter
 
 - **WHEN** a visitor chooses "Export as JSON" while a date-range or medium filter is applied on the overview
 - **THEN** the system SHALL still export every viewing in the visitor's whole history, not just what the active filter currently shows
+
+#### Scenario: Export reachable from any connected page
+
+- **WHEN** a visitor is connected and on any page other than the overview
+- **THEN** the system SHALL still offer an "Export as JSON" control there, with the same whole-history behaviour
 
 #### Scenario: Export carries OMDb-derived metadata
 

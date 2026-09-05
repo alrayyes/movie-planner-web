@@ -102,6 +102,27 @@ test.describe("Export as JSON", () => {
     expect(row.end).toBe(DUNE.end);
     expect(row.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+
+  // #174: previously only ever offered on the overview itself, so
+  // exporting from anywhere else meant navigating to "/" first.
+  test("is reachable from any connected page, not just the overview", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.goto("/settings");
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Export as JSON" }).click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^movie-planner-export-\d{4}-\d{2}-\d{2}\.json$/);
+  });
+
+  test("doesn't appear before a visitor has connected", async ({ page }) => {
+    await page.goto("/privacy");
+
+    await expect(page.getByRole("button", { name: "Export as JSON" })).toHaveCount(0);
+  });
 });
 
 test.describe("importing the exported format", () => {
