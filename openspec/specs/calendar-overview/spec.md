@@ -143,7 +143,11 @@ this app's own log form. Actor and genre are multi-value,
 comma-separated OMDb fields (unlike venue and medium): the system
 SHALL match a viewing when the filter value equals one of its
 individually split values exactly, not a substring of the whole
-comma-joined field.
+comma-joined field. The system SHALL offer the same kind of
+autocomplete suggestions for venue (union of the location-management
+picklist and loaded viewings, same as medium) and for actor/genre
+(every distinct individually-split value on the viewings already
+loaded — these have no picklist of their own, being OMDb-derived).
 
 #### Scenario: Filter by month and medium
 
@@ -174,6 +178,11 @@ comma-joined field.
 
 - **WHEN** a visitor filters the overview to genre "Action", and one logged viewing's genre is "Action, Drama" while another's is "Live Action Adaptation, Comedy"
 - **THEN** the system SHALL display only the first viewing, not the second
+
+#### Scenario: Venue, actor and genre autocomplete
+
+- **WHEN** a visitor opens the overview with logged viewings carrying various venues, actors and genres
+- **THEN** the system SHALL offer each as an autocomplete suggestion in its own filter field
 
 #### Scenario: Arriving pre-filtered by actor or genre
 

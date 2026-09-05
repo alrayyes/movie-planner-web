@@ -67,15 +67,32 @@ const { config, omdbApiKey, omdbPaused = false }: Props = $props();
 const omdbActive = $derived(Boolean(omdbApiKey) && !omdbPaused);
 
 let allViewings = $state<LoggedViewing[]>([]);
-// #140: the location-management picklist alone misses a medium that
-// was only ever logged via the CLI, never typed into this app's own
-// log form — same gap #116 fixed for the venues page's counts, here
-// as the medium filter's autocomplete suggestions.
+// #140/#179: the location-management picklist alone misses a medium
+// or venue that was only ever logged via the CLI, never typed into
+// this app's own log form — same gap #116 fixed for the venues page's
+// counts, here as autocomplete suggestions for every filter field.
+// Actor and genre have no picklist of their own (OMDb-derived, not
+// something a visitor types in) — their suggestions come entirely
+// from the viewings already loaded.
 let mediumPicklist = $state<string[]>([]);
+let venuePicklist = $state<string[]>([]);
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const mediumOptions = $derived.by(() => {
 	const fromViewings = allViewings.map((v) => v.medium);
 	return [...new Set([...mediumPicklist, ...fromViewings])].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const venueOptions = $derived.by(() => {
+	const fromViewings = allViewings.map((v) => v.venue).filter((v): v is string => Boolean(v));
+	return [...new Set([...venuePicklist, ...fromViewings])].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const actorOptions = $derived.by(() => {
+	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.actors)))].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const genreOptions = $derived.by(() => {
+	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.genre)))].sort();
 });
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let statusText = $state("");
@@ -360,6 +377,7 @@ async function handleRefreshAll() {
 reload();
 getPicklists(config).then((picklists) => {
 	mediumPicklist = picklists.media;
+	venuePicklist = picklists.venues;
 });
 </script>
 
@@ -400,8 +418,14 @@ getPicklists(config).then((picklists) => {
         type="text"
         id="overview-venue"
         placeholder="e.g. Grand Vista Cinema"
+        list="overview-venue-choices"
         bind:value={venueValue}
       />
+      <datalist id="overview-venue-choices">
+        {#each venueOptions as venue (venue)}
+          <option value={venue}></option>
+        {/each}
+      </datalist>
     </label>
     <label class={FIELD_WRAPPER} for="overview-actor">
       <span class={LABEL}>Actor</span>
@@ -410,8 +434,14 @@ getPicklists(config).then((picklists) => {
         type="text"
         id="overview-actor"
         placeholder="e.g. Zendaya"
+        list="overview-actor-choices"
         bind:value={actorValue}
       />
+      <datalist id="overview-actor-choices">
+        {#each actorOptions as actor (actor)}
+          <option value={actor}></option>
+        {/each}
+      </datalist>
     </label>
     <label class={FIELD_WRAPPER} for="overview-genre">
       <span class={LABEL}>Genre</span>
@@ -420,8 +450,14 @@ getPicklists(config).then((picklists) => {
         type="text"
         id="overview-genre"
         placeholder="e.g. Drama"
+        list="overview-genre-choices"
         bind:value={genreValue}
       />
+      <datalist id="overview-genre-choices">
+        {#each genreOptions as genre (genre)}
+          <option value={genre}></option>
+        {/each}
+      </datalist>
     </label>
     <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
     <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>

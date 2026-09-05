@@ -257,6 +257,33 @@ test.describe("calendar overview", () => {
     );
   });
 
+  // #179
+  test("offers venue, actor and genre autocomplete too", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON], {
+      media: [],
+      venues: ["Regal Union Square"],
+    });
+    await connect(page);
+
+    const venueOptions = await page
+      .locator("#overview-venue-choices option")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
+    expect(venueOptions.sort()).toEqual(["Grand Vista Cinema", "Regal Union Square"]);
+    await expect(page.locator("#overview-venue")).toHaveAttribute("list", "overview-venue-choices");
+
+    const actorOptions = await page
+      .locator("#overview-actor-choices option")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
+    expect(actorOptions.sort()).toEqual(["Timothée Chalamet", "Zendaya"]);
+    await expect(page.locator("#overview-actor")).toHaveAttribute("list", "overview-actor-choices");
+
+    const genreOptions = await page
+      .locator("#overview-genre-choices option")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
+    expect(genreOptions.sort()).toEqual(["Action", "Adventure", "Drama"]);
+    await expect(page.locator("#overview-genre")).toHaveAttribute("list", "overview-genre-choices");
+  });
+
   // #131
   test("filters by venue client-side, over whatever the date range already returned", async ({
     page,
