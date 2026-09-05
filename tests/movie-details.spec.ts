@@ -99,6 +99,28 @@ test.describe("movie details page", () => {
     await expect(page.locator("tbody tr")).toHaveCount(1);
   });
 
+  // #223: a visitor who edits a viewing elsewhere (another tab, say),
+  // then returns here via the browser's Back button, can land on the
+  // exact pre-edit DOM the browser restored from its back/forward cache
+  // rather than a fresh load. See the calendar overview's own test of
+  // the same gap for why a synthetic pageshow is used instead of a real
+  // navigation.
+  test("a bfcache restore refreshes data that changed while this page was cached", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/movie?uid=dune-uid");
+    await expect(page.getByRole("heading", { name: "Dune (2021)" })).toBeVisible();
+
+    server.viewings.set(DUNE.uid, { ...DUNE, title: "Dune: Part Two" });
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+
+    await expect(page.getByRole("heading", { name: "Dune: Part Two (2021)" })).toBeVisible();
+  });
+
   test("no notes field shows at all when the viewing has none", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page);

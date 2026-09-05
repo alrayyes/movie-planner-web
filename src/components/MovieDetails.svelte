@@ -9,6 +9,7 @@ import { hasOmdbMetadata } from "../lib/omdb/metadata";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
 	BUTTON_PRIMARY,
@@ -248,6 +249,10 @@ async function init() {
 }
 
 init();
+// #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call —
+// load() alone (not init(), which would redundantly redo credential
+// and picklist setup) is enough once config is already set.
+reloadOnBfcacheRestore(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">
