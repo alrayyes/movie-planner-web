@@ -25,3 +25,50 @@
 body {
   @apply min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100;
 }
+
+/* #66: the "Fork me on GitHub" corner ribbon. Hand-rolled rather than a
+   dependency (github-fork-ribbon-css) for twenty lines of geometry — the
+   colours themselves are plain Tailwind utility classes on the <a> in
+   Layout.astro, this is only the diagonal-box shape. Absolutely
+   positioned (not fixed), so it scrolls away with the page instead of
+   sitting over content on a tall phone view. */
+.gh-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  width: 150px;
+  height: 150px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gh-ribbon a {
+  position: absolute;
+  top: 30px;
+  right: -60px;
+  display: block;
+  width: 225px;
+  padding: 8px 0;
+  transform: rotate(45deg);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .gh-ribbon {
+    width: 130px;
+    height: 130px;
+  }
+
+  .gh-ribbon a {
+    top: 23px;
+    right: -49px;
+    width: 195px;
+    padding: 4px 0;
+    font-size: 11px;
+  }
+}
