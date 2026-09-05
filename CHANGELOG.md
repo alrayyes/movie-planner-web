@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.38.0...movie-planner-web-v0.38.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **keyboard-nav:** poll instead of racing a bare assertion in the g test ([#155](https://github.com/alrayyes/movie-planner-web/issues/155)) ([d907762](https://github.com/alrayyes/movie-planner-web/commit/d907762500ad9a1ca4b36da616249b2e6d8275cc)), closes [#151](https://github.com/alrayyes/movie-planner-web/issues/151)
+
 ## [0.38.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.3...movie-planner-web-v0.38.0) (2026-09-05)
 
 
