@@ -39,6 +39,16 @@ const COMPOSE_FILE = join(import.meta.dir, "compose.yaml");
 
 let workDir: string;
 
+// bun:test's default timeout (5s, for both a hook and a test) is
+// nowhere near enough for a cold `docker pull`/`docker run` on a CI
+// runner with no local cache of the image — confirmed live: beforeAll
+// alone (pull + two more `docker run`s to read the CLI's own trusted
+// CA bundle) timed out at exactly 5000ms in CI, despite running in
+// well under a second locally once the image was already cached from
+// manual testing. Applied to both beforeAll and the test itself, since
+// the test's own `docker run import` is a fresh container start too.
+const DOCKER_TIMEOUT_MS = 120_000;
+
 beforeAll(async () => {
   // Caddy terminates TLS for this container with its own internal
   // self-signed CA — never disable certificate verification outside
@@ -84,7 +94,7 @@ beforeAll(async () => {
       'db_path = "/data/movies.db"',
     ].join("\n"),
   );
-});
+}, DOCKER_TIMEOUT_MS);
 
 afterAll(() => {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "1";
@@ -96,57 +106,61 @@ function runCli(...args: string[]) {
 }
 
 describe("movie-planner CLI importing this app's exported format", () => {
-  test("every OMDb-derived field lands on the resulting CalDAV entry, with no OMDb call attempted", async () => {
-    const fixture = [
-      {
-        title: "Dune",
-        date: "2026-01-01",
-        start_time: "19:00",
-        end_time: "21:30",
-        medium: "cinema",
-        venue: "Grand Vista Cinema",
-        director: "Denis Villeneuve",
-        actors: "Timothée Chalamet, Zendaya",
-        genre: "Action, Adventure, Drama",
-        release_year: "2021",
-        poster_url: "https://example.com/dune-poster.jpg",
-        imdb_rating: "8.0",
-        rotten_tomatoes_rating: "83%",
-        metacritic_rating: "74",
-        imdb_url: "https://www.imdb.com/title/tt1160419/",
-        letterboxd_url: "https://letterboxd.com/film/dune-part-two/",
-        letterboxd_rating: "4.2",
-        notes: "Watched with Sam",
-      },
-    ];
-    writeFileSync(join(workDir, "export.json"), JSON.stringify(fixture));
+  test(
+    "every OMDb-derived field lands on the resulting CalDAV entry, with no OMDb call attempted",
+    async () => {
+      const fixture = [
+        {
+          title: "Dune",
+          date: "2026-01-01",
+          start_time: "19:00",
+          end_time: "21:30",
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+          director: "Denis Villeneuve",
+          actors: "Timothée Chalamet, Zendaya",
+          genre: "Action, Adventure, Drama",
+          release_year: "2021",
+          poster_url: "https://example.com/dune-poster.jpg",
+          imdb_rating: "8.0",
+          rotten_tomatoes_rating: "83%",
+          metacritic_rating: "74",
+          imdb_url: "https://www.imdb.com/title/tt1160419/",
+          letterboxd_url: "https://letterboxd.com/film/dune-part-two/",
+          letterboxd_rating: "4.2",
+          notes: "Watched with Sam",
+        },
+      ];
+      writeFileSync(join(workDir, "export.json"), JSON.stringify(fixture));
 
-    const output = await runCli("import", "/data/export.json");
-    expect(output).toContain("1 imported");
-    // A real OMDb call would either be attempted (visible as a
-    // "could not fetch"/warning line, since the fixture's api_key is
-    // empty) or silently succeed — neither should happen when every
-    // OMDb-derived field is already supplied.
-    expect(output.toLowerCase()).not.toContain("omdb");
+      const output = await runCli("import", "/data/export.json");
+      expect(output).toContain("1 imported");
+      // A real OMDb call would either be attempted (visible as a
+      // "could not fetch"/warning line, since the fixture's api_key is
+      // empty) or silently succeed — neither should happen when every
+      // OMDb-derived field is already supplied.
+      expect(output.toLowerCase()).not.toContain("omdb");
 
-    const viewings = await listViewings(CONFIG, {
-      from: "2000-01-01T00:00:00.000Z",
-      to: "2100-01-01T00:00:00.000Z",
-    });
-    const dune = viewings.find((v) => v.title === "Dune");
-    expect(dune).toBeDefined();
-    expect(dune?.venue).toBe("Grand Vista Cinema");
-    expect(dune?.director).toBe("Denis Villeneuve");
-    expect(dune?.actors).toBe("Timothée Chalamet, Zendaya");
-    expect(dune?.genre).toBe("Action, Adventure, Drama");
-    expect(dune?.year).toBe("2021");
-    expect(dune?.posterUrl).toBe("https://example.com/dune-poster.jpg");
-    expect(dune?.imdbId).toBe("tt1160419");
-    expect(dune?.ratingImdb).toBe("8.0");
-    expect(dune?.ratingRottenTomatoes).toBe("83%");
-    expect(dune?.ratingMetacritic).toBe("74");
-    expect(dune?.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
-    expect(dune?.letterboxdRating).toBe("4.2");
-    expect(dune?.notes).toBe("Watched with Sam");
-  });
+      const viewings = await listViewings(CONFIG, {
+        from: "2000-01-01T00:00:00.000Z",
+        to: "2100-01-01T00:00:00.000Z",
+      });
+      const dune = viewings.find((v) => v.title === "Dune");
+      expect(dune).toBeDefined();
+      expect(dune?.venue).toBe("Grand Vista Cinema");
+      expect(dune?.director).toBe("Denis Villeneuve");
+      expect(dune?.actors).toBe("Timothée Chalamet, Zendaya");
+      expect(dune?.genre).toBe("Action, Adventure, Drama");
+      expect(dune?.year).toBe("2021");
+      expect(dune?.posterUrl).toBe("https://example.com/dune-poster.jpg");
+      expect(dune?.imdbId).toBe("tt1160419");
+      expect(dune?.ratingImdb).toBe("8.0");
+      expect(dune?.ratingRottenTomatoes).toBe("83%");
+      expect(dune?.ratingMetacritic).toBe("74");
+      expect(dune?.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
+      expect(dune?.letterboxdRating).toBe("4.2");
+      expect(dune?.notes).toBe("Watched with Sam");
+    },
+    DOCKER_TIMEOUT_MS,
+  );
 });
