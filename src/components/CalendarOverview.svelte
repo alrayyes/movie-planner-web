@@ -47,6 +47,16 @@ const DEFAULT_RANGE_YEARS_FORWARD = 1;
 // viewing in the selected date range in one table.
 const PAGE_SIZE = 25;
 
+// #169: Title/When/Venue are sortable columns — Poster and Refresh
+// aren't real data to sort by.
+type SortKey = "title" | "when" | "venue";
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+const SORTABLE_COLUMNS: [SortKey, string][] = [
+	["title", "Title"],
+	["when", "When"],
+	["venue", "Venue"],
+];
+
 interface Props {
 	config: CaldavConfig;
 	omdbApiKey?: string;
@@ -96,6 +106,22 @@ let venueValue = $state(initialParams.get("venue") ?? "");
 // the value a chip showed rather than a substring of the whole string.
 let actorValue = $state(initialParams.get("actor") ?? "");
 let genreValue = $state(initialParams.get("genre") ?? "");
+// #169: defaults match the previous hardcoded "most recently watched
+// first" behaviour — clicking a column header switches to sorting by
+// it (ascending on first click), and clicking the same header again
+// reverses direction.
+let sortKey = $state<SortKey>("when");
+let sortDirection = $state<"asc" | "desc">("desc");
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function handleSortClick(key: SortKey) {
+	if (sortKey === key) {
+		sortDirection = sortDirection === "asc" ? "desc" : "asc";
+	} else {
+		sortKey = key;
+		sortDirection = "asc";
+	}
+}
 let currentPage = $state(0);
 // #97: which row (by uid) or whether the bulk control is mid-request —
 // drives the spinner in place of the refresh icon and disables the
@@ -129,10 +155,14 @@ const currentlyDisplayed = $derived.by(() => {
 			return false;
 		return true;
 	});
-	// Most recently watched first — re-sorted fresh every time rather
-	// than relying on insertion order, since a filtered subset can
-	// change shape after every reload.
-	return [...filtered].sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+	// Re-sorted fresh every time rather than relying on insertion order,
+	// since a filtered subset can change shape after every reload.
+	const direction = sortDirection === "asc" ? 1 : -1;
+	return [...filtered].sort((a, b) => {
+		if (sortKey === "title") return a.title.localeCompare(b.title) * direction;
+		if (sortKey === "venue") return (a.venue ?? "").localeCompare(b.venue ?? "") * direction;
+		return (new Date(a.start).getTime() - new Date(b.start).getTime()) * direction;
+	});
 });
 const total = $derived(currentlyDisplayed.length);
 const pages = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
@@ -470,10 +500,24 @@ getPicklists(config).then((picklists) => {
             <!-- #93: Medium dropped, Start/End merged into one "When"
             column, and "Actions" (Edit/Delete/Refresh) reduced to
             "Refresh" — editing and deleting now live only on the
-            movie-details page. -->
-            {#each ["Poster", "Title", "When", "Venue", "Refresh"] as heading (heading)}
-              <th class={TH} scope="col">{heading}</th>
+            movie-details page. #169: Title/When/Venue are sortable —
+            Poster and Refresh aren't real data columns to sort by. -->
+            <th class={TH} scope="col">Poster</th>
+            {#each SORTABLE_COLUMNS as [key, heading] (key)}
+              <th class={TH} scope="col">
+                <button
+                  type="button"
+                  class="flex items-center gap-1 font-semibold"
+                  onclick={() => handleSortClick(key)}
+                >
+                  {heading}
+                  {#if sortKey === key}
+                    <span aria-hidden="true">{sortDirection === "asc" ? "▲" : "▼"}</span>
+                  {/if}
+                </button>
+              </th>
             {/each}
+            <th class={TH} scope="col">Refresh</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-700">

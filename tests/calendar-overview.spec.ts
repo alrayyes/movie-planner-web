@@ -95,6 +95,33 @@ test.describe("calendar overview", () => {
     await expect(rows.nth(1)).toContainText("Paddington");
   });
 
+  // #169
+  test("clicking a column header sorts by it, and clicking again reverses", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON, DUNE]);
+    await connect(page);
+    const rows = page.locator("tbody tr");
+
+    await page.getByRole("button", { name: "Title" }).click();
+    await expect(rows.nth(0)).toContainText("Dune");
+    await expect(rows.nth(1)).toContainText("Paddington");
+
+    await page.getByRole("button", { name: "Title" }).click();
+    await expect(rows.nth(0)).toContainText("Paddington");
+    await expect(rows.nth(1)).toContainText("Dune");
+
+    await page.getByRole("button", { name: "Venue" }).click();
+    // DUNE has a venue, PADDINGTON doesn't — empty values sort first
+    // ascending, matching plain string comparison.
+    await expect(rows.nth(0)).toContainText("Paddington");
+    await expect(rows.nth(1)).toContainText("Dune");
+
+    await page.getByRole("button", { name: "When" }).click();
+    // Back to ascending by watch date — Paddington (2 months back) is
+    // older than Dune (1 month back).
+    await expect(rows.nth(0)).toContainText("Paddington");
+    await expect(rows.nth(1)).toContainText("Dune");
+  });
+
   test("renders its own columns for a logged viewing, and leaves the rest to the details page", async ({
     page,
   }) => {
