@@ -87,6 +87,10 @@ const venueOptions = $derived.by(() => {
 	return [...new Set([...venuePicklist, ...fromViewings])].sort();
 });
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const directorOptions = $derived.by(() => {
+	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.director)))].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const actorOptions = $derived.by(() => {
 	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.actors)))].sort();
 });
@@ -115,10 +119,12 @@ let fromValue = $state(initialParams.get("from") ?? "");
 let toValue = $state(initialParams.get("to") ?? "");
 let mediumValue = $state("");
 let venueValue = $state(initialParams.get("venue") ?? "");
-// #163: actor/genre are multi-value comma-separated OMDb fields, unlike
-// venue/medium — matched against each individually split value, not
-// the raw whole-string field, so a filter click always matches exactly
-// the value a chip showed rather than a substring of the whole string.
+// #163/#183: director/actor/genre are multi-value comma-separated OMDb
+// fields, unlike venue/medium — matched against each individually
+// split value, not the raw whole-string field, so a filter click
+// always matches exactly the value a chip showed rather than a
+// substring of the whole string.
+let directorValue = $state(initialParams.get("director") ?? "");
 let actorValue = $state(initialParams.get("actor") ?? "");
 let genreValue = $state(initialParams.get("genre") ?? "");
 // #169: defaults match the previous hardcoded "most recently watched
@@ -153,11 +159,17 @@ let pickerArea = $state<HTMLDivElement | undefined>();
 const currentlyDisplayed = $derived.by(() => {
 	const mediumFilter = mediumValue.trim().toLowerCase();
 	const venueFilter = venueValue.trim().toLowerCase();
+	const directorFilter = directorValue.trim().toLowerCase();
 	const actorFilter = actorValue.trim().toLowerCase();
 	const genreFilter = genreValue.trim().toLowerCase();
 	const filtered = allViewings.filter((v) => {
 		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
 		if (venueFilter && (v.venue ?? "").toLowerCase() !== venueFilter) return false;
+		if (
+			directorFilter &&
+			!splitMultiValue(v.director).some((director) => director.toLowerCase() === directorFilter)
+		)
+			return false;
 		if (
 			actorFilter &&
 			!splitMultiValue(v.actors).some((actor) => actor.toLowerCase() === actorFilter)
@@ -242,6 +254,7 @@ function handleClearFilter() {
 	toValue = "";
 	mediumValue = "";
 	venueValue = "";
+	directorValue = "";
 	actorValue = "";
 	genreValue = "";
 	currentPage = 0;
@@ -424,6 +437,22 @@ getPicklists(config).then((picklists) => {
       <datalist id="overview-venue-choices">
         {#each venueOptions as venue (venue)}
           <option value={venue}></option>
+        {/each}
+      </datalist>
+    </label>
+    <label class={FIELD_WRAPPER} for="overview-director">
+      <span class={LABEL}>Director</span>
+      <input
+        class={INPUT}
+        type="text"
+        id="overview-director"
+        placeholder="e.g. Denis Villeneuve"
+        list="overview-director-choices"
+        bind:value={directorValue}
+      />
+      <datalist id="overview-director-choices">
+        {#each directorOptions as director (director)}
+          <option value={director}></option>
         {/each}
       </datalist>
     </label>
