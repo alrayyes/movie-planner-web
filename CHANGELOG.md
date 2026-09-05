@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.43.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.42.0...movie-planner-web-v0.43.0) (2026-09-05)
+
+
+### Features
+
+* **chrome:** add smooth page transitions with Astro's ClientRouter ([#178](https://github.com/alrayyes/movie-planner-web/issues/178)) ([6993539](https://github.com/alrayyes/movie-planner-web/commit/6993539be9989ed70901656fa790a386872767fa)), closes [#177](https://github.com/alrayyes/movie-planner-web/issues/177)
+
 ## [0.42.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.41.0...movie-planner-web-v0.42.0) (2026-09-05)
 
 
