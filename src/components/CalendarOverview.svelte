@@ -164,11 +164,18 @@ function currentRange() {
 	return { from: from.toISOString(), to: to.toISOString() };
 }
 
-async function reload() {
-	statusText = "Loading…";
+// #171: `silent` skips the "Loading…"/count-line updates — used by a
+// single-row or bulk refresh's own post-write reload, which already
+// has its own feedback (a per-row spinner, and "Refreshed."/"Already
+// up to date." in actionStatusText) and doesn't need the aggregate
+// count line to visibly flash for an action that never changes it.
+// Errors still surface either way — that's new information, not
+// routine flicker.
+async function reload(options: { silent?: boolean } = {}) {
+	if (!options.silent) statusText = "Loading…";
 	try {
 		allViewings = await listViewings(config, currentRange());
-		statusText = `${total} logged viewing${total === 1 ? "" : "s"}.`;
+		if (!options.silent) statusText = `${total} logged viewing${total === 1 ? "" : "s"}.`;
 	} catch (error) {
 		statusText = error instanceof Error ? error.message : "Failed to load viewings.";
 	}
@@ -236,7 +243,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 		// `viewing` argument.
 		const current = (await getViewing(config, viewing.uid)) ?? viewing;
 		if (hasOmdbMetadata(current)) {
-			await reload();
+			await reload({ silent: true });
 			actionStatusText = "Already up to date.";
 			return;
 		}
@@ -247,7 +254,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 		);
 		if (metadata) {
 			await updateViewing(config, current.uid, { ...current, ...metadata });
-			await reload();
+			await reload({ silent: true });
 			actionStatusText = "Refreshed.";
 			return;
 		}
@@ -279,7 +286,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 					if (metadata) {
 						await updateViewing(config, viewing.uid, { ...viewing, ...metadata });
 					}
-					await reload();
+					await reload({ silent: true });
 					actionStatusText = "Refreshed.";
 				} catch (error) {
 					actionStatusText =
@@ -334,7 +341,7 @@ async function handleRefreshAll() {
 			actionStatusText = `Refreshing ${refreshed + misses} of ${targets.length}…`;
 		}
 
-		await reload();
+		await reload({ silent: true });
 		actionStatusText =
 			misses > 0
 				? `Refreshed ${refreshed} of ${targets.length} (${misses} had no OMDb match or failed).`
