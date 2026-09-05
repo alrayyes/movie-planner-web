@@ -27,6 +27,10 @@ import {
 // the same rows this screen already renders.
 const DEFAULT_RANGE_MONTHS_BACK = 3;
 const DEFAULT_RANGE_YEARS_FORWARD = 1;
+// #59: bounds how many rows render at once so the overview stays fast and
+// scannable as the calendar grows, rather than rendering every viewing in
+// the selected date range in one table.
+const PAGE_SIZE = 25;
 
 // #37: OMDb-sourced fields (director/actors/ratings/genre/year/poster/
 // imdbId) are deliberately not in this list — that's "foreign" data a
@@ -59,6 +63,7 @@ export class CalendarOverview extends HTMLElement {
   private mediumInput: HTMLInputElement | undefined;
   private editingUid: string | undefined;
   private pickerArea: HTMLElement | undefined;
+  private currentPage = 0;
 
   async connectedCallback() {
     const config = (this as unknown as { config?: CaldavConfig }).config;
@@ -153,12 +158,16 @@ export class CalendarOverview extends HTMLElement {
     clear.textContent = "Clear filter";
     clear.addEventListener("click", () => {
       form.reset();
+      this.currentPage = 0;
       void this.reload();
     });
 
     form.append(fromLabel, toLabel, mediumLabel, submit, clear);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      // #59: a new date range or medium filter is a new result set — always
+      // reset to its first page rather than potentially landing past its end.
+      this.currentPage = 0;
       void this.reload();
     });
 
@@ -204,15 +213,34 @@ export class CalendarOverview extends HTMLElement {
     return [...filtered].sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
   }
 
+  private totalPages(total: number): number {
+    return Math.max(1, Math.ceil(total / PAGE_SIZE));
+  }
+
+  // #59: the current page of currentlyDisplayed() — the same filtered,
+  // sorted set "Refresh all metadata" already scoped to, now further
+  // scoped to what's actually on screen. Clamps a stale currentPage (a
+  // delete, or a smaller reloaded set, can leave it past the new last
+  // page) rather than rendering an empty page silently.
+  private currentPageItems(): LoggedViewing[] {
+    const all = this.currentlyDisplayed();
+    const lastPage = this.totalPages(all.length) - 1;
+    if (this.currentPage > lastPage) this.currentPage = lastPage;
+    if (this.currentPage < 0) this.currentPage = 0;
+    const start = this.currentPage * PAGE_SIZE;
+    return all.slice(start, start + PAGE_SIZE);
+  }
+
   private render() {
     if (!this.listContainer || !this.statusEl) return;
 
-    const viewings = this.currentlyDisplayed();
+    const total = this.currentlyDisplayed().length;
+    const viewings = this.currentPageItems();
 
-    this.statusEl.textContent = `${viewings.length} logged viewing${viewings.length === 1 ? "" : "s"}.`;
+    this.statusEl.textContent = `${total} logged viewing${total === 1 ? "" : "s"}.`;
     this.listContainer.innerHTML = "";
 
-    if (viewings.length === 0) return;
+    if (total === 0) return;
 
     const wrap = document.createElement("div");
     wrap.className = TABLE_WRAP;
@@ -240,7 +268,45 @@ export class CalendarOverview extends HTMLElement {
 
     table.append(thead, tbody);
     wrap.appendChild(table);
-    this.listContainer.appendChild(wrap);
+    this.listContainer.append(wrap, this.renderPaginationControls(total));
+  }
+
+  // #59: only rendered once there's a second page to reach — a single
+  // page needs no "Page 1 of 1" chrome.
+  private renderPaginationControls(total: number): HTMLElement {
+    const nav = document.createElement("div");
+    const pages = this.totalPages(total);
+    if (pages <= 1) return nav;
+
+    nav.className = "mt-2 flex items-center justify-center gap-3";
+    nav.setAttribute("aria-label", "Pagination");
+
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.className = BUTTON_SM;
+    previous.textContent = "Previous page";
+    previous.disabled = this.currentPage === 0;
+    previous.addEventListener("click", () => {
+      this.currentPage -= 1;
+      this.render();
+    });
+
+    const label = document.createElement("span");
+    label.className = STATUS_TEXT;
+    label.textContent = `Page ${this.currentPage + 1} of ${pages}`;
+
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = BUTTON_SM;
+    next.textContent = "Next page";
+    next.disabled = this.currentPage >= pages - 1;
+    next.addEventListener("click", () => {
+      this.currentPage += 1;
+      this.render();
+    });
+
+    nav.append(previous, label, next);
+    return nav;
   }
 
   private renderRow(viewing: LoggedViewing): HTMLTableRowElement {
@@ -492,12 +558,13 @@ export class CalendarOverview extends HTMLElement {
   }
 
   // Runs the same per-row refresh across every viewing currently on
-  // screen (the filtered/sorted set, not the whole calendar) — sequential
+  // screen (#59: the current page of the filtered/sorted set, not the
+  // whole calendar or even the whole filtered result) — sequential
   // rather than parallel, since it's hitting OMDb's own rate limits, not
   // just this app's.
   private async handleRefreshAll() {
     if (!this.config || !this.omdbApiKey || !this.actionStatusEl) return;
-    const targets = this.currentlyDisplayed();
+    const targets = this.currentPageItems();
     if (targets.length === 0) return;
 
     this.actionStatusEl.textContent = `Refreshing 0 of ${targets.length}…`;
