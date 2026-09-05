@@ -22,6 +22,23 @@ function manyViewings(count: number) {
   }));
 }
 
+// #151: `window.scrollTo({ behavior: "smooth" })` animates over time, so
+// `expect.poll(...).toBeGreaterThan(0)` resolves the instant scrollY ticks
+// up at all — long before the animation reaches its actual resting
+// position. Capturing that as "the" scroll position raced the animation
+// under CI load, failing with a different snapshot each run. Waiting for
+// two consecutive reads to agree is the real "the scroll has settled".
+async function stableScrollY(page: Page): Promise<number> {
+  let last = await page.evaluate(() => window.scrollY);
+  for (let i = 0; i < 50; i++) {
+    await page.waitForTimeout(50);
+    const current = await page.evaluate(() => window.scrollY);
+    if (current === last) return current;
+    last = current;
+  }
+  return last;
+}
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -151,15 +168,14 @@ test.describe("j/k/gg/G scroll the page", () => {
     await expect(page.locator("tbody tr").first()).toBeVisible();
     await page.keyboard.press("G");
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-    const afterG = await page.evaluate(() => window.scrollY);
+    // #151: don't trust the first positive reading above — the smooth
+    // scroll animation is still mid-flight at that point. Wait for it to
+    // actually finish before treating this as "the" position a lone `g`
+    // must not move away from.
+    const afterG = await stableScrollY(page);
 
     await page.keyboard.press("g");
 
-    // #151: a bare read-then-assert here raced Chromium's own scroll
-    // anchoring under CI load (confirmed live — failed with a different,
-    // non-reproducible delta on each of 3 attempts) — poll like every
-    // neighboring test in this file, rather than asserting a single
-    // synchronous snapshot.
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(afterG);
   });
 });
