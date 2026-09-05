@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.53.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.52.1...movie-planner-web-v0.53.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** collapse the filter fields behind a toggle ([#223](https://github.com/alrayyes/movie-planner-web/issues/223)) ([7832428](https://github.com/alrayyes/movie-planner-web/commit/78324289aa9752b1cabe9701ad7d9a83b25521b6)), closes [#222](https://github.com/alrayyes/movie-planner-web/issues/222)
+
+
+### Bug Fixes
+
+* **data-loading:** refresh pages restored from the browser's bfcache ([#225](https://github.com/alrayyes/movie-planner-web/issues/225)) ([2365a8d](https://github.com/alrayyes/movie-planner-web/commit/2365a8dada855b9371a04765f0827ed3b8f06923)), closes [#224](https://github.com/alrayyes/movie-planner-web/issues/224)
+
 ## [0.52.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.52.0...movie-planner-web-v0.52.1) (2026-09-05)
 
 
