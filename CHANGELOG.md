@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.47.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.46.1...movie-planner-web-v0.47.0) (2026-09-05)
+
+
+### Features
+
+* **cross-links:** use brand marks for IMDb/RT/Letterboxd, not text ([#194](https://github.com/alrayyes/movie-planner-web/issues/194)) ([d7d430d](https://github.com/alrayyes/movie-planner-web/commit/d7d430d00ba90012f065685fa2920c035296cf1f)), closes [#193](https://github.com/alrayyes/movie-planner-web/issues/193)
+
 ## [0.46.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.46.0...movie-planner-web-v0.46.1) (2026-09-05)
 
 
