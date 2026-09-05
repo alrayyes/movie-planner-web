@@ -259,6 +259,54 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #163: actor/genre match one exact split value, not a substring of
+  // the whole comma-joined field — a viewing with genre "Live Action
+  // Adaptation" must not match a filter for "Action".
+  test("filters by actor and genre on an exact split value, not a substring of the whole field", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      PADDINGTON,
+      {
+        uid: "not-action-uid",
+        title: "Something Else",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        genre: "Live Action Adaptation, Comedy",
+      },
+    ]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(3);
+
+    await page.locator("#overview-genre").fill("Action");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.locator("#overview-genre").fill("");
+    await page.locator("#overview-actor").fill("Zendaya");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  test("?actor= and ?genre= query params pre-populate their filter fields on load", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await page.goto("/?genre=Drama");
+
+    await expect(page.locator("#overview-genre")).toHaveValue("Drama");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
   // #146: a link carrying only `venue` used to still fall back to this
   // page's own ~3-month default window, hiding anything older even
   // though the venues page's count (over its own much wider window)
@@ -314,7 +362,9 @@ test.describe("calendar overview", () => {
     expect(Math.abs(from.getTime() - expectedFrom.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
   });
 
-  test("clear filter resets the date range, medium and venue, and reloads", async ({ page }) => {
+  test("clear filter resets the date range, medium, venue, actor and genre, and reloads", async ({
+    page,
+  }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
@@ -323,6 +373,8 @@ test.describe("calendar overview", () => {
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.locator("#overview-medium").fill("cinema");
     await page.locator("#overview-venue").fill("Grand Vista Cinema");
+    await page.locator("#overview-actor").fill("Zendaya");
+    await page.locator("#overview-genre").fill("Drama");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
 
@@ -332,6 +384,8 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-to")).toHaveValue("");
     await expect(page.locator("#overview-medium")).toHaveValue("");
     await expect(page.locator("#overview-venue")).toHaveValue("");
+    await expect(page.locator("#overview-actor")).toHaveValue("");
+    await expect(page.locator("#overview-genre")).toHaveValue("");
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     const lastRequest = server.listRequests.at(-1);

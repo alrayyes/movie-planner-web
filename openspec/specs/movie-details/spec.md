@@ -33,6 +33,16 @@ cross-links the overview shows.
 - **WHEN** a visitor opens a logged viewing's details page and it has no real `imdbId` and/or no real `letterboxdUrl` (only a constructed search link)
 - **THEN** the system SHALL show "IMDb not linked" as plain text in place of the omitted IMDb link, and/or label the Letterboxd link "Letterboxd (search)", so a visitor can tell a confirmed match from a guess
 
+#### Scenario: Ratings shown as individual badges
+
+- **WHEN** a visitor opens a logged viewing's details page and it has ratings from more than one source
+- **THEN** the system SHALL show each source as its own badge, not one comma-joined string
+
+#### Scenario: Actors and genre are individually clickable
+
+- **WHEN** a visitor opens a logged viewing's details page and it has multiple actors and/or genre values
+- **THEN** the system SHALL show each value as its own clickable chip, linking to the calendar-overview capability's own actor/genre filter for that exact value (calendar-overview's "Overview filters by date range, medium, and venue")
+
 ### Requirement: Details page offers edit, refresh, and delete
 
 The system SHALL let a visitor edit the viewing's own fields, refresh

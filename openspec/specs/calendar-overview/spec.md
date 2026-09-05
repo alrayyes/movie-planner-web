@@ -116,19 +116,24 @@ filtered result set in one table.
 - **THEN** the system SHALL refresh only the viewings on that page, not the
   whole filtered result set
 
-### Requirement: Overview filters by date range, medium, and venue
+### Requirement: Overview filters by date range, medium, venue, actor, and genre
 
 The system SHALL let a visitor filter the overview by a date range, by
 medium, and by venue, matching the filters the CLI's `list` command
-supports (medium and date range) plus a venue filter of its own. The
-system SHALL read an initial venue filter value from a `venue` URL
-query parameter, so a link elsewhere in the app can land here
-pre-filtered, and SHALL show that value in the filter field itself
-rather than applying it invisibly. The system SHALL offer medium
-autocomplete suggestions drawn from the union of the
-location-management picklist and the medium values on the viewings
-already loaded, so a medium logged only via the CLI still suggests
-itself even though it was never typed into this app's own log form.
+supports (medium and date range) plus a venue filter of its own, and
+by actor and genre. The system SHALL read initial venue/actor/genre
+filter values from `venue`/`actor`/`genre` URL query parameters, so a
+link elsewhere in the app can land here pre-filtered, and SHALL show
+those values in the filter fields themselves rather than applying them
+invisibly. The system SHALL offer medium autocomplete suggestions
+drawn from the union of the location-management picklist and the
+medium values on the viewings already loaded, so a medium logged only
+via the CLI still suggests itself even though it was never typed into
+this app's own log form. Actor and genre are multi-value,
+comma-separated OMDb fields (unlike venue and medium): the system
+SHALL match a viewing when the filter value equals one of its
+individually split values exactly, not a substring of the whole
+comma-joined field.
 
 #### Scenario: Filter by month and medium
 
@@ -154,6 +159,16 @@ itself even though it was never typed into this app's own log form.
 
 - **WHEN** a visitor opens the overview with `from` and `to` query parameters set
 - **THEN** the system SHALL populate the From and To filter fields with those values instead of its own default range, so a link from elsewhere in the app (the venues page's own count, for one) lands on the same result set it was drawn from
+
+#### Scenario: Filter by actor or genre matches an exact split value
+
+- **WHEN** a visitor filters the overview to genre "Action", and one logged viewing's genre is "Action, Drama" while another's is "Live Action Adaptation, Comedy"
+- **THEN** the system SHALL display only the first viewing, not the second
+
+#### Scenario: Arriving pre-filtered by actor or genre
+
+- **WHEN** a visitor opens the overview with the `actor` or `genre` query parameter set (for example, from a details-page chip)
+- **THEN** the system SHALL populate the corresponding filter field with that value and show only logged viewings with that exact actor or genre value
 
 ### Requirement: Overview reflects the visitor's own calendar
 

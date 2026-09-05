@@ -7,6 +7,7 @@ import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from ".
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
+import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -89,6 +90,12 @@ let fromValue = $state(initialParams.get("from") ?? "");
 let toValue = $state(initialParams.get("to") ?? "");
 let mediumValue = $state("");
 let venueValue = $state(initialParams.get("venue") ?? "");
+// #163: actor/genre are multi-value comma-separated OMDb fields, unlike
+// venue/medium — matched against each individually split value, not
+// the raw whole-string field, so a filter click always matches exactly
+// the value a chip showed rather than a substring of the whole string.
+let actorValue = $state(initialParams.get("actor") ?? "");
+let genreValue = $state(initialParams.get("genre") ?? "");
 let currentPage = $state(0);
 // #97: which row (by uid) or whether the bulk control is mid-request —
 // drives the spinner in place of the refresh icon and disables the
@@ -105,9 +112,21 @@ let pickerArea = $state<HTMLDivElement | undefined>();
 const currentlyDisplayed = $derived.by(() => {
 	const mediumFilter = mediumValue.trim().toLowerCase();
 	const venueFilter = venueValue.trim().toLowerCase();
+	const actorFilter = actorValue.trim().toLowerCase();
+	const genreFilter = genreValue.trim().toLowerCase();
 	const filtered = allViewings.filter((v) => {
 		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
 		if (venueFilter && (v.venue ?? "").toLowerCase() !== venueFilter) return false;
+		if (
+			actorFilter &&
+			!splitMultiValue(v.actors).some((actor) => actor.toLowerCase() === actorFilter)
+		)
+			return false;
+		if (
+			genreFilter &&
+			!splitMultiValue(v.genre).some((genre) => genre.toLowerCase() === genreFilter)
+		)
+			return false;
 		return true;
 	});
 	// Most recently watched first — re-sorted fresh every time rather
@@ -171,6 +190,8 @@ function handleClearFilter() {
 	toValue = "";
 	mediumValue = "";
 	venueValue = "";
+	actorValue = "";
+	genreValue = "";
 	currentPage = 0;
 	void reload();
 }
@@ -367,6 +388,26 @@ getPicklists(config).then((picklists) => {
         id="overview-venue"
         placeholder="e.g. Grand Vista Cinema"
         bind:value={venueValue}
+      />
+    </label>
+    <label class={FIELD_WRAPPER} for="overview-actor">
+      <span class={LABEL}>Actor</span>
+      <input
+        class={INPUT}
+        type="text"
+        id="overview-actor"
+        placeholder="e.g. Zendaya"
+        bind:value={actorValue}
+      />
+    </label>
+    <label class={FIELD_WRAPPER} for="overview-genre">
+      <span class={LABEL}>Genre</span>
+      <input
+        class={INPUT}
+        type="text"
+        id="overview-genre"
+        placeholder="e.g. Drama"
+        bind:value={genreValue}
       />
     </label>
     <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
