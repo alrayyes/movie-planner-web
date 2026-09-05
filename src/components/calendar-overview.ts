@@ -321,7 +321,15 @@ export class CalendarOverview extends HTMLElement {
       img.alt = `${viewing.title} poster`;
       // #64: a UX audit flagged the previous h-16 (64px) thumbnail as too
       // small to recognize a poster by — this is double that.
-      img.className = "h-32 w-auto rounded shadow-sm";
+      // #76: an explicit fixed width plus max-w-none. w-auto or
+      // aspect-* alone still leave the image's effective width capped by
+      // Tailwind Preflight's `img { max-width: 100% }` against whatever
+      // the table's own column layout assigns — confirmed live: even a
+      // plain w-20 measured narrower than 80px once the Title column's
+      // wrapped text left the Poster column less room. max-w-none
+      // cancels that cap so this thumbnail always renders at its own
+      // fixed size regardless of the column.
+      img.className = "h-32 w-20 max-w-none rounded object-cover shadow-sm";
       img.loading = "lazy";
       posterCell.appendChild(img);
     }

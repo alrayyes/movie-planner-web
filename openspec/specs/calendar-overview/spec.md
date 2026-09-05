@@ -32,6 +32,13 @@ recognize a film at a glance, not merely as a decorative marker.
   small decorative icon, while the overview still fits a phone screen
   without horizontal scroll
 
+#### Scenario: Non-portrait source poster
+
+- **WHEN** a logged viewing's poster is a landscape or square image rather
+  than a normal portrait poster
+- **THEN** the system SHALL crop it to the same poster-shaped box every
+  other thumbnail uses, not stretch or squeeze it to its own shape
+
 ### Requirement: Overview cross-links to external sources
 
 The system SHALL link a logged viewing's title out to IMDb, Rotten
