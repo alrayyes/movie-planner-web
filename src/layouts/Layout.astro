@@ -5,10 +5,16 @@ import "../styles/global.css";
 
 interface Props {
   title: string;
+  // #65: the calendar overview and movie details page (poster + full
+  // metadata) are cramped at the shared 768px form width every other
+  // page (log, import, settings, credentials gate) is deliberately kept
+  // at — those stay narrow since a form column that wide starts feeling
+  // like scanning a spreadsheet.
+  wide?: boolean;
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below the frontmatter fence, which Biome does not parse for .astro files
-const { title } = Astro.props;
+const { title, wide = false } = Astro.props;
 ---
 
 <html lang="en">
@@ -45,7 +51,13 @@ const { title } = Astro.props;
         Fork me on GitHub
       </a>
     </div>
-    <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div
+      id="page-container"
+      class:list={[
+        "mx-auto px-4 py-8 sm:px-6 lg:px-8",
+        wide ? "max-w-6xl" : "max-w-3xl",
+      ]}
+    >
       <header class="mb-6 flex items-center justify-between">
         <a
           href="/"

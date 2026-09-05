@@ -5,7 +5,7 @@ import MovieDetails from "../components/MovieDetails.svelte";
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Movie Planner">
+<Layout title="Movie Planner" wide>
   {
     /* client:only, not client:load — this component reads the visitor's
     stored credentials from IndexedDB on mount, which doesn't exist during
