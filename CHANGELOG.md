@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.44.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.43.0...movie-planner-web-v0.44.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** extend autocomplete to Venue, Actor, Genre ([#180](https://github.com/alrayyes/movie-planner-web/issues/180)) ([2d99fed](https://github.com/alrayyes/movie-planner-web/commit/2d99fed3b7b9a8326800cf44c2a8a90c8d4f51a0)), closes [#179](https://github.com/alrayyes/movie-planner-web/issues/179)
+
 ## [0.43.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.42.0...movie-planner-web-v0.43.0) (2026-09-05)
 
 
