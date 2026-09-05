@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.25.0...movie-planner-web-v0.26.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** simplify the list to poster/title/when/venue/refresh ([#94](https://github.com/alrayyes/movie-planner-web/issues/94)) ([8a041c3](https://github.com/alrayyes/movie-planner-web/commit/8a041c3c6626b5e99c0247a6a848826fbbb6127b)), closes [#93](https://github.com/alrayyes/movie-planner-web/issues/93)
+
 ## [0.25.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.24.0...movie-planner-web-v0.25.0) (2026-09-05)
 
 
