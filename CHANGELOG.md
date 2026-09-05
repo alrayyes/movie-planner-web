@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.45.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.44.0...movie-planner-web-v0.45.0) (2026-09-05)
+
+
+### Features
+
+* **movie-details:** make director clickable, filterable, autocompleted ([#184](https://github.com/alrayyes/movie-planner-web/issues/184)) ([7b36cf5](https://github.com/alrayyes/movie-planner-web/commit/7b36cf5cc1fcd0404814ba299e82ec2ce03ffa98)), closes [#183](https://github.com/alrayyes/movie-planner-web/issues/183)
+
+
+### Bug Fixes
+
+* **chrome:** reapply dark mode on every client-side page transition ([#186](https://github.com/alrayyes/movie-planner-web/issues/186)) ([f137ca7](https://github.com/alrayyes/movie-planner-web/commit/f137ca728e8543a768ec96818eac6dfb59ed65d9)), closes [#185](https://github.com/alrayyes/movie-planner-web/issues/185)
+
 ## [0.44.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.43.0...movie-planner-web-v0.44.0) (2026-09-05)
 
 
