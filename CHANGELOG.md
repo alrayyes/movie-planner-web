@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.21.0...movie-planner-web-v0.22.0) (2026-09-05)
+
+
+### Features
+
+* **caldav-client:** read the movie-planner CLI's own calendar format ([#83](https://github.com/alrayyes/movie-planner-web/issues/83)) ([17dd3a3](https://github.com/alrayyes/movie-planner-web/commit/17dd3a381d91df1df9b84b9654040b0c7d0a0c26)), closes [#79](https://github.com/alrayyes/movie-planner-web/issues/79)
+
 ## [0.21.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.20.1...movie-planner-web-v0.21.0) (2026-09-05)
 
 
