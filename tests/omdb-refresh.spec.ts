@@ -28,6 +28,21 @@ const PADDINGTON = {
   medium: "netflix",
 };
 
+// #113: a CLI-logged entry the CLI itself parsed an IMDb link out of
+// its own booking source — imdbId and ratingImdb, but no director,
+// actors, genre, year, or poster, since no OMDb lookup ever ran for
+// it. Distinct from DUNE (already has `director`) precisely because
+// this is the shape that used to make Refresh a permanent no-op.
+const CLI_LOGGED_NO_POSTER = {
+  uid: "cli-logged-uid",
+  title: "Dune",
+  start: ONE_MONTH_AGO.toISOString(),
+  end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+  medium: "cinema",
+  imdbId: "tt1160419",
+  ratingImdb: "8.0/10",
+};
+
 async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -133,6 +148,71 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     await expect(page.getByRole("status").last()).toHaveText("Already up to date.");
     expect(omdbCalls).toBe(0);
     expect(server.updates).toHaveLength(0);
+  });
+
+  // #113: imdbId alone used to be read as "already matched" — but a
+  // CLI-logged entry gets imdbId for free by parsing its own
+  // DESCRIPTION text, with no OMDb call involved, so it should never
+  // have blocked Refresh from actually reaching OMDb.
+  test("still calls OMDb for a CLI-logged entry that only has an IMDb link, and fills in its poster", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [CLI_LOGGED_NO_POSTER]);
+    await connect(page, "test-omdb-key");
+
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Denis Villeneuve",
+          Poster: "https://example.com/dune-poster.jpg",
+          imdbID: "tt1160419",
+          Ratings: [{ Source: "Internet Movie Database", Value: "8.0/10" }],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+    expect(omdbCalls).toBeGreaterThan(0);
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.posterUrl).toBe("https://example.com/dune-poster.jpg");
+  });
+
+  test("bulk refresh includes a CLI-logged entry that only has an IMDb link, not just titles with none", async ({
+    page,
+  }) => {
+    const alreadyFullyMatched = { ...DUNE, imdbId: "tt1160419" };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      alreadyFullyMatched,
+      CLI_LOGGED_NO_POSTER,
+    ]);
+    await connect(page, "test-omdb-key");
+
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Poster: "https://example.com/dune-poster.jpg",
+          imdbID: "tt1160419",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.uid).toBe("cli-logged-uid");
+    expect(server.updates[0]?.posterUrl).toBe("https://example.com/dune-poster.jpg");
   });
 
   test("writes the OMDb match on top of the freshly-fetched entry, not a stale in-memory copy", async ({
@@ -441,7 +521,12 @@ test.describe("refreshing OMDb metadata from the overview", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ Response: "True", imdbID: "tt0000000", Ratings: [] }),
+          body: JSON.stringify({
+            Response: "True",
+            Director: "Some Director",
+            imdbID: "tt0000000",
+            Ratings: [],
+          }),
         });
       });
 

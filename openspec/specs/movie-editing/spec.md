@@ -44,8 +44,13 @@ actual release.
 
 #### Scenario: Already matched elsewhere since the list loaded
 
-- **WHEN** a visitor refreshes a logged viewing and its freshly-fetched CalDAV entry already has an IMDb ID (matched by the CLI's own sync, or another tab/device, since the overview's list was loaded)
+- **WHEN** a visitor refreshes a logged viewing and its freshly-fetched CalDAV entry already has both an IMDb ID and OMDb-sourced metadata (a director, actors, genre, year, or poster)
 - **THEN** the system SHALL skip the OMDb call entirely and report the entry as already up to date
+
+#### Scenario: An IMDb link alone isn't a confident match
+
+- **WHEN** a visitor refreshes a logged viewing whose only field that looks like an OMDb match is an IMDb ID sourced from the CLI's own DESCRIPTION text, with no director, actors, genre, year, or poster
+- **THEN** the system SHALL still call OMDb, since no actual OMDb lookup — this app's own or the CLI's — has ever run for that viewing
 
 #### Scenario: Watched year doesn't match the film's actual release year
 
@@ -78,12 +83,12 @@ key set.
 
 #### Scenario: Already-matched titles are skipped
 
-- **WHEN** a visitor runs a bulk refresh and some titles on screen already have an IMDb ID
-- **THEN** the system SHALL not call OMDb for those titles, leaving them out of the refreshed/missed count, since the calendar entry is already the confirmed match
+- **WHEN** a visitor runs a bulk refresh and some titles on screen already have both an IMDb ID and OMDb-sourced metadata (a director, actors, genre, year, or poster)
+- **THEN** the system SHALL not call OMDb for those titles, leaving them out of the refreshed/missed count, since an actual OMDb lookup has already confirmed the match
 
 #### Scenario: Nothing on screen needs a bulk refresh
 
-- **WHEN** every title currently on screen already has an IMDb ID
+- **WHEN** every title currently on screen already has both an IMDb ID and OMDb-sourced metadata
 - **THEN** the system SHALL not offer the bulk refresh control at all
 
 Note: the single per-viewing refresh (above) is unaffected by this —
