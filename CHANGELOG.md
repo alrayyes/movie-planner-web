@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.51.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.50.0...movie-planner-web-v0.51.0) (2026-09-05)
+
+
+### Features
+
+* **calendar:** add a viewing-density heatmap page ([#213](https://github.com/alrayyes/movie-planner-web/issues/213)) ([2b4697e](https://github.com/alrayyes/movie-planner-web/commit/2b4697e903c8e00c978753cd71fd9be7f33b7db5))
+
 ## [0.50.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.49.1...movie-planner-web-v0.50.0) (2026-09-05)
 
 
