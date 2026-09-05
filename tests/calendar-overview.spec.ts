@@ -73,6 +73,12 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
+  // Credential storage is async — wait for its result to actually
+  // render before doing anything else, so a test that navigates away
+  // (a full page.goto, not just waiting on an element) right after
+  // connect() isn't racing the write (same pattern every other spec
+  // file's own connect() helper already uses).
+  await expect(page.getByRole("status").first()).toBeVisible();
 }
 
 test.describe("calendar overview", () => {
@@ -189,6 +195,36 @@ test.describe("calendar overview", () => {
     );
   });
 
+  // #131
+  test("filters by venue client-side, over whatever the date range already returned", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await page.locator("#overview-venue").fill("Grand Vista Cinema");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+    // Venue isn't part of the CalDAV query either, same as medium.
+    expect(server.listRequests[0]?.from.toDateString()).toBe(
+      server.listRequests[1]?.from.toDateString(),
+    );
+  });
+
+  test("a ?venue= query param pre-populates the venue filter on load", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await page.goto("/?venue=Grand%20Vista%20Cinema");
+
+    await expect(page.locator("#overview-venue")).toHaveValue("Grand Vista Cinema");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
   test("sends the visitor's own stored credentials, not anyone else's", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
@@ -214,7 +250,7 @@ test.describe("calendar overview", () => {
     expect(Math.abs(from.getTime() - expectedFrom.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
   });
 
-  test("clear filter resets the date range and medium, and reloads", async ({ page }) => {
+  test("clear filter resets the date range, medium and venue, and reloads", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
@@ -222,6 +258,7 @@ test.describe("calendar overview", () => {
     await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.locator("#overview-medium").fill("cinema");
+    await page.locator("#overview-venue").fill("Grand Vista Cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
 
@@ -230,6 +267,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-from")).toHaveValue("");
     await expect(page.locator("#overview-to")).toHaveValue("");
     await expect(page.locator("#overview-medium")).toHaveValue("");
+    await expect(page.locator("#overview-venue")).toHaveValue("");
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     const lastRequest = server.listRequests.at(-1);
