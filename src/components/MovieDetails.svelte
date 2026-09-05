@@ -317,7 +317,7 @@ init();
           <img
             src={viewing.posterUrl}
             alt={`${viewing.title} poster`}
-            class="h-64 w-40 max-w-none self-start rounded object-cover"
+            class="h-80 w-52 max-w-none self-start rounded object-cover"
           />
         {/if}
         <div class="flex flex-1 flex-col gap-4">

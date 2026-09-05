@@ -460,7 +460,7 @@ getPicklists(config).then((picklists) => {
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
-                      class="h-32 w-20 max-w-none rounded object-cover shadow-sm"
+                      class="h-40 w-24 max-w-none rounded object-cover shadow-sm"
                       loading="lazy"
                     />
                   </a>
