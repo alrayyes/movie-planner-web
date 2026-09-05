@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.42.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.41.0...movie-planner-web-v0.42.0) (2026-09-05)
+
+
+### Features
+
+* **export:** make Export as JSON reachable from every page ([#175](https://github.com/alrayyes/movie-planner-web/issues/175)) ([b7ecf12](https://github.com/alrayyes/movie-planner-web/commit/b7ecf125e75fedc7fbb01789118839c65fcd164e)), closes [#174](https://github.com/alrayyes/movie-planner-web/issues/174)
+
+
+### Bug Fixes
+
+* **calendar-overview:** stop the count line flashing during a refresh ([#172](https://github.com/alrayyes/movie-planner-web/issues/172)) ([4b579a7](https://github.com/alrayyes/movie-planner-web/commit/4b579a791c21d957936aa85d8ae653b0c517ae5a)), closes [#171](https://github.com/alrayyes/movie-planner-web/issues/171)
+
 ## [0.41.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.40.0...movie-planner-web-v0.41.0) (2026-09-05)
 
 
