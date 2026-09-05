@@ -98,19 +98,23 @@ test.describe("calendar overview", () => {
     const row = page.locator("tbody tr");
     await expect(row).toContainText("Dune (2021)");
     await expect(row).toContainText("Grand Vista Cinema");
-    await expect(row).toContainText("cinema");
     await expect(row.locator("img")).toHaveAttribute("src", DUNE.posterUrl);
     // #64: a UX audit flagged the old h-16 (64px) thumbnail as too small
     // to recognize a poster by — this asserts the fix actually rendered
     // large enough, not just that a size class changed name.
     const posterBox = await row.locator("img").boundingBox();
     expect(posterBox?.height).toBeGreaterThanOrEqual(120);
-    // #38: director/actors/genre/ratings live on the details page (one
-    // click away via the title link), not as their own overview columns
-    // — that's what keeps this table's column count fixed and narrow
-    // enough to fit a phone screen without horizontal scroll.
+    // #38/#93: director/actors/genre/ratings/medium live on the details
+    // page (one click away via the title link), not as their own
+    // overview columns — that's what keeps this table to a fixed,
+    // narrow column count that fits a phone screen without horizontal
+    // scroll.
     await expect(row).not.toContainText("Denis Villeneuve");
     await expect(row).not.toContainText("Action, Adventure, Drama");
+    await expect(row).not.toContainText("cinema");
+    // #93: editing/deleting also moved to the details page.
+    await expect(row.getByRole("button", { name: "Edit" })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: "Delete" })).toHaveCount(0);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

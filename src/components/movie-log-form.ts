@@ -20,6 +20,7 @@ import {
   SECTION_HEADING,
   STATUS_TEXT,
 } from "../lib/ui/classes";
+import { formatDateTime } from "../lib/ui/datetime";
 
 // movie-log spec: logging a viewing, via the manual form or by parsing a
 // Pathé booking email, with best-effort OMDb enrichment. See
@@ -313,8 +314,8 @@ export class MovieLogForm extends HTMLElement {
     summary.className = DL;
     for (const [term, value] of [
       ["Title", booking.title],
-      ["Start", new Date(booking.start).toLocaleString()],
-      ["End", new Date(booking.end).toLocaleString()],
+      ["Start", formatDateTime(booking.start)],
+      ["End", formatDateTime(booking.end)],
       ["Cinema", booking.cinema],
       ["Booking number", booking.bookingRef],
     ]) {

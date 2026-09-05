@@ -8,17 +8,40 @@ logged, showing the metadata the CLI already captures for each viewing.
 ### Requirement: Overview lists logged viewings, linking out for full metadata
 
 The system SHALL display, for each logged viewing, its poster
-thumbnail (if any), title, release year (if any), start and end time,
-medium, and venue, as a fixed set of columns — narrow and predictable
-enough to fit a phone screen without horizontal scroll. Director,
-actors, genre, and ratings are not overview columns; the movie-details
-capability's own page is where a visitor sees those, one click away via
-the title.
+thumbnail (if any), title, release year (if any), a merged start-end
+period, and venue, as a fixed set of columns — narrow and predictable
+enough to fit a phone screen without horizontal scroll. Medium,
+director, actors, genre, and ratings are not overview columns; the
+movie-details capability's own page is where a visitor sees those, one
+click away via the title.
 
 #### Scenario: Viewing with full metadata
 
 - **WHEN** a visitor opens the overview and has a logged viewing with metadata enriched from OMDb
-- **THEN** the system SHALL display its title, release year, start/end time, cinema/venue, and poster thumbnail, and SHALL link the title to that viewing's details page for the rest
+- **THEN** the system SHALL display its title, release year, start-end period, cinema/venue, and poster thumbnail, and SHALL link the title to that viewing's details page for the rest
+
+### Requirement: Editing and deleting live only on the details page
+
+The system SHALL NOT offer edit or delete controls on the overview —
+those live only on the movie-details page, reached via the title link,
+which keeps the overview to a fixed, narrow column count.
+
+#### Scenario: No edit or delete on the overview
+
+- **WHEN** a visitor opens the overview
+- **THEN** the system SHALL show no edit or delete control on any row, only a title link to that viewing's details page
+
+### Requirement: Dates and times use a consistent Dutch, 24-hour format
+
+The system SHALL render every displayed date and time (not a native
+form input) in Dutch (nl-NL) formatting with a 24-hour clock, so a
+visitor sees a consistent format regardless of their own browser's
+locale.
+
+#### Scenario: Overview period rendering
+
+- **WHEN** the overview renders a logged viewing's start-end period
+- **THEN** the system SHALL show it in nl-NL formatting with a 24-hour clock, merging the date and time range into one column when start and end fall on the same day
 
 ### Requirement: Poster thumbnails are large enough to recognize
 
