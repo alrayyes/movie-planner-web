@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.50.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.49.1...movie-planner-web-v0.50.0) (2026-09-05)
+
+
+### Features
+
+* **movie-details:** add a visual blocked-time bar ([#211](https://github.com/alrayyes/movie-planner-web/issues/211)) ([1a804f0](https://github.com/alrayyes/movie-planner-web/commit/1a804f0dec51c4965f2b5b83f2c671cda404f5ff))
+
 ## [0.49.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.49.0...movie-planner-web-v0.49.1) (2026-09-05)
 
 
