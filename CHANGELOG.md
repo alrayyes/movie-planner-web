@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.26.0...movie-planner-web-v0.27.0) (2026-09-05)
+
+
+### Features
+
+* **movie-editing:** re-check the calendar entry before refresh calls OMDb ([#96](https://github.com/alrayyes/movie-planner-web/issues/96)) ([c57630f](https://github.com/alrayyes/movie-planner-web/commit/c57630ffe2132a07db5e0611778c74bd2f671bea)), closes [#91](https://github.com/alrayyes/movie-planner-web/issues/91)
+
 ## [0.26.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.25.0...movie-planner-web-v0.26.0) (2026-09-05)
 
 
