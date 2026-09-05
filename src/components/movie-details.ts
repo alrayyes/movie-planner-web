@@ -39,10 +39,17 @@ function toDatetimeLocal(iso: string): string {
 export class MovieDetails extends HTMLElement {
   private config: CaldavConfig | undefined;
   private omdbApiKey: string | undefined;
+  private omdbPaused = false;
   private viewing: LoggedViewing | undefined;
   private container: HTMLElement | undefined;
   private statusEl: HTMLElement | undefined;
   private editing = false;
+
+  // #80: a key alone isn't enough — a visitor can pause lookups to stay
+  // under OMDb's daily rate limit without clearing the stored key.
+  private get omdbActive(): boolean {
+    return Boolean(this.omdbApiKey) && !this.omdbPaused;
+  }
 
   async connectedCallback() {
     const credentials = await getCredentialsStore().get();
@@ -55,6 +62,7 @@ export class MovieDetails extends HTMLElement {
       password: credentials.caldavPassword,
     };
     this.omdbApiKey = credentials.omdbApiKey;
+    this.omdbPaused = credentials.omdbPaused ?? false;
 
     this.className = "flex flex-col gap-4";
     this.innerHTML = "";
@@ -199,7 +207,7 @@ export class MovieDetails extends HTMLElement {
     });
     actions.appendChild(editButton);
 
-    if (this.omdbApiKey) {
+    if (this.omdbActive) {
       const refreshButton = document.createElement("button");
       refreshButton.type = "button";
       refreshButton.className = BUTTON_SM;
@@ -289,7 +297,7 @@ export class MovieDetails extends HTMLElement {
   }
 
   private async handleRefresh(viewing: LoggedViewing) {
-    if (!this.config || !this.omdbApiKey || !this.statusEl) return;
+    if (!this.config || !this.omdbActive || !this.omdbApiKey || !this.statusEl) return;
     try {
       const metadata = await lookupMovie(
         this.omdbApiKey,

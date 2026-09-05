@@ -107,6 +107,15 @@ for the full design.
   short-circuit the preceding nginx `if` block does by hand, without adding a
   second reverse proxy in front of the one already there.
 
+- An **[OMDb API key](https://www.omdbapi.com/apikey.aspx)**, optional —
+  without one, logging and editing still work, just with no
+  poster/ratings/cross-links. OMDb's free tier caps you at 1,000
+  requests a day; the settings screen (and the initial connect form)
+  has a "Pause OMDb lookups" checkbox that skips every OMDb call
+  without clearing the stored key, for when you're logging or
+  importing a large batch and want to stay under that limit, then
+  refresh deliberately once you're done.
+
 ## Installation
 
 ```sh

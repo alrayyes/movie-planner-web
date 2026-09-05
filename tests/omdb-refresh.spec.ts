@@ -27,12 +27,13 @@ const PADDINGTON = {
   medium: "netflix",
 };
 
-async function connect(page: Page, omdbApiKey?: string) {
+async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   if (omdbApiKey) await page.locator("#omdb-api-key").fill(omdbApiKey);
+  if (omdbPaused) await page.locator("#omdb-paused").check();
   await page.getByRole("button", { name: "Connect" }).click();
 }
 
@@ -42,6 +43,18 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     await connect(page);
 
     await expect(page.getByRole("button", { name: "Refresh metadata" })).toHaveCount(0);
+  });
+
+  // #80: a paused visitor has a key stored but doesn't want it used yet —
+  // same observable effect as having no key at all.
+  test("no Refresh controls appear while OMDb lookups are paused, even with a key set", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page, "test-omdb-key", true);
+
+    await expect(page.getByRole("button", { name: "Refresh metadata" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Refresh all metadata" })).toHaveCount(0);
   });
 
   test("refreshing re-fetches and overwrites the OMDb-sourced fields", async ({ page }) => {

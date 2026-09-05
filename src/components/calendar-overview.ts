@@ -55,6 +55,7 @@ export class CalendarOverview extends HTMLElement {
   private allViewings: LoggedViewing[] = [];
   private config: CaldavConfig | undefined;
   private omdbApiKey: string | undefined;
+  private omdbPaused = false;
   private listContainer: HTMLElement | undefined;
   private statusEl: HTMLElement | undefined;
   private actionStatusEl: HTMLElement | undefined;
@@ -65,6 +66,12 @@ export class CalendarOverview extends HTMLElement {
   private pickerArea: HTMLElement | undefined;
   private currentPage = 0;
 
+  // #80: a key alone isn't enough — a visitor can pause lookups to stay
+  // under OMDb's daily rate limit without clearing the stored key.
+  private get omdbActive(): boolean {
+    return Boolean(this.omdbApiKey) && !this.omdbPaused;
+  }
+
   async connectedCallback() {
     const config = (this as unknown as { config?: CaldavConfig }).config;
     if (!config) {
@@ -74,6 +81,7 @@ export class CalendarOverview extends HTMLElement {
     }
     this.config = config;
     this.omdbApiKey = (this as unknown as { omdbApiKey?: string }).omdbApiKey;
+    this.omdbPaused = (this as unknown as { omdbPaused?: boolean }).omdbPaused ?? false;
 
     this.className = "flex flex-col gap-4";
     this.innerHTML = "";
@@ -88,9 +96,9 @@ export class CalendarOverview extends HTMLElement {
     this.actionStatusEl = document.createElement("p");
     this.actionStatusEl.className = STATUS_TEXT;
     this.actionStatusEl.setAttribute("role", "status");
-    // Only offered once an OMDb key is set, same as the per-row Refresh
-    // control — nothing to refresh from without one.
-    if (this.omdbApiKey) {
+    // Only offered once OMDb lookups are actually usable (a key set and
+    // not paused), same as the per-row Refresh control.
+    if (this.omdbActive) {
       const refreshAllButton = document.createElement("button");
       refreshAllButton.type = "button";
       refreshAllButton.className = BUTTON_SECONDARY;
@@ -398,7 +406,7 @@ export class CalendarOverview extends HTMLElement {
     // #37: only offered once an OMDb key is set, matching the
     // best-effort/optional-key behaviour everywhere else this app calls
     // OMDb — there's nothing to refresh from without one.
-    if (this.omdbApiKey) {
+    if (this.omdbActive) {
       const refreshButton = document.createElement("button");
       refreshButton.type = "button";
       refreshButton.className = BUTTON_SM;
@@ -506,7 +514,7 @@ export class CalendarOverview extends HTMLElement {
   // action for stale or since-updated OMDb data, now that those fields
   // aren't hand-editable (see EDITABLE_FIELDS's own comment).
   private async handleRefresh(viewing: LoggedViewing) {
-    if (!this.config || !this.omdbApiKey || !this.actionStatusEl) return;
+    if (!this.config || !this.omdbActive || !this.omdbApiKey || !this.actionStatusEl) return;
     try {
       const metadata = await lookupMovie(
         this.omdbApiKey,
@@ -571,7 +579,7 @@ export class CalendarOverview extends HTMLElement {
   // rather than parallel, since it's hitting OMDb's own rate limits, not
   // just this app's.
   private async handleRefreshAll() {
-    if (!this.config || !this.omdbApiKey || !this.actionStatusEl) return;
+    if (!this.config || !this.omdbActive || !this.omdbApiKey || !this.actionStatusEl) return;
     const targets = this.currentPageItems();
     if (targets.length === 0) return;
 
