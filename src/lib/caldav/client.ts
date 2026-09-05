@@ -39,6 +39,7 @@ async function assertOk(response: Response, action: string): Promise<void> {
 export async function listViewings(
   config: CaldavConfig,
   range: DateRange,
+  options: { signal?: AbortSignal } = {},
 ): Promise<LoggedViewing[]> {
   validateCaldavConfig(config);
 
@@ -56,15 +57,19 @@ export async function listViewings(
   </C:filter>
 </C:calendar-query>`;
 
-  const response = await boundedFetch(config.baseUrl, {
-    method: "REPORT",
-    headers: {
-      Authorization: authHeader(config),
-      Depth: "1",
-      "Content-Type": "application/xml; charset=utf-8",
+  const response = await boundedFetch(
+    config.baseUrl,
+    {
+      method: "REPORT",
+      headers: {
+        Authorization: authHeader(config),
+        Depth: "1",
+        "Content-Type": "application/xml; charset=utf-8",
+      },
+      body,
     },
-    body,
-  });
+    { signal: options.signal },
+  );
   await assertOk(response, "listing events");
 
   const xml = await readBoundedText(response);

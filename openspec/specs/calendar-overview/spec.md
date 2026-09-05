@@ -209,6 +209,11 @@ loaded — these have no picklist of their own, being OMDb-derived).
 - **WHEN** a visitor opens the overview with the `actor` or `genre` query parameter set (for example, from a details-page chip)
 - **THEN** the system SHALL populate the corresponding filter field with that value and show only logged viewings with that exact actor or genre value
 
+#### Scenario: A reload triggered before the previous one finishes doesn't get clobbered by it
+
+- **WHEN** a new reload (a filter submission, a refresh, the initial page load) starts while a previous one is still in flight
+- **THEN** the system SHALL cancel that previous reload rather than let its result overwrite the newer one's own result once it eventually resolves
+
 ### Requirement: Overview reflects the visitor's own calendar
 
 The system SHALL populate the overview from the CalDAV calendar

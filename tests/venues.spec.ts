@@ -179,6 +179,79 @@ test.describe("venues overview", () => {
     await expect(page.locator("#venues-to")).toHaveValue("");
   });
 
+  // Same fix, same reasoning as CalendarOverview's own "a reload
+  // triggered while the previous one is still in flight" test — load()
+  // now aborts its own stale in-flight request rather than letting a
+  // slow, superseded one clobber a fresher result.
+  test("a filter submitted while the initial load is still in flight isn't clobbered by the stale one", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+        {
+          uid: "paddington-uid",
+          title: "Paddington",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    // Connect first, on the overview — that page's own initial reload()
+    // is a different component entirely and shouldn't be part of this
+    // race. Only gate REPORT requests made *after* navigating to
+    // Venues, so the first one caught here is genuinely this page's own
+    // mount-time load(), not the overview's.
+    await connect(page);
+    let reportCount = 0;
+    let releaseFirst: (() => void) | undefined;
+    const firstReleased = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route) => {
+      if (route.request().method() === "REPORT") {
+        reportCount += 1;
+        if (reportCount === 1) await firstReleased;
+      }
+      await route.fallback();
+    });
+
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+    // The page's own initial load() (the wide default range, matching
+    // both viewings) is now the stalled first REPORT above. Narrow to a
+    // window matching only the one-month-ago viewing before the second
+    // (superseding) load resolves.
+    const from = new Date(ONE_MONTH_AGO.getTime() - 3 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    const to = new Date(ONE_MONTH_AGO.getTime() + 3 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    await page.locator("#venues-from").fill(from);
+    await page.locator("#venues-to").fill(to);
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toContainText(["1"]);
+
+    releaseFirst?.();
+    await page.waitForTimeout(200);
+
+    await expect(page.locator("tbody tr")).toContainText(["1"]);
+    expect(server.listRequests.length).toBeGreaterThanOrEqual(2);
+  });
+
   test("queries a wide enough range to cover the visitor's whole history, not just the overview's default window", async ({
     page,
   }) => {

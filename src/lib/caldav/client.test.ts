@@ -63,6 +63,26 @@ describe("listViewings", () => {
     expect(viewings[0]?.title).toBe("Dune");
   });
 
+  test("aborts via a caller-supplied signal, so a superseded reload can cancel its own stale request", async () => {
+    const fetchMock = mock(async (_url: string, init: RequestInit) => {
+      const signal = init.signal as AbortSignal;
+      return new Promise<Response>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const controller = new AbortController();
+    const pending = listViewings(
+      CONFIG,
+      { from: "2026-01-01T00:00:00.000Z", to: "2026-02-01T00:00:00.000Z" },
+      { signal: controller.signal },
+    );
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
   test("rejects a non-https base URL before making any request", async () => {
     const fetchMock = mock(async () => new Response("", { status: 200 }));
     globalThis.fetch = fetchMock as unknown as typeof fetch;
