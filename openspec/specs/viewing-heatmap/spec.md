@@ -24,21 +24,28 @@ render as the lightest/empty shade, not an error or a gap in the grid.
 - **WHEN** a visitor opens `/calendar` with no logged viewings
 - **THEN** the system SHALL render the full heatmap grid with every cell at the empty shade, rather than an error
 
-### Requirement: A day cell links to that day on the overview
+### Requirement: A day cell opens a popup listing that day's own viewings
 
-The system SHALL navigate to the calendar overview, filtered to that
-exact day (`from` and `to` both set to it), when a visitor activates a
-day cell with at least one logged viewing.
+The system SHALL show a popup listing every viewing logged on that day
+(title, medium, venue), each linking to its own details page, when a
+visitor activates a day cell with at least one logged viewing — without
+navigating away from the heatmap itself.
 
-#### Scenario: Clicking a day with viewings
+#### Scenario: Activating a day with one viewing
 
-- **WHEN** a visitor activates a day cell that has one or more logged viewings
-- **THEN** the system SHALL navigate to the calendar overview with `from` and `to` both set to that day, showing exactly that day's viewings
+- **WHEN** a visitor activates a day cell that has exactly one logged viewing
+- **THEN** the system SHALL open a popup naming that day and showing that viewing's title (linking to its own details page), medium, and venue
+- **AND** the system SHALL remain on `/calendar`, not navigate elsewhere
+
+#### Scenario: Activating a day with several viewings
+
+- **WHEN** a visitor activates a day cell that has more than one logged viewing
+- **THEN** the system SHALL list every one of that day's viewings in the popup, each linking to its own details page
 
 #### Scenario: Activating an empty day does nothing
 
 - **WHEN** a visitor activates a day cell with no logged viewings
-- **THEN** the system SHALL NOT navigate anywhere
+- **THEN** the system SHALL NOT open a popup or navigate anywhere
 
 ### Requirement: Density is distinguishable without relying on colour alone
 

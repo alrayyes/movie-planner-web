@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { LoggedViewing } from "../caldav/types";
-import { bucketViewingsByLocalDay } from "./heatmap";
+import { bucketViewingsByLocalDay, groupViewingsByLocalDay } from "./heatmap";
 
 function viewing(uid: string, start: string): LoggedViewing {
   return { uid, title: uid, start, end: start, medium: "cinema" };
@@ -48,5 +48,25 @@ describe("bucketViewingsByLocalDay", () => {
     const counts = bucketViewingsByLocalDay([viewing("uid", start)]);
 
     expect(counts.get(expectedKey)).toBe(1);
+  });
+});
+
+describe("groupViewingsByLocalDay", () => {
+  test("groups the real viewings by day, preserving each one", () => {
+    const now = new Date();
+    const dayA = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
+    const a1 = viewing("a1", dayA.toISOString());
+    const a2 = viewing("a2", new Date(dayA.getTime() + 60 * 60 * 1000).toISOString());
+    const b1 = viewing("b1", new Date(dayA.getTime() + 24 * 60 * 60 * 1000).toISOString());
+
+    const groups = groupViewingsByLocalDay([a1, a2, b1]);
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const keyFor = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const dayAGroup = groups.get(keyFor(dayA));
+    expect(dayAGroup?.map((v) => v.uid)).toEqual(["a1", "a2"]);
+    expect(
+      groups.get(keyFor(new Date(dayA.getTime() + 24 * 60 * 60 * 1000)))?.map((v) => v.uid),
+    ).toEqual(["b1"]);
   });
 });

@@ -19,6 +19,15 @@ function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 }
 
+// Anchors to local noon on the same day `daysAgo` gives — several tests
+// below add a few hours to a fixture's own start time to place a second
+// viewing later the same day, which crosses local midnight (and lands
+// on the *next* day instead) whenever the suite happens to run late at
+// night. Noon leaves hours of headroom either direction.
+function atNoon(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+}
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -49,8 +58,8 @@ test.describe("viewing heatmap", () => {
   test("shades a day cell by its own viewing count, distinguishable from an empty day", async ({
     page,
   }) => {
-    const dayWithOne = daysAgo(10);
-    const dayWithThree = daysAgo(5);
+    const dayWithOne = atNoon(daysAgo(10));
+    const dayWithThree = atNoon(daysAgo(5));
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {
         uid: "one-uid",
@@ -106,7 +115,7 @@ test.describe("viewing heatmap", () => {
     ).toBeVisible();
   });
 
-  test("activating a day with viewings goes to the overview filtered to that day", async ({
+  test("activating a day with one viewing opens a popup with its details, not a navigation", async ({
     page,
   }) => {
     const day = daysAgo(7);
@@ -117,6 +126,8 @@ test.describe("viewing heatmap", () => {
         start: day.toISOString(),
         end: new Date(day.getTime() + 3600000).toISOString(),
         medium: "cinema",
+        venue: "Grand Vista Cinema",
+        year: "2021",
       },
     ]);
     await connect(page);
@@ -124,16 +135,54 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByText("1 logged viewing.")).toBeVisible();
 
     const dayValue = toDateInputValue(day);
-    const cell = page.getByRole("link", { name: `${dayValue}: 1 viewing` });
-    await expect(cell).toHaveAttribute("href", `/?from=${dayValue}&to=${dayValue}`);
+    const cell = page.getByRole("button", { name: `${dayValue}: 1 viewing` });
     await cell.click();
 
-    await expect(page).toHaveURL(new RegExp(`from=${dayValue}&to=${dayValue}`));
-    await expect(page.locator("tbody tr")).toHaveCount(1);
-    await expect(page.locator("tbody tr")).toContainText("Dune");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(dayValue);
+    const link = dialog.getByRole("link", { name: "Dune (2021)" });
+    await expect(link).toHaveAttribute("href", "/movie?uid=dune-uid");
+    await expect(dialog).toContainText("cinema · Grand Vista Cinema");
+
+    // Still on /calendar — the popup didn't navigate anywhere.
+    await expect(page).toHaveURL(/\/calendar/);
+
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
   });
 
-  test("an empty day cell has no link and does nothing when activated", async ({ page }) => {
+  test("a day with several viewings lists all of them in the popup", async ({ page }) => {
+    const day = atNoon(daysAgo(7));
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+      {
+        uid: "paddington-uid",
+        title: "Paddington",
+        start: new Date(day.getTime() + 4 * 3600000).toISOString(),
+        end: new Date(day.getTime() + 5 * 3600000).toISOString(),
+        medium: "netflix",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("2 logged viewings.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    await page.getByRole("button", { name: `${dayValue}: 2 viewings` }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("link", { name: "Dune" })).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Paddington" })).toBeVisible();
+  });
+
+  test("an empty day cell has no button and does nothing when activated", async ({ page }) => {
     // Two viewings a few days apart, so the rendered range (earliest to
     // latest viewing day) actually spans an empty day in between — a
     // single viewing alone renders a one-cell grid with nothing empty
@@ -161,7 +210,7 @@ test.describe("viewing heatmap", () => {
     const emptyDay = toDateInputValue(daysAgo(5));
     const emptyCell = page.getByLabel(`${emptyDay}: 0 viewings`, { exact: true });
     await expect(emptyCell).toBeVisible();
-    await expect(page.getByRole("link", { name: `${emptyDay}: 0 viewings` })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `${emptyDay}: 0 viewings` })).toHaveCount(0);
   });
 
   test("no logged viewings at all still renders the full grid, not an error", async ({ page }) => {
