@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.22.0...movie-planner-web-v0.23.0) (2026-09-05)
+
+
+### Features
+
+* **layout:** add a "Fork me on GitHub" ribbon ([#85](https://github.com/alrayyes/movie-planner-web/issues/85)) ([178a8ff](https://github.com/alrayyes/movie-planner-web/commit/178a8fffbb2860b51b64fa81194c89672d51c68e)), closes [#66](https://github.com/alrayyes/movie-planner-web/issues/66)
+
 ## [0.22.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.21.0...movie-planner-web-v0.22.0) (2026-09-05)
 
 
