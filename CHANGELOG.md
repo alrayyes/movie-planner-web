@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.20.1...movie-planner-web-v0.21.0) (2026-09-05)
+
+
+### Features
+
+* **credentials:** let a visitor pause OMDb lookups without clearing the key ([#81](https://github.com/alrayyes/movie-planner-web/issues/81)) ([7f6b0f6](https://github.com/alrayyes/movie-planner-web/commit/7f6b0f628f5a8e54b02e404c87d52873eb89d635)), closes [#80](https://github.com/alrayyes/movie-planner-web/issues/80)
+
 ## [0.20.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.20.0...movie-planner-web-v0.20.1) (2026-09-05)
 
 
