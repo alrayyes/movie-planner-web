@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { formatDate, formatDateTime, formatPeriod, formatTime } from "./datetime";
 
-// #93: assertions are pattern-based rather than hardcoded clock values —
-// the actual hour depends on the test runner's own timezone (a Date's
-// toLocale*String methods render in local time), so what's checked here
-// is the *shape* (nl-NL weekday/date order, 24-hour clock, no AM/PM),
-// not one fixed instant.
+// #93/#142: assertions are pattern-based rather than hardcoded clock
+// values — the actual hour depends on the test runner's own timezone
+// (a Date's toLocale*String methods render in local time), so what's
+// checked here is the *shape* (English weekday, dd-mm-yyyy date order,
+// 24-hour clock, no AM/PM), not one fixed instant.
 describe("formatDate", () => {
-  test("renders a short weekday and dd-mm-yyyy", () => {
-    expect(formatDate("2026-08-29T12:40:00.000Z")).toMatch(/^[a-z]{2} \d{2}-\d{2}-2026$/);
+  test("renders an English short weekday and dd-mm-yyyy", () => {
+    expect(formatDate("2026-08-29T12:40:00.000Z")).toMatch(/^[A-Z][a-z]{2} \d{2}-\d{2}-2026$/);
   });
 });
 
@@ -32,7 +32,9 @@ describe("formatPeriod", () => {
   test("merges a same-day start/end into one date plus a time range", () => {
     const period = formatPeriod("2026-08-29T12:40:00.000Z", "2026-08-29T13:40:00.000Z");
     // One date, two times joined by " - ", not two full date-times.
-    expect(period).toMatch(/^[a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2}:\d{2} - \d{2}:\d{2}:\d{2}$/);
+    expect(period).toMatch(
+      /^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2}:\d{2} - \d{2}:\d{2}:\d{2}$/,
+    );
   });
 
   test("falls back to two full date-times when start and end are different days", () => {

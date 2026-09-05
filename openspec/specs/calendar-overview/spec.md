@@ -31,17 +31,24 @@ which keeps the overview to a fixed, narrow column count.
 - **WHEN** a visitor opens the overview
 - **THEN** the system SHALL show no edit or delete control on any row, only a title link to that viewing's details page
 
-### Requirement: Dates and times use a consistent Dutch, 24-hour format
+### Requirement: Dates and times use a consistent Dutch, 24-hour format, with an English weekday
 
 The system SHALL render every displayed date and time (not a native
-form input) in Dutch (nl-NL) formatting with a 24-hour clock, so a
-visitor sees a consistent format regardless of their own browser's
-locale.
+form input) in Dutch (nl-NL) day-month-year order with a 24-hour
+clock, so a visitor sees a consistent format regardless of their own
+browser's locale. The weekday abbreviation on a rendered date SHALL be
+in English, not Dutch — a deliberate exception to the rest of the
+nl-NL formatting.
 
 #### Scenario: Overview period rendering
 
 - **WHEN** the overview renders a logged viewing's start-end period
-- **THEN** the system SHALL show it in nl-NL formatting with a 24-hour clock, merging the date and time range into one column when start and end fall on the same day
+- **THEN** the system SHALL show it in nl-NL day-month-year order with a 24-hour clock, merging the date and time range into one column when start and end fall on the same day
+
+#### Scenario: Weekday abbreviation stays English
+
+- **WHEN** the system renders a date that includes a weekday abbreviation
+- **THEN** the system SHALL show that abbreviation in English (for example "Wed"), while the day, month and year stay in nl-NL order
 
 ### Requirement: Poster thumbnails are large enough to recognize
 

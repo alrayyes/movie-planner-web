@@ -6,14 +6,21 @@
 // `type="datetime-local">` pickers are unaffected — those always follow
 // the browser/OS's own locale regardless of any JS formatting here.
 const LOCALE = "nl-NL";
+// #142: the weekday abbreviation alone stays English ("Wed", not "wo")
+// while the rest of the date keeps its European day-month-year order —
+// a deliberate split, not the whole locale switching, so this needs its
+// own Intl call rather than a single options bag.
+const WEEKDAY_LOCALE = "en-US";
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(LOCALE, {
-    weekday: "short",
+  const date = new Date(iso);
+  const weekday = date.toLocaleDateString(WEEKDAY_LOCALE, { weekday: "short" });
+  const dayMonthYear = date.toLocaleDateString(LOCALE, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
+  return `${weekday} ${dayMonthYear}`;
 }
 
 export function formatTime(iso: string): string {
