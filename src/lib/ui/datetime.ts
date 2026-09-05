@@ -42,3 +42,28 @@ export function formatPeriod(startIso: string, endIso: string): string {
   }
   return `${formatDateTime(startIso)} - ${formatDateTime(endIso)}`;
 }
+
+export interface BlockedTimeBar {
+  positionPercent: number;
+  widthPercent: number;
+}
+
+const MINUTES_PER_DAY = 24 * 60;
+
+// #199/#188: position/width as percentages of a 24-hour track, computed
+// from the viewing's own *local* hour/minute — not UTC — so the bar
+// agrees with the Start/End text right above it, which is itself
+// rendered in local time via formatDateTime/formatTime above. A
+// midnight-crossing viewing is clipped at the track's right edge
+// (position + width capped at 100) rather than wrapped or split into a
+// second segment — see design.md's own reasoning.
+export function computeBlockedTimeBar(startIso: string, endIso: string): BlockedTimeBar {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const startMinutes = start.getHours() * 60 + start.getMinutes() + start.getSeconds() / 60;
+  const positionPercent = (startMinutes / MINUTES_PER_DAY) * 100;
+  const durationMinutes = (end.getTime() - start.getTime()) / 60_000;
+  const rawWidthPercent = (durationMinutes / MINUTES_PER_DAY) * 100;
+  const widthPercent = Math.min(rawWidthPercent, 100 - positionPercent);
+  return { positionPercent, widthPercent };
+}

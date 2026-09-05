@@ -1,5 +1,8 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -264,6 +267,62 @@ test.describe("movie details page", () => {
       "href",
       "/?genre=Action",
     );
+  });
+
+  // #199
+  test("shows a blocked-time bar below Start/End, purely decorative", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    await expect(page.getByText("Start")).toBeVisible();
+
+    const bar = page.locator('[aria-hidden="true"]').filter({ has: page.locator("div[style]") });
+    await expect(bar).toBeVisible();
+    // Start/End remain the real, only accessible description — the bar
+    // itself carries nothing a screen reader should announce.
+    await expect(bar).toHaveAttribute("aria-hidden", "true");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("positions and sizes the blocked-time bar from the viewing's own start/duration", async ({
+    page,
+  }) => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0);
+    const end = new Date(start.getTime() + 150 * 60 * 1000); // 2.5 hours
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, start: start.toISOString(), end: end.toISOString() },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    await expect(page.getByText("Start")).toBeVisible();
+
+    const fill = page.locator('[aria-hidden="true"] > div[style]');
+    const style = await fill.getAttribute("style");
+    const left = Number(/left:\s*([\d.]+)%/.exec(style ?? "")?.[1]);
+    const width = Number(/width:\s*([\d.]+)%/.exec(style ?? "")?.[1]);
+    expect(left).toBeCloseTo((19 * 60 * 100) / (24 * 60), 1);
+    expect(width).toBeCloseTo((150 * 100) / (24 * 60), 1);
+  });
+
+  test("clips a midnight-crossing viewing's bar at the track's edge", async ({ page }) => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 30, 0);
+    const end = new Date(start.getTime() + 90 * 60 * 1000);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, start: start.toISOString(), end: end.toISOString() },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    await expect(page.getByText("Start")).toBeVisible();
+
+    const fill = page.locator('[aria-hidden="true"] > div[style]');
+    const style = await fill.getAttribute("style");
+    const left = Number(/left:\s*([\d.]+)%/.exec(style ?? "")?.[1]);
+    const width = Number(/width:\s*([\d.]+)%/.exec(style ?? "")?.[1]);
+    expect(left + width).toBeCloseTo(100, 1);
   });
 
   test("clicking a genre chip filters the overview to viewings with exactly that genre value", async ({

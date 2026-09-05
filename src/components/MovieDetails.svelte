@@ -23,7 +23,7 @@ import {
 	STATUS_TEXT,
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { formatDateTime } from "../lib/ui/datetime";
+import { computeBlockedTimeBar, formatDateTime } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -318,11 +318,10 @@ init();
       {@const actorChips = splitMultiValue(viewing.actors)}
       {@const genreChips = splitMultiValue(viewing.genre)}
       {@const fields = [
-        ['Start', formatDateTime(viewing.start)],
-        ['End', formatDateTime(viewing.end)],
         ['Medium', viewing.medium],
         ['Venue', viewing.venue],
       ]}
+      {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
       <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
         {#if viewing.posterUrl}
           <!-- #76: a fixed width + max-w-none, not h-64 w-auto — same fix
@@ -362,6 +361,25 @@ init();
                 <span class="text-sm text-slate-400 dark:text-slate-500">{link.label}</span>
               {/if}
             {/each}
+          </div>
+          <dl class={DL}>
+            <dt class={DT}>Start</dt>
+            <dd class={DD}>{formatDateTime(viewing.start)}</dd>
+            <dt class={DT}>End</dt>
+            <dd class={DD}>{formatDateTime(viewing.end)}</dd>
+          </dl>
+          <!-- #199: purely visual — the dl above (Start/End) is already
+          the real, complete accessible description of the viewing's
+          timing, so this decorative duration bar carries nothing a
+          screen reader needs to hear a second time. -->
+          <div
+            class="relative h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+            aria-hidden="true"
+          >
+            <div
+              class="absolute inset-y-0 rounded-full bg-indigo-500 dark:bg-indigo-400"
+              style={`left: ${blockedTimeBar.positionPercent}%; width: ${blockedTimeBar.widthPercent}%;`}
+            ></div>
           </div>
           <dl class={DL}>
             {#each fields as [term, value] (term)}

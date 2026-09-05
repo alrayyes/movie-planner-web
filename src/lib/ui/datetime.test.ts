@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { formatDate, formatDateTime, formatPeriod, formatTime } from "./datetime";
+import {
+  computeBlockedTimeBar,
+  formatDate,
+  formatDateTime,
+  formatPeriod,
+  formatTime,
+} from "./datetime";
 
 // #93/#142: assertions are pattern-based rather than hardcoded clock
 // values — the actual hour depends on the test runner's own timezone
@@ -49,5 +55,69 @@ describe("formatPeriod", () => {
     // full date — the same-day form only carries one.
     expect(period.split(" - ")[0]).toMatch(/\d{4}/);
     expect(period.split(" - ")[1]).toMatch(/\d{4}/);
+  });
+});
+
+// #199: constructed via local Y/M/D/H/M (not a bare UTC ISO string), so
+// the expected position/width can be computed the same way regardless
+// of the test runner's own timezone offset — same reasoning as
+// formatPeriod's own tests above.
+describe("computeBlockedTimeBar", () => {
+  test("positions and sizes a same-day viewing within the 24-hour track", () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0);
+    const end = new Date(start.getTime() + 150 * 60 * 1000); // 2.5 hours
+
+    const { positionPercent, widthPercent } = computeBlockedTimeBar(
+      start.toISOString(),
+      end.toISOString(),
+    );
+
+    expect(positionPercent).toBeCloseTo((19 * 60 * 100) / (24 * 60), 5);
+    expect(widthPercent).toBeCloseTo((150 * 100) / (24 * 60), 5);
+  });
+
+  test("a very short viewing still gets a real, non-zero width", () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
+    const end = new Date(start.getTime() + 5 * 60 * 1000); // 5 minutes
+
+    const { widthPercent } = computeBlockedTimeBar(start.toISOString(), end.toISOString());
+
+    expect(widthPercent).toBeGreaterThan(0);
+    expect(widthPercent).toBeCloseTo((5 * 100) / (24 * 60), 5);
+  });
+
+  test("clips a midnight-crossing viewing at the track's edge, not wrapped or split", () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 30, 0);
+    const end = new Date(start.getTime() + 90 * 60 * 1000); // crosses into the next day
+
+    const { positionPercent, widthPercent } = computeBlockedTimeBar(
+      start.toISOString(),
+      end.toISOString(),
+    );
+    const uncappedWidthPercent = (90 * 100) / (24 * 60);
+
+    // Clipped to the track's own right edge, not the viewing's real
+    // (longer) duration.
+    expect(positionPercent + widthPercent).toBeCloseTo(100, 5);
+    expect(widthPercent).toBeLessThan(uncappedWidthPercent);
+  });
+
+  test("positions against the visitor's own local day, not UTC (the #188 bug class)", () => {
+    // A fixed UTC instant whose local hour genuinely differs from its
+    // UTC hour in any timezone but UTC itself — matching #188's own
+    // fix, the expected value is derived from the same local Date
+    // accessors the implementation itself must use, not a hardcoded
+    // number, so this still means something regardless of which
+    // timezone actually runs it.
+    const start = new Date("2026-08-06T23:00:00.000Z");
+    const end = new Date(start.getTime() + 30 * 60 * 1000);
+
+    const { positionPercent } = computeBlockedTimeBar(start.toISOString(), end.toISOString());
+    const expectedMinutes = start.getHours() * 60 + start.getMinutes();
+
+    expect(positionPercent).toBeCloseTo((expectedMinutes * 100) / (24 * 60), 5);
   });
 });
