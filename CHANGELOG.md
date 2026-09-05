@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.46.0...movie-planner-web-v0.46.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **keyboard-nav:** wait for the smooth-scroll animation to finish ([#191](https://github.com/alrayyes/movie-planner-web/issues/191)) ([61ef234](https://github.com/alrayyes/movie-planner-web/commit/61ef2344733863ede05483086d5fe781cb70045b)), closes [#151](https://github.com/alrayyes/movie-planner-web/issues/151)
+
 ## [0.46.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.45.0...movie-planner-web-v0.46.0) (2026-09-05)
 
 
