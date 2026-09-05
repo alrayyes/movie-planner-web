@@ -81,16 +81,26 @@ constructed searches, not a guarantee of the exact match.
 - **WHEN** a visitor opens the overview and has a logged viewing enriched with an IMDb ID
 - **THEN** the system SHALL show a link to that title's IMDb page, alongside constructed Rotten Tomatoes and Letterboxd search links
 
-### Requirement: Overview defaults to most-recently-watched first
+### Requirement: Overview defaults to most-recently-watched first, and is sortable
 
 The system SHALL sort the overview by start date descending by
 default, so the most recently watched viewing appears first, and SHALL
-preserve that order under a medium filter.
+preserve that order under a medium filter. The system SHALL let a
+visitor click the Title, When, or Venue column header to sort by it
+instead — ascending on the first click of a column, reversing to
+descending on a second click of the same column.
 
 #### Scenario: Default ordering
 
 - **WHEN** a visitor opens the overview with multiple logged viewings and no explicit sort applied
 - **THEN** the system SHALL display them ordered by start date descending
+
+#### Scenario: Sorting by a column header
+
+- **WHEN** a visitor clicks the "Title" column header
+- **THEN** the system SHALL sort the overview alphabetically by title, ascending
+- **AND WHEN** the visitor clicks "Title" again
+- **THEN** the system SHALL reverse to descending
 
 ### Requirement: Overview paginates a large result set
 
