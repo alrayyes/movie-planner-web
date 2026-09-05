@@ -136,7 +136,12 @@ venue/director/actor/genre filter values from
 `venue`/`director`/`actor`/`genre` URL query parameters, so a link
 elsewhere in the app can land here pre-filtered, and SHALL show those
 values in the filter fields themselves rather than applying them
-invisibly. The system SHALL offer medium autocomplete suggestions
+invisibly. Without an explicit From/To (no `from`/`to` query parameter,
+and nothing yet typed into those fields), the system SHALL query the
+same wide whole-history range the venues page's own default uses, then
+populate the From and To fields with the visitor's own actual first and
+last logged viewing dates — never leaving them blank while a narrower
+default silently applies underneath. The system SHALL offer medium autocomplete suggestions
 drawn from the union of the location-management picklist and the
 medium values on the viewings already loaded, so a medium logged only
 via the CLI still suggests itself even though it was never typed into
@@ -174,6 +179,16 @@ loaded — these have no picklist of their own, being OMDb-derived).
 
 - **WHEN** a visitor opens the overview with `from` and `to` query parameters set
 - **THEN** the system SHALL populate the From and To filter fields with those values instead of its own default range, so a link from elsewhere in the app (the venues page's own count, for one) lands on the same result set it was drawn from
+
+#### Scenario: Defaults to the visitor's own whole history
+
+- **WHEN** a visitor opens the overview with no `from`/`to` query parameter and has logged viewings
+- **THEN** the system SHALL populate the From and To filter fields with the earliest and latest logged viewing's own dates, rather than leaving them blank or applying an unseen narrower default
+
+#### Scenario: No logged viewings at all
+
+- **WHEN** a visitor opens the overview with no `from`/`to` query parameter and has no logged viewings
+- **THEN** the system SHALL leave the From and To filter fields blank, rather than showing a bogus date
 
 #### Scenario: Filter by director, actor or genre matches an exact split value
 

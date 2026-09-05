@@ -11,12 +11,12 @@ const CREDENTIALS = {
 };
 
 // Relative to `now` rather than fixed calendar dates, so the fixtures stay
-// inside the component's own "last 3 months" default window regardless of
-// when the suite runs — DUNE ~1 month back, PADDINGTON ~2 months back, both
-// inside the default; a cutoff ~45 days back (below) separates them for
-// the explicit-range tests. Plain day-based arithmetic, not setMonth —
-// setMonth's fractional-month handling is unreliable, and calendar months
-// vary in length anyway.
+// well inside the component's own wide default range (#188, importCheckRange's
+// 15-years-back window) regardless of when the suite runs — DUNE ~1 month
+// back, PADDINGTON ~2 months back; a cutoff ~45 days back (below) separates
+// them for the explicit-range tests. Plain day-based arithmetic, not
+// setMonth — setMonth's fractional-month handling is unreliable, and
+// calendar months vary in length anyway.
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 }
@@ -222,16 +222,14 @@ test.describe("calendar overview", () => {
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
-    // Medium isn't part of the CalDAV query — both requests carry the same
-    // (unchanged, to-the-day) default date range, confirming the medium
-    // filter is applied to the response rather than sent to the server.
+    // Medium isn't part of the CalDAV query — clicking Filter just
+    // re-sends whatever date range the fields already show (by now
+    // auto-populated to the real first/last viewing dates, #188),
+    // confirming the medium filter itself is applied to the response
+    // rather than sent to the server.
     expect(server.listRequests).toHaveLength(2);
-    expect(server.listRequests[0]?.from.toDateString()).toBe(
-      server.listRequests[1]?.from.toDateString(),
-    );
-    expect(server.listRequests[0]?.to.toDateString()).toBe(
-      server.listRequests[1]?.to.toDateString(),
-    );
+    expect(server.listRequests[1]?.from.toDateString()).toBe(TWO_MONTHS_AGO.toDateString());
+    expect(server.listRequests[1]?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
   });
 
   // #140: sourced from the union of the location-management picklist and
@@ -306,10 +304,10 @@ test.describe("calendar overview", () => {
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
-    // Venue isn't part of the CalDAV query either, same as medium.
-    expect(server.listRequests[0]?.from.toDateString()).toBe(
-      server.listRequests[1]?.from.toDateString(),
-    );
+    // Venue isn't part of the CalDAV query either, same as medium — the
+    // second request just carries the auto-populated real date range.
+    expect(server.listRequests[1]?.from.toDateString()).toBe(TWO_MONTHS_AGO.toDateString());
+    expect(server.listRequests[1]?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
   });
 
   test("a ?venue= query param pre-populates the venue filter on load", async ({ page }) => {
@@ -442,19 +440,40 @@ test.describe("calendar overview", () => {
     );
   });
 
-  test("defaults to roughly the last 3 months", async ({ page }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+  // #188: no explicit From/To used to still mean a fixed, hidden
+  // 3-months-back/1-year-forward window — the fields looked blank
+  // while quietly narrowing what showed. Queries the visitor's whole
+  // history instead, and fills the fields in with the real first/last
+  // watched dates, so what's shown and what the fields say agree.
+  test("defaults to the visitor's whole history, filling From/To with the real first/last dates", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
-    await expect(page.getByRole("status").first()).toHaveText("0 logged viewings.");
+
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+    // PADDINGTON (2 months back) is the earliest, DUNE (1 month back)
+    // the latest.
+    await expect(page.locator("#overview-from")).toHaveValue(toDateInputValue(TWO_MONTHS_AGO));
+    await expect(page.locator("#overview-to")).toHaveValue(toDateInputValue(ONE_MONTH_AGO));
 
     const from = server.listRequests[0]?.from as Date;
-    const now = new Date();
-    const expectedFrom = new Date(now);
-    expectedFrom.setMonth(now.getMonth() - 3);
+    const fifteenYearsAgo = new Date();
+    fifteenYearsAgo.setFullYear(fifteenYearsAgo.getFullYear() - 15);
+    // Within a day — allows for the test run's own clock drift against
+    // the fixed 15-year default computed inside the component.
+    expect(Math.abs(from.getTime() - fifteenYearsAgo.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
+  });
 
-    // Within a day of "3 months back" — allows for the test run's own clock
-    // drift against the fixed default computed inside the component.
-    expect(Math.abs(from.getTime() - expectedFrom.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
+  test("with no logged viewings at all, From/To stay blank rather than showing a bogus date", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+
+    await expect(page.getByRole("status").first()).toHaveText("0 logged viewings.");
+    await expect(page.locator("#overview-from")).toHaveValue("");
+    await expect(page.locator("#overview-to")).toHaveValue("");
   });
 
   test("clear filter resets the date range, medium, venue, director, actor and genre, and reloads", async ({
@@ -476,8 +495,11 @@ test.describe("calendar overview", () => {
 
     await page.getByRole("button", { name: "Clear filter" }).click();
 
-    await expect(page.locator("#overview-from")).toHaveValue("");
-    await expect(page.locator("#overview-to")).toHaveValue("");
+    // #188: From/To land back on the real first/last watched dates, not
+    // blank — clearing means "show me everything", and these fields now
+    // always say what's actually being shown, not "nothing typed".
+    await expect(page.locator("#overview-from")).toHaveValue(toDateInputValue(TWO_MONTHS_AGO));
+    await expect(page.locator("#overview-to")).toHaveValue(toDateInputValue(ONE_MONTH_AGO));
     await expect(page.locator("#overview-medium")).toHaveValue("");
     await expect(page.locator("#overview-venue")).toHaveValue("");
     await expect(page.locator("#overview-director")).toHaveValue("");
