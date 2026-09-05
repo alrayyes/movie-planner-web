@@ -3,6 +3,7 @@ import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import { importCheckRange } from "../lib/movie-log/run-import";
+import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: formatTime is used in the template below, which Biome does not parse for .svelte files
@@ -174,6 +175,8 @@ async function load() {
 }
 
 load();
+// #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call.
+reloadOnBfcacheRestore(() => void load());
 </script>
 
 <div class="flex flex-col gap-6">

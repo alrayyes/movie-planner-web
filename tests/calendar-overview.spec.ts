@@ -392,6 +392,33 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #223: a visitor who deletes a viewing elsewhere (the details page,
+  // another tab), then returns here via the browser's Back button, can
+  // land on the exact pre-delete DOM the browser restored from its
+  // back/forward cache rather than a fresh load — this page's own
+  // mount-time reload() never re-runs on its own in that case. Firing a
+  // real `pageshow(persisted: true)` (rather than actually navigating,
+  // which Playwright/Chromium's automation doesn't reliably bfcache)
+  // exercises the same listener a genuine restore would.
+  test("a bfcache restore refreshes data that changed while this page was cached", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    // Simulates the viewing being deleted by some means other than this
+    // page (another tab's details page, say) while this one sat cached.
+    server.viewings.delete(DUNE.uid);
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Paddington");
+  });
+
   // #163: actor/genre match one exact split value, not a substring of
   // the whole comma-joined field — a viewing with genre "Live Action
   // Adaptation" must not match a filter for "Action".

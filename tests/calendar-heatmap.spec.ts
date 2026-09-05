@@ -274,6 +274,32 @@ test.describe("viewing heatmap", () => {
     await expect(page.locator('[role="img"]').first()).toBeVisible();
   });
 
+  // #223: same bfcache-restore gap as the calendar overview's own test.
+  test("a bfcache restore refreshes data that changed while this page was cached", async ({
+    page,
+  }) => {
+    const day = daysAgo(3);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    server.viewings.delete("dune-uid");
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+
+    await expect(page.getByText("No logged viewings yet.")).toBeVisible();
+  });
+
   test("introduces no accessibility violations", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {

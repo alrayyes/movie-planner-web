@@ -8,6 +8,7 @@ import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/li
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
 	BUTTON_PRIMARY,
@@ -426,6 +427,11 @@ async function handleRefreshAll() {
 }
 
 reload();
+// #223: a visitor deleting a viewing on the details page, then hitting
+// Back, can land on this exact pre-delete DOM restored from the
+// browser's bfcache rather than a fresh load — reload() never re-runs
+// on its own in that case.
+reloadOnBfcacheRestore(() => reload({ silent: true }));
 getPicklists(config).then((picklists) => {
 	mediumPicklist = picklists.media;
 	venuePicklist = picklists.venues;

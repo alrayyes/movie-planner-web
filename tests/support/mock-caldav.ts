@@ -15,6 +15,11 @@ export interface MockCaldavServer {
   listRequests: { from: Date; to: Date }[];
   authHeaders: string[];
   picklists: Picklists;
+  // The live backing store itself, not just a log of what the app did to
+  // it — lets a test simulate data changing by some means other than the
+  // app under test (another tab, another device) and confirm a page
+  // notices, e.g. after a bfcache restore.
+  viewings: Map<string, LoggedViewing>;
 }
 
 function escapeXml(value: string): string {
@@ -72,6 +77,7 @@ export function mockCaldavServer(
     listRequests: [],
     authHeaders: [],
     picklists: { media: [...initialPicklists.media], venues: [...initialPicklists.venues] },
+    viewings,
   };
 
   const origin = new URL(baseUrl).origin;

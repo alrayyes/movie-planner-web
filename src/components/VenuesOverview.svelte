@@ -3,6 +3,7 @@ import { getPicklists, listViewings } from "../lib/caldav/client";
 import type { CaldavConfig } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import { importCheckRange } from "../lib/movie-log/run-import";
+import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
 	BUTTON_PRIMARY,
@@ -124,6 +125,8 @@ function handleClearFilter() {
 }
 
 load();
+// #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call.
+reloadOnBfcacheRestore(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">

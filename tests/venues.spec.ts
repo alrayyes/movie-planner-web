@@ -66,6 +66,39 @@ test.describe("venues overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #223: same bfcache-restore gap as the calendar overview's own test —
+  // a viewing deleted elsewhere while this page sat in the browser's
+  // back/forward cache should be reflected once it's restored.
+  test("a bfcache restore refreshes counts that changed while this page was cached", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.locator("tbody tr")).toContainText("1");
+
+    server.viewings.delete("dune-uid");
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+
+    await expect(page.locator("tbody tr")).toContainText("0");
+  });
+
   // #116: a CLI-logged entry's venue was never typed into this app's own
   // log form, so it's never in the location-management picklist — but
   // it's still real LOCATION text on the calendar entry, and the page
