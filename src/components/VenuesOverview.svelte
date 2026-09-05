@@ -66,7 +66,16 @@ function toDateInputValue(iso: string): string {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+// Aborts a still-in-flight load when a newer one starts (a fast
+// double-submit of the filter form, a mount-time load overlapping a
+// filter change) — same reasoning as CalendarOverview's own
+// reloadController, see its comment there.
+let loadController: AbortController | undefined;
+
 async function load() {
+	loadController?.abort();
+	const controller = new AbortController();
+	loadController = controller;
 	const credentials = await getCredentialsStore().get();
 	if (!credentials) {
 		status = "Connect first to see your venues.";
@@ -82,7 +91,7 @@ async function load() {
 		loadedRange = range;
 		const [{ venues }, viewings] = await Promise.all([
 			getPicklists(config),
-			listViewings(config, range),
+			listViewings(config, range, { signal: controller.signal }),
 		]);
 		const counts = new Map<string, number>(venues.map((venue) => [venue, 0]));
 		for (const viewing of viewings) {
@@ -94,6 +103,9 @@ async function load() {
 			.sort((a, b) => b.count - a.count || a.venue.localeCompare(b.venue));
 		status = `${venueCounts.length} venue${venueCounts.length === 1 ? "" : "s"}.`;
 	} catch (error) {
+		// Superseded by a newer load — the newer call's own catch/success
+		// block is what should actually update status now, not this one.
+		if (error instanceof DOMException && error.name === "AbortError") return;
 		status = error instanceof Error ? error.message : "Failed to load venues.";
 	}
 }

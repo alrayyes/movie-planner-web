@@ -261,12 +261,24 @@ function toDateInputValue(iso: string): string {
 // count line to visibly flash for an action that never changes it.
 // Errors still surface either way — that's new information, not
 // routine flicker.
+// A reload triggered while a previous one is still in flight (a fast
+// double-click, a mount-time load overlapping a filter change, a
+// browser back/forward fired in quick succession) aborts the older
+// request rather than letting two REPORT requests race — the older
+// one otherwise resolves into orphaned state nobody renders, and the
+// visitor's own CalDAV server sees a wasted duplicate request for no
+// reason.
+let reloadController: AbortController | undefined;
+
 async function reload(options: { silent?: boolean } = {}) {
+	reloadController?.abort();
+	const controller = new AbortController();
+	reloadController = controller;
 	if (!options.silent) statusText = "Loading…";
 	const hadNoExplicitFrom = !fromValue;
 	const hadNoExplicitTo = !toValue;
 	try {
-		allViewings = await listViewings(config, currentRange());
+		allViewings = await listViewings(config, currentRange(), { signal: controller.signal });
 		// #188: only when no explicit range was chosen — never overwrite a
 		// visitor's own typed-in From/To, including on a silent
 		// refresh-triggered reload that runs long after they set one.
@@ -278,6 +290,10 @@ async function reload(options: { silent?: boolean } = {}) {
 		}
 		if (!options.silent) statusText = `${total} logged viewing${total === 1 ? "" : "s"}.`;
 	} catch (error) {
+		// Superseded by a newer reload — not a real failure, and the
+		// newer call's own catch/success block is what should actually
+		// update statusText now, not this stale one.
+		if (error instanceof DOMException && error.name === "AbortError") return;
 		statusText = error instanceof Error ? error.message : "Failed to load viewings.";
 	}
 }

@@ -10,6 +10,13 @@ export const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5 MiB
 export interface BoundedFetchOptions {
   timeoutMs?: number;
   maxResponseBytes?: number;
+  // A caller-supplied signal, distinct from the timeout's own internal
+  // one below — lets a caller supersede its own still-in-flight request
+  // (a newer reload superseding an older one, say) without that abort
+  // being misreported as a server timeout. `timedOut` is what actually
+  // distinguishes the two below, not "was the internal controller
+  // aborted" (true either way, since the external signal aborts it too).
+  signal?: AbortSignal;
 }
 
 export async function boundedFetch(
@@ -21,13 +28,19 @@ export async function boundedFetch(
   const maxResponseBytes = options.maxResponseBytes ?? MAX_RESPONSE_BYTES;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  const onExternalAbort = () => controller.abort();
+  options.signal?.addEventListener("abort", onExternalAbort);
 
   let response: Response;
   try {
     response = await fetch(url, { ...init, signal: controller.signal });
   } catch (error) {
-    if (controller.signal.aborted) {
+    if (timedOut) {
       throw new CaldavRequestTimeoutError(
         `the CalDAV server did not respond within ${timeoutMs}ms`,
       );
@@ -35,6 +48,7 @@ export async function boundedFetch(
     throw error;
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener("abort", onExternalAbort);
   }
 
   const contentLength = response.headers.get("content-length");

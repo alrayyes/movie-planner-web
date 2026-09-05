@@ -44,6 +44,29 @@ describe("boundedFetch", () => {
     const response = await boundedFetch("https://example.com/", {});
     expect(response.status).toBe(200);
   });
+
+  test("an external signal aborting supersedes the request with a plain AbortError, not a timeout", async () => {
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      const signal = init.signal as AbortSignal;
+      return new Promise<Response>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    }) as unknown as typeof fetch;
+
+    const controller = new AbortController();
+    const pending = boundedFetch(
+      "https://example.com/",
+      {},
+      // A long timeout — if this rejects with CaldavRequestTimeoutError
+      // instead of a plain AbortError, the external signal is being
+      // misreported as the (much longer, never-reached) timeout firing.
+      { timeoutMs: 60_000, signal: controller.signal },
+    );
+    controller.abort();
+
+    await expect(pending).rejects.not.toBeInstanceOf(CaldavRequestTimeoutError);
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
 });
 
 describe("readBoundedText", () => {

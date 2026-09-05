@@ -75,6 +75,11 @@ filtering.
 - **WHEN** a visitor clicks a venue name on `/venues`
 - **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter), over the same date range that produced the count they clicked from, not the overview's own separate default window
 
+#### Scenario: A filter submitted before the previous load finishes doesn't get clobbered by it
+
+- **WHEN** a visitor submits a new date-range filter while a previous load (the initial page load, or an earlier filter) is still in flight
+- **THEN** the system SHALL cancel that previous load rather than let its result overwrite the newer filter's own result once it eventually resolves
+
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 
 The system SHALL treat a missing or unparsable sidecar VJOURNAL as an

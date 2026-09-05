@@ -230,6 +230,57 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // A real intermittent-CORS-looking failure was traced to this: two
+  // REPORT requests racing (a slow one still in flight when a second one
+  // starts) left the browser cancelling one mid-response, which some
+  // browsers surface as a bare, unhelpful CORS-shaped error rather than
+  // a clean cancellation. reload() now aborts its own previous in-flight
+  // request before starting a new one, rather than letting two race —
+  // proven here by making the two requests return genuinely different
+  // data, so a stale response winning is actually observable rather
+  // than both happening to agree.
+  test("a reload triggered while the previous one is still in flight aborts the stale one, not both", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    let reportCount = 0;
+    let releaseFirst: (() => void) | undefined;
+    const firstReleased = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route) => {
+      if (route.request().method() === "REPORT") {
+        reportCount += 1;
+        if (reportCount === 1) await firstReleased;
+      }
+      await route.fallback();
+    });
+
+    await connect(page);
+    // The initial mount's own reload() (the wide default range, matching
+    // both DUNE and PADDINGTON) is now the deliberately-stalled first
+    // REPORT above. Narrow the date range to one that only matches DUNE
+    // before triggering the second (superseding) reload — so the two
+    // requests' own results genuinely differ, and only releasing the
+    // first one *after* the second already resolved proves whether the
+    // stale one still clobbers the fresh one.
+    await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
+    await page.locator("#overview-to").fill(toDateInputValue(new Date()));
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    releaseFirst?.();
+    // Give the stale first response a moment to resolve and, if it were
+    // still wired up, clobber the correct state above.
+    await page.waitForTimeout(200);
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+    await expect(page.getByText(/Failed to load/i)).toHaveCount(0);
+    expect(server.listRequests.length).toBeGreaterThanOrEqual(2);
+  });
+
   test("filters by medium client-side, over whatever the date range already returned", async ({
     page,
   }) => {
