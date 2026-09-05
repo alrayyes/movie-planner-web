@@ -23,10 +23,13 @@ configured, with no server-side code in this repo's build output at all
 may not work.
 
 **Status:** credentials, the calendar overview, logging (manual and Pathé
-email parsing), editing, bulk CSV/JSON import, and location management
-(media/venue picklists) are all built — see
+email parsing), editing, bulk CSV/JSON import and export, and location
+management (media/venue picklists) are all built — see
 [`openspec/changes/add-movie-planner-web-app/`](openspec/changes/add-movie-planner-web-app/)
-for the full design.
+for the full design. The import/export JSON shape is documented as a
+[JSON Schema](public/schemas/movie-viewings.schema.json) — movie-planner's
+own canonical field names, so a file either tool produces is readable
+by the other.
 
 ## Requirements
 

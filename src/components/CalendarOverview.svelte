@@ -1,6 +1,8 @@
 <script lang="ts">
 import { getViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { exportFilename, exportViewingsToJson } from "../lib/movie-log/export-viewings";
+import { importCheckRange } from "../lib/movie-log/run-import";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
@@ -147,6 +149,28 @@ function handleClearFilter() {
 	mediumValue = "";
 	currentPage = 0;
 	void reload();
+}
+
+// #69: the whole history, not the filtered/paginated set currently on
+// screen — the calendar is the source of truth, so "export" means
+// everything, the same wide range bulk-import's own duplicate check
+// already queries, not whatever filter happens to be active here.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleExport() {
+	actionStatusText = "Preparing export…";
+	try {
+		const all = await listViewings(config, importCheckRange());
+		const blob = new Blob([exportViewingsToJson(all)], { type: "application/json" });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = exportFilename(new Date());
+		link.click();
+		URL.revokeObjectURL(url);
+		actionStatusText = `Exported ${all.length} viewing${all.length === 1 ? "" : "s"}.`;
+	} catch (error) {
+		actionStatusText = error instanceof Error ? error.message : "Failed to export.";
+	}
 }
 
 // #37: re-runs the best-effort OMDb lookup against the viewing's
@@ -307,6 +331,16 @@ reload();
       Clear filter
     </button>
   </form>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <button type="button" class={BUTTON_SECONDARY} onclick={handleExport}>
+      Export as JSON
+    </button>
+    <p class={STATUS_TEXT}>
+      Downloads your whole watch history, not just what's filtered or shown here — including
+      poster, ratings and every other OMDb-derived field.
+    </p>
+  </div>
 
   {#if showRefreshAll}
     <button
