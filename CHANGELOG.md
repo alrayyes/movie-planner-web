@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.36.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.35.2...movie-planner-web-v0.36.0) (2026-09-05)
+
+
+### Features
+
+* **venues:** make a venue name link to the overview, filtered to it ([#132](https://github.com/alrayyes/movie-planner-web/issues/132)) ([9c367ca](https://github.com/alrayyes/movie-planner-web/commit/9c367cab3c56fb0824e06cd64c8b0680d15147f0)), closes [#131](https://github.com/alrayyes/movie-planner-web/issues/131)
+
+
+### Bug Fixes
+
+* **chrome:** keep the GitHub ribbon clear of the header's toggle buttons ([#137](https://github.com/alrayyes/movie-planner-web/issues/137)) ([79b1517](https://github.com/alrayyes/movie-planner-web/commit/79b1517d6f6305848613e0e207440104dbb0e2b8)), closes [#135](https://github.com/alrayyes/movie-planner-web/issues/135)
+
 ## [0.35.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.35.1...movie-planner-web-v0.35.2) (2026-09-05)
 
 
