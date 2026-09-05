@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.0...movie-planner-web-v0.37.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **ui:** render the weekday abbreviation in English, not Dutch ([#144](https://github.com/alrayyes/movie-planner-web/issues/144)) ([4c334f0](https://github.com/alrayyes/movie-planner-web/commit/4c334f09b3e671e290927c4d5ca287f31f7c3894)), closes [#142](https://github.com/alrayyes/movie-planner-web/issues/142)
+
 ## [0.37.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.36.0...movie-planner-web-v0.37.0) (2026-09-05)
 
 
