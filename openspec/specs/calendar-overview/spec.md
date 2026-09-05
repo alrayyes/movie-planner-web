@@ -117,12 +117,21 @@ supports (medium and date range) plus a venue filter of its own. The
 system SHALL read an initial venue filter value from a `venue` URL
 query parameter, so a link elsewhere in the app can land here
 pre-filtered, and SHALL show that value in the filter field itself
-rather than applying it invisibly.
+rather than applying it invisibly. The system SHALL offer medium
+autocomplete suggestions drawn from the union of the
+location-management picklist and the medium values on the viewings
+already loaded, so a medium logged only via the CLI still suggests
+itself even though it was never typed into this app's own log form.
 
 #### Scenario: Filter by month and medium
 
 - **WHEN** a visitor filters the overview to a specific month and to medium "cinema"
 - **THEN** the system SHALL display only logged viewings within that month whose medium is "cinema"
+
+#### Scenario: Medium autocomplete includes a CLI-only medium
+
+- **WHEN** a visitor opens the overview and has a logged viewing whose medium was never typed into this app's own log form
+- **THEN** the system SHALL still offer that medium as an autocomplete suggestion in the medium filter field
 
 #### Scenario: Filter by venue
 
