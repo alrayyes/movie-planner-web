@@ -64,6 +64,27 @@ describe("VEVENT round trip", () => {
     ].join("\r\n");
     expect(() => parseVEventToViewing(brokenIcal)).toThrow();
   });
+
+  // #233: an all-day event (RFC 5545's DATE value, no time component)
+  // is a real shape a visitor's own calendar app might write — many
+  // default to it unless a time is set explicitly. This used to throw
+  // during parsing and get silently dropped by
+  // parseViewingsFromMultistatus, vanishing with no indication.
+  test("parses an all-day (DATE-only) VEVENT instead of dropping it", () => {
+    const allDayIcal = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:all-day-uid",
+      "SUMMARY:Dune",
+      "DTSTART;VALUE=DATE:20260906",
+      "DTEND;VALUE=DATE:20260907",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const parsed = parseVEventToViewing(allDayIcal);
+    expect(parsed.start).toBe("2026-09-06T00:00:00.000Z");
+    expect(parsed.end).toBe("2026-09-07T00:00:00.000Z");
+  });
 });
 
 // #79: the movie-planner CLI writes only SUMMARY/LOCATION/DTSTART/DTEND/
