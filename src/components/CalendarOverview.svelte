@@ -1,6 +1,7 @@
 <script lang="ts">
 import { getPicklists, getViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { importCheckRange } from "../lib/movie-log/run-import";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
@@ -38,8 +39,6 @@ import { formatPeriod } from "../lib/ui/datetime";
 // remove, and this PR's actual feature (a busy spinner while a refresh
 // is in flight) needed that reactivity to not be its own tangle of
 // manual DOM toggling on top of the manual re-rendering.
-const DEFAULT_RANGE_MONTHS_BACK = 3;
-const DEFAULT_RANGE_YEARS_FORWARD = 1;
 // #59: bounds how many rows render at once so the overview stays fast
 // and scannable as the calendar grows, rather than rendering every
 // viewing in the selected date range in one table.
@@ -209,16 +208,44 @@ const currentPageItems = $derived.by(() => {
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const showRefreshAll = $derived(omdbActive && currentPageItems.some((v) => !hasOmdbMetadata(v)));
 
-function currentRange() {
-	const now = new Date();
-	const defaultFrom = new Date(now);
-	defaultFrom.setMonth(now.getMonth() - DEFAULT_RANGE_MONTHS_BACK);
-	const defaultTo = new Date(now);
-	defaultTo.setFullYear(now.getFullYear() + DEFAULT_RANGE_YEARS_FORWARD);
+// #188: no explicit From/To has never meant "no filter" in practice —
+// it silently queried a fixed 3-months-back/1-year-forward window, so
+// the fields looked blank while a hidden default was already narrowing
+// what showed. Querying the same wide range bulk-import's own
+// duplicate check uses (importCheckRange, 15 years back) instead, then
+// letting reload() below fill fromValue/toValue in with the visitor's
+// own actual first/last watched dates, makes the fields honestly show
+// what's being applied instead of leaving them blank.
+// #188: a `<input type="date">` value is a bare "YYYY-MM-DD" naming the
+// visitor's own local calendar day (it's built from local getters below,
+// same as everywhere else this app reads one). `new Date("YYYY-MM-DD")`
+// parses that same string as *UTC* midnight instead — a different instant
+// in any timezone but UTC, and one that can even land on the wrong local
+// day. Parsing the components by hand into the local-time Date
+// constructor keeps the boundary anchored to the calendar day the field
+// actually shows, both for the day's start ("From") and, latent since
+// #93 until "To" started auto-filling with a viewing's own day, its end
+// ("To" — the whole day, not just its first instant, or a "To" matching a
+// viewing's own day excluded that viewing outright).
+function localDayBoundary(value: string, endOfDay: boolean): string {
+	const [year, month, day] = value.split("-").map(Number);
+	const date = endOfDay
+		? new Date(year, month - 1, day, 23, 59, 59, 999)
+		: new Date(year, month - 1, day, 0, 0, 0, 0);
+	return date.toISOString();
+}
 
-	const from = fromValue ? new Date(fromValue) : defaultFrom;
-	const to = toValue ? new Date(toValue) : defaultTo;
-	return { from: from.toISOString(), to: to.toISOString() };
+function currentRange() {
+	const wide = importCheckRange();
+	const from = fromValue ? localDayBoundary(fromValue, false) : wide.from;
+	const to = toValue ? localDayBoundary(toValue, true) : wide.to;
+	return { from, to };
+}
+
+function toDateInputValue(iso: string): string {
+	const d = new Date(iso);
+	const pad = (n: number) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 // #171: `silent` skips the "Loading…"/count-line updates — used by a
@@ -230,8 +257,19 @@ function currentRange() {
 // routine flicker.
 async function reload(options: { silent?: boolean } = {}) {
 	if (!options.silent) statusText = "Loading…";
+	const hadNoExplicitFrom = !fromValue;
+	const hadNoExplicitTo = !toValue;
 	try {
 		allViewings = await listViewings(config, currentRange());
+		// #188: only when no explicit range was chosen — never overwrite a
+		// visitor's own typed-in From/To, including on a silent
+		// refresh-triggered reload that runs long after they set one.
+		if ((hadNoExplicitFrom || hadNoExplicitTo) && allViewings.length > 0) {
+			const starts = allViewings.map((v) => new Date(v.start).getTime());
+			if (hadNoExplicitFrom)
+				fromValue = toDateInputValue(new Date(Math.min(...starts)).toISOString());
+			if (hadNoExplicitTo) toValue = toDateInputValue(new Date(Math.max(...starts)).toISOString());
+		}
 		if (!options.silent) statusText = `${total} logged viewing${total === 1 ? "" : "s"}.`;
 	} catch (error) {
 		statusText = error instanceof Error ? error.message : "Failed to load viewings.";
