@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.31.0...movie-planner-web-v0.32.0) (2026-09-05)
+
+
+### Features
+
+* **layout:** adopt Inter typeface, widen data-heavy pages ([#111](https://github.com/alrayyes/movie-planner-web/issues/111)) ([24b345f](https://github.com/alrayyes/movie-planner-web/commit/24b345f89d25135d69df2c1891c3b7cff4073979)), closes [#65](https://github.com/alrayyes/movie-planner-web/issues/65)
+
 ## [0.31.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.30.0...movie-planner-web-v0.31.0) (2026-09-05)
 
 
