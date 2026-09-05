@@ -139,7 +139,11 @@ test.describe("refreshing OMDb metadata from the overview", () => {
       await route.fulfill({
         status: 200,
         contentType: "text/calendar",
-        body: serializeViewingToVEvent("dune-uid", { ...DUNE, imdbId: "tt1160419" }),
+        body: serializeViewingToVEvent("dune-uid", {
+          ...DUNE,
+          imdbId: "tt1160419",
+          posterUrl: "https://example.com/dune-poster.jpg",
+        }),
       });
     });
 
@@ -187,7 +191,11 @@ test.describe("refreshing OMDb metadata from the overview", () => {
   test("bulk refresh includes a CLI-logged entry that only has an IMDb link, not just titles with none", async ({
     page,
   }) => {
-    const alreadyFullyMatched = { ...DUNE, imdbId: "tt1160419" };
+    const alreadyFullyMatched = {
+      ...DUNE,
+      imdbId: "tt1160419",
+      posterUrl: "https://example.com/dune-poster.jpg",
+    };
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       alreadyFullyMatched,
       CLI_LOGGED_NO_POSTER,
@@ -212,6 +220,42 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
     expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.uid).toBe("cli-logged-uid");
+    expect(server.updates[0]?.posterUrl).toBe("https://example.com/dune-poster.jpg");
+  });
+
+  // #149: a title matched with director/actors/genre/year but no poster
+  // (OMDb had none at the time, or the match predates this field) used
+  // to read as fully "matched" and Refresh permanently no-opped with
+  // "already up to date" — there was no way to ever pick up a poster
+  // for it, even on the details page.
+  test("refresh still reaches OMDb for a matched title that's missing only its poster", async ({
+    page,
+  }) => {
+    const matchedNoPoster = { ...DUNE, imdbId: "tt1160419" };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [matchedNoPoster]);
+    await connect(page, "test-omdb-key");
+
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Some Stale Director",
+          Poster: "https://example.com/dune-poster.jpg",
+          imdbID: "tt1160419",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+    expect(omdbCalls).toBeGreaterThan(0);
+    expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.posterUrl).toBe("https://example.com/dune-poster.jpg");
   });
 
@@ -366,7 +410,11 @@ test.describe("refreshing OMDb metadata from the overview", () => {
   // (still always offered) — that's the deliberate, spec'd way to
   // correct one title's stale match.
   test("refresh all skips titles that already have matched metadata", async ({ page }) => {
-    const already = { ...DUNE, imdbId: "tt1160419" };
+    const already = {
+      ...DUNE,
+      imdbId: "tt1160419",
+      posterUrl: "https://example.com/dune-poster.jpg",
+    };
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [already, PADDINGTON]);
     await connect(page, "test-omdb-key");
 
@@ -397,7 +445,11 @@ test.describe("refreshing OMDb metadata from the overview", () => {
   test("no Refresh all control appears when every title on the page already has matched metadata", async ({
     page,
   }) => {
-    const already = { ...DUNE, imdbId: "tt1160419" };
+    const already = {
+      ...DUNE,
+      imdbId: "tt1160419",
+      posterUrl: "https://example.com/dune-poster.jpg",
+    };
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [already]);
     await connect(page, "test-omdb-key");
 
@@ -524,6 +576,7 @@ test.describe("refreshing OMDb metadata from the overview", () => {
           body: JSON.stringify({
             Response: "True",
             Director: "Some Director",
+            Poster: "https://example.com/poster.jpg",
             imdbID: "tt0000000",
             Ratings: [],
           }),
