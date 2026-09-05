@@ -5,7 +5,8 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import { importCheckRange } from "../lib/movie-log/run-import";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
-import { toDateInputValue } from "../lib/ui/datetime";
+// biome-ignore lint/correctness/noUnusedImports: formatTime is used in the template below, which Biome does not parse for .svelte files
+import { formatTime, toDateInputValue } from "../lib/ui/datetime";
 import { groupViewingsByLocalDay } from "../lib/ui/heatmap";
 
 // #198/#204: a GitHub-contribution-style heatmap of viewing density
@@ -109,10 +110,39 @@ function cellLabel(day: string, count: number): string {
 	return `${day}: ${count} viewing${count === 1 ? "" : "s"}`;
 }
 
+// Positions the dialog next to the cell the visitor actually clicked,
+// not the browser's default centered placement — a popup appearing far
+// from what was clicked reads as unrelated to it. Measured and clamped
+// after showModal() so the dialog's own real rendered size (which
+// depends on how many viewings it lists) is what's used, not a guess.
+function positionNear(trigger: HTMLElement) {
+	if (!dialogEl) return;
+	const triggerRect = trigger.getBoundingClientRect();
+	const dialogRect = dialogEl.getBoundingClientRect();
+	const margin = 8;
+	let top = triggerRect.bottom + margin;
+	if (top + dialogRect.height > window.innerHeight - margin) {
+		top = triggerRect.top - dialogRect.height - margin;
+	}
+	top = Math.min(
+		Math.max(margin, top),
+		Math.max(margin, window.innerHeight - dialogRect.height - margin),
+	);
+	let left = triggerRect.left;
+	left = Math.min(
+		Math.max(margin, left),
+		Math.max(margin, window.innerWidth - dialogRect.width - margin),
+	);
+	dialogEl.style.margin = "0";
+	dialogEl.style.top = `${top}px`;
+	dialogEl.style.left = `${left}px`;
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function openDay(day: string) {
+function openDay(day: string, event: MouseEvent) {
 	selectedDay = day;
 	dialogEl?.showModal();
+	positionNear(event.currentTarget as HTMLElement);
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -163,7 +193,7 @@ load();
               class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
               aria-label={cellLabel(day, count)}
               title={cellLabel(day, count)}
-              onclick={() => openDay(day)}
+              onclick={(event) => openDay(day, event)}
             ></button>
           {:else}
             <span
@@ -194,16 +224,35 @@ the dialog element itself, not the inner content div. -->
     <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">{selectedDay}</h2>
     <ul class="flex flex-col gap-2">
       {#each selectedViewings as viewing (viewing.uid)}
-        <li>
-          <a
-            href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
-            class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          >
-            {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
-          </a>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
-            {viewing.medium}{viewing.venue ? ` · ${viewing.venue}` : ""}
-          </p>
+        <li class="flex gap-3">
+          {#if viewing.posterUrl}
+            <img
+              src={viewing.posterUrl}
+              alt=""
+              class="h-16 w-11 flex-none rounded object-cover shadow-sm"
+            />
+          {/if}
+          <div class="flex flex-col gap-0.5">
+            <a
+              href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
+              class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+            >
+              {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
+            </a>
+            <p class="text-sm text-slate-600 dark:text-slate-400">
+              {formatTime(viewing.start)}–{formatTime(viewing.end)} · {viewing.medium}{viewing.venue
+                ? ` · ${viewing.venue}`
+                : ""}
+            </p>
+            {#if viewing.director || viewing.genre}
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {[viewing.director, viewing.genre].filter(Boolean).join(" · ")}
+              </p>
+            {/if}
+            {#if viewing.ratingImdb}
+              <p class="text-xs text-slate-500 dark:text-slate-400">IMDb {viewing.ratingImdb}</p>
+            {/if}
+          </div>
         </li>
       {/each}
     </ul>
