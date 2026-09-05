@@ -50,6 +50,39 @@ describe("lookupMovie", () => {
     });
   });
 
+  test("returns a synopsis from OMDb's own full plot, requested via plot=full", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("plot=full");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          imdbID: "tt1160419",
+          Plot: "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset.",
+          Ratings: [],
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await lookupMovie("test-key", "Dune");
+
+    expect(result?.synopsis).toBe(
+      "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset.",
+    );
+  });
+
+  test('omits synopsis when OMDb has none ("N/A")', async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ Response: "True", imdbID: "tt1160419", Plot: "N/A", Ratings: [] }),
+        { status: 200 },
+      )) as unknown as typeof fetch;
+
+    const result = await lookupMovie("test-key", "Dune");
+
+    expect(result?.synopsis).toBeUndefined();
+  });
+
   test("tries a year-scoped search first when a year is given", async () => {
     globalThis.fetch = (async (url: URL) => {
       expect(url.toString()).toContain("y=2021");

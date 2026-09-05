@@ -16,8 +16,8 @@ export interface CaldavConfig {
 //   LOCATION       -> venue
 //   X-MEDIUM       -> medium
 //   X-DIRECTOR, X-ACTORS, X-RATING-IMDB, X-RATING-ROTTEN-TOMATOES,
-//   X-RATING-METACRITIC, X-GENRE, X-YEAR, X-POSTER-URL, X-IMDB-ID ->
-//   OMDb-enriched metadata, all optional
+//   X-RATING-METACRITIC, X-GENRE, X-YEAR, X-POSTER-URL, X-IMDB-ID,
+//   X-SYNOPSIS -> OMDb-enriched metadata, all optional
 //   X-BOOKING-REF -> the Pathé booking number, when logged from an email —
 //     what a re-submission is matched against, per the movie-log spec's
 //     "Re-submitted booking confirmation" scenario
@@ -37,6 +37,7 @@ export interface LoggedViewing {
   year?: string;
   posterUrl?: string;
   imdbId?: string;
+  synopsis?: string;
   bookingRef?: string;
   // #79: OMDb has no Letterboxd data at all — this app never sets these
   // itself. They only ever arrive via ical.ts's DESCRIPTION fallback,

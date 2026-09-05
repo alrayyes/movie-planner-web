@@ -17,6 +17,7 @@ const X_PROPERTIES: Record<string, keyof NewViewing> = {
   "X-YEAR": "year",
   "X-POSTER-URL": "posterUrl",
   "X-IMDB-ID": "imdbId",
+  "X-SYNOPSIS": "synopsis",
   "X-BOOKING-REF": "bookingRef",
   "X-LETTERBOXD-URL": "letterboxdUrl",
   "X-LETTERBOXD-RATING": "letterboxdRating",

@@ -452,6 +452,10 @@ reloadOnBfcacheRestore(() => void load());
                 </div>
               </dd>
             {/if}
+            {#if viewing.synopsis}
+              <dt class={DT}>Synopsis</dt>
+              <dd class={DD}>{viewing.synopsis}</dd>
+            {/if}
             {#if viewing.notes}
               <dt class={DT}>Notes</dt>
               <dd class={DD}>{viewing.notes}</dd>
