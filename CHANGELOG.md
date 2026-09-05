@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.48.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.47.0...movie-planner-web-v0.48.0) (2026-09-05)
+
+
+### Features
+
+* **docs:** generate light/dark screenshots in CI, show them in README ([#197](https://github.com/alrayyes/movie-planner-web/issues/197)) ([9e071db](https://github.com/alrayyes/movie-planner-web/commit/9e071dbe30160795fc2b843e4656065e1b48d6dc)), closes [#195](https://github.com/alrayyes/movie-planner-web/issues/195)
+
 ## [0.47.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.46.1...movie-planner-web-v0.47.0) (2026-09-05)
 
 
