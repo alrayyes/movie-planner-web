@@ -1,4 +1,4 @@
-import { listViewings, updateViewing } from "../lib/caldav/client";
+import { getViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
@@ -429,13 +429,25 @@ export class CalendarOverview extends HTMLElement {
   private async handleRefresh(viewing: LoggedViewing) {
     if (!this.config || !this.omdbActive || !this.omdbApiKey || !this.actionStatusEl) return;
     try {
+      // #91: re-check the calendar entry itself first — it may have
+      // been matched elsewhere (the CLI's own sync, another tab/device)
+      // since this list was loaded, and only what's still actually
+      // missing from it should ever reach OMDb. Everything below reads
+      // and writes on top of this fresh copy, not the possibly-stale
+      // `viewing` argument.
+      const current = (await getViewing(this.config, viewing.uid)) ?? viewing;
+      if (hasOmdbMetadata(current)) {
+        await this.reload();
+        this.actionStatusEl.textContent = "Already up to date.";
+        return;
+      }
       const metadata = await lookupMovie(
         this.omdbApiKey,
-        viewing.title,
-        new Date(viewing.start).getFullYear().toString(),
+        current.title,
+        new Date(current.start).getFullYear().toString(),
       );
       if (metadata) {
-        await updateViewing(this.config, viewing.uid, { ...viewing, ...metadata });
+        await updateViewing(this.config, current.uid, { ...current, ...metadata });
         await this.reload();
         this.actionStatusEl.textContent = "Refreshed.";
         return;
@@ -443,9 +455,9 @@ export class CalendarOverview extends HTMLElement {
       // #49: no single confident match — offer a disambiguation picker
       // if OMDb's search has candidates, rather than reporting no match
       // outright.
-      const candidates = await searchMovies(this.omdbApiKey, viewing.title);
+      const candidates = await searchMovies(this.omdbApiKey, current.title);
       if (candidates.length > 0) {
-        this.showOmdbPicker(viewing, candidates);
+        this.showOmdbPicker(current, candidates);
         return;
       }
       this.actionStatusEl.textContent = "OMDb had no match for this title.";
