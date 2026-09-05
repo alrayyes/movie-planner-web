@@ -206,6 +206,29 @@ test.describe("calendar overview", () => {
     );
   });
 
+  // #140: sourced from the union of the location-management picklist and
+  // whatever medium values are actually on the loaded viewings — a
+  // CLI-logged medium never typed into this app's log form is still real
+  // data worth suggesting, same reasoning as #116's venue-count fix.
+  test("offers medium autocomplete from the picklist and from loaded viewings", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON], {
+      media: ["blu-ray"],
+      venues: [],
+    });
+    await connect(page);
+
+    const options = await page
+      .locator("#overview-medium-choices option")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
+    expect(options.sort()).toEqual(["blu-ray", "cinema", "netflix"]);
+    await expect(page.locator("#overview-medium")).toHaveAttribute(
+      "list",
+      "overview-medium-choices",
+    );
+  });
+
   // #131
   test("filters by venue client-side, over whatever the date range already returned", async ({
     page,

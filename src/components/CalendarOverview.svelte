@@ -1,5 +1,5 @@
 <script lang="ts">
-import { getViewing, listViewings, updateViewing } from "../lib/caldav/client";
+import { getPicklists, getViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { exportFilename, exportViewingsToJson } from "../lib/movie-log/export-viewings";
 import { importCheckRange } from "../lib/movie-log/run-import";
@@ -58,6 +58,16 @@ const { config, omdbApiKey, omdbPaused = false }: Props = $props();
 const omdbActive = $derived(Boolean(omdbApiKey) && !omdbPaused);
 
 let allViewings = $state<LoggedViewing[]>([]);
+// #140: the location-management picklist alone misses a medium that
+// was only ever logged via the CLI, never typed into this app's own
+// log form — same gap #116 fixed for the venues page's counts, here
+// as the medium filter's autocomplete suggestions.
+let mediumPicklist = $state<string[]>([]);
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const mediumOptions = $derived.by(() => {
+	const fromViewings = allViewings.map((v) => v.medium);
+	return [...new Set([...mediumPicklist, ...fromViewings])].sort();
+});
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let statusText = $state("");
 // Separate from statusText (the result count, rewritten on every
@@ -309,6 +319,9 @@ async function handleRefreshAll() {
 }
 
 reload();
+getPicklists(config).then((picklists) => {
+	mediumPicklist = picklists.media;
+});
 </script>
 
 <div class="flex flex-col gap-4">
@@ -332,8 +345,14 @@ reload();
         type="text"
         id="overview-medium"
         placeholder="e.g. cinema"
+        list="overview-medium-choices"
         bind:value={mediumValue}
       />
+      <datalist id="overview-medium-choices">
+        {#each mediumOptions as medium (medium)}
+          <option value={medium}></option>
+        {/each}
+      </datalist>
     </label>
     <label class={FIELD_WRAPPER} for="overview-venue">
       <span class={LABEL}>Venue</span>
