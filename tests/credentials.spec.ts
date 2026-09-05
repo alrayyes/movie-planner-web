@@ -101,4 +101,19 @@ test.describe("settings screen", () => {
     await page.reload();
     await expect(page.locator("#caldav-password")).toHaveValue("a new password");
   });
+
+  // #80: the pause checkbox is a real, persisted setting like every other
+  // field here, not just an in-page toggle.
+  test("pausing OMDb lookups on the settings screen persists across reload", async ({ page }) => {
+    await connect(page, "test-omdb-key");
+    await page.goto("/settings");
+
+    await expect(page.locator("#omdb-paused")).not.toBeChecked();
+    await page.locator("#omdb-paused").check();
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+
+    await page.reload();
+    await expect(page.locator("#omdb-paused")).toBeChecked();
+  });
 });

@@ -30,13 +30,14 @@ Booking number
 N°ABC123456
 `;
 
-async function connect(page: Page, omdbApiKey?: string) {
+async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   if (omdbApiKey) await page.locator("#omdb-api-key").fill(omdbApiKey);
+  if (omdbPaused) await page.locator("#omdb-paused").check();
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
   await page.getByRole("link", { name: "Log a viewing" }).click();
@@ -181,6 +182,33 @@ test.describe("OMDb enrichment", () => {
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
     expect(server.creates[0]?.ratingImdb).toBeUndefined();
+  });
+
+  // #80: a stored key that's paused makes no OMDb call at all — this
+  // asserts the network side, not just the resulting fields, since a
+  // fetch that happens to find nothing would look identical from the
+  // saved viewing alone.
+  test("makes no OMDb request while lookups are paused, even with a key set", async ({ page }) => {
+    const server = await connect(page, "test-omdb-key", true);
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False" }),
+      });
+    });
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(omdbCalls).toBe(0);
+    expect(server.creates[0]?.ratingImdb).toBeUndefined();
+    await expect(page.getByLabel("Choose the matching title")).toHaveCount(0);
   });
 
   test("offers a disambiguation picker when there's no confident match, and attaches the chosen candidate", async ({

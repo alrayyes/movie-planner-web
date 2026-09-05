@@ -27,7 +27,10 @@ async function enrichWithOmdb(
   title: string,
   watchedAt: string,
 ): Promise<OmdbEnrichment> {
-  if (!credentials.omdbApiKey) return { fields: {} };
+  // #80: a visitor can pause OMDb lookups without clearing the stored
+  // key, to stay under OMDb's 1,000-request/day free-tier limit while
+  // logging or importing a batch — treated identically to no key set.
+  if (!credentials.omdbApiKey || credentials.omdbPaused) return { fields: {} };
   try {
     const year = new Date(watchedAt).getFullYear().toString();
     const metadata = await lookupMovie(credentials.omdbApiKey, title, year);

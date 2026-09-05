@@ -56,3 +56,4 @@ Traefik
 middlewares?
 configs?
 frontmatter
+lookups?

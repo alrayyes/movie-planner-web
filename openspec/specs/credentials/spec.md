@@ -47,3 +47,21 @@ key set, and SHALL NOT block CalDAV functionality on its absence.
 
 - **WHEN** a visitor logs a viewing without an OMDb API key stored
 - **THEN** the system SHALL save the viewing without ratings enrichment rather than failing the submission
+
+### Requirement: OMDb lookups can be paused without clearing the key
+
+The system SHALL let a visitor pause OMDb lookups independently of the
+stored API key, so they can stay under OMDb's daily rate limit while
+logging or importing a batch of viewings, and SHALL treat "paused" the
+same as "no key set" for every action that calls OMDb (logging, single
+refresh, refresh all) — no network request to OMDb at all while paused.
+
+#### Scenario: Logging while paused
+
+- **WHEN** a visitor has an OMDb API key stored but has paused lookups, and logs a viewing
+- **THEN** the system SHALL save the viewing without an OMDb call and without a disambiguation picker
+
+#### Scenario: Refresh controls hidden while paused
+
+- **WHEN** a visitor has paused OMDb lookups
+- **THEN** the overview and movie-details pages SHALL NOT show a Refresh or Refresh-all control, the same as if no key were set

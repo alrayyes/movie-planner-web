@@ -58,13 +58,18 @@ export class CredentialsGate extends HTMLElement {
     nav.append(logLink, importLink, link);
 
     const overview = document.createElement("calendar-overview");
-    (overview as unknown as { config: CaldavConfig; omdbApiKey?: string }).config = {
+    const overviewProps = overview as unknown as {
+      config: CaldavConfig;
+      omdbApiKey?: string;
+      omdbPaused?: boolean;
+    };
+    overviewProps.config = {
       baseUrl: credentials.caldavUrl,
       username: credentials.caldavUsername,
       password: credentials.caldavPassword,
     };
-    (overview as unknown as { config: CaldavConfig; omdbApiKey?: string }).omdbApiKey =
-      credentials.omdbApiKey;
+    overviewProps.omdbApiKey = credentials.omdbApiKey;
+    overviewProps.omdbPaused = credentials.omdbPaused;
 
     this.append(nav, overview);
   }
@@ -97,6 +102,7 @@ export function buildCredentialsForm(options: {
       values?.omdbApiKey ?? "",
       false,
     ),
+    omdbPausedField(values?.omdbPaused ?? false),
   );
 
   const submit = document.createElement("button");
@@ -106,6 +112,33 @@ export function buildCredentialsForm(options: {
   form.appendChild(submit);
 
   return form;
+}
+
+// #80: a checkbox, not the text-input labelledField shape — plus an
+// inline hint (this app's whole UI has no popover/tooltip mechanism, so
+// a plain caption line under the control is the "explain this" pattern
+// used everywhere else, e.g. the Pathé-email field's own label text).
+function omdbPausedField(checked: boolean): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = FIELD_WRAPPER;
+  const row = document.createElement("label");
+  row.className = "flex items-center gap-2";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = "omdb-paused";
+  input.name = "omdb-paused";
+  input.checked = checked;
+  const text = document.createElement("span");
+  text.className = LABEL;
+  text.textContent = "Pause OMDb lookups";
+  row.append(input, text);
+  const hint = document.createElement("p");
+  hint.className = "text-xs text-slate-500 dark:text-slate-400";
+  hint.textContent =
+    "OMDb's free tier allows 1,000 requests a day. Pause this while logging or " +
+    "importing a batch of viewings, then turn it back on and refresh deliberately.";
+  wrapper.append(row, hint);
+  return wrapper;
 }
 
 function labelledField(
@@ -140,5 +173,6 @@ export function readCredentialsForm(form: HTMLFormElement): Credentials {
     caldavUsername: String(data.get("caldav-username") ?? "").trim(),
     caldavPassword: String(data.get("caldav-password") ?? ""),
     ...(omdbApiKey ? { omdbApiKey } : {}),
+    ...(data.get("omdb-paused") ? { omdbPaused: true } : {}),
   };
 }
