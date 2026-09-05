@@ -1,5 +1,4 @@
-import "./calendar-overview";
-import type { CaldavConfig } from "../lib/caldav/types";
+import { mount } from "svelte";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import {
@@ -11,6 +10,7 @@ import {
   NAV,
   NAV_LINK,
 } from "../lib/ui/classes";
+import CalendarOverview from "./CalendarOverview.svelte";
 
 // The first thing a visitor with no stored credentials sees, and what a
 // returning visitor's stored credentials skip past — see the `credentials`
@@ -61,21 +61,25 @@ export class CredentialsGate extends HTMLElement {
     link.textContent = "Settings";
     nav.append(logLink, importLink, venuesLink, link);
 
-    const overview = document.createElement("calendar-overview");
-    const overviewProps = overview as unknown as {
-      config: CaldavConfig;
-      omdbApiKey?: string;
-      omdbPaused?: boolean;
-    };
-    overviewProps.config = {
-      baseUrl: credentials.caldavUrl,
-      username: credentials.caldavUsername,
-      password: credentials.caldavPassword,
-    };
-    overviewProps.omdbApiKey = credentials.omdbApiKey;
-    overviewProps.omdbPaused = credentials.omdbPaused;
-
-    this.append(nav, overview);
+    const overviewTarget = document.createElement("div");
+    this.append(nav, overviewTarget);
+    // #102: an Astro/Svelte island mounted imperatively rather than
+    // through an Astro page's own client directive — this element
+    // decides at runtime, from stored credentials, whether the
+    // overview mounts at all, which a static client:only slot can't
+    // express.
+    mount(CalendarOverview, {
+      target: overviewTarget,
+      props: {
+        config: {
+          baseUrl: credentials.caldavUrl,
+          username: credentials.caldavUsername,
+          password: credentials.caldavPassword,
+        },
+        omdbApiKey: credentials.omdbApiKey,
+        omdbPaused: credentials.omdbPaused,
+      },
+    });
   }
 }
 

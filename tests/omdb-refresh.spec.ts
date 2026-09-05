@@ -397,4 +397,62 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.title).toBe("Dune");
   });
+
+  // #97
+  test.describe("busy state while a refresh is in flight", () => {
+    test("the per-row refresh button is disabled and marks its row busy until the request resolves", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      await connect(page, "test-omdb-key");
+
+      await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+        // Artificial delay — long enough that a mid-flight assertion is
+        // reliably still mid-flight, not a race against an instant response.
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "True", imdbID: "tt1160419", Ratings: [] }),
+        });
+      });
+
+      const button = page.getByRole("button", { name: "Refresh metadata" });
+      const row = page.locator("tbody tr");
+      await expect(row).not.toHaveAttribute("aria-busy", "true");
+
+      await button.click();
+
+      await expect(button).toBeDisabled();
+      await expect(row).toHaveAttribute("aria-busy", "true");
+
+      await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+      await expect(row).not.toHaveAttribute("aria-busy", "true");
+    });
+
+    test("the bulk refresh button is disabled and busy until the whole batch resolves", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+      await connect(page, "test-omdb-key");
+
+      await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "True", imdbID: "tt0000000", Ratings: [] }),
+        });
+      });
+
+      const button = page.getByRole("button", { name: "Refresh all metadata" });
+      await button.click();
+
+      await expect(button).toBeDisabled();
+      await expect(button).toHaveAttribute("aria-busy", "true");
+
+      await expect(page.getByRole("status").last()).toHaveText("Refreshed 2 of 2.");
+      await expect(button).toHaveCount(0); // both titles now matched — control hides itself (#89)
+    });
+  });
 });
