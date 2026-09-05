@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.45.0...movie-planner-web-v0.46.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** default From/To to the visitor's own history ([#189](https://github.com/alrayyes/movie-planner-web/issues/189)) ([fb642ce](https://github.com/alrayyes/movie-planner-web/commit/fb642ce0bf1068d7ac4bbf64d48e4571fff84b10)), closes [#188](https://github.com/alrayyes/movie-planner-web/issues/188)
+
 ## [0.45.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.44.0...movie-planner-web-v0.45.0) (2026-09-05)
 
 
