@@ -150,6 +150,11 @@ itself even though it was never typed into this app's own log form.
 - **WHEN** a visitor opens the overview with a `venue` query parameter set
 - **THEN** the system SHALL populate the venue filter field with that value and show only logged viewings at that venue
 
+#### Scenario: Arriving with a carried-over date range
+
+- **WHEN** a visitor opens the overview with `from` and `to` query parameters set
+- **THEN** the system SHALL populate the From and To filter fields with those values instead of its own default range, so a link from elsewhere in the app (the venues page's own count, for one) lands on the same result set it was drawn from
+
 ### Requirement: Overview reflects the visitor's own calendar
 
 The system SHALL populate the overview from the CalDAV calendar

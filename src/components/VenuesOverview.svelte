@@ -42,6 +42,14 @@ let toValue = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
 let venueCounts = $state<{ venue: string; count: number }[]>([]);
+// #146: the exact range that produced the counts currently on screen —
+// not just whatever's typed into fromValue/toValue right now, which can
+// differ from what's loaded until "Filter" is clicked. A venue link
+// needs to carry this so the overview it lands on shows the same
+// viewings the count was drawn from, rather than falling back to its
+// own much narrower default window.
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+let loadedRange = $state<{ from: string; to: string } | null>(null);
 
 function currentRange(): { from: string; to: string } {
 	const wide = importCheckRange();
@@ -49,6 +57,13 @@ function currentRange(): { from: string; to: string } {
 		from: fromValue ? new Date(fromValue).toISOString() : wide.from,
 		to: toValue ? new Date(toValue).toISOString() : wide.to,
 	};
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+function toDateInputValue(iso: string): string {
+	const d = new Date(iso);
+	const pad = (n: number) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 async function load() {
@@ -63,9 +78,11 @@ async function load() {
 		password: credentials.caldavPassword,
 	};
 	try {
+		const range = currentRange();
+		loadedRange = range;
 		const [{ venues }, viewings] = await Promise.all([
 			getPicklists(config),
-			listViewings(config, currentRange()),
+			listViewings(config, range),
 		]);
 		const counts = new Map<string, number>(venues.map((venue) => [venue, 0]));
 		for (const viewing of viewings) {
@@ -132,11 +149,19 @@ load();
           {#each venueCounts as { venue, count } (venue)}
             <tr class={TR_BODY}>
               <td class={TD}>
-                <!-- #131: the overview's own venue filter reads this
-                same `venue` query param on load — see
-                CalendarOverview.svelte's own venueValue init. -->
+                <!-- #131/#146: the overview's own venue filter reads
+                the `venue` query param on load, and its From/To fields
+                read `from`/`to` the same way — see
+                CalendarOverview.svelte's own venueValue/fromValue/
+                toValue init. Without carrying the range, the link would
+                land on the overview's own much narrower default window
+                instead of the one that produced this count. -->
                 <a
-                  href={`/?venue=${encodeURIComponent(venue)}`}
+                  href={`/?venue=${encodeURIComponent(venue)}${
+                    loadedRange
+                      ? `&from=${toDateInputValue(loadedRange.from)}&to=${toDateInputValue(loadedRange.to)}`
+                      : ""
+                  }`}
                   class="text-indigo-600 hover:underline dark:text-indigo-400"
                 >
                   {venue}
