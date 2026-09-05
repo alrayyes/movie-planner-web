@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.54.0...movie-planner-web-v0.54.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **calendar-heatmap:** make empty cells visible in dark mode ([#231](https://github.com/alrayyes/movie-planner-web/issues/231)) ([dee2f78](https://github.com/alrayyes/movie-planner-web/commit/dee2f786d31e0a33850f2faba0e9439aacf84c2b)), closes [#230](https://github.com/alrayyes/movie-planner-web/issues/230)
+
 ## [0.54.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.53.0...movie-planner-web-v0.54.0) (2026-09-05)
 
 
