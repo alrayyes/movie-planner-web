@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.52.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.51.0...movie-planner-web-v0.52.0) (2026-09-05)
+
+
+### Features
+
+* **calendar:** add month labels, popup instead of navigation ([#215](https://github.com/alrayyes/movie-planner-web/issues/215)) ([dcd6e38](https://github.com/alrayyes/movie-planner-web/commit/dcd6e38c51f2064078d7217545d1a58837a73d28))
+
 ## [0.51.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.50.0...movie-planner-web-v0.51.0) (2026-09-05)
 
 
