@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.35.0...movie-planner-web-v0.35.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **site-nav:** show the nav menu on every page, not just home ([#128](https://github.com/alrayyes/movie-planner-web/issues/128)) ([13c3d1b](https://github.com/alrayyes/movie-planner-web/commit/13c3d1bd5909e4edbc548500ef007e4507644e06)), closes [#127](https://github.com/alrayyes/movie-planner-web/issues/127)
+
 ## [0.35.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.34.0...movie-planner-web-v0.35.0) (2026-09-05)
 
 
