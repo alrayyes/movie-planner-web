@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.33.0...movie-planner-web-v0.34.0) (2026-09-05)
+
+
+### Features
+
+* **bulk-import:** export viewings as JSON, import OMDb fields and update-by-uid ([#122](https://github.com/alrayyes/movie-planner-web/issues/122)) ([f93e868](https://github.com/alrayyes/movie-planner-web/commit/f93e8688507f116e7e77e80025708469bc8373be)), closes [#69](https://github.com/alrayyes/movie-planner-web/issues/69)
+
 ## [0.33.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.32.2...movie-planner-web-v0.33.0) (2026-09-05)
 
 
