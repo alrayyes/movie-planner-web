@@ -276,11 +276,21 @@ init();
         </div>
       </form>
     {:else}
+      <!-- #153: RT never has a real per-title ID (OMDb exposes no such
+      thing), so its link always reads as a plain search — but IMDb and
+      Letterboxd normally look like a confirmed match, and without a
+      gap indicator there's no way to tell that one from a constructed
+      search guessing off the title alone. -->
       {@const links = [
-        viewing.imdbId ? { label: 'IMDb', href: imdbUrl(viewing.imdbId) } : null,
+        viewing.imdbId
+          ? { label: 'IMDb', href: imdbUrl(viewing.imdbId) }
+          : { label: 'IMDb not linked', href: undefined },
         { label: 'RT', href: rottenTomatoesSearchUrl(viewing.title) },
-        { label: 'Letterboxd', href: letterboxdHref(viewing) },
-      ].filter((l) => l !== null)}
+        {
+          label: viewing.letterboxdUrl ? 'Letterboxd' : 'Letterboxd (search)',
+          href: letterboxdHref(viewing),
+        },
+      ]}
       {@const ratings = [
         viewing.ratingImdb && `IMDb ${viewing.ratingImdb}`,
         viewing.ratingRottenTomatoes && `RT ${viewing.ratingRottenTomatoes}`,
@@ -314,22 +324,22 @@ init();
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
           </h1>
-          {#if links.length > 0}
-            <div class="flex gap-3 text-sm">
-              {#each links as link (link?.label)}
-                {#if link}
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-indigo-600 hover:underline dark:text-indigo-400"
-                  >
-                    {link.label}
-                  </a>
-                {/if}
-              {/each}
-            </div>
-          {/if}
+          <div class="flex gap-3 text-sm">
+            {#each links as link (link.label)}
+              {#if link.href}
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {link.label}
+                </a>
+              {:else}
+                <span class="text-slate-400 dark:text-slate-500">{link.label}</span>
+              {/if}
+            {/each}
+          </div>
           <dl class={DL}>
             {#each fields as [term, value] (term)}
               {#if value}

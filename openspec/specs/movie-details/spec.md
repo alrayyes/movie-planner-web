@@ -28,6 +28,11 @@ cross-links the overview shows.
 - **AND WHEN** a viewing has no notes
 - **THEN** the details page SHALL show no notes field at all, rather than an empty one
 
+#### Scenario: IMDb/Letterboxd flagged as not linked without a real match
+
+- **WHEN** a visitor opens a logged viewing's details page and it has no real `imdbId` and/or no real `letterboxdUrl` (only a constructed search link)
+- **THEN** the system SHALL show "IMDb not linked" as plain text in place of the omitted IMDb link, and/or label the Letterboxd link "Letterboxd (search)", so a visitor can tell a confirmed match from a guess
+
 ### Requirement: Details page offers edit, refresh, and delete
 
 The system SHALL let a visitor edit the viewing's own fields, refresh

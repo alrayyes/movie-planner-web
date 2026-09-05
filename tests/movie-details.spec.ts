@@ -176,6 +176,42 @@ test.describe("movie details page", () => {
     await expect(picker).toHaveCount(0);
   });
 
+  // #153: a constructed search link (the only kind ever offered for RT,
+  // and the fallback for Letterboxd without a real URL) looks identical
+  // to a confirmed match unless it says otherwise — a visitor has no way
+  // to tell "this is definitely the right title" from "this is a guess".
+  test("flags IMDb and Letterboxd as not linked when the viewing has no real match for either", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune" }).click();
+
+    await expect(page.getByRole("link", { name: "IMDb" })).toHaveCount(0);
+    await expect(page.getByText("IMDb not linked")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Letterboxd (search)" })).toHaveAttribute(
+      "href",
+      "https://letterboxd.com/search/Dune/",
+    );
+  });
+
+  test("shows a plain IMDb/Letterboxd link once each has a real match, no gap indicator", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, letterboxdUrl: "https://letterboxd.com/film/dune-2021/" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "IMDb", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Letterboxd", exact: true })).toHaveAttribute(
+      "href",
+      "https://letterboxd.com/film/dune-2021/",
+    );
+    await expect(page.getByText("not linked")).toHaveCount(0);
+  });
+
   test("a missing uid shows a clear not-found state, not an error", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
