@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.35.1...movie-planner-web-v0.35.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **integration:** give the CLI-import test enough time for a cold docker pull ([#134](https://github.com/alrayyes/movie-planner-web/issues/134)) ([8f13aa2](https://github.com/alrayyes/movie-planner-web/commit/8f13aa2277baf3598be234d979d0246299ad90bb))
+
 ## [0.35.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.35.0...movie-planner-web-v0.35.1) (2026-09-05)
 
 
