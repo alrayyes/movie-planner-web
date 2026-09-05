@@ -562,6 +562,50 @@ test.describe("refreshing OMDb metadata from the overview", () => {
       await expect(row).not.toHaveAttribute("aria-busy", "true");
     });
 
+    // #171: a single-row refresh used to re-run the same "Loading…" →
+    // "N logged viewings." cycle the initial page load and filter
+    // submit trigger — visibly flashing the count line for an action
+    // that has its own per-row spinner and its own "Refreshed."
+    // confirmation already, neither of which needed it.
+    test("refreshing a single row never flashes the overview's own count line", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      await connect(page, "test-omdb-key");
+
+      const countStatus = page.getByRole("status").first();
+      await expect(countStatus).toHaveText("1 logged viewing.");
+
+      await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ Response: "True", imdbID: "tt1160419", Ratings: [] }),
+        });
+      });
+      // Delays only the CalDAV re-fetch reload() itself triggers after a
+      // successful update — that's the exact window where the old code
+      // set statusText to "Loading…", so this is what makes the flash
+      // (if the fix regresses) reliably observable rather than a race
+      // against an instant response.
+      await page.route(`${CREDENTIALS["caldav-url"]}**`, async (route: Route) => {
+        if (route.request().method() !== "REPORT") return route.fallback();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await route.fallback();
+      });
+
+      await page.getByRole("button", { name: "Refresh metadata" }).click();
+      // Mid-flight, still inside the artificial 300ms CalDAV delay — a
+      // short assertion timeout so this actually checks the state at
+      // this moment rather than waiting out the delay for the text to
+      // read correctly again regardless.
+      await page.waitForTimeout(100);
+      await expect(countStatus).toHaveText("1 logged viewing.", { timeout: 100 });
+
+      await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+      await expect(countStatus).toHaveText("1 logged viewing.");
+    });
+
     test("the bulk refresh button is disabled and busy until the whole batch resolves", async ({
       page,
     }) => {

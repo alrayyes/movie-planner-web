@@ -119,6 +119,11 @@ assistive technology (`aria-busy`), not only visually.
 - **WHEN** a visitor clicks "Refresh all metadata"
 - **THEN** the system SHALL disable that control and mark it as busy until the whole batch resolves, then clear both
 
+#### Scenario: The overview's own count line is unaffected by a refresh
+
+- **WHEN** a visitor refreshes a single row or uses "Refresh all metadata"
+- **THEN** the system SHALL NOT change or momentarily replace the overview's own "N logged viewings" status line — feedback for the refresh comes from the row's busy state and the action's own result message, not from that unrelated line
+
 ### Requirement: Delete a logged viewing
 
 The system SHALL let a visitor delete an existing logged viewing,
