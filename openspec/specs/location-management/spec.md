@@ -27,6 +27,17 @@ when logging a viewing.
 - **WHEN** a visitor opens the log form and has previously added venues
 - **THEN** the system SHALL offer those venues as selectable choices
 
+### Requirement: Picklists usable when editing
+
+The system SHALL offer the visitor's stored venues as choices when
+editing a logged viewing's venue on the movie-details page, the same
+as the log form already does.
+
+#### Scenario: Editing with an existing venue
+
+- **WHEN** a visitor opens the edit form on the movie-details page and has previously added venues
+- **THEN** the system SHALL offer those venues as selectable choices for the venue field
+
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 
 The system SHALL treat a missing or unparsable sidecar VJOURNAL as an
