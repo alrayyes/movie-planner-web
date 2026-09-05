@@ -22,6 +22,14 @@ const { title, wide = false } = Astro.props;
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- #70: manifest.json drives the installed icon/splash on Android;
+    iOS Safari's "Add to Home Screen" reads neither the manifest nor
+    theme-color, only apple-touch-icon above plus these two meta tags. -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Movie Planner" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
