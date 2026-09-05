@@ -1,7 +1,27 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+
+const CREDENTIALS = {
+  "caldav-url": "https://caldav.example.com/calendars/me/movies/",
+  "caldav-username": "me",
+  "caldav-password": "secret",
+};
+
+async function connect(page: Page) {
+  await page.goto("/");
+  await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+  await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+  await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+  await page.getByRole("button", { name: "Connect" }).click();
+  // Credential storage is async — wait for its result to actually
+  // render before doing anything else, so a test that navigates away
+  // right after connect() isn't racing the write (same pattern every
+  // other spec file's own connect() helper already uses).
+  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+}
 
 // #66: the "Fork me on GitHub" ribbon — present on every page via
 // Layout.astro, so a single check on the unauthenticated home page
@@ -22,6 +42,45 @@ test.describe("Fork me on GitHub ribbon", () => {
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
+  });
+});
+
+// #127: used to only ever appear on the home page (built inside
+// credentials-gate.ts's own renderConnected()) — every other page had
+// no way to reach any other page except editing the URL.
+test.describe("site nav", () => {
+  test("appears immediately after connecting, without a page reload", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+
+    await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+    await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+    await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+    await page.getByRole("button", { name: "Connect" }).click();
+
+    await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  });
+
+  test("appears on a non-home page too, and its links work from there", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/privacy");
+
+    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveAttribute("href", "/log");
+    await expect(page.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/import");
+    await expect(page.getByRole("link", { name: "Venues" })).toHaveAttribute("href", "/venues");
+    await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+  });
+
+  test("doesn't appear before a visitor has connected", async ({ page }) => {
+    await page.goto("/privacy");
+
+    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
   });
 });
 

@@ -1,15 +1,7 @@
 import { mount } from "svelte";
-import { getCredentialsStore } from "../lib/credentials/store";
+import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
-import {
-  BUTTON_PRIMARY,
-  FIELD_WRAPPER,
-  FORM,
-  INPUT,
-  LABEL,
-  NAV,
-  NAV_LINK,
-} from "../lib/ui/classes";
+import { BUTTON_PRIMARY, FIELD_WRAPPER, FORM, INPUT, LABEL } from "../lib/ui/classes";
 import CalendarOverview from "./CalendarOverview.svelte";
 
 // The first thing a visitor with no stored credentials sees, and what a
@@ -34,6 +26,7 @@ export class CredentialsGate extends HTMLElement {
       event.preventDefault();
       const credentials = readCredentialsForm(form);
       await getCredentialsStore().save(credentials);
+      window.dispatchEvent(new Event(CREDENTIALS_CONNECTED_EVENT));
       this.renderConnected(credentials);
     });
     this.appendChild(form);
@@ -41,28 +34,11 @@ export class CredentialsGate extends HTMLElement {
 
   private renderConnected(credentials: Credentials) {
     this.innerHTML = "";
-    const nav = document.createElement("nav");
-    nav.className = NAV;
-    const logLink = document.createElement("a");
-    logLink.className = NAV_LINK;
-    logLink.href = "/log";
-    logLink.textContent = "Log a viewing";
-    const importLink = document.createElement("a");
-    importLink.className = NAV_LINK;
-    importLink.href = "/import";
-    importLink.textContent = "Import";
-    const venuesLink = document.createElement("a");
-    venuesLink.className = NAV_LINK;
-    venuesLink.href = "/venues";
-    venuesLink.textContent = "Venues";
-    const link = document.createElement("a");
-    link.className = NAV_LINK;
-    link.href = "/settings";
-    link.textContent = "Settings";
-    nav.append(logLink, importLink, venuesLink, link);
-
+    // #127: the nav (Log a viewing/Import/Venues/Settings) used to be
+    // built here — moved to <site-nav> (mounted once in Layout.astro)
+    // so it shows on every page, not just this one.
     const overviewTarget = document.createElement("div");
-    this.append(nav, overviewTarget);
+    this.append(overviewTarget);
     // #102: an Astro/Svelte island mounted imperatively rather than
     // through an Astro page's own client directive — this element
     // decides at runtime, from stored credentials, whether the
