@@ -2,7 +2,7 @@ import { deleteViewing, getViewing, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
-import { imdbUrl, letterboxdSearchUrl, rottenTomatoesSearchUrl } from "../lib/omdb/links";
+import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
   BUTTON_PRIMARY,
@@ -148,7 +148,7 @@ export class MovieDetails extends HTMLElement {
     const links = [
       viewing.imdbId && { label: "IMDb", href: imdbUrl(viewing.imdbId) },
       { label: "RT", href: rottenTomatoesSearchUrl(viewing.title) },
-      { label: "Letterboxd", href: letterboxdSearchUrl(viewing.title) },
+      { label: "Letterboxd", href: letterboxdHref(viewing) },
     ].filter((l): l is { label: string; href: string } => Boolean(l));
     const linkRow = document.createElement("div");
     linkRow.className = "flex gap-3 text-sm";
@@ -167,6 +167,9 @@ export class MovieDetails extends HTMLElement {
       viewing.ratingImdb && `IMDb ${viewing.ratingImdb}`,
       viewing.ratingRottenTomatoes && `RT ${viewing.ratingRottenTomatoes}`,
       viewing.ratingMetacritic && `Metacritic ${viewing.ratingMetacritic}`,
+      // #79: only ever set via the CalDAV DESCRIPTION fallback — OMDb has
+      // no Letterboxd data for this app to fetch itself.
+      viewing.letterboxdRating && `Letterboxd ${viewing.letterboxdRating}`,
     ]
       .filter(Boolean)
       .join(", ");

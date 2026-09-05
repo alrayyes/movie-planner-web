@@ -1,7 +1,7 @@
 import { deleteViewing, listViewings, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
-import { imdbUrl, letterboxdSearchUrl, rottenTomatoesSearchUrl } from "../lib/omdb/links";
+import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
   BUTTON_PRIMARY,
@@ -357,7 +357,7 @@ export class CalendarOverview extends HTMLElement {
     const links = [
       viewing.imdbId && { label: "IMDb", href: imdbUrl(viewing.imdbId) },
       { label: "RT", href: rottenTomatoesSearchUrl(viewing.title) },
-      { label: "Letterboxd", href: letterboxdSearchUrl(viewing.title) },
+      { label: "Letterboxd", href: letterboxdHref(viewing) },
     ].filter((l): l is { label: string; href: string } => Boolean(l));
     if (links.length > 0) {
       const linkRow = document.createElement("div");

@@ -14,3 +14,10 @@ export function rottenTomatoesSearchUrl(title: string): string {
 export function letterboxdSearchUrl(title: string): string {
   return `https://letterboxd.com/search/${encodeURIComponent(title)}/`;
 }
+
+// #79: prefers a real Letterboxd URL (only ever set via ical.ts's
+// DESCRIPTION fallback, reading what the movie-planner CLI already
+// wrote) over the constructed search this app falls back to without one.
+export function letterboxdHref(viewing: { title: string; letterboxdUrl?: string }): string {
+  return viewing.letterboxdUrl ?? letterboxdSearchUrl(viewing.title);
+}

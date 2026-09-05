@@ -38,6 +38,12 @@ export interface LoggedViewing {
   posterUrl?: string;
   imdbId?: string;
   bookingRef?: string;
+  // #79: OMDb has no Letterboxd data at all — this app never sets these
+  // itself. They only ever arrive via ical.ts's DESCRIPTION fallback,
+  // reading what the CLI already wrote (a real Letterboxd link, not the
+  // constructed search this app falls back to without one).
+  letterboxdUrl?: string;
+  letterboxdRating?: string;
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;

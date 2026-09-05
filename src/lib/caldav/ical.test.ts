@@ -64,6 +64,124 @@ describe("VEVENT round trip", () => {
   });
 });
 
+// #79: the movie-planner CLI writes only SUMMARY/LOCATION/DTSTART/DTEND/
+// DESCRIPTION — never this app's own X-* properties — with ratings and
+// links embedded as plain-text DESCRIPTION lines instead. A minimal
+// VEVENT built by hand here, not serializeViewingToVEvent (which never
+// writes a DESCRIPTION), since the point is exercising a CLI-shaped
+// event this app didn't write itself.
+function cliVEvent(uid: string, description: string): string {
+  const escaped = description.replace(/\n/g, "\\n");
+  return [
+    "BEGIN:VCALENDAR",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    "SUMMARY:Dune: Part Two",
+    "DTSTART:20260101T190000Z",
+    "DTEND:20260101T213000Z",
+    `DESCRIPTION:${escaped}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+describe("DESCRIPTION fallback for CLI-native events", () => {
+  test("rating-only IMDb line (the CLI's format before PR #93)", () => {
+    const parsed = parseVEventToViewing(cliVEvent("u1", "IMDb: 8.5/10"));
+    expect(parsed.ratingImdb).toBe("8.5/10");
+    expect(parsed.imdbId).toBeUndefined();
+  });
+
+  test("rating+link IMDb line (the CLI's format after PR #93)", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u2", "IMDb: 8.5/10 (https://www.imdb.com/title/tt1160419/)"),
+    );
+    expect(parsed.ratingImdb).toBe("8.5/10");
+    expect(parsed.imdbId).toBe("tt1160419");
+  });
+
+  test("link-only IMDb line", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u3", "IMDb: https://www.imdb.com/title/tt1160419/"),
+    );
+    expect(parsed.imdbId).toBe("tt1160419");
+    expect(parsed.ratingImdb).toBeUndefined();
+  });
+
+  test("Rotten Tomatoes and Metacritic lines", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u4", "Rotten Tomatoes: 91%\nMetacritic: 74/100"),
+    );
+    expect(parsed.ratingRottenTomatoes).toBe("91%");
+    expect(parsed.ratingMetacritic).toBe("74/100");
+  });
+
+  test("Letterboxd line without a rating", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u5", "Letterboxd: https://letterboxd.com/film/dune-part-two/"),
+    );
+    expect(parsed.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
+    expect(parsed.letterboxdRating).toBeUndefined();
+  });
+
+  test("Letterboxd line with a rating", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u6", "Letterboxd: https://letterboxd.com/film/dune-part-two/ (4.2)"),
+    );
+    expect(parsed.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
+    expect(parsed.letterboxdRating).toBe("4.2");
+  });
+
+  test("every line together, plus an unlabeled screening-details line that's ignored", () => {
+    const description = [
+      "IMDb: 8.5/10 (https://www.imdb.com/title/tt1160419/)",
+      "Rotten Tomatoes: 91%",
+      "Metacritic: 74/100",
+      "Letterboxd: https://letterboxd.com/film/dune-part-two/ (4.2)",
+      "Auditorium 3, Seat A12",
+    ].join("\n");
+    const parsed = parseVEventToViewing(cliVEvent("u7", description));
+    expect(parsed.ratingImdb).toBe("8.5/10");
+    expect(parsed.imdbId).toBe("tt1160419");
+    expect(parsed.ratingRottenTomatoes).toBe("91%");
+    expect(parsed.ratingMetacritic).toBe("74/100");
+    expect(parsed.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
+    expect(parsed.letterboxdRating).toBe("4.2");
+  });
+
+  test("a DESCRIPTION with none of these lines parses to no metadata, not a throw", () => {
+    const parsed = parseVEventToViewing(cliVEvent("u8", "Auditorium 3, Seat A12"));
+    expect(parsed.ratingImdb).toBeUndefined();
+    expect(parsed.imdbId).toBeUndefined();
+    expect(parsed.letterboxdUrl).toBeUndefined();
+  });
+
+  test("this app's own X-* properties win over DESCRIPTION when both are present", () => {
+    const ical = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:u9",
+      "SUMMARY:Dune: Part Two",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "DESCRIPTION:IMDb: 1.0/10",
+      "X-RATING-IMDB:8.5/10",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    expect(parseVEventToViewing(ical).ratingImdb).toBe("8.5/10");
+  });
+
+  test("a parsed Letterboxd field survives a subsequent write, same as any other OMDb-sourced field", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u10", "Letterboxd: https://letterboxd.com/film/dune-part-two/ (4.2)"),
+    );
+    const rewritten = parseVEventToViewing(serializeViewingToVEvent("u10", parsed));
+    expect(rewritten.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
+    expect(rewritten.letterboxdRating).toBe("4.2");
+  });
+});
+
 describe("parseViewingsFromMultistatus", () => {
   test("extracts every calendar-data block from a REPORT response", () => {
     const eventIcal = serializeViewingToVEvent("uid-1", VIEWING)
