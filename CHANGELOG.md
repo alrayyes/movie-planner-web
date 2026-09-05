@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.52.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.52.0...movie-planner-web-v0.52.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **calendar-heatmap:** open the popup near the clicked day, with more detail ([#220](https://github.com/alrayyes/movie-planner-web/issues/220)) ([724d436](https://github.com/alrayyes/movie-planner-web/commit/724d43655aed7608bdfdf35785369acb34903ecc)), closes [#219](https://github.com/alrayyes/movie-planner-web/issues/219)
+* **calendar-overview:** shrink the table's own mobile footprint ([#218](https://github.com/alrayyes/movie-planner-web/issues/218)) ([ef354bb](https://github.com/alrayyes/movie-planner-web/commit/ef354bb981c51740987b3f420e86a13a3207ffee)), closes [#217](https://github.com/alrayyes/movie-planner-web/issues/217)
+
 ## [0.52.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.51.0...movie-planner-web-v0.52.0) (2026-09-05)
 
 
