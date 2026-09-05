@@ -45,11 +45,15 @@ either appears on a logged viewing or is in the visitor's picklist (a
 CalDAV entry not logged through this app's own log form, such as one
 created by the CLI, carries a venue that was never typed into this
 app and so was never added to the picklist), alongside a count of
-logged viewings at that venue, computed over the visitor's whole
-history rather than the calendar overview's narrower default window.
-A venue with zero logged viewings SHALL still be listed, with a count
-of zero, rather than omitted. A venue appearing in both sources SHALL
-be listed exactly once.
+logged viewings at that venue, computed by default over the visitor's
+whole history rather than the calendar overview's narrower default
+window. A venue with zero logged viewings SHALL still be listed, with
+a count of zero, rather than omitted. A venue appearing in both
+sources SHALL be listed exactly once. The system SHALL let a visitor
+narrow the counted range with a From/To date filter, matching the
+calendar overview's own filter shape, and SHALL keep the visitor's
+entered filter values visible rather than resetting them after
+filtering.
 
 #### Scenario: Venues listed with counts
 

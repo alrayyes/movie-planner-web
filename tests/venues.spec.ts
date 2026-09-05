@@ -126,6 +126,59 @@ test.describe("venues overview", () => {
     await expect(rows.nth(0)).toContainText("1");
   });
 
+  // #123
+  test("a date-range filter narrows the counts, and clearing it returns to the whole-history default", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+        {
+          uid: "paddington-uid",
+          title: "Paddington",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.locator("tbody tr")).toContainText(["2"]);
+
+    // Narrow to a window covering only the one-month-ago viewing.
+    const from = new Date(ONE_MONTH_AGO.getTime() - 3 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    const to = new Date(ONE_MONTH_AGO.getTime() + 3 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    await page.locator("#venues-from").fill(from);
+    await page.locator("#venues-to").fill(to);
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toContainText(["1"]);
+    // The entered values stay visible — not reset after filtering.
+    await expect(page.locator("#venues-from")).toHaveValue(from);
+    await expect(page.locator("#venues-to")).toHaveValue(to);
+
+    await page.getByRole("button", { name: "Clear filter" }).click();
+    await expect(page.locator("tbody tr")).toContainText(["2"]);
+    await expect(page.locator("#venues-from")).toHaveValue("");
+    await expect(page.locator("#venues-to")).toHaveValue("");
+  });
+
   test("queries a wide enough range to cover the visitor's whole history, not just the overview's default window", async ({
     page,
   }) => {
