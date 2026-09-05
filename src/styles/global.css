@@ -87,3 +87,18 @@ body {
     font-size: 11px;
   }
 }
+
+/* The ribbon's diagonal banner reaches into the top-right corner of the
+   page, which is also where the header puts the keyboard-shortcuts and
+   dark-mode-toggle buttons. Reserve enough right-side clearance on the
+   button group so they always sit outside the ribbon's box, matching its
+   own breakpoint above. */
+.header-actions {
+  margin-right: 96px;
+}
+
+@media (max-width: 640px) {
+  .header-actions {
+    margin-right: 84px;
+  }
+}
