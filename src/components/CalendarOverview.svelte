@@ -76,14 +76,19 @@ let statusText = $state("");
 // why this used to disappear before anyone could read it.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let actionStatusText = $state("");
-let fromValue = $state("");
-let toValue = $state("");
+// #131/#146: pre-populated from `venue`/`from`/`to` query params so a
+// link from the venues page (or anywhere else) lands here already
+// filtered to the same viewings, with the values visible and editable
+// like any other filter field rather than a silent, unexplained
+// restriction. Without `from`/`to` too, a venue's count (drawn from
+// whatever range was active on the venues page — its own wide default,
+// or a narrower one a visitor picked there) wouldn't match what shows
+// up here, which otherwise defaults to a much narrower ~3-month window.
+const initialParams = new URLSearchParams(location.search);
+let fromValue = $state(initialParams.get("from") ?? "");
+let toValue = $state(initialParams.get("to") ?? "");
 let mediumValue = $state("");
-// #131: pre-populated from a `?venue=` query param so a link from the
-// venues page (or anywhere else) lands here already filtered, with
-// the value visible and editable like any other filter field rather
-// than a silent, unexplained restriction.
-let venueValue = $state(new URLSearchParams(location.search).get("venue") ?? "");
+let venueValue = $state(initialParams.get("venue") ?? "");
 let currentPage = $state(0);
 // #97: which row (by uid) or whether the bulk control is mid-request —
 // drives the spinner in place of the refresh icon and disables the

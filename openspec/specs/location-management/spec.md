@@ -73,7 +73,7 @@ filtering.
 #### Scenario: A venue links to its filtered viewings
 
 - **WHEN** a visitor clicks a venue name on `/venues`
-- **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter)
+- **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter), over the same date range that produced the count they clicked from, not the overview's own separate default window
 
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 

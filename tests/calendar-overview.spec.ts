@@ -259,6 +259,36 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #146: a link carrying only `venue` used to still fall back to this
+  // page's own ~3-month default window, hiding anything older even
+  // though the venues page's count (over its own much wider window)
+  // said it should be there.
+  test("?from= and ?to= query params pre-populate the date range on load, not just venue", async ({
+    page,
+  }) => {
+    const fiveYearsAgo = daysAgo(5 * 365);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "old-uid",
+        title: "An Old Favourite",
+        start: fiveYearsAgo.toISOString(),
+        end: new Date(fiveYearsAgo.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        venue: "Grand Vista Cinema",
+      },
+    ]);
+    await connect(page);
+
+    const from = toDateInputValue(daysAgo(5 * 365 + 5));
+    const to = toDateInputValue(daysAgo(0));
+    await page.goto(`/?venue=Grand%20Vista%20Cinema&from=${from}&to=${to}`);
+
+    await expect(page.locator("#overview-from")).toHaveValue(from);
+    await expect(page.locator("#overview-to")).toHaveValue(to);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("An Old Favourite");
+  });
+
   test("sends the visitor's own stored credentials, not anyone else's", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

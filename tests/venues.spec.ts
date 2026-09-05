@@ -245,4 +245,36 @@ test.describe("venues overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
+
+  // #146: the venues page counts over its own wide (15-years-back)
+  // default window, but the overview it links to defaults to a much
+  // narrower ~3-months-back window — a viewing older than that used to
+  // vanish the moment a visitor clicked through, even though the count
+  // right next to the venue name said it should be there.
+  test("clicking a venue carries the same date range that produced its count", async ({ page }) => {
+    const fiveYearsAgo = new Date(Date.now() - 5 * 365 * 24 * 60 * 60 * 1000);
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "old-uid",
+          title: "An Old Favourite",
+          start: fiveYearsAgo.toISOString(),
+          end: new Date(fiveYearsAgo.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.locator("tbody tr")).toContainText(["1"]);
+
+    await page.getByRole("link", { name: "Grand Vista Cinema" }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("An Old Favourite");
+  });
 });
