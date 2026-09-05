@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.24.0...movie-planner-web-v0.25.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** skip already-matched titles in bulk refresh ([#90](https://github.com/alrayyes/movie-planner-web/issues/90)) ([e11e241](https://github.com/alrayyes/movie-planner-web/commit/e11e2417734e4c4e95231aae677f52360dfb3f71)), closes [#89](https://github.com/alrayyes/movie-planner-web/issues/89)
+
 ## [0.24.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.23.0...movie-planner-web-v0.24.0) (2026-09-05)
 
 
