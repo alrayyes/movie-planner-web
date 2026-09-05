@@ -48,3 +48,21 @@ Full list and what each one does: [CONTRIBUTING.md](CONTRIBUTING.md).
   type-checks them, template included.
 - **Renovate can't reach this repo.** It's GitHub-primary; Dependabot
   (`.github/dependabot.yml`) is what raises dependency pull requests here.
+- **`package.json`'s `overrides.js-yaml` pins a version Astro's own build
+  needs.** `markdownlint-cli2` depends on `js-yaml@5` (a pure-ESM release
+  with no default export); Astro core and `@astrojs/starlight` still
+  depend on `js-yaml@^4` (CJS, `import yaml from "js-yaml"`). Without the
+  override, bun hoists whichever version's range is narrower to the
+  project root — confirmed live: `bun run build` failed with `The
+requested module 'js-yaml' does not provide an export named 'default'`
+  from Astro's own prerender step, reproduced identically under real
+  Node, not just bun. The failing code path is a bundled `.mjs` under
+  `dist/.prerender/` with no `node_modules` of its own, so its bare
+  `import "js-yaml"` resolves via plain Node module resolution against
+  whatever's hoisted at the project root — not the correct nested copy
+  under `astro/node_modules/js-yaml`. Pinning the override to `4.3.2`
+  fixes Astro's build without breaking `markdownlint-cli2` (confirmed via
+  `bun run lint:md`) — bun still nests markdownlint-cli2's own dependents
+  to `4.3.2` too, since nothing in `js-yaml@4`'s public API broke
+  `markdownlint`'s usage. Bump only after re-testing both `bun run build`
+  and `bun run lint:md`.

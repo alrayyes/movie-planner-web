@@ -25,6 +25,11 @@ may not work.
 ![The calendar overview in light mode](docs/screenshots/overview-light.png)
 ![The calendar overview in dark mode](docs/screenshots/overview-dark.png)
 
+Using the app itself (connecting your CalDAV server, logging a viewing,
+the overview's filters, import/export, keyboard shortcuts) is covered at
+`/docs` on your own deployment, or locally via `bun run dev` — this
+README is the developer-facing setup, not the usage guide.
+
 **Status:** credentials, the calendar overview, logging (manual and Pathé
 email parsing), editing, bulk CSV/JSON import and export, and location
 management (media/venue picklists) are all built — see
