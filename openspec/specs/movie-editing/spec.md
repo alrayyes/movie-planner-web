@@ -90,6 +90,25 @@ Note: the single per-viewing refresh (above) is unaffected by this —
 it stays available on any title regardless of existing metadata, since
 it's the deliberate way to correct a stale or wrong match.
 
+### Requirement: Visible busy state while a refresh is in flight
+
+The system SHALL show a visible loading indicator on the triggering
+control (a per-row refresh or the bulk "Refresh all metadata" control)
+and its affected row(s) while an OMDb refresh request is in flight,
+and SHALL disable that control for the duration so it can't be
+triggered again mid-request. The busy state SHALL be exposed to
+assistive technology (`aria-busy`), not only visually.
+
+#### Scenario: Per-row refresh in flight
+
+- **WHEN** a visitor clicks a per-row Refresh control
+- **THEN** the system SHALL disable that control and mark its row as busy until the request resolves, then clear both
+
+#### Scenario: Bulk refresh in flight
+
+- **WHEN** a visitor clicks "Refresh all metadata"
+- **THEN** the system SHALL disable that control and mark it as busy until the whole batch resolves, then clear both
+
 ### Requirement: Delete a logged viewing
 
 The system SHALL let a visitor delete an existing logged viewing,
