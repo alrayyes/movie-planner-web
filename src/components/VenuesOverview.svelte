@@ -131,7 +131,17 @@ load();
         <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
           {#each venueCounts as { venue, count } (venue)}
             <tr class={TR_BODY}>
-              <td class={TD}>{venue}</td>
+              <td class={TD}>
+                <!-- #131: the overview's own venue filter reads this
+                same `venue` query param on load — see
+                CalendarOverview.svelte's own venueValue init. -->
+                <a
+                  href={`/?venue=${encodeURIComponent(venue)}`}
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {venue}
+                </a>
+              </td>
               <td class={TD}>{count}</td>
             </tr>
           {/each}

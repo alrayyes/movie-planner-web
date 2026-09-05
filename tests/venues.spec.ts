@@ -208,4 +208,41 @@ test.describe("venues overview", () => {
     const range = server.listRequests.at(-1);
     expect(range?.from.getTime()).toBeLessThan(fiveYearsAgo.getTime());
   });
+
+  // #131
+  test("clicking a venue name goes to the overview, filtered to just that venue", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+        {
+          uid: "paddington-uid",
+          title: "Paddington",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "netflix",
+        },
+      ],
+      { media: ["cinema", "netflix"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    await page.getByRole("link", { name: "Grand Vista Cinema" }).click();
+
+    await expect(page).toHaveURL(/\/\?venue=Grand(\+|%20)Vista(\+|%20)Cinema/);
+    await expect(page.locator("#overview-venue")).toHaveValue("Grand Vista Cinema");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
 });

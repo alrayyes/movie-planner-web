@@ -69,6 +69,11 @@ let actionStatusText = $state("");
 let fromValue = $state("");
 let toValue = $state("");
 let mediumValue = $state("");
+// #131: pre-populated from a `?venue=` query param so a link from the
+// venues page (or anywhere else) lands here already filtered, with
+// the value visible and editable like any other filter field rather
+// than a silent, unexplained restriction.
+let venueValue = $state(new URLSearchParams(location.search).get("venue") ?? "");
 let currentPage = $state(0);
 // #97: which row (by uid) or whether the bulk control is mid-request —
 // drives the spinner in place of the refresh icon and disables the
@@ -83,10 +88,13 @@ let pickerArea = $state<HTMLDivElement | undefined>();
 // always acts on exactly what's currently on screen, not the
 // unfiltered/unsorted full set.
 const currentlyDisplayed = $derived.by(() => {
-	const filter = mediumValue.trim().toLowerCase();
-	const filtered = filter
-		? allViewings.filter((v) => v.medium.toLowerCase() === filter)
-		: allViewings;
+	const mediumFilter = mediumValue.trim().toLowerCase();
+	const venueFilter = venueValue.trim().toLowerCase();
+	const filtered = allViewings.filter((v) => {
+		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
+		if (venueFilter && (v.venue ?? "").toLowerCase() !== venueFilter) return false;
+		return true;
+	});
 	// Most recently watched first — re-sorted fresh every time rather
 	// than relying on insertion order, since a filtered subset can
 	// change shape after every reload.
@@ -147,6 +155,7 @@ function handleClearFilter() {
 	fromValue = "";
 	toValue = "";
 	mediumValue = "";
+	venueValue = "";
 	currentPage = 0;
 	void reload();
 }
@@ -324,6 +333,16 @@ reload();
         id="overview-medium"
         placeholder="e.g. cinema"
         bind:value={mediumValue}
+      />
+    </label>
+    <label class={FIELD_WRAPPER} for="overview-venue">
+      <span class={LABEL}>Venue</span>
+      <input
+        class={INPUT}
+        type="text"
+        id="overview-venue"
+        placeholder="e.g. Grand Vista Cinema"
+        bind:value={venueValue}
       />
     </label>
     <button type="submit" class={BUTTON_PRIMARY}>Filter</button>

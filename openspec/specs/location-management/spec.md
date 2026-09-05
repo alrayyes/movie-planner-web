@@ -70,6 +70,11 @@ filtering.
 - **WHEN** a logged viewing has a venue that was never added to the picklist (for example, an entry logged by the CLI)
 - **THEN** the system SHALL still list that venue, with its real count
 
+#### Scenario: A venue links to its filtered viewings
+
+- **WHEN** a visitor clicks a venue name on `/venues`
+- **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter)
+
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 
 The system SHALL treat a missing or unparsable sidecar VJOURNAL as an

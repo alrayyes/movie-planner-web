@@ -109,15 +109,30 @@ filtered result set in one table.
 - **THEN** the system SHALL refresh only the viewings on that page, not the
   whole filtered result set
 
-### Requirement: Overview filters by date range and medium
+### Requirement: Overview filters by date range, medium, and venue
 
-The system SHALL let a visitor filter the overview by a date range and
-by medium, matching the filters the CLI's `list` command supports.
+The system SHALL let a visitor filter the overview by a date range, by
+medium, and by venue, matching the filters the CLI's `list` command
+supports (medium and date range) plus a venue filter of its own. The
+system SHALL read an initial venue filter value from a `venue` URL
+query parameter, so a link elsewhere in the app can land here
+pre-filtered, and SHALL show that value in the filter field itself
+rather than applying it invisibly.
 
 #### Scenario: Filter by month and medium
 
 - **WHEN** a visitor filters the overview to a specific month and to medium "cinema"
 - **THEN** the system SHALL display only logged viewings within that month whose medium is "cinema"
+
+#### Scenario: Filter by venue
+
+- **WHEN** a visitor filters the overview to a specific venue
+- **THEN** the system SHALL display only logged viewings at that venue, over whatever the date range already returned
+
+#### Scenario: Arriving pre-filtered by venue
+
+- **WHEN** a visitor opens the overview with a `venue` query parameter set
+- **THEN** the system SHALL populate the venue filter field with that value and show only logged viewings at that venue
 
 ### Requirement: Overview reflects the visitor's own calendar
 
