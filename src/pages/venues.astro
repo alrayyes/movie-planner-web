@@ -1,0 +1,27 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import VenuesOverview from "../components/VenuesOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Venues — Movie Planner">
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Venues
+  </h1>
+  <div class="mt-6 flex flex-col gap-4">
+    {
+      /* client:only, not client:load — this component reads the
+    visitor's stored credentials from IndexedDB on mount, which
+    doesn't exist during the static build/prerender (Node has no
+    `indexedDB` global) — client:load still server-renders the
+    initial markup at build time and crashes on that; client:only
+    skips server rendering entirely and mounts purely in the browser,
+    same as every other credential-reading component here already
+    only ever runs client-side. */
+    }
+    <VenuesOverview client:only="svelte" />
+  </div>
+</Layout>

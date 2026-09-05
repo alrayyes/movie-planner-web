@@ -1,4 +1,5 @@
 // @ts-check
+import svelte from "@astrojs/svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
@@ -11,6 +12,12 @@ import { defineConfig } from "astro/config";
 // https://astro.build/config
 export default defineConfig({
   output: "static",
+  // #102: an Astro island for new components going forward (not a
+  // rewrite of the existing vanilla Web Components, which coexist with
+  // Svelte islands fine on the same page) — state changes drive the
+  // template directly instead of a manual `this.render()` call after
+  // every mutation.
+  integrations: [svelte()],
   vite: {
     plugins: [tailwindcss()],
   },

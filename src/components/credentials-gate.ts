@@ -51,11 +51,15 @@ export class CredentialsGate extends HTMLElement {
     importLink.className = NAV_LINK;
     importLink.href = "/import";
     importLink.textContent = "Import";
+    const venuesLink = document.createElement("a");
+    venuesLink.className = NAV_LINK;
+    venuesLink.href = "/venues";
+    venuesLink.textContent = "Venues";
     const link = document.createElement("a");
     link.className = NAV_LINK;
     link.href = "/settings";
     link.textContent = "Settings";
-    nav.append(logLink, importLink, link);
+    nav.append(logLink, importLink, venuesLink, link);
 
     const overview = document.createElement("calendar-overview");
     const overviewProps = overview as unknown as {

@@ -38,6 +38,24 @@ as the log form already does.
 - **WHEN** a visitor opens the edit form on the movie-details page and has previously added venues
 - **THEN** the system SHALL offer those venues as selectable choices for the venue field
 
+### Requirement: Venues overview page
+
+The system SHALL provide a `/venues` page listing every venue in the
+visitor's picklist alongside a count of logged viewings at that venue,
+computed over the visitor's whole history rather than the calendar
+overview's narrower default window. A venue with zero logged viewings
+SHALL still be listed, with a count of zero, rather than omitted.
+
+#### Scenario: Venues listed with counts
+
+- **WHEN** a visitor with logged viewings at more than one venue opens `/venues`
+- **THEN** the system SHALL list every known venue with a count of logged viewings at each
+
+#### Scenario: Venue with no viewings
+
+- **WHEN** a venue exists in the picklist but has no logged viewings
+- **THEN** the system SHALL still list it, with a count of zero
+
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 
 The system SHALL treat a missing or unparsable sidecar VJOURNAL as an
