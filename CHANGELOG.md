@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.3...movie-planner-web-v0.38.0) (2026-09-05)
+
+
+### Features
+
+* **movie-details:** flag IMDb/Letterboxd as not linked without a real match ([#154](https://github.com/alrayyes/movie-planner-web/issues/154)) ([3284bfb](https://github.com/alrayyes/movie-planner-web/commit/3284bfbf17ebdab23c9bd42b981d7e4961b08df8)), closes [#153](https://github.com/alrayyes/movie-planner-web/issues/153)
+
 ## [0.37.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.37.2...movie-planner-web-v0.37.3) (2026-09-05)
 
 
