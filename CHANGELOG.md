@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.18.0...movie-planner-web-v0.19.0) (2026-09-05)
+
+
+### Features
+
+* **calendar-overview:** enlarge poster thumbnails in the overview ([#72](https://github.com/alrayyes/movie-planner-web/issues/72)) ([ff80cfb](https://github.com/alrayyes/movie-planner-web/commit/ff80cfb14ffdae4c9ff8893ebab41fb6a7b0fd89)), closes [#64](https://github.com/alrayyes/movie-planner-web/issues/64)
+
 ## [0.18.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.17.1...movie-planner-web-v0.18.0) (2026-09-04)
 
 
