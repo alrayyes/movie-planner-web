@@ -91,7 +91,10 @@ test.describe("site nav", () => {
     await expect(page.getByRole("link", { name: "Viewings" })).toHaveAttribute("href", "/");
     await expect(page.getByRole("link", { name: "Venues" })).toHaveAttribute("href", "/venues");
     await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/calendar");
-    await expect(page.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/map");
+    await expect(page.getByRole("link", { name: "Map", exact: true })).toHaveAttribute(
+      "href",
+      "/map",
+    );
     await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveAttribute("href", "/log");
     await expect(page.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/import");
     await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");

@@ -165,6 +165,32 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #268
+  test("shows a location pin next to the venue when it has known coordinates, linking to the details page", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+    ]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    const pin = row.getByRole("link", { name: "Show Dune on the map" });
+    await expect(pin).toHaveAttribute("href", "/movie?uid=dune-uid");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("shows no location pin when the venue has no known coordinates", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await expect(
+      page.locator("tbody tr").getByRole("link", { name: "Show Dune on the map" }),
+    ).toHaveCount(0);
+  });
+
   // #305: same purely-decorative bar the details page already shows
   // under Start/End, in the When column's own cell here.
   test("shows a blocked-time bar under the When cell, positioned from the viewing's own start/duration", async ({
