@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.66.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.65.0...movie-planner-web-v0.66.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-overview:** add a title filter, with autocomplete ([#290](https://github.com/alrayyes/movie-planner-web/issues/290)) ([32e911a](https://github.com/alrayyes/movie-planner-web/commit/32e911a81862ecc5788022b99fa260ba20aafeef))
+
 ## [0.65.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.64.0...movie-planner-web-v0.65.0) (2026-09-06)
 
 
