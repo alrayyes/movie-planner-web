@@ -29,17 +29,21 @@ export interface MapPin {
 	lat: number;
 	lon: number;
 	label: string;
+	// #8/#203: the global /map page links a pin back to that viewing's
+	// own details page; the per-venue map on that same details page has
+	// nowhere further to link to, so this stays optional.
+	href?: string;
 }
 
 let { pins }: { pins: MapPin[] } = $props();
 
 let mapEl = $state<HTMLDivElement>();
-let mounted = false;
+let map: L.Map | undefined;
+let markers: L.Marker[] = [];
 
 function mount(el: HTMLDivElement) {
-	if (mounted) return;
-	mounted = true;
-	const map = L.map(el, {
+	if (map) return;
+	map = L.map(el, {
 		minZoom: 1,
 		maxZoom: 5,
 		maxBounds: [
@@ -54,16 +58,37 @@ function mount(el: HTMLDivElement) {
 		[-90, -180],
 		[90, 180],
 	]).addTo(map);
+}
 
-	for (const pin of pins) {
-		const label = document.createElement("span");
-		label.textContent = pin.label;
-		L.marker([pin.lat, pin.lon]).addTo(map).bindPopup(label);
+function popupContent(pin: MapPin): HTMLElement {
+	if (!pin.href) {
+		const span = document.createElement("span");
+		span.textContent = pin.label;
+		return span;
 	}
+	const a = document.createElement("a");
+	a.href = pin.href;
+	a.textContent = pin.label;
+	a.className = "text-indigo-600 hover:underline dark:text-indigo-400";
+	return a;
 }
 
 $effect(() => {
 	if (mapEl) mount(mapEl);
+});
+
+// #8/#203: re-synced whenever `pins` changes, not set up once at
+// mount — the global /map page's own pins arrive asynchronously
+// (after its own CalDAV fetch resolves), later than this component
+// itself mounts.
+$effect(() => {
+	if (!map) return;
+	for (const marker of markers) marker.remove();
+	markers = pins.map((pin) =>
+		L.marker([pin.lat, pin.lon])
+			.addTo(map as L.Map)
+			.bindPopup(popupContent(pin)),
+	);
 });
 </script>
 

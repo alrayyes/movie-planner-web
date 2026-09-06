@@ -9,9 +9,7 @@ const LINKS: [string, string][] = [
   ["/", "Viewings"],
   ["/venues", "Venues"],
   ["/calendar", "Calendar"],
-  // #237: a static preview page for now (#8/#203 — real map, blocked on
-  // movie-planner#170) — placed with the other read-only views rather
-  // than left undiscoverable, since it's a real page a visitor can reach.
+  // #8/#203: placed with the other read-only views.
   ["/map", "Map"],
   ["/log", "Log a viewing"],
   ["/import", "Import"],
