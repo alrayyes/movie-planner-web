@@ -1,6 +1,7 @@
 import { boundedFetch, readBoundedText } from "./bounded-fetch";
 import { CaldavRequestFailedError } from "./errors";
 import {
+  extractUnknownProperties,
   parsePicklistsFromVJournal,
   parseVEventToViewing,
   parseViewingsFromMultistatus,
@@ -76,17 +77,24 @@ export async function listViewings(
   return parseViewingsFromMultistatus(xml);
 }
 
-export async function getViewing(config: CaldavConfig, uid: string): Promise<LoggedViewing | null> {
-  validateCaldavConfig(config);
-
+// Raw, unparsed — shared by getViewing (parses it) and updateViewing
+// (only wants whatever properties it doesn't itself know about, per
+// #294's own comment on extractUnknownProperties).
+async function fetchRawViewing(config: CaldavConfig, uid: string): Promise<string | null> {
   const response = await boundedFetch(resourceUrl(config, uid), {
     method: "GET",
     headers: { Authorization: authHeader(config) },
   });
   if (response.status === 404) return null;
   await assertOk(response, "getting event");
+  return readBoundedText(response);
+}
 
-  const raw = await readBoundedText(response);
+export async function getViewing(config: CaldavConfig, uid: string): Promise<LoggedViewing | null> {
+  validateCaldavConfig(config);
+
+  const raw = await fetchRawViewing(config, uid);
+  if (raw === null) return null;
   return parseVEventToViewing(raw);
 }
 
@@ -94,6 +102,7 @@ async function putViewing(
   config: CaldavConfig,
   uid: string,
   viewing: NewViewing,
+  extraLines: string[] = [],
 ): Promise<LoggedViewing> {
   const response = await boundedFetch(resourceUrl(config, uid), {
     method: "PUT",
@@ -101,7 +110,7 @@ async function putViewing(
       Authorization: authHeader(config),
       "Content-Type": "text/calendar; charset=utf-8",
     },
-    body: serializeViewingToVEvent(uid, viewing),
+    body: serializeViewingToVEvent(uid, viewing, extraLines),
   });
   await assertOk(response, "saving event");
   return { ...viewing, uid };
@@ -116,13 +125,27 @@ export async function createViewing(
   return putViewing(config, uid, viewing);
 }
 
+// #294: reads the existing raw VEVENT first (best-effort — a fetch or
+// parse failure here just means nothing extra to carry forward, not a
+// blocked save) so any property this app doesn't itself read or write
+// (X-CITY/X-COUNTRY, X-ROW/X-SEAT, or a future movie-planner extension)
+// survives being edited through this app instead of silently vanishing
+// the moment the PUT below regenerates the whole VEVENT body.
 export async function updateViewing(
   config: CaldavConfig,
   uid: string,
   viewing: NewViewing,
 ): Promise<LoggedViewing> {
   validateCaldavConfig(config);
-  return putViewing(config, uid, viewing);
+  let extraLines: string[] = [];
+  try {
+    const raw = await fetchRawViewing(config, uid);
+    if (raw !== null) extraLines = extractUnknownProperties(raw);
+  } catch {
+    // Best-effort — an edit shouldn't fail just because this
+    // preservation step couldn't read the existing resource.
+  }
+  return putViewing(config, uid, viewing, extraLines);
 }
 
 export async function deleteViewing(config: CaldavConfig, uid: string): Promise<void> {

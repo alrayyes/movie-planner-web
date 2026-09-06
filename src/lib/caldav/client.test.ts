@@ -171,6 +171,48 @@ describe("createViewing / updateViewing", () => {
     });
     expect(updated).toEqual({ uid: "existing-uid", ...VIEWING, title: "Dune: Part Two" });
   });
+
+  // #294: this app's own X_PROPERTIES allow-list never learned about
+  // X-CITY/X-COUNTRY (movie-planner's own extensions) — confirmed this
+  // was silently dropping them on any edit, since updateViewing used to
+  // PUT a VEVENT regenerated purely from its own known fields.
+  test("updateViewing preserves an existing VEVENT's properties this app doesn't itself know", async () => {
+    const existingIcal = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//movie-planner//EN",
+      "BEGIN:VEVENT",
+      "UID:existing-uid",
+      "DTSTAMP:20260101T000000Z",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "SUMMARY:Dune",
+      "LOCATION:Pathé De Munt, Amsterdam, Netherlands",
+      "X-CITY:Amsterdam",
+      "X-COUNTRY:Netherlands",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const requests: { method: string }[] = [];
+    let putBody = "";
+    const fetchMock = mock(async (url: string, init?: RequestInit) => {
+      expect(url).toContain("existing-uid.ics");
+      const method = init?.method ?? "GET";
+      requests.push({ method });
+      if (method === "GET") return new Response(existingIcal, { status: 200 });
+      putBody = String(init?.body ?? "");
+      return new Response("", { status: 204 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await updateViewing(CONFIG, "existing-uid", { ...VIEWING, title: "Dune: Part Two" });
+
+    expect(requests.map((r) => r.method)).toEqual(["GET", "PUT"]);
+    expect(putBody).toContain("X-CITY:Amsterdam");
+    expect(putBody).toContain("X-COUNTRY:Netherlands");
+    expect(putBody).toContain("SUMMARY:Dune: Part Two");
+  });
 });
 
 describe("deleteViewing", () => {
