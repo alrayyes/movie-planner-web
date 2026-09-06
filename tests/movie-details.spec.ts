@@ -575,6 +575,32 @@ test.describe("movie details page", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #303
+  test("clicking the venue links to the overview filtered to exactly that venue", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      {
+        uid: "other-uid",
+        title: "Something Else",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        venue: "Regal Union Square",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("link", { name: "Grand Vista Cinema" }).click();
+
+    await expect(page).toHaveURL(/\/\?venue=Grand(\+|%20)Vista(\+|%20)Cinema/);
+    await expect(page.locator("#overview-venue")).toHaveValue("Grand Vista Cinema");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
   test("a missing uid shows a clear not-found state, not an error", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

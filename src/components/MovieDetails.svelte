@@ -445,10 +445,7 @@ reloadOnBfcacheRestore(() => void load());
       {@const directorChips = splitMultiValue(viewing.director)}
       {@const actorChips = splitMultiValue(viewing.actors)}
       {@const genreChips = splitMultiValue(viewing.genre)}
-      {@const fields = [
-        ['Medium', viewing.medium],
-        ['Venue', viewing.venue],
-      ]}
+      {@const fields = [['Medium', viewing.medium]]}
       {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
       <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
         {#if viewing.posterUrl}
@@ -519,6 +516,21 @@ reloadOnBfcacheRestore(() => void load());
                 <dd class={DD}>{value}</dd>
               {/if}
             {/each}
+            {#if viewing.venue}
+              <!-- #303: same overview-filter link the Venues page's own
+              venue link and director/actor/genre chips already use —
+              a single link, not a chip, since a viewing has exactly
+              one venue. -->
+              <dt class={DT}>Venue</dt>
+              <dd class={DD}>
+                <a
+                  href={`/?venue=${encodeURIComponent(viewing.venue)}`}
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {viewing.venue}
+                </a>
+              </dd>
+            {/if}
             {#if directorChips.length > 0}
               <dt class={DT}>Director</dt>
               <dd class={DD}>
