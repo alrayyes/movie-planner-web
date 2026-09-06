@@ -408,12 +408,12 @@ async function handleConfirm() {
 
   <datalist id="log-medium-choices">
     {#each picklists.media as option (option)}
-      <option value={option}></option>
+      <option value={option}>{option}</option>
     {/each}
   </datalist>
   <datalist id="log-venue-choices">
     {#each picklists.venues as option (option)}
-      <option value={option}></option>
+      <option value={option}>{option}</option>
     {/each}
   </datalist>
 
