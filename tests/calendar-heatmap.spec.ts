@@ -55,6 +55,42 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByText("1 logged viewing.")).toBeVisible();
   });
 
+  // #275: a year heading above its own months, both clickable — a day
+  // cell opens a popup instead (too small a span to navigate away for),
+  // but a month or a year is too much to preview there.
+  test("clicking the year or month heading navigates to the overview filtered to that span", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: "2026-03-15T19:00:00.000Z",
+        end: "2026-03-15T21:00:00.000Z",
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const yearHeading = page.getByRole("heading", { level: 2, name: "2026" });
+    await expect(yearHeading.getByRole("link", { name: "2026" })).toHaveAttribute(
+      "href",
+      "/?from=2026-01-01&to=2026-12-31",
+    );
+
+    const monthHeading = page.getByRole("heading", { level: 3, name: "March" });
+    await expect(monthHeading.getByRole("link", { name: "March" })).toHaveAttribute(
+      "href",
+      "/?from=2026-03-01&to=2026-03-31",
+    );
+
+    await monthHeading.getByRole("link", { name: "March" }).click();
+    await expect(page).toHaveURL(/\/\?from=2026-03-01&to=2026-03-31/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+  });
+
   test("shades a day cell by its own viewing count, distinguishable from an empty day", async ({
     page,
   }) => {
@@ -387,7 +423,7 @@ test.describe("viewing heatmap", () => {
     // ~200 days spans several whole calendar months with nothing logged
     // in them at all — each renders the compact line instead of a grid.
     await expect(page.getByText("No viewings.").first()).toBeVisible();
-    const monthHeadings = await page.getByRole("heading", { level: 2 }).count();
+    const monthHeadings = await page.getByRole("heading", { level: 3 }).count();
     const collapsedMonths = await page.getByText("No viewings.").count();
     expect(collapsedMonths).toBeGreaterThan(0);
     expect(collapsedMonths).toBeLessThan(monthHeadings);
