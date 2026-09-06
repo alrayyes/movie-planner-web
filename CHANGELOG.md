@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.72.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.71.0...movie-planner-web-v0.72.0) (2026-09-06)
+
+
+### Features
+
+* **venues:** group the venues page by country and city, with a map per city ([#320](https://github.com/alrayyes/movie-planner-web/issues/320)) ([6ed950b](https://github.com/alrayyes/movie-planner-web/commit/6ed950b0cec3ff9f376b43ffa784b1f35f2b5381)), closes [#267](https://github.com/alrayyes/movie-planner-web/issues/267)
+
 ## [0.71.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.70.0...movie-planner-web-v0.71.0) (2026-09-06)
 
 
