@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.66.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.66.0...movie-planner-web-v0.66.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **calendar-overview:** keep the filter set after navigating away and back ([#293](https://github.com/alrayyes/movie-planner-web/issues/293)) ([8b95453](https://github.com/alrayyes/movie-planner-web/commit/8b954537ee4ca25e8dbde53a98e900e77e120985))
+
 ## [0.66.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.65.0...movie-planner-web-v0.66.0) (2026-09-06)
 
 
