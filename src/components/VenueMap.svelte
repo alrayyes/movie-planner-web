@@ -3,18 +3,22 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { openStreetMapUrl } from "../lib/geo/links";
 
-// #8/#203: a map that never makes a live third-party network call —
-// design.md's own zero-network-privacy decision. Leaflet supplies the
-// pan/zoom/marker interaction; the map "surface" is a bundled local
-// SVG (public/world-outline.svg, a deliberately abstract, low-detail
-// outline — not real coastline data, so there's no dataset license to
-// track) via L.imageOverlay, never L.tileLayer pointed at a live tile
-// provider. Real precision is a click away instead, via each pin's own
-// "Open in Maps" link — every pin's popup carries one (venue-map spec's
-// own "each pin" wording), regardless of how many pins are on the map;
-// the movie-details page additionally repeats it as a plain link
-// outside the map for its own single pin, more discoverable there
-// without needing a click first.
+// #262: real OpenStreetMap tiles, not the original bundled abstract
+// outline (#8/#203's own zero-network-privacy decision) — reversed
+// after a real device screenshot showed the hand-drawn outline reading
+// as "barebones and useless" in practice (176 real pins over an
+// unrecognizable gray blob, no way to tell where anything actually
+// was). Confirmed directly with the user: real, recognizable geography
+// wins over the no-live-network-call guarantee. See the privacy page
+// for the resulting disclosure — this is now a real, automatic
+// third-party network call whenever a map with pins renders.
+//
+// Each pin's popup also carries an "Open in Maps" link (venue-map
+// spec's own "each pin" wording) for the cases real tiles still can't
+// give — street-level detail, satellite view, turn-by-turn — and the
+// movie-details page additionally repeats it as a plain link outside
+// the map for its own single pin, more discoverable there without
+// needing a click first.
 
 // Leaflet's default marker icon computes its image URLs relative to
 // wherever its own CSS/JS was loaded from, which breaks under a
@@ -45,23 +49,28 @@ let mapEl = $state<HTMLDivElement>();
 let map: L.Map | undefined;
 let markers: L.Marker[] = [];
 
+// The standard OSM tile server's own documented limits (§ Standard tile
+// layer, operations.osmfoundation.org/policies/tiles/): maxZoom 19,
+// and no request beyond ±85.0511° latitude, the real Web Mercator
+// projection limit tiles are ever rendered for — matches maxBounds
+// below rather than the flat ±90° that made sense for a plain image.
 function mount(el: HTMLDivElement) {
 	if (map) return;
 	map = L.map(el, {
-		minZoom: 1,
-		maxZoom: 5,
+		minZoom: 2,
+		maxZoom: 19,
 		maxBounds: [
-			[-90, -180],
-			[90, 180],
+			[-85.0511, -180],
+			[85.0511, 180],
 		],
 		maxBoundsViscosity: 1,
-		worldCopyJump: false,
-	}).setView([20, 10], 1);
+	}).setView([20, 10], 2);
 
-	L.imageOverlay("/world-outline.svg", [
-		[-90, -180],
-		[90, 180],
-	]).addTo(map);
+	L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+		attribution:
+			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+		maxZoom: 19,
+	}).addTo(map);
 }
 
 function popupContent(pin: MapPin): HTMLElement {
@@ -107,6 +116,19 @@ $effect(() => {
 			.addTo(map as L.Map)
 			.bindPopup(popupContent(pin)),
 	);
+	// #262: zooms/pans to fit the visitor's own pins instead of staying
+	// on the initial whole-world view — with real tiles there's a real
+	// useful zoom level to jump to, unlike the old bundled outline
+	// (always the same flat image regardless of zoom). maxZoom caps how
+	// far a single pin (or a very tight cluster) would otherwise zoom,
+	// since fitBounds on a zero-area box zooms in as far as it's
+	// allowed to.
+	if (pins.length > 0) {
+		map.fitBounds(
+			pins.map((pin) => [pin.lat, pin.lon]),
+			{ padding: [24, 24], maxZoom: 15 },
+		);
+	}
 });
 </script>
 

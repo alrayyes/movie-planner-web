@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -31,6 +31,21 @@ const PADDINGTON = {
   medium: "netflix",
 };
 
+// #262: a real, live tile provider now — OSM's own usage policy asks
+// for no automated bulk requests, and hitting the real internet from
+// every test run would make this suite flaky/offline-hostile for no
+// benefit. A minimal transparent 1x1 PNG stands in for a real tile.
+const BLANK_TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+async function mockTiles(page: Page) {
+  await page.route("https://*.tile.openstreetmap.org/**", async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: "image/png", body: BLANK_TILE_PNG });
+  });
+}
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -40,10 +55,12 @@ async function connect(page: Page) {
   await expect(page.getByRole("link", { name: "Map" })).toBeVisible();
 }
 
-// #8/#203: the real global map, now that movie-planner#170 ships
-// coordinates — replaces #237's static preview.
+// #8/#203/#262: the real global map — replaces #237's static preview,
+// and (per #262) renders real OpenStreetMap tiles rather than the
+// original bundled abstract outline.
 test.describe("global map", () => {
   test("pins every located viewing and omits unlocated ones, without error", async ({ page }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
 
@@ -54,6 +71,7 @@ test.describe("global map", () => {
   });
 
   test("no located viewings at all renders an empty map, not an error", async ({ page }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON]);
     await connect(page);
 
@@ -66,6 +84,7 @@ test.describe("global map", () => {
   });
 
   test("a pin's popup links to that viewing's own details page", async ({ page }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
     await page.goto("/map");
@@ -86,6 +105,7 @@ test.describe("global map", () => {
   // single "next to the map" position that would unambiguously belong
   // to one pin among several.
   test("a pin's popup also offers Open in Maps, for real precision", async ({ page }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
     await page.goto("/map");
@@ -99,6 +119,7 @@ test.describe("global map", () => {
   });
 
   test("reachable from the site nav", async ({ page }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
@@ -106,23 +127,31 @@ test.describe("global map", () => {
     await expect(page.getByRole("heading", { name: "Map" })).toBeVisible();
   });
 
-  // #8/#203: design.md's own zero-network-privacy decision — verified
-  // directly, same as the per-venue map's own identical test.
-  test("makes no request to a map-tile provider", async ({ page }) => {
+  // #262: reversed from the original "no live network call" design —
+  // confirmed with the user directly after a real device screenshot
+  // showed the old bundled abstract outline reading as unrecognizable
+  // and useless. Real tiles now, correctly attributed per OSM's usage
+  // policy.
+  test("loads real map tiles, correctly attributed", async ({ page }) => {
+    const tileRequest = page.waitForRequest((request) =>
+      request.url().includes("tile.openstreetmap.org"),
+    );
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
-    const tileRequests: string[] = [];
-    page.on("request", (request) => {
-      if (/tile/i.test(request.url())) tileRequests.push(request.url());
-    });
     await connect(page);
 
     await page.goto("/map");
     await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
 
-    expect(tileRequests).toEqual([]);
+    await tileRequest;
+    await expect(page.getByRole("link", { name: "OpenStreetMap" })).toHaveAttribute(
+      "href",
+      "https://www.openstreetmap.org/copyright",
+    );
   });
 
   test("introduces no accessibility violations", async ({ page }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
