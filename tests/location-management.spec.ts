@@ -79,7 +79,7 @@ test.describe("location-management", () => {
       { media: ["cinema"], venues: ["Grand Vista Cinema", "Regal Union Square"] },
       [dune],
     );
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
     await page.getByRole("button", { name: "Edit" }).click();
 
     const venueInput = page.locator("#details-venue");

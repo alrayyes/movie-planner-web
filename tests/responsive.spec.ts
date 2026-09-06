@@ -88,7 +88,7 @@ for (const viewport of VIEWPORTS) {
     // the check above now lives here instead.
     test("movie details edit form has no horizontal overflow", async ({ page }) => {
       await connect(page);
-      await page.getByRole("link", { name: "Dune" }).click();
+      await page.getByRole("link", { name: "Dune", exact: true }).click();
       await assertNoHorizontalOverflow(page);
 
       await page.getByRole("button", { name: "Edit" }).click();
