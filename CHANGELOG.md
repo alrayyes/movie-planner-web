@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.55.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.55.0...movie-planner-web-v0.55.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **calendar-heatmap:** don't render an empty grid for an account with nothing logged ([#242](https://github.com/alrayyes/movie-planner-web/issues/242)) ([624e809](https://github.com/alrayyes/movie-planner-web/commit/624e809684f4c6b03618f98fd25717743b1d5c53)), closes [#241](https://github.com/alrayyes/movie-planner-web/issues/241)
+
 ## [0.55.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.54.2...movie-planner-web-v0.55.0) (2026-09-06)
 
 
