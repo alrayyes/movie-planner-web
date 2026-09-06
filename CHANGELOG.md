@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.58.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.57.0...movie-planner-web-v0.58.0) (2026-09-06)
+
+
+### Features
+
+* **movie-editing:** optional coordinate entry when editing a viewing ([#251](https://github.com/alrayyes/movie-planner-web/issues/251)) ([180c0ab](https://github.com/alrayyes/movie-planner-web/commit/180c0ab3165bdec491c1ac48c0adff68b0ec403d))
+* **movie-log:** optional coordinate entry when logging a viewing ([#248](https://github.com/alrayyes/movie-planner-web/issues/248)) ([e371df8](https://github.com/alrayyes/movie-planner-web/commit/e371df822bab8433eeba8b59d5d048366554ede3))
+
 ## [0.57.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.56.0...movie-planner-web-v0.57.0) (2026-09-06)
 
 
