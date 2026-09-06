@@ -30,6 +30,20 @@ test.describe("docs", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // Same warning as /disclaimer and the connect form's own intro — worth
+  // its own assertion since it's a Starlight `:::caution` directive, not
+  // plain prose, and a misconfigured directive renders as raw, un-styled
+  // text instead of failing the build.
+  test("the connecting page shows the use-at-your-own-risk callout, with a clean a11y scan", async ({
+    page,
+  }) => {
+    await page.goto("/docs/connecting/");
+    await expect(page.getByText("Use at your own risk.")).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   test("the main app's own pages still render untouched", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Movie Planner" })).toBeVisible();

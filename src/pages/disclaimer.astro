@@ -10,6 +10,19 @@ import Layout from "../layouts/Layout.astro";
     Disclaimer
   </h1>
   <div class="mt-6 flex flex-col gap-4 text-slate-700 dark:text-slate-300">
+    <div
+      class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+      role="note"
+    >
+      <p class="font-semibold">Use at your own risk.</p>
+      <p class="mt-2">
+        This is beta software, not yet fully tested. It reads, writes, and
+        deletes events directly on the CalDAV server you point it at — set up a
+        calendar dedicated to your movie viewings rather than pointing it at one
+        you also use for anything else, so a bug here can't touch anything that
+        matters.
+      </p>
+    </div>
     <p>
       movie-planner-web is an independent hobby project. It isn't affiliated
       with, endorsed by, or sponsored by OMDb, IMDb, Rotten Tomatoes,
@@ -25,7 +38,9 @@ import Layout from "../layouts/Layout.astro";
     </p>
     <p>
       This software is provided as-is, without warranty of any kind, per the
-      terms of the GPL-3.0-or-later licence it's distributed under.
+      terms of the GPL-3.0-or-later licence it's distributed under. The
+      maintainers aren't responsible for data loss, corruption, or any other
+      issue arising from using it.
     </p>
   </div>
 </Layout>

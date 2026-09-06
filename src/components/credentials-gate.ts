@@ -75,6 +75,8 @@ function buildIntro(): HTMLDivElement {
   const wrap = document.createElement("div");
   wrap.className = "mb-6 flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300";
 
+  wrap.appendChild(buildRiskNotice());
+
   const p1 = document.createElement("p");
   p1.textContent =
     "Movie Planner reads and writes your watch history straight to your own " +
@@ -104,6 +106,34 @@ function buildIntro(): HTMLDivElement {
   wrap.appendChild(p2);
 
   return wrap;
+}
+
+// Shown before a visitor ever fills in real credentials — the point
+// they can still decide to use a dedicated calendar rather than one
+// they also rely on for anything else. Matches the same warning on
+// /disclaimer and docs/connecting.md; keep all three in sync.
+function buildRiskNotice(): HTMLDivElement {
+  const notice = document.createElement("div");
+  notice.className =
+    "rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100";
+  notice.setAttribute("role", "note");
+
+  const heading = document.createElement("p");
+  heading.className = "font-semibold";
+  heading.textContent = "Use at your own risk.";
+  notice.appendChild(heading);
+
+  const body = document.createElement("p");
+  body.className = "mt-1";
+  body.textContent =
+    "This is beta software, not yet fully tested. It reads, writes, and " +
+    "deletes events directly on the CalDAV server you connect below — set " +
+    "up a calendar dedicated to your movie viewings rather than pointing " +
+    "it at one you also use for anything else, so a bug here can't touch " +
+    "anything that matters.";
+  notice.appendChild(body);
+
+  return notice;
 }
 
 export function buildCredentialsForm(options: {
