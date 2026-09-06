@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.74.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.73.0...movie-planner-web-v0.74.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-overview:** show a location pin on rows with known coordinates ([#323](https://github.com/alrayyes/movie-planner-web/issues/323)) ([23d1744](https://github.com/alrayyes/movie-planner-web/commit/23d174467492d245cecdb179a705cb2e0927fca1)), closes [#268](https://github.com/alrayyes/movie-planner-web/issues/268)
+
 ## [0.73.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.72.0...movie-planner-web-v0.73.0) (2026-09-06)
 
 
