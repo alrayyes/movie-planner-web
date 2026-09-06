@@ -15,6 +15,8 @@ const VIEWING: NewViewing = {
   end: "2026-01-01T21:30:00.000Z",
   medium: "cinema",
   venue: "Grand Vista Cinema",
+  city: "Amsterdam",
+  country: "Netherlands",
   director: "Denis Villeneuve",
   actors: "Timothée Chalamet, Zendaya",
   ratingImdb: "8.0",
@@ -425,9 +427,10 @@ describe("VJOURNAL sidecar round trip", () => {
   });
 });
 
-// #294: X-CITY/X-COUNTRY (movie-planner's own extensions, not yet in
-// this app's own X_PROPERTIES allow-list) used to vanish the moment
-// this app regenerated a VEVENT it didn't originally write.
+// #294: an unrecognized movie-planner extension (X-CITY/X-COUNTRY, at
+// the time this app didn't yet read them — since folded into
+// X_PROPERTIES by #267) used to vanish the moment this app
+// regenerated a VEVENT it didn't originally write.
 describe("extractUnknownProperties", () => {
   test("returns raw lines for properties outside this app's own known set", () => {
     const raw = [
@@ -438,13 +441,16 @@ describe("extractUnknownProperties", () => {
       "DTSTART:20260101T190000Z",
       "DTEND:20260101T213000Z",
       "SUMMARY:Dune",
-      "X-CITY:Amsterdam",
-      "X-COUNTRY:Netherlands",
+      "X-FUTURE-FIELD:some value",
+      "X-ANOTHER-FIELD:another value",
       "END:VEVENT",
       "END:VCALENDAR",
     ].join("\r\n");
 
-    expect(extractUnknownProperties(raw)).toEqual(["X-CITY:Amsterdam", "X-COUNTRY:Netherlands"]);
+    expect(extractUnknownProperties(raw)).toEqual([
+      "X-FUTURE-FIELD:some value",
+      "X-ANOTHER-FIELD:another value",
+    ]);
   });
 
   test("excludes every property this app already reads or writes itself", () => {

@@ -172,10 +172,10 @@ describe("createViewing / updateViewing", () => {
     expect(updated).toEqual({ uid: "existing-uid", ...VIEWING, title: "Dune: Part Two" });
   });
 
-  // #294: this app's own X_PROPERTIES allow-list never learned about
-  // X-CITY/X-COUNTRY (movie-planner's own extensions) — confirmed this
-  // was silently dropping them on any edit, since updateViewing used to
-  // PUT a VEVENT regenerated purely from its own known fields.
+  // #294: this app's own X_PROPERTIES allow-list can't know about every
+  // movie-planner extension in advance — confirmed this was silently
+  // dropping an unrecognized one on any edit, since updateViewing used
+  // to PUT a VEVENT regenerated purely from its own known fields.
   test("updateViewing preserves an existing VEVENT's properties this app doesn't itself know", async () => {
     const existingIcal = [
       "BEGIN:VCALENDAR",
@@ -188,8 +188,7 @@ describe("createViewing / updateViewing", () => {
       "DTEND:20260101T213000Z",
       "SUMMARY:Dune",
       "LOCATION:Pathé De Munt, Amsterdam, Netherlands",
-      "X-CITY:Amsterdam",
-      "X-COUNTRY:Netherlands",
+      "X-FUTURE-FIELD:some value",
       "END:VEVENT",
       "END:VCALENDAR",
     ].join("\r\n");
@@ -209,8 +208,7 @@ describe("createViewing / updateViewing", () => {
     await updateViewing(CONFIG, "existing-uid", { ...VIEWING, title: "Dune: Part Two" });
 
     expect(requests.map((r) => r.method)).toEqual(["GET", "PUT"]);
-    expect(putBody).toContain("X-CITY:Amsterdam");
-    expect(putBody).toContain("X-COUNTRY:Netherlands");
+    expect(putBody).toContain("X-FUTURE-FIELD:some value");
     expect(putBody).toContain("SUMMARY:Dune: Part Two");
   });
 });

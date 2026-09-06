@@ -19,3 +19,20 @@ field (autocomplete offers venues you've used before, but a new one
 still works — it's just not offered as a suggestion until this list
 picks it up). The two are merged, so a venue you've saved but haven't
 watched anything at yet still shows here with a count of zero.
+
+## Grouped by country and city
+
+A venue the CLI recognizes from its own hardcoded chain table shows up
+grouped under its country and city, each with a map above its own
+table pinning just that city's venues. A venue the CLI doesn't
+recognize — anything typed in free-form, or not yet backfilled with a
+city/country — falls into a single "Other locations" section instead
+of being dropped. If nothing on your calendar has a known city/country
+yet, the page shows one flat table, same as before this grouping
+existed.
+
+## The map
+
+Any venue with known coordinates gets a pin on the map above its
+table — see [the map page](/docs/map/) for where those coordinates
+come from and the same privacy note about third-party tile requests.

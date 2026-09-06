@@ -31,6 +31,16 @@ export interface LoggedViewing {
   end: string; // ISO 8601
   medium: string;
   venue?: string;
+  // #267: a recognized venue's city/country, from the CLI's own
+  // hardcoded chain/location table (alrayyes/movie-planner#217) —
+  // structured, not parsed out of `venue`/LOCATION's own
+  // "{venue}, {city}, {country}" text, which breaks on a venue name
+  // that itself contains a comma and doesn't exist at all for a
+  // web-logged venue typed free-form. Present only when the venue
+  // matches that table; omitted, never guessed, otherwise — same rule
+  // `geo` below already follows.
+  city?: string;
+  country?: string;
   director?: string;
   actors?: string;
   ratingImdb?: string;
