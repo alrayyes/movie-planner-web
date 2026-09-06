@@ -89,6 +89,12 @@ const mediumOptions = $derived.by(() => {
 	const fromViewings = allViewings.map((v) => v.medium);
 	return [...new Set([...mediumPicklist, ...fromViewings])].sort();
 });
+// #289: every other filter field already offers autocomplete from the
+// visitor's own logged data — title had neither the field nor this.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const titleOptions = $derived.by(() => {
+	return [...new Set(allViewings.map((v) => v.title))].sort();
+});
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const venueOptions = $derived.by(() => {
 	const fromViewings = allViewings.map((v) => v.venue).filter((v): v is string => Boolean(v));
@@ -134,10 +140,16 @@ const initialParams = new URLSearchParams(location.search);
 // they submitted one.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 let filtersOpen = $state(
-	["from", "to", "venue", "director", "actor", "genre"].some((key) => initialParams.get(key)),
+	["from", "to", "title", "venue", "director", "actor", "genre"].some((key) =>
+		initialParams.get(key),
+	),
 );
 let fromValue = $state(initialParams.get("from") ?? "");
 let toValue = $state(initialParams.get("to") ?? "");
+// #289: unlike medium/venue (exact match against a short, categorical
+// value), title is free text — a visitor typing "dune" expects it to
+// match "Dune: Part Two", so this filters by substring, not equality.
+let titleValue = $state(initialParams.get("title") ?? "");
 let mediumValue = $state("");
 let venueValue = $state(initialParams.get("venue") ?? "");
 // #163/#183: director/actor/genre are multi-value comma-separated OMDb
@@ -178,12 +190,14 @@ let pickerArea = $state<HTMLDivElement | undefined>();
 // always acts on exactly what's currently on screen, not the
 // unfiltered/unsorted full set.
 const currentlyDisplayed = $derived.by(() => {
+	const titleFilter = titleValue.trim().toLowerCase();
 	const mediumFilter = mediumValue.trim().toLowerCase();
 	const venueFilter = venueValue.trim().toLowerCase();
 	const directorFilter = directorValue.trim().toLowerCase();
 	const actorFilter = actorValue.trim().toLowerCase();
 	const genreFilter = genreValue.trim().toLowerCase();
 	const filtered = allViewings.filter((v) => {
+		if (titleFilter && !v.title.toLowerCase().includes(titleFilter)) return false;
 		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
 		if (venueFilter && (v.venue ?? "").toLowerCase() !== venueFilter) return false;
 		if (
@@ -306,6 +320,7 @@ function handleFilterSubmit(event: SubmitEvent) {
 function handleClearFilter() {
 	fromValue = "";
 	toValue = "";
+	titleValue = "";
 	mediumValue = "";
 	venueValue = "";
 	directorValue = "";
@@ -472,6 +487,22 @@ getPicklists(config).then((picklists) => {
       <label class={FIELD_WRAPPER} for="overview-to">
         <span class={LABEL}>To</span>
         <input class={INPUT} type="date" id="overview-to" bind:value={toValue} />
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-title">
+        <span class={LABEL}>Title</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-title"
+          placeholder="e.g. Dune"
+          list="overview-title-choices"
+          bind:value={titleValue}
+        />
+        <datalist id="overview-title-choices">
+          {#each titleOptions as title (title)}
+            <option value={title}></option>
+          {/each}
+        </datalist>
       </label>
       <label class={FIELD_WRAPPER} for="overview-medium">
         <span class={LABEL}>Medium</span>

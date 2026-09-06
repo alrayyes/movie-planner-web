@@ -407,6 +407,30 @@ test.describe("calendar overview", () => {
     expect(server.listRequests[1]?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
   });
 
+  // #289: substring, case-insensitive — not exact match like venue/
+  // medium, since a title is free text.
+  test("filters by title client-side, matching a partial substring", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await openFilters(page);
+    await page.locator("#overview-title").fill("dun");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  test("the title field offers autocomplete drawn from logged titles", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await openFilters(page);
+
+    await expect(page.locator("#overview-title-choices option")).toHaveCount(2);
+    await expect(page.locator("#overview-title")).toHaveAttribute("list", "overview-title-choices");
+  });
+
   test("a ?venue= query param pre-populates the venue filter on load", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
@@ -636,7 +660,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-to")).toHaveValue("");
   });
 
-  test("clear filter resets the date range, medium, venue, director, actor and genre, and reloads", async ({
+  test("clear filter resets the date range, title, medium, venue, director, actor and genre, and reloads", async ({
     page,
   }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
@@ -646,6 +670,7 @@ test.describe("calendar overview", () => {
     await openFilters(page);
     await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
+    await page.locator("#overview-title").fill("Dune");
     await page.locator("#overview-medium").fill("cinema");
     await page.locator("#overview-venue").fill("Grand Vista Cinema");
     await page.locator("#overview-director").fill("Denis Villeneuve");
@@ -661,6 +686,7 @@ test.describe("calendar overview", () => {
     // always say what's actually being shown, not "nothing typed".
     await expect(page.locator("#overview-from")).toHaveValue(toDateInputValue(TWO_MONTHS_AGO));
     await expect(page.locator("#overview-to")).toHaveValue(toDateInputValue(ONE_MONTH_AGO));
+    await expect(page.locator("#overview-title")).toHaveValue("");
     await expect(page.locator("#overview-medium")).toHaveValue("");
     await expect(page.locator("#overview-venue")).toHaveValue("");
     await expect(page.locator("#overview-director")).toHaveValue("");
