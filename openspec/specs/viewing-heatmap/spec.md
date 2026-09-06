@@ -22,7 +22,7 @@ render as the lightest/empty shade, not an error or a gap in the grid.
 #### Scenario: No logged viewings at all
 
 - **WHEN** a visitor opens `/calendar` with no logged viewings
-- **THEN** the system SHALL render the full heatmap grid with every cell at the empty shade, rather than an error
+- **THEN** the system SHALL show the "no logged viewings" status text alone, rendering no month headings or grid cells — not a wall of empty-shaded cells across an arbitrary fallback range
 
 ### Requirement: A day cell opens a popup listing that day's own viewings
 

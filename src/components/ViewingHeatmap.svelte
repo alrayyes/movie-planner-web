@@ -34,25 +34,16 @@ let selectedDay = $state<string | undefined>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const selectedViewings = $derived(selectedDay ? (viewingsByDay.get(selectedDay) ?? []) : []);
 
-// #199 (this feature reuses the same #188-fixed local-day handling):
-// when there's no logged history at all to infer a range from, default
-// to the last 12 months ending today — a reasonable "recent activity"
-// view rather than an arbitrary or empty range.
-function fallbackDays(): string[] {
-	const days: string[] = [];
-	const end = new Date();
-	const start = new Date(end.getFullYear(), end.getMonth() - 11, end.getDate());
-	for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-		days.push(toDateInputValue(d.toISOString()));
-	}
-	return days;
-}
-
 // The full contiguous day range to render — from the earliest to the
 // latest local day with a logged viewing, inclusive, so the grid shows
 // exactly the ground the visitor's own history actually covers.
+// #241: a genuinely empty account (nothing logged at all) renders no
+// grid at all — not a 12-month wall of empty cells with nothing under
+// it (the old #199 fallback range). A real device screenshot showed
+// how noisy that read: "No logged viewings yet." followed by six-plus
+// months of uniform grey boxes.
 const days = $derived.by(() => {
-	if (viewingsByDay.size === 0) return fallbackDays();
+	if (viewingsByDay.size === 0) return [];
 	const keys = [...viewingsByDay.keys()].sort();
 	const first = keys[0] as string;
 	const last = keys[keys.length - 1] as string;

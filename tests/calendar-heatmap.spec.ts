@@ -289,29 +289,48 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByRole("button", { name: `${emptyDay}: 0 viewings` })).toHaveCount(0);
   });
 
-  test("no logged viewings at all still renders the full grid, not an error", async ({ page }) => {
+  // #241: used to fall back to rendering a 12-month grid of nothing but
+  // empty cells for a genuinely empty account — noisy, not helpful.
+  test("no logged viewings at all shows just the status text, no empty grid", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
     await page.goto("/calendar");
 
     await expect(page.getByText("No logged viewings yet.")).toBeVisible();
-    // Still a real, populated grid (the fallback 12-month range) — not
-    // empty and not an error.
-    await expect(page.locator('[role="img"]').first()).toBeVisible();
+    await expect(page.locator('[role="img"]')).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
   });
 
   // #230: an empty cell's own dark-mode shade used to equal the card's
-  // own dark background exactly, making every cell on a fresh account
-  // (or any long gap with nothing logged) genuinely invisible rather
-  // than just unshaded.
+  // own dark background exactly, making every cell in a gap between
+  // logged viewings genuinely invisible rather than just unshaded.
   test("an empty cell is visually distinguishable from its card background in dark mode", async ({
     page,
   }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    // A gap day between two viewings, same shape as the "empty day cell"
+    // test above — a genuinely empty account no longer renders any grid
+    // at all (#241), so this needs a real empty cell inside a populated
+    // range instead.
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: daysAgo(7).toISOString(),
+        end: new Date(daysAgo(7).getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+      {
+        uid: "paddington-uid",
+        title: "Paddington",
+        start: daysAgo(3).toISOString(),
+        end: new Date(daysAgo(3).getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
     await connect(page);
     await page.getByRole("switch", { name: /switch to (dark|light) mode/i }).click();
     await page.goto("/calendar");
-    await expect(page.getByText("No logged viewings yet.")).toBeVisible();
+    await expect(page.getByText("2 logged viewings.")).toBeVisible();
 
     const cell = page.locator('[role="img"]').first();
     const cellColor = await cell.evaluate((el) => getComputedStyle(el).backgroundColor);
