@@ -193,6 +193,12 @@ test.describe("movie details page", () => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
+    // #249: the overview row's own "Edit {title}"/"Delete {title}"
+    // controls substring-match a plain {name: "Edit"}/{name: "Delete"}
+    // locator — waiting for the actual navigation first, same fix as
+    // the disambiguation-picker test, rules out landing on those
+    // instead of this page's own generic Edit/Delete buttons.
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.locator("#details-venue").fill("Regal Union Square");
@@ -227,6 +233,8 @@ test.describe("movie details page", () => {
       });
     });
     await page.getByRole("link", { name: "Dune (2021)" }).click();
+    // #249: see "edit and delete are reachable..." above for why.
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.locator("#details-venue").fill("Tuschinski");
@@ -264,6 +272,8 @@ test.describe("movie details page", () => {
     ]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
+    // #249: see "edit and delete are reachable..." above for why.
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.locator("#details-venue").fill("Tuschinski");
@@ -340,6 +350,22 @@ test.describe("movie details page", () => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page, "test-omdb-key");
     await page.getByRole("link", { name: "Dune", exact: true }).click();
+    // #249's real root cause, found via console-instrumented stress
+    // testing (62% reproduction rate at 6 workers): Astro's ClientRouter
+    // transition isn't something Playwright's own click() waits for —
+    // under load, the transition can still be in flight once click()
+    // resolves. Every other test in this file happened to interact with
+    // something that only exists post-transition (the button click below
+    // would just never find its target and keep retrying), but the
+    // overview page ALSO has its own per-row "Refresh metadata" button
+    // with the exact same accessible name — so an in-flight transition
+    // let this test's click land on the overview's own button instead of
+    // this page's, silently refreshing a different code path
+    // (CalendarOverview's own handleRefresh) that never renders the
+    // picker this test is looking for. Confirmed directly: captured
+    // console logs showed the overview's own handler firing, and
+    // `page.url()` still reading "/" at the moment of the click.
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
 
     // #249: unlike every other page.route() call in this file, this one
     // wasn't awaited — registration is async (a real CDP round trip), so
@@ -347,8 +373,8 @@ test.describe("movie details page", () => {
     // handleRefresh's fetch() before the mock was actually installed,
     // sending it to the real (unreachable, in this sandbox) network
     // instead. Confirmed real (dropped the flake rate sharply under
-    // repeated stress runs) but not the whole story — #249 stays open
-    // for the rest.
+    // repeated stress runs), and combined with the URL wait above,
+    // closes the loop on this ticket's actual root cause.
     await page.route("https://www.omdbapi.com/**", async (route: Route) => {
       const url = new URL(route.request().url());
       if (url.searchParams.get("t")) {
@@ -392,18 +418,15 @@ test.describe("movie details page", () => {
 
     await page.getByRole("button", { name: "Refresh metadata" }).click();
 
-    // #249: the picker only renders after four sequential awaited network
-    // round trips (handleRefresh's own getViewing, lookupMovie's two
-    // searches — scoped-by-year then a plain-title fallback, both mocked
-    // above to return no match — then searchMovies), each going through
-    // Playwright's own route-interception layer. The default 5s
-    // assertion timeout is tuned for the one-round-trip case every other
-    // test here hits; under CI's parallel workers, CPU/network
-    // contention across four chained round trips routinely pushes this
-    // past 5s even though each one is fast in isolation — root cause for
-    // the flakiness this ticket was tracking, not a race in the app
-    // itself. A generous explicit timeout matches the real amount of
-    // work this path does rather than papering over a symptom.
+    // The picker only renders after four sequential awaited network round
+    // trips (handleRefresh's own getViewing, lookupMovie's two searches —
+    // scoped-by-year then a plain-title fallback, both mocked above to
+    // return no match — then searchMovies), each going through
+    // Playwright's own route-interception layer. Kept as a secondary
+    // safety margin on top of the URL wait above (the ticket's real
+    // root cause) — this path still does more chained work than the
+    // default 5s assertion timeout assumes, so there's no reason to
+    // shrink it back down now that the actual bug is fixed.
     const picker = page.getByLabel("Choose the matching title");
     await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible({
       timeout: 15000,
