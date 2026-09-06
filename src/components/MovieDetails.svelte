@@ -587,7 +587,16 @@ reloadOnBfcacheRestore(() => void load());
             known coordinates; nothing here otherwise, not a broken or
             empty map. -->
             <div class="flex flex-col gap-1">
-              <VenueMap pins={[{ lat: viewing.geo.lat, lon: viewing.geo.lon, label: viewing.venue ?? viewing.title }]} />
+              <VenueMap
+                pins={[
+                  {
+                    lat: viewing.geo.lat,
+                    lon: viewing.geo.lon,
+                    label: viewing.venue ?? viewing.title,
+                    posterUrl: viewing.posterUrl,
+                  },
+                ]}
+              />
               <a
                 href={openStreetMapUrl(viewing.geo)}
                 target="_blank"

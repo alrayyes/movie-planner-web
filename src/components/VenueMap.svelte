@@ -41,6 +41,10 @@ export interface MapPin {
 	// own details page; the per-venue map on that same details page has
 	// nowhere further to link to, so this stays optional.
 	href?: string;
+	// A viewing with no OMDb match (or OMDb lookups paused/no key set)
+	// has no poster — the popup just omits the image in that case,
+	// same as everywhere else this app shows an optional poster.
+	posterUrl?: string;
 }
 
 let { pins }: { pins: MapPin[] } = $props();
@@ -77,6 +81,14 @@ function popupContent(pin: MapPin): HTMLElement {
 	const wrap = document.createElement("div");
 	wrap.className = "flex flex-col gap-1";
 
+	if (pin.posterUrl) {
+		const img = document.createElement("img");
+		img.src = pin.posterUrl;
+		img.alt = "";
+		img.className = "mb-1 h-24 w-16 rounded object-cover shadow-sm";
+		wrap.appendChild(img);
+	}
+
 	if (pin.href) {
 		const a = document.createElement("a");
 		a.href = pin.href;
@@ -111,11 +123,22 @@ $effect(() => {
 $effect(() => {
 	if (!map) return;
 	for (const marker of markers) marker.remove();
-	markers = pins.map((pin) =>
-		L.marker([pin.lat, pin.lon])
+	markers = pins.map((pin) => {
+		const marker = L.marker([pin.lat, pin.lon])
 			.addTo(map as L.Map)
-			.bindPopup(popupContent(pin)),
-	);
+			.bindPopup(popupContent(pin));
+		// bindPopup wires its own click handler to *toggle* the popup —
+		// closed again on a second click of the same marker. That fights
+		// hovering: a click right after a hover-triggered openPopup() sees
+		// the popup already open and closes it instead. Replacing it with
+		// a plain open (never a toggle) keeps hover and click consistent;
+		// clicking elsewhere on the map still closes it, same as before.
+		marker.off("click");
+		marker.on("click", () => marker.openPopup());
+		marker.on("mouseover", () => marker.openPopup());
+		marker.on("mouseout", () => marker.closePopup());
+		return marker;
+	});
 	// #262: zooms/pans to fit the visitor's own pins instead of staying
 	// on the initial whole-world view — with real tiles there's a real
 	// useful zoom level to jump to, unlike the old bundled outline
