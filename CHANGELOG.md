@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.63.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.62.0...movie-planner-web-v0.63.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-heatmap:** open the day popup on hover too, not just click ([#279](https://github.com/alrayyes/movie-planner-web/issues/279)) ([395e74c](https://github.com/alrayyes/movie-planner-web/commit/395e74c8f67b2f28760231c96b93ede1d332dc90))
+
 ## [0.62.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.61.0...movie-planner-web-v0.62.0) (2026-09-06)
 
 
