@@ -142,7 +142,7 @@ test.describe("movie details page", () => {
   test("no notes field shows at all when the viewing has none", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
     await expect(page.getByText("Notes", { exact: true })).toHaveCount(0);
@@ -151,7 +151,7 @@ test.describe("movie details page", () => {
   test("no synopsis field shows at all when the viewing has none", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
     await expect(page.getByText("Synopsis", { exact: true })).toHaveCount(0);
@@ -163,7 +163,7 @@ test.describe("movie details page", () => {
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
     await expect(page.getByRole("img", { name: "No poster available" })).toBeVisible();
@@ -320,7 +320,7 @@ test.describe("movie details page", () => {
   }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page, "test-omdb-key");
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
 
     // #249: unlike every other page.route() call in this file, this one
     // wasn't awaited — registration is async (a real CDP round trip), so
@@ -392,7 +392,7 @@ test.describe("movie details page", () => {
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune" }).click();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
 
     await expect(page.getByRole("link", { name: "IMDb" })).toHaveCount(0);
     await expect(page.getByText("IMDb not linked")).toBeVisible();

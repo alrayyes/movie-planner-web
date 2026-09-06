@@ -1,5 +1,11 @@
 <script lang="ts">
-import { getPicklists, getViewing, listViewings, updateViewing } from "../lib/caldav/client";
+import {
+	deleteViewing,
+	getPicklists,
+	getViewing,
+	listViewings,
+	updateViewing,
+} from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
@@ -222,6 +228,11 @@ let currentPage = $state(0);
 let refreshingUid = $state<string | null>(null);
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let refreshingAll = $state(false);
+// #298: same busy-state pattern as refreshingUid — disables the
+// triggering row's own Delete button so a double-click can't fire two
+// delete requests for the same viewing.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let deletingUid = $state<string | null>(null);
 let pickerArea = $state<HTMLDivElement | undefined>();
 
 // Shared by currentPageItems and handleRefreshAll, so "refresh all"
@@ -449,6 +460,27 @@ async function handleRefresh(viewing: LoggedViewing) {
 		actionStatusText = error instanceof Error ? error.message : "Failed to refresh metadata.";
 	} finally {
 		refreshingUid = null;
+	}
+}
+
+// #298: Edit/Delete were deliberately dropped from this table in #93
+// to declutter it, relocated to the details page — reversed directly
+// on request, back to an icon-only Actions column (Edit links to the
+// details page's own edit form; Delete acts inline, same confirm()
+// prompt the details page already uses, so there's exactly one way
+// this app ever confirms a delete).
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleDelete(viewing: LoggedViewing) {
+	if (!window.confirm(`Delete "${viewing.title}"? This can't be undone.`)) return;
+	deletingUid = viewing.uid;
+	try {
+		await deleteViewing(config, viewing.uid);
+		await reload({ silent: true });
+		actionStatusText = "Deleted.";
+	} catch (error) {
+		actionStatusText = error instanceof Error ? error.message : "Failed to delete.";
+	} finally {
+		deletingUid = null;
 	}
 }
 
@@ -705,11 +737,12 @@ getPicklists(config).then((picklists) => {
       <table class={TABLE}>
         <thead class="bg-slate-50 dark:bg-slate-900/40">
           <tr>
-            <!-- #93: Medium dropped, Start/End merged into one "When"
-            column, and "Actions" (Edit/Delete/Refresh) reduced to
-            "Refresh" — editing and deleting now live only on the
-            movie-details page. #169: Title/When/Venue are sortable —
-            Poster and Refresh aren't real data columns to sort by. -->
+            <!-- #93 dropped Medium and merged Start/End into one "When"
+            column — both still true. #298 reversed #93's own removal
+            of Edit/Delete from this table (directly requested), so
+            "Actions" is back to Edit/Delete/Refresh together. #169:
+            Title/When/Venue are sortable — Poster and Actions aren't
+            real data columns to sort by. -->
             <th class={TH} scope="col">Poster</th>
             {#each SORTABLE_COLUMNS as [key, heading] (key)}
               <!-- #217: Venue is also shown under the title on narrow
@@ -730,7 +763,7 @@ getPicklists(config).then((picklists) => {
                 </button>
               </th>
             {/each}
-            <th class={TH} scope="col">Refresh</th>
+            <th class={TH} scope="col">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
@@ -743,6 +776,7 @@ getPicklists(config).then((picklists) => {
               { label: 'Letterboxd', href: letterboxdHref(viewing), icon: IconLetterboxd },
             ].filter((l) => l !== null)}
             {@const isRefreshing = refreshingUid === viewing.uid}
+            {@const isDeleting = deletingUid === viewing.uid}
             <tr class={TR_BODY} aria-busy={isRefreshing}>
               <td class={TD}>
                 {#if viewing.posterUrl}
@@ -830,19 +864,58 @@ getPicklists(config).then((picklists) => {
               a phone screen without horizontal scroll. -->
               <td class={TD}>{formatPeriod(viewing.start, viewing.end)}</td>
               <td class={`${TD} hidden sm:table-cell`}>{viewing.venue ?? ""}</td>
-              <!-- #93: editing and deleting now live only on the
-              movie-details page (its own independent edit form/delete
-              button, unaffected by this) — this cell is refresh-only,
-              and empty when refresh isn't offered (#37: only once an
-              OMDb key is active — #89's "skip already matched" rule is
-              deliberately scoped to bulk refresh only, not this
-              single-row control, which stays the way to correct a
-              title whose match went stale or wrong). -->
+              <!-- #298: Edit links to the details page's own edit form
+              (?edit=1, read there on load) rather than duplicating that
+              whole form inline here. Delete acts inline — a single
+              irreversible action, the same confirm() prompt the
+              details page already uses. Refresh stays icon-only, empty
+              when it isn't offered (#37: only once an OMDb key is
+              active — #89's "skip already matched" rule is deliberately
+              scoped to bulk refresh only, not this single-row control,
+              which stays the way to correct a title whose match went
+              stale or wrong). -->
               <td class={TD}>
-                {#if omdbActive}
+                <div class="flex gap-1">
+                  <a
+                    href={`/movie?uid=${encodeURIComponent(viewing.uid)}&edit=1`}
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    title="Edit"
+                    aria-label={`Edit ${viewing.title}`}
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M13.5 3.5a1.5 1.5 0 0 1 2.12 0l.88.88a1.5 1.5 0 0 1 0 2.12L7.5 15.5l-3.5 1 1-3.5 8.5-8.5Z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </a>
                   <button
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    title="Delete"
+                    aria-label={`Delete ${viewing.title}`}
+                    disabled={isDeleting}
+                    aria-busy={isDeleting}
+                    onclick={() => handleDelete(viewing)}
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M4.5 5.5h11m-9 0V4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5m-6.5 0 .6 9.4a1 1 0 0 0 1 .6h5.8a1 1 0 0 0 1-.6l.6-9.4"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {#if omdbActive}
+                  <button
+                    type="button"
+                    class="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     title="Refresh metadata"
                     aria-label="Refresh metadata"
                     disabled={isRefreshing}

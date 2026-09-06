@@ -153,12 +153,49 @@ test.describe("calendar overview", () => {
     await expect(row).not.toContainText("Denis Villeneuve");
     await expect(row).not.toContainText("Action, Adventure, Drama");
     await expect(row).not.toContainText("cinema");
-    // #93: editing/deleting also moved to the details page.
-    await expect(row.getByRole("button", { name: "Edit" })).toHaveCount(0);
-    await expect(row.getByRole("button", { name: "Delete" })).toHaveCount(0);
+    // #298: reversed #93's own removal — Edit/Delete are back as
+    // icon-only controls, each with a real accessible name.
+    await expect(row.getByRole("link", { name: "Edit Dune" })).toHaveAttribute(
+      "href",
+      "/movie?uid=dune-uid&edit=1",
+    );
+    await expect(row.getByRole("button", { name: "Delete Dune" })).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
+  });
+
+  // #298
+  test("the Edit icon opens the details page with its edit form already open", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.getByRole("link", { name: "Edit Dune" }).click();
+
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid&edit=1/);
+    await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
+  });
+
+  test("the Delete icon asks for confirmation, then removes the row without a full page navigation", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page.getByRole("button", { name: "Delete Dune" }).click();
+    await page.waitForTimeout(100);
+    expect(server.deletes).toHaveLength(0);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Delete Dune" }).click();
+
+    await expect(page.getByText("Deleted.")).toBeVisible();
+    expect(server.deletes).toEqual(["dune-uid"]);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page).toHaveURL("/");
   });
 
   // #236

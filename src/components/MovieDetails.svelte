@@ -146,7 +146,6 @@ function chooseEditGeo(candidate: GeoCandidate) {
 	editGeoQuery = "";
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function startEdit(current: LoggedViewing) {
 	editValues = Object.fromEntries(
 		EDITABLE_FIELDS.map((field) => {
@@ -313,6 +312,12 @@ async function init() {
 	omdbApiKey = credentials.omdbApiKey;
 	omdbPaused = credentials.omdbPaused ?? false;
 	await load();
+	// #298: the overview's own Edit icon links straight here with
+	// ?edit=1 rather than making a visitor land on the plain view and
+	// click Edit a second time.
+	if (viewing && new URLSearchParams(location.search).get("edit")) {
+		startEdit(viewing);
+	}
 	await loadVenueSuggestions();
 	try {
 		allViewings = await listViewings(config, importCheckRange());

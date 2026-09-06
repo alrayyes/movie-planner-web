@@ -31,7 +31,7 @@ async function connectAndOpenDetails(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await page.getByRole("link", { name: "Dune" }).click();
+  await page.getByRole("link", { name: "Dune", exact: true }).click();
 }
 
 test.describe("updating a logged viewing", () => {
