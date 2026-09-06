@@ -9,6 +9,8 @@ import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: formatTime is used in the template below, which Biome does not parse for .svelte files
 import { formatTime, toDateInputValue } from "../lib/ui/datetime";
 import { groupViewingsByLocalDay } from "../lib/ui/heatmap";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import PosterPlaceholder from "./PosterPlaceholder.svelte";
 
 // #198/#204: a GitHub-contribution-style heatmap of viewing density
 // across the visitor's whole logged history — a different
@@ -238,6 +240,9 @@ the dialog element itself, not the inner content div. -->
               alt=""
               class="h-16 w-11 flex-none rounded object-cover shadow-sm"
             />
+          {:else}
+            <!-- #236: same slot/size a real poster would occupy. -->
+            <PosterPlaceholder class="h-16 w-11 flex-none rounded shadow-sm" />
           {/if}
           <div class="flex flex-col gap-0.5">
             <a

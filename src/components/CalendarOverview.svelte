@@ -32,6 +32,8 @@ import IconImdb from "./icons/IconImdb.svelte";
 import IconLetterboxd from "./icons/IconLetterboxd.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import PosterPlaceholder from "./PosterPlaceholder.svelte";
 
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
@@ -663,6 +665,12 @@ getPicklists(config).then((picklists) => {
                       class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-40 sm:w-24"
                       loading="lazy"
                     />
+                  </a>
+                {:else}
+                  <!-- #236: same slot/size a real poster would occupy,
+                  so a movie OMDb had no poster for doesn't leave a gap. -->
+                  <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
+                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-40 sm:w-24" />
                   </a>
                 {/if}
               </td>

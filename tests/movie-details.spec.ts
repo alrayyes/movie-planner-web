@@ -142,6 +142,19 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Synopsis", { exact: true })).toHaveCount(0);
   });
 
+  // #236
+  test("shows a placeholder graphic instead of a gap when the viewing has no poster", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune" }).click();
+
+    await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: "No poster available" })).toBeVisible();
+    await expect(page.locator("img[src]")).toHaveCount(0);
+  });
+
   test("edit and delete are reachable from the details page", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

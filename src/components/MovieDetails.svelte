@@ -31,6 +31,8 @@ import IconImdb from "./icons/IconImdb.svelte";
 import IconLetterboxd from "./icons/IconLetterboxd.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import PosterPlaceholder from "./PosterPlaceholder.svelte";
 
 // #38: a dedicated page per logged viewing, reached from the overview's
 // title link — see CalendarOverview.svelte's own comment for why this is
@@ -338,6 +340,9 @@ reloadOnBfcacheRestore(() => void load());
             alt={`${viewing.title} poster`}
             class="h-80 w-52 max-w-none self-start rounded object-cover"
           />
+        {:else}
+          <!-- #236: same slot/size a real poster would occupy. -->
+          <PosterPlaceholder class="h-80 w-52 self-start rounded" />
         {/if}
         <div class="flex flex-1 flex-col gap-4">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
