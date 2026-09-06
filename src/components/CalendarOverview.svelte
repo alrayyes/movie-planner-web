@@ -31,7 +31,12 @@ import {
 	TR_BODY,
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { formatPeriod, localDayBoundary, toDateInputValue } from "../lib/ui/datetime";
+import {
+	computeBlockedTimeBar,
+	formatPeriod,
+	localDayBoundary,
+	toDateInputValue,
+} from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -777,6 +782,7 @@ getPicklists(config).then((picklists) => {
             ].filter((l) => l !== null)}
             {@const isRefreshing = refreshingUid === viewing.uid}
             {@const isDeleting = deletingUid === viewing.uid}
+            {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
             <tr class={TR_BODY} aria-busy={isRefreshing}>
               <td class={TD}>
                 {#if viewing.posterUrl}
@@ -862,7 +868,23 @@ getPicklists(config).then((picklists) => {
               link) rather than as their own columns here; keeping this
               table to a fixed, narrow column count is what lets it fit
               a phone screen without horizontal scroll. -->
-              <td class={TD}>{formatPeriod(viewing.start, viewing.end)}</td>
+              <td class={TD}>
+                {formatPeriod(viewing.start, viewing.end)}
+                <!-- #305: same purely-decorative 24-hour bar the details
+                page already shows under Start/End — the text above it
+                is already the real, complete accessible description of
+                the timing, so this carries nothing a screen reader
+                needs to hear a second time. -->
+                <div
+                  class="relative mt-1 h-1.5 w-full max-w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                  aria-hidden="true"
+                >
+                  <div
+                    class="absolute inset-y-0 rounded-full bg-indigo-500 dark:bg-indigo-400"
+                    style={`left: ${blockedTimeBar.positionPercent}%; width: ${blockedTimeBar.widthPercent}%;`}
+                  ></div>
+                </div>
+              </td>
               <td class={`${TD} hidden sm:table-cell`}>{viewing.venue ?? ""}</td>
               <!-- #298: Edit links to the details page's own edit form
               (?edit=1, read there on load) rather than duplicating that
