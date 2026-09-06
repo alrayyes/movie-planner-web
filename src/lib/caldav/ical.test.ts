@@ -105,6 +105,28 @@ describe("VEVENT round trip", () => {
     expect(parsed.end).toBe("2026-09-07T00:00:00.000Z");
   });
 
+  // #278: movie-planner's own calendar-schema.md documents a real
+  // shape this app's parser never handled — "date + start time, no end
+  // time": a DATE-TIME DTSTART with no DTEND at all (distinct from the
+  // all-day, DATE-only case above, which also has no DTEND but a plain
+  // DATE DTSTART). This used to throw and get silently dropped by
+  // parseViewingsFromMultistatus, undercounting a visitor's real
+  // calendar with no indication anything was wrong.
+  test("parses a DATE-TIME VEVENT with no DTEND, defaulting end to start", () => {
+    const noEndIcal = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:no-end-uid",
+      "SUMMARY:Dune",
+      "DTSTART:20260906T190000Z",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const parsed = parseVEventToViewing(noEndIcal);
+    expect(parsed.start).toBe("2026-09-06T19:00:00.000Z");
+    expect(parsed.end).toBe("2026-09-06T19:00:00.000Z");
+  });
+
   // #8/#203: movie-planner#183 writes GEO as icalendar's vGeo.to_ical()
   // produces it — verified live against the pinned icalendar==7.3.0,
   // `52.3665062;4.8947073` (semicolon-separated per RFC 5545 §3.8.1.6).

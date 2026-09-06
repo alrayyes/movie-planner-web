@@ -374,10 +374,22 @@ export function parseVEventToViewing(raw: string): LoggedViewing {
   const uid = properties.UID;
   const title = properties.SUMMARY;
   const start = properties.DTSTART;
-  const end = properties.DTEND;
-  if (!uid || !title || !start || !end) {
-    throw new Error("VEVENT is missing UID, SUMMARY, DTSTART or DTEND");
+  if (!uid || !title || !start) {
+    throw new Error("VEVENT is missing UID, SUMMARY or DTSTART");
   }
+  // #278: movie-planner's own calendar-schema.md documents three real
+  // DTSTART/DTEND shapes, not two — a date-only all-day event (no
+  // DTEND, handled by parseDateTimeUtc's own DATE-value fallback
+  // below), and a date-plus-start-time entry with no end time either
+  // (also no DTEND at all, but a real DATE-TIME DTSTART). Requiring
+  // DTEND unconditionally used to throw on that second shape, silently
+  // dropping the entry via parseViewingsFromMultistatus's own
+  // per-resource catch — a real, reproducible cause of the frontend
+  // undercounting a visitor's actual calendar. Defaulting the missing
+  // end to the start time matches this app's own write path
+  // (LogViewingForm.svelte's identical "missing end time defaults to
+  // start" rule for a manually-logged entry).
+  const end = properties.DTEND ?? start;
 
   const viewing: LoggedViewing = {
     uid,
