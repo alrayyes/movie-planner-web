@@ -33,6 +33,27 @@ const X_PROPERTIES: Record<string, StringViewingField> = {
   "X-LETTERBOXD-URL": "letterboxdUrl",
   "X-LETTERBOXD-RATING": "letterboxdRating",
   "X-NOTES": "notes",
+  // #310: the rest of OMDb's response fields the CLI writes verbatim
+  // (alrayyes/movie-planner#237).
+  "X-RATED": "rated",
+  "X-RUNTIME": "runtime",
+  "X-MOVIE-LANGUAGE": "movieLanguage",
+  "X-MOVIE-COUNTRY": "movieCountry",
+  "X-METASCORE": "metascore",
+  "X-IMDB-VOTES": "imdbVotes",
+  "X-DVD": "dvd",
+  "X-BOX-OFFICE": "boxOffice",
+  "X-PRODUCTION": "production",
+  "X-WEBSITE": "website",
+  // #310: this app's own properties for the two new DESCRIPTION-only
+  // fields (Released/Awards) — the CLI never writes these as X-*, but
+  // once this app parses them via the DESCRIPTION fallback below and
+  // saves an edit, they round-trip structurally from then on, same as
+  // letterboxdUrl/notes already do.
+  "X-RELEASED": "released",
+  "X-AWARDS": "awards",
+  // #310: the movie's own official trailer, from TMDb (alrayyes/movie-planner#236).
+  "X-TRAILER-URL": "trailerUrl",
 };
 
 function formatDateTimeUtc(iso: string): string {
@@ -247,10 +268,17 @@ const IMDB_URL_RE = /https:\/\/www\.imdb\.com\/title\/(tt\d+)\/?/;
 //   IMDb: {imdb_url}                       — rating not set
 //   Rotten Tomatoes: {rating}
 //   Metacritic: {rating}
+//   Released: {released}                   — #310, OMDb's own full
+//                                             release date, distinct
+//                                             from X-YEAR
+//   Plot: {plot}                           — #310, read into the same
+//                                             `synopsis` field this
+//                                             app's own X-SYNOPSIS uses
+//   Awards: {awards}                       — #310
 //   Letterboxd: {letterboxd_url}
 //   Letterboxd: {letterboxd_url} ({letterboxd_rating})
 //   Notes: {notes}
-// A sixth, unlabeled free-text line (Pathé screening details) exists in
+// A further unlabeled free-text line (Pathé screening details) exists in
 // the CLI's format too, but this app has no field for it and doesn't
 // attempt to parse it out — it's always last, after Notes, per
 // docs/calendar-schema.md, so the label on Notes is what keeps the two
@@ -264,6 +292,9 @@ function parseDescriptionMetadata(
     | "imdbId"
     | "ratingRottenTomatoes"
     | "ratingMetacritic"
+    | "released"
+    | "synopsis"
+    | "awards"
     | "letterboxdUrl"
     | "letterboxdRating"
     | "notes"
@@ -299,6 +330,24 @@ function parseDescriptionMetadata(
     const metacritic = /^Metacritic:\s*(.+)$/.exec(line);
     if (metacritic?.[1]) {
       result.ratingMetacritic = metacritic[1];
+      continue;
+    }
+
+    const released = /^Released:\s*(.+)$/.exec(line);
+    if (released?.[1]) {
+      result.released = released[1];
+      continue;
+    }
+
+    const plot = /^Plot:\s*(.+)$/.exec(line);
+    if (plot?.[1]) {
+      result.synopsis = plot[1];
+      continue;
+    }
+
+    const awards = /^Awards:\s*(.+)$/.exec(line);
+    if (awards?.[1]) {
+      result.awards = awards[1];
       continue;
     }
 

@@ -479,7 +479,20 @@ reloadOnBfcacheRestore(() => void load());
       {@const directorChips = splitMultiValue(viewing.director)}
       {@const actorChips = splitMultiValue(viewing.actors)}
       {@const genreChips = splitMultiValue(viewing.genre)}
-      {@const fields = [['Medium', viewing.medium]]}
+      {@const fields = [
+        ['Medium', viewing.medium],
+        ['Rated', viewing.rated],
+        ['Runtime', viewing.runtime],
+        ['Released', viewing.released],
+        ['Language', viewing.movieLanguage],
+        ['Country', viewing.movieCountry],
+        ['Metascore', viewing.metascore],
+        ['IMDb Votes', viewing.imdbVotes],
+        ['Box Office', viewing.boxOffice],
+        ['Production', viewing.production],
+        ['DVD Release', viewing.dvd],
+        ['Awards', viewing.awards],
+      ]}
       {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
       <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
         {#if viewing.posterUrl}
@@ -638,6 +651,37 @@ reloadOnBfcacheRestore(() => void load());
             {#if viewing.synopsis}
               <dt class={DT}>Synopsis</dt>
               <dd class={DD}>{viewing.synopsis}</dd>
+            {/if}
+            {#if viewing.website}
+              <!-- #310: OMDb's own official-site field, verbatim — shown
+              as a link since it's always a full URL when present. -->
+              <dt class={DT}>Website</dt>
+              <dd class={DD}>
+                <a
+                  href={viewing.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {viewing.website}
+                </a>
+              </dd>
+            {/if}
+            {#if viewing.trailerUrl}
+              <!-- #310: TMDb's own official YouTube trailer link
+              (alrayyes/movie-planner#236) — opportunistic, off by
+              default until a visitor's CLI has a TMDb key configured. -->
+              <dt class={DT}>Trailer</dt>
+              <dd class={DD}>
+                <a
+                  href={viewing.trailerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Watch trailer
+                </a>
+              </dd>
             {/if}
             {#if viewing.notes}
               <dt class={DT}>Notes</dt>

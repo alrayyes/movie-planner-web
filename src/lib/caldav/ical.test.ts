@@ -27,6 +27,19 @@ const VIEWING: NewViewing = {
   geo: { lat: 52.3665062, lon: 4.8947073 },
   row: "5",
   seat: "17",
+  rated: "PG-13",
+  runtime: "155 min",
+  movieLanguage: "English",
+  movieCountry: "USA, Canada",
+  metascore: "74",
+  imdbVotes: "789,012",
+  dvd: "N/A",
+  boxOffice: "$108,326,148",
+  production: "Legendary Pictures",
+  website: "https://www.dunemovie.com",
+  released: "22 Oct 2021",
+  awards: "Won 6 Oscars",
+  trailerUrl: "https://www.youtube.com/watch?v=8g18jFHCLXk",
 };
 
 describe("VEVENT round trip", () => {
@@ -197,6 +210,47 @@ describe("DESCRIPTION fallback for CLI-native events", () => {
     );
     expect(parsed.ratingRottenTomatoes).toBe("91%");
     expect(parsed.ratingMetacritic).toBe("74/100");
+  });
+
+  // #310
+  test("Released, Plot, and Awards lines", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent(
+        "u15",
+        "Released: 22 Oct 2021\nPlot: A noble family becomes embroiled in a war.\nAwards: Won 6 Oscars",
+      ),
+    );
+    expect(parsed.released).toBe("22 Oct 2021");
+    expect(parsed.synopsis).toBe("A noble family becomes embroiled in a war.");
+    expect(parsed.awards).toBe("Won 6 Oscars");
+  });
+
+  test("this app's own X-RELEASED/X-AWARDS win over DESCRIPTION when both are present", () => {
+    const ical = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:u16",
+      "SUMMARY:Dune: Part Two",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "DESCRIPTION:Released: 1 Jan 1990\\nAwards: stale",
+      "X-RELEASED:22 Oct 2021",
+      "X-AWARDS:Won 6 Oscars",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const parsed = parseVEventToViewing(ical);
+    expect(parsed.released).toBe("22 Oct 2021");
+    expect(parsed.awards).toBe("Won 6 Oscars");
+  });
+
+  test("a parsed Released/Awards field survives a subsequent write, same as any other OMDb-sourced field", () => {
+    const parsed = parseVEventToViewing(
+      cliVEvent("u17", "Released: 22 Oct 2021\nAwards: Won 6 Oscars"),
+    );
+    const rewritten = parseVEventToViewing(serializeViewingToVEvent("u17", parsed));
+    expect(rewritten.released).toBe("22 Oct 2021");
+    expect(rewritten.awards).toBe("Won 6 Oscars");
   });
 
   test("Letterboxd line without a rating", () => {
