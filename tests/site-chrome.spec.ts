@@ -132,6 +132,7 @@ test.describe("footer", () => {
       "href",
       "https://github.com/alrayyes/movie-planner-web",
     );
+    await expect(footer.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
     await expect(footer.getByRole("link", { name: "Disclaimer" })).toHaveAttribute(
       "href",
       "/disclaimer",
@@ -161,6 +162,35 @@ test.describe("footer", () => {
     await expect(page.getByRole("heading", { name: "Disclaimer" })).toBeVisible();
     await expect(page.getByText(/independent hobby project/i)).toBeVisible();
     await expect(page.locator("main").getByText(/GPL-3.0-or-later/)).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  // #270: reachable without connecting, same as privacy/disclaimer — its
+  // whole point is helping an undecided visitor judge the app before
+  // they've typed anything into the connect form.
+  test("about page tours the overview, venues, heatmap, and map, with a clean a11y scan", async ({
+    page,
+  }) => {
+    await page.goto("/about");
+
+    await expect(page.getByRole("heading", { name: "About Movie Planner" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "A calendar overview of everything you've watched" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Every venue you've been to, with a count" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "A GitHub-style heatmap of your viewing habits" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Every located viewing, pinned on one map" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Connect your own CalDAV server" }),
+    ).toHaveAttribute("href", "/");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

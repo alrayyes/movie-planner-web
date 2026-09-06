@@ -111,6 +111,15 @@ Playwright pattern against the built output rather than the dev server —
 see `playwright.config.ts`'s comment for why `wrangler dev` serves it
 instead of `astro preview`.
 
+## Keeping docs and the about page current
+
+`src/content/docs/docs/*.md` (the `/docs/*` site) and `src/pages/about.astro`
+both describe specific, current app behaviour — a new page, a changed
+workflow, a UI feature worth a screenshot. Update whichever of them your
+change actually affects in the same pull request, the same rule as the
+README: a docs page or the about page that's gone stale costs the next
+visitor (or agent) more than the two extra lines would have.
+
 ## Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org/):

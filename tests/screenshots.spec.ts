@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
 
@@ -79,8 +80,48 @@ test.describe("README screenshots", () => {
       // The element itself, not a full-page screenshot — crops tightly to
       // the actual content instead of carrying trailing page whitespace
       // below the last row.
-      await page.locator("#page-container").screenshot({
+      const shot = await page.locator("#page-container").screenshot({
         path: `docs/screenshots/overview-${mode}.png`,
+      });
+      // #270: the About page's feature tour reuses this exact capture —
+      // same bytes, second path, rather than a separate screenshot run —
+      // so the README copy (docs/screenshots/, GitHub-rendered) and the
+      // live-site copy (public/screenshots/, Astro-served) can never
+      // drift apart from each other.
+      await writeFile(`public/screenshots/overview-${mode}.png`, shot);
+    });
+  }
+
+  for (const mode of ["light", "dark"] as const) {
+    test(`captures the venues page in ${mode} mode`, async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 960 });
+      await page.emulateMedia({ colorScheme: mode });
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+      await connect(page);
+
+      await page.goto("/venues");
+      await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Grand Vista Cinema" })).toBeVisible();
+
+      await page.locator("#page-container").screenshot({
+        path: `public/screenshots/venues-${mode}.png`,
+      });
+    });
+  }
+
+  for (const mode of ["light", "dark"] as const) {
+    test(`captures the calendar heatmap in ${mode} mode`, async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 960 });
+      await page.emulateMedia({ colorScheme: mode });
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+      await connect(page);
+
+      await page.goto("/calendar");
+      await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+      await expect(page.getByText("2 logged viewings.")).toBeVisible();
+
+      await page.locator("#page-container").screenshot({
+        path: `public/screenshots/heatmap-${mode}.png`,
       });
     });
   }
