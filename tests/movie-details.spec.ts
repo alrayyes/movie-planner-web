@@ -241,6 +241,57 @@ test.describe("movie details page", () => {
     expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
   });
 
+  // #8/#203
+  test("shows a per-venue map with an Open in Maps link when the viewing has known coordinates", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveAttribute(
+      "href",
+      "https://www.openstreetmap.org/?mlat=52.3665062&mlon=4.8947073#map=18/52.3665062/4.8947073",
+    );
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("shows no map or Open in Maps link when the viewing has no known coordinates", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
+    await expect(page.getByRole("region", { name: /Map/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveCount(0);
+  });
+
+  // #8/#203: design.md's own zero-network-privacy decision — the map
+  // renders from a bundled local asset, never a live tile-provider
+  // fetch. Asserts the negative directly rather than trusting the
+  // implementation not to regress toward one.
+  test("the per-venue map makes no request to a map-tile provider", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+    ]);
+    const tileRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/tile/i.test(request.url())) tileRequests.push(request.url());
+    });
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    expect(tileRequests).toEqual([]);
+  });
+
   test("offers a disambiguation picker when refreshing finds no confident match", async ({
     page,
   }) => {

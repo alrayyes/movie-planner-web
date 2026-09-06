@@ -8,6 +8,8 @@ import {
 } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { openStreetMapUrl } from "../lib/geo/links";
 import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
 import { findKnownGeo } from "../lib/geo/reuse";
 import { importCheckRange } from "../lib/movie-log/run-import";
@@ -43,6 +45,8 @@ import IconLetterboxd from "./icons/IconLetterboxd.svelte";
 import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import VenueMap from "./VenueMap.svelte";
 
 // #38: a dedicated page per logged viewing, reached from the overview's
 // title link — see CalendarOverview.svelte's own comment for why this is
@@ -578,6 +582,22 @@ reloadOnBfcacheRestore(() => void load());
               <dd class={DD}>{viewing.notes}</dd>
             {/if}
           </dl>
+          {#if viewing.geo}
+            <!-- #8/#203: renders only when this viewing's venue has
+            known coordinates; nothing here otherwise, not a broken or
+            empty map. -->
+            <div class="flex flex-col gap-1">
+              <VenueMap pins={[{ lat: viewing.geo.lat, lon: viewing.geo.lon, label: viewing.venue ?? viewing.title }]} />
+              <a
+                href={openStreetMapUrl(viewing.geo)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="self-start text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Open in Maps
+              </a>
+            </div>
+          {/if}
           <div class="flex gap-2">
             <button type="button" class={BUTTON_SM} onclick={() => startEdit(viewing)}>
               Edit
