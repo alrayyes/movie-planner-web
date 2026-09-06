@@ -132,7 +132,56 @@ function parseGeo(value: string): { lat: number; lon: number } | undefined {
   return { lat, lon };
 }
 
-export function serializeViewingToVEvent(uid: string, viewing: NewViewing): string {
+// #294: every property this app knows how to read or write — anything
+// else found on an existing VEVENT (X-CITY/X-COUNTRY, X-ROW/X-SEAT, or
+// any future movie-planner extension this app hasn't caught up to yet)
+// is preserved verbatim across an edit instead of being silently
+// dropped. DESCRIPTION is deliberately excluded: this app never writes
+// it, and any field it carries for a CLI-logged viewing already gets
+// promoted onto this app's own X-* properties the moment it's parsed
+// (parseVEventToViewing's own DESCRIPTION-fallback comment) — so a
+// stale DESCRIPTION alongside freshly-written X-* properties would be
+// redundant at best, not a second copy worth keeping.
+const KNOWN_PROPERTIES = new Set([
+  "UID",
+  "DTSTAMP",
+  "DTSTART",
+  "DTEND",
+  "SUMMARY",
+  "LOCATION",
+  "GEO",
+  "DESCRIPTION",
+  ...Object.keys(X_PROPERTIES),
+]);
+
+// #294: the raw (unfolded, still-escaped) lines of every VEVENT property
+// this app doesn't itself read or write — passed through to
+// serializeViewingToVEvent verbatim on an update so they survive an
+// edit made through this app. Returns an empty array for a raw VEVENT
+// this app can't parse the boundaries of at all, rather than throwing —
+// best-effort preservation, not a hard requirement that could block a
+// save outright.
+export function extractUnknownProperties(raw: string): string[] {
+  const lines = unfoldLines(raw);
+  const start = lines.indexOf("BEGIN:VEVENT");
+  const end = lines.indexOf("END:VEVENT");
+  if (start === -1 || end === -1 || end < start) return [];
+  const result: string[] = [];
+  for (const line of lines.slice(start + 1, end)) {
+    const colon = line.indexOf(":");
+    if (colon === -1) continue;
+    const name = line.slice(0, colon).split(";")[0]?.toUpperCase();
+    if (!name || KNOWN_PROPERTIES.has(name)) continue;
+    result.push(line);
+  }
+  return result;
+}
+
+export function serializeViewingToVEvent(
+  uid: string,
+  viewing: NewViewing,
+  extraLines: string[] = [],
+): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -150,6 +199,7 @@ export function serializeViewingToVEvent(uid: string, viewing: NewViewing): stri
     const value = viewing[field];
     if (value) lines.push(property(xProp, value));
   }
+  for (const line of extraLines) lines.push(foldLine(line));
   lines.push("END:VEVENT", "END:VCALENDAR");
   return lines.join("\r\n");
 }

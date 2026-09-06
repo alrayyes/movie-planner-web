@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  extractUnknownProperties,
   parsePicklistsFromVJournal,
   parseVEventToViewing,
   parseViewingsFromMultistatus,
@@ -365,5 +366,55 @@ describe("VJOURNAL sidecar round trip", () => {
       "END:VCALENDAR",
     ].join("\r\n");
     expect(parsePicklistsFromVJournal(corrupted)).toEqual({ media: [], venues: [] });
+  });
+});
+
+// #294: X-CITY/X-COUNTRY (movie-planner's own extensions, not yet in
+// this app's own X_PROPERTIES allow-list) used to vanish the moment
+// this app regenerated a VEVENT it didn't originally write.
+describe("extractUnknownProperties", () => {
+  test("returns raw lines for properties outside this app's own known set", () => {
+    const raw = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:u1",
+      "DTSTAMP:20260101T000000Z",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "SUMMARY:Dune",
+      "X-CITY:Amsterdam",
+      "X-COUNTRY:Netherlands",
+      "X-ROW:5",
+      "X-SEAT:17",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    expect(extractUnknownProperties(raw)).toEqual([
+      "X-CITY:Amsterdam",
+      "X-COUNTRY:Netherlands",
+      "X-ROW:5",
+      "X-SEAT:17",
+    ]);
+  });
+
+  test("excludes every property this app already reads or writes itself", () => {
+    const ical = serializeViewingToVEvent("u2", VIEWING);
+    expect(extractUnknownProperties(ical)).toEqual([]);
+  });
+
+  test("returns nothing for a VEVENT it can't find the boundaries of", () => {
+    expect(extractUnknownProperties("not an ics file at all")).toEqual([]);
+  });
+});
+
+describe("serializeViewingToVEvent with extraLines", () => {
+  test("carries preserved properties through into the serialized VEVENT", () => {
+    const ical = serializeViewingToVEvent("u3", VIEWING, ["X-CITY:Amsterdam", "X-ROW:5"]);
+    expect(ical).toContain("X-CITY:Amsterdam");
+    expect(ical).toContain("X-ROW:5");
+    // Still a well-formed VEVENT — the extra lines land inside it, not
+    // appended after END:VEVENT.
+    expect(ical.indexOf("X-CITY:Amsterdam")).toBeLessThan(ical.indexOf("END:VEVENT"));
   });
 });
