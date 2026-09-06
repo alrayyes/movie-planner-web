@@ -64,6 +64,13 @@ export async function logManualViewing(
 export async function logPatheBooking(
   credentials: Credentials,
   booking: PatheBooking,
+  // #8/#203: the cinema's own known coordinates, reused automatically
+  // when an earlier viewing at the same cinema already has them
+  // (movie-log spec's "Reuses a venue's known coordinates" scenario) —
+  // the caller resolves this (findKnownGeo against already-loaded
+  // viewings), not this function, since it has no viewing list of its
+  // own beyond the same-day dedup query above.
+  geo?: { lat: number; lon: number },
 ): Promise<LogResult & { wasUpdate: boolean }> {
   const config: CaldavConfig = {
     baseUrl: credentials.caldavUrl,
@@ -89,6 +96,7 @@ export async function logPatheBooking(
     medium: "cinema",
     venue: booking.cinema,
     bookingRef: booking.bookingRef,
+    geo,
   };
   const enrichment = await enrichWithOmdb(credentials, booking.title, booking.start);
   const merged = { ...viewing, ...enrichment.fields };

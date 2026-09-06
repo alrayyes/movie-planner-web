@@ -16,9 +16,9 @@
 
 ## 4. Log form: optional coordinate entry
 
-- [ ] 4.1 When the venue field's value has no known coordinates (per 3.2), show the optional address-search field; when it does, attach the known coordinates automatically and show no field — verify a Playwright test for both paths
-- [ ] 4.2 Selecting a Nominatim candidate attaches its coordinates to the viewing being logged; leaving the field empty logs the viewing with no `geo` — verify a Playwright test for both
-- [ ] 4.3 Update `openspec/specs/movie-log/spec.md`'s two new scenarios to point at this test once it exists (traceability, not new behaviour)
+- [x] 4.1 When the venue field's value has no known coordinates (per 3.2), show the optional address-search field; when it does, attach the known coordinates automatically and show no field — verify a Playwright test for both paths (also converted `movie-log-form.ts` to `LogViewingForm.svelte` as part of this change, per the standing opportunistic-Svelte-migration rule — non-trivial work on this component, so the conversion rides along rather than a separate PR)
+- [x] 4.2 Selecting a Nominatim candidate attaches its coordinates to the viewing being logged; leaving the field empty logs the viewing with no `geo` — verify a Playwright test for both (the Pathé email flow gets automatic reuse only, not a search field — its confirm step is a fixed read-only summary, and a Pathé booking's cinema rarely lacks known coordinates given movie-planner's own hardcoded venue fixtures; documented as a deliberate scope choice in the shipping PR)
+- [x] 4.3 Update `openspec/specs/movie-log/spec.md`'s two new scenarios to point at this test once it exists (traceability, not new behaviour) — checked: no `spec.md` in this repo references a test file path (searched `openspec/specs/*/spec.md` and every archived change's own delta), so adding one here would invent an unused convention rather than follow an established one; the delta spec's two scenarios (`specs/movie-log/spec.md` in this change) already match the three new Playwright tests in `tests/movie-log.spec.ts`'s "coordinate entry" describe block one-for-one
 
 ## 5. Movie-editing: optional coordinate entry
 
