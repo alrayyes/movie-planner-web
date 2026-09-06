@@ -489,4 +489,123 @@ test.describe("venues overview", () => {
 
     await expect(page.getByRole("region", { name: /^Map/ })).toHaveCount(0);
   });
+
+  // #267
+  test("groups venues by country then city, with a map above each city's own table", async ({
+    page,
+  }) => {
+    await mockTiles(page);
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Tuschinski",
+          city: "Amsterdam",
+          country: "Netherlands",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+        {
+          uid: "another-amsterdam-uid",
+          title: "Paddington",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "The Movies",
+          city: "Amsterdam",
+          country: "Netherlands",
+        },
+        {
+          uid: "us-uid",
+          title: "An Old Favourite",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "AMC Empire 25",
+          city: "New York",
+          country: "USA",
+        },
+        {
+          uid: "unlocated-uid",
+          title: "Something at Home",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "netflix",
+          venue: "Netflix",
+        },
+      ],
+      {
+        media: ["cinema", "netflix"],
+        venues: ["Tuschinski", "The Movies", "AMC Empire 25", "Netflix"],
+      },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    // Countries and cities each as their own heading, alphabetically.
+    const netherlands = page.getByRole("heading", { name: "Netherlands" });
+    const usa = page.getByRole("heading", { name: "USA" });
+    await expect(netherlands).toBeVisible();
+    await expect(usa).toBeVisible();
+    const headings = page.getByRole("heading");
+    const netherlandsIndex = await netherlands.evaluate((el) =>
+      Array.from(document.querySelectorAll("h2, h3")).indexOf(el),
+    );
+    const usaIndex = await usa.evaluate((el) =>
+      Array.from(document.querySelectorAll("h2, h3")).indexOf(el),
+    );
+    expect(netherlandsIndex).toBeLessThan(usaIndex);
+    await expect(headings.filter({ hasText: "Amsterdam" })).toBeVisible();
+    await expect(headings.filter({ hasText: "New York" })).toBeVisible();
+
+    // Amsterdam has a venue with known coordinates — its own map, pinned
+    // just to that city's venue(s), not every venue in the whole page.
+    const amsterdamMap = page.getByRole("region", { name: "Map showing 1 location" });
+    await expect(amsterdamMap).toBeVisible();
+
+    // Every located venue still shows in its own city's table.
+    await expect(page.getByRole("link", { name: "Tuschinski" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "The Movies" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "AMC Empire 25" })).toBeVisible();
+
+    // A venue with no city/country falls into its own "Other locations"
+    // section rather than being silently dropped.
+    await expect(page.getByRole("heading", { name: "Other locations" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Netflix" })).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("shows the old flat, ungrouped view when no venue has a known city/country", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    await expect(page.getByRole("link", { name: "Grand Vista Cinema" })).toBeVisible();
+    // No lone "Other locations" heading with nothing to contrast it
+    // against — same flat table this page always showed.
+    await expect(page.getByRole("heading", { name: "Other locations" })).toHaveCount(0);
+  });
 });

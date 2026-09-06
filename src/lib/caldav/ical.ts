@@ -33,6 +33,9 @@ const X_PROPERTIES: Record<string, StringViewingField> = {
   "X-LETTERBOXD-URL": "letterboxdUrl",
   "X-LETTERBOXD-RATING": "letterboxdRating",
   "X-NOTES": "notes",
+  // #267: a recognized venue's city/country (alrayyes/movie-planner#217).
+  "X-CITY": "city",
+  "X-COUNTRY": "country",
   // #310: the rest of OMDb's response fields the CLI writes verbatim
   // (alrayyes/movie-planner#237).
   "X-RATED": "rated",
@@ -156,10 +159,10 @@ function parseGeo(value: string): { lat: number; lon: number } | undefined {
 }
 
 // #294: every property this app knows how to read or write — anything
-// else found on an existing VEVENT (X-CITY/X-COUNTRY, X-ROW/X-SEAT, or
-// any future movie-planner extension this app hasn't caught up to yet)
-// is preserved verbatim across an edit instead of being silently
-// dropped. DESCRIPTION is deliberately excluded: this app never writes
+// else found on an existing VEVENT (a future movie-planner extension
+// this app hasn't caught up to yet) is preserved verbatim across an
+// edit instead of being silently dropped. DESCRIPTION is deliberately
+// excluded: this app never writes
 // it, and any field it carries for a CLI-logged viewing already gets
 // promoted onto this app's own X-* properties the moment it's parsed
 // (parseVEventToViewing's own DESCRIPTION-fallback comment) — so a

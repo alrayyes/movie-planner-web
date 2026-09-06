@@ -69,3 +69,5 @@ Nominatim
 heatmap
 geocoders?
 skippable
+hardcoded
+backfilled
