@@ -1,0 +1,103 @@
+---
+// #270: a public features tour — reachable without connecting, same as
+// /privacy and /disclaimer, since its whole point is helping an
+// undecided visitor judge the app before they've typed anything in.
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+const FEATURES: {
+  title: string;
+  description: string;
+  slug: string;
+  alt: string;
+}[] = [
+  {
+    title: "A calendar overview of everything you've watched",
+    description:
+      "Every logged viewing, one row each, with poster, rating, venue, and " +
+      "medium. Sort, filter, and search across your whole history.",
+    slug: "overview",
+    alt: "The calendar overview, listing logged viewings with posters and ratings",
+  },
+  {
+    title: "Every venue you've been to, with a count",
+    description:
+      "Cinemas, streaming services, anywhere you've logged a viewing — each " +
+      "with how many times you've watched something there, filterable by date.",
+    slug: "venues",
+    alt: "The venues page, listing venues with a viewing count each",
+  },
+  {
+    title: "A GitHub-style heatmap of your viewing habits",
+    description:
+      "A day-by-day density map of your whole history, the same idea as a " +
+      "contribution graph — click any shaded day to see what you watched.",
+    slug: "heatmap",
+    alt: "The viewing heatmap, shaded by day",
+  },
+  {
+    title: "Every located viewing, pinned on one map",
+    description:
+      "Real OpenStreetMap tiles, not an abstract outline — click a pin for " +
+      "its title, or open the exact location for full precision.",
+    slug: "map",
+    alt: "The map, pinned at a located viewing in Amsterdam",
+  },
+];
+---
+
+<Layout title="About — Movie Planner" wide>
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    About Movie Planner
+  </h1>
+  <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+    A public web client for <a
+      class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      href="https://github.com/alrayyes/movie-planner">movie-planner</a
+    >, the CLI that logs movies you've watched. This site reads and writes
+    straight to your own CalDAV calendar — no account, no server-side storage,
+    nothing but your browser talking to servers you already control. See the <a
+      class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      href="/privacy">privacy page</a
+    > for the full, verifiable claim, or <a
+      class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      href="/docs/">the docs</a
+    > for how to connect your own server.
+  </p>
+
+  <div class="mt-8 flex flex-col gap-10">
+    {
+      FEATURES.map((feature) => (
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {feature.title}
+          </h2>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            {feature.description}
+          </p>
+          <img
+            src={`/screenshots/${feature.slug}-light.png`}
+            alt={feature.alt}
+            class="mt-3 block rounded-lg border border-slate-200 dark:hidden"
+          />
+          <img
+            src={`/screenshots/${feature.slug}-dark.png`}
+            alt={feature.alt}
+            class="mt-3 hidden rounded-lg border border-slate-700 dark:block"
+          />
+        </section>
+      ))
+    }
+  </div>
+
+  <p class="mt-10 text-sm text-slate-600 dark:text-slate-400">
+    Ready to try it? <a
+      class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      href="/">Connect your own CalDAV server</a
+    > — it only takes the URL, username, and password you'd give any other calendar
+    app.
+  </p>
+</Layout>
