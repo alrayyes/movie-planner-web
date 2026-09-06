@@ -166,6 +166,71 @@ test.describe("viewing heatmap", () => {
     await expect(dialog).toBeHidden();
   });
 
+  test("hovering a day cell also opens the popup, closing again once the pointer leaves", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+        year: "2021",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    const cell = page.getByRole("button", { name: `${dayValue}: 1 viewing` });
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeHidden();
+
+    await cell.hover();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Dune (2021)" })).toBeVisible();
+
+    // Still just hovering, not pinned — the page underneath stays
+    // interactive (a modal's backdrop would block this).
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+
+    await page.mouse.move(0, 0);
+    await expect(dialog).toBeHidden();
+  });
+
+  test("clicking a day cell pins the popup open even after the pointer leaves", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+        year: "2021",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    const cell = page.getByRole("button", { name: `${dayValue}: 1 viewing` });
+    await cell.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await page.mouse.move(0, 0);
+    // A pinned (clicked) popup stays open — only hovering closes on
+    // its own.
+    await expect(dialog).toBeVisible();
+  });
+
   test("the popup shows a poster, showtime, director/genre and rating when known", async ({
     page,
   }) => {

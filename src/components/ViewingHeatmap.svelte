@@ -30,6 +30,12 @@ let status = $state("Loading…");
 let viewingsByDay = $state<Map<string, LoggedViewing[]>>(new Map());
 let dialogEl = $state<HTMLDialogElement>();
 let selectedDay = $state<string | undefined>();
+// "pinned" (opened by click/Enter, a real showModal()) stays open until
+// explicitly closed; "hover" (opened by mouseenter/focus, a plain
+// show()) closes on mouseleave/blur, after a short delay so moving the
+// pointer from the cell into the popup itself doesn't lose it.
+let dialogMode = $state<"closed" | "hover" | "pinned">("closed");
+let hoverCloseTimer: ReturnType<typeof setTimeout> | undefined;
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const selectedViewings = $derived(selectedDay ? (viewingsByDay.get(selectedDay) ?? []) : []);
@@ -146,16 +152,64 @@ function positionNear(trigger: HTMLElement) {
 	dialogEl.style.left = `${left}px`;
 }
 
+// Closing (or re-showing) a <dialog> synchronously restores keyboard
+// focus to whatever triggered it (the day cell button) — which fires
+// that button's own onfocus handler right back, reopening the popup
+// we just meant to close. This guard makes openDayOnHover ignore a
+// focus event caused by our own close()/show() calls, not a real
+// keyboard Tab onto the cell.
+let suppressFocusReopen = false;
+
+function closeDialogEl() {
+	if (!dialogEl?.open) return;
+	suppressFocusReopen = true;
+	dialogEl.close();
+	suppressFocusReopen = false;
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function openDay(day: string, event: MouseEvent) {
+	clearTimeout(hoverCloseTimer);
 	selectedDay = day;
+	closeDialogEl();
 	dialogEl?.showModal();
+	dialogMode = "pinned";
 	positionNear(event.currentTarget as HTMLElement);
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function openDayOnHover(day: string, event: FocusEvent | MouseEvent) {
+	if (dialogMode === "pinned" || suppressFocusReopen) return;
+	clearTimeout(hoverCloseTimer);
+	selectedDay = day;
+	closeDialogEl();
+	dialogEl?.show();
+	dialogMode = "hover";
+	positionNear(event.currentTarget as HTMLElement);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function scheduleHoverClose() {
+	if (dialogMode !== "hover") return;
+	clearTimeout(hoverCloseTimer);
+	hoverCloseTimer = setTimeout(() => {
+		if (dialogMode === "hover") {
+			closeDialogEl();
+			dialogMode = "closed";
+		}
+	}, 150);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function cancelHoverClose() {
+	clearTimeout(hoverCloseTimer);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function closeDialog() {
-	dialogEl?.close();
+	clearTimeout(hoverCloseTimer);
+	closeDialogEl();
+	dialogMode = "closed";
 }
 
 async function load() {
@@ -205,6 +259,10 @@ reloadOnBfcacheRestore(() => void load());
                 aria-label={cellLabel(day, count)}
                 title={cellLabel(day, count)}
                 onclick={(event) => openDay(day, event)}
+                onmouseenter={(event) => openDayOnHover(day, event)}
+                onmouseleave={scheduleHoverClose}
+                onfocus={(event) => openDayOnHover(day, event)}
+                onblur={scheduleHoverClose}
               ></button>
             {:else}
               <span
@@ -233,6 +291,8 @@ the dialog element itself, not the inner content div. -->
   onclick={(event) => {
     if (event.target === dialogEl) closeDialog();
   }}
+  onmouseenter={cancelHoverClose}
+  onmouseleave={scheduleHoverClose}
 >
   <div class="flex flex-col gap-3">
     <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">{selectedDay}</h2>
