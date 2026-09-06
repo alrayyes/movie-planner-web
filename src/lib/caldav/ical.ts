@@ -28,6 +28,8 @@ const X_PROPERTIES: Record<string, StringViewingField> = {
   "X-IMDB-ID": "imdbId",
   "X-SYNOPSIS": "synopsis",
   "X-BOOKING-REF": "bookingRef",
+  "X-ROW": "row",
+  "X-SEAT": "seat",
   "X-LETTERBOXD-URL": "letterboxdUrl",
   "X-LETTERBOXD-RATING": "letterboxdRating",
   "X-NOTES": "notes",
