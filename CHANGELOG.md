@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.74.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.74.0...movie-planner-web-v0.74.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **movie-details:** fix WCAG AA contrast on the "not linked" gap indicator ([#325](https://github.com/alrayyes/movie-planner-web/issues/325)) ([abd5339](https://github.com/alrayyes/movie-planner-web/commit/abd5339f4230bf138404cbaed11d9beb3a523492)), closes [#313](https://github.com/alrayyes/movie-planner-web/issues/313)
+
 ## [0.74.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.73.0...movie-planner-web-v0.74.0) (2026-09-06)
 
 
