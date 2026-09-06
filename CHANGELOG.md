@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.75.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.74.1...movie-planner-web-v0.75.0) (2026-09-06)
+
+
+### Features
+
+* **disclaimer:** add a prominent use-at-your-own-risk warning ([#327](https://github.com/alrayyes/movie-planner-web/issues/327)) ([268d028](https://github.com/alrayyes/movie-planner-web/commit/268d02800d57e4721be063af8bb14204b37e7ed6))
+
 ## [0.74.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.74.0...movie-planner-web-v0.74.1) (2026-09-06)
 
 
