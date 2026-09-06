@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.64.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.63.0...movie-planner-web-v0.64.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-heatmap:** clickable year and month headings, grouped by year ([#281](https://github.com/alrayyes/movie-planner-web/issues/281)) ([e87ed0d](https://github.com/alrayyes/movie-planner-web/commit/e87ed0d7d78ee091be0415ab0c07e9c01d9d8181))
+
 ## [0.63.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.62.0...movie-planner-web-v0.63.0) (2026-09-06)
 
 
