@@ -33,10 +33,10 @@
 
 ## 7. Global `/map` page
 
-- [ ] 7.1 Add the `/map` page, querying the visitor's whole history (same wide range `importCheckRange()` already provides elsewhere) and rendering one pin per viewing with a `geo` value, reusing the map component from task 6
-- [ ] 7.2 Verify a Playwright test: a mix of located/unlocated viewings shows the right pin count and omits the unlocated ones without error
-- [ ] 7.3 Verify a Playwright test: no logged viewings with a `geo` value renders an empty map, not an error
-- [ ] 7.4 Decide and implement how `/map` is reached (top-nav link vs. a link from the Venues page, per design.md's second Open Question) and verify it's reachable in a Playwright test
+- [x] 7.1 Add the `/map` page, querying the visitor's whole history (same wide range `importCheckRange()` already provides elsewhere) and rendering one pin per viewing with a `geo` value, reusing the map component from task 6 — replaces #237's static preview page; `VenueMap.svelte` gained a `pins` prop that's now properly reactive (re-syncs its markers when `pins` changes after mount) rather than only ever reading it once, since this page's own pins arrive asynchronously after this component already mounts, unlike the per-venue map's single always-final pin
+- [x] 7.2 Verify a Playwright test: a mix of located/unlocated viewings shows the right pin count and omits the unlocated ones without error
+- [x] 7.3 Verify a Playwright test: no logged viewings with a `geo` value renders an empty map, not an error
+- [x] 7.4 Decide and implement how `/map` is reached (top-nav link vs. a link from the Venues page, per design.md's second Open Question) and verify it's reachable in a Playwright test — already resolved in #237's own placeholder work (a top-nav link, between Calendar and Log a viewing); kept as-is
 
 ## 8. Accessibility and finishing checks
 

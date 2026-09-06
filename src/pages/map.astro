@@ -1,5 +1,7 @@
 ---
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import GlobalMap from "../components/GlobalMap.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 import Layout from "../layouts/Layout.astro";
 ---
 
@@ -9,50 +11,19 @@ import Layout from "../layouts/Layout.astro";
   >
     Map
   </h1>
-  <div class="mt-6 flex flex-col gap-4">
+  <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+    Every logged viewing whose venue has known coordinates, pinned on one map —
+    click a pin for its title, or the movie's own details page for the exact
+    location.
+  </p>
+  <div class="mt-6">
     {
-      /* #237: a static preview, not the real feature (#8/#203) — no
-      Leaflet, no bundled outline asset, no real venue coordinates. Those
-      all wait on movie-planner's own GEO-coordinate support
-      (movie-planner#170). Plain markup, no Svelte island: nothing here
-      reads credentials or fetches anything yet. */
+      /* #8/#203: client:only, not client:load — reads stored
+      credentials on mount, which doesn't exist during the static
+      build (see VenuesOverview's own identical note). This replaces
+      #237's static preview now that movie-planner#170's real
+      coordinates exist to plot. */
     }
-    <p class="text-slate-700 dark:text-slate-300">
-      Every logged viewing pinned on one map, by venue — planned, not live yet.
-      Real pins need venue coordinates, which <a
-        href="https://github.com/alrayyes/movie-planner/issues/170"
-        class="text-indigo-600 underline dark:text-indigo-400"
-        >movie-planner's own CLI doesn't support surfacing yet</a
-      >. This is a preview of the page's shape in the meantime.
-    </p>
-
-    <div
-      class="relative aspect-video overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40"
-      style="background-image: linear-gradient(0deg, transparent 24px, color-mix(in srgb, currentColor 8%, transparent) 25px), linear-gradient(90deg, transparent 24px, color-mix(in srgb, currentColor 8%, transparent) 25px); background-size: 25px 25px; color: rgb(100 116 139);"
-      aria-hidden="true"
-    >
-      <div
-        class="absolute top-[38%] left-[44%] flex -translate-x-1/2 -translate-y-full flex-col items-center gap-1"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          class="h-8 w-8 text-indigo-600 drop-shadow dark:text-indigo-400"
-        >
-          <path
-            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"
-          ></path>
-        </svg>
-        <span
-          class="rounded bg-white/90 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-slate-700 shadow-sm dark:bg-slate-800/90 dark:text-slate-200"
-        >
-          Sample pin
-        </span>
-      </div>
-    </div>
-    <p class="text-sm text-slate-600 dark:text-slate-400">
-      The pin above is a placeholder, not a real venue — this page has no
-      location data to plot yet.
-    </p>
+    <GlobalMap client:only="svelte" />
   </div>
 </Layout>

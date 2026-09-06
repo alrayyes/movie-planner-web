@@ -10,6 +10,27 @@ const CREDENTIALS = {
   "caldav-password": "secret",
 };
 
+const DUNE = {
+  uid: "dune-uid",
+  title: "Dune",
+  start: "2026-01-01T19:00:00.000Z",
+  end: "2026-01-01T21:30:00.000Z",
+  medium: "cinema",
+  venue: "Tuschinski, Amsterdam, Netherlands",
+  year: "2021",
+  geo: { lat: 52.3665062, lon: 4.8947073 },
+};
+
+// Same medium, no venue/geo at all — a plain unlocated viewing, not
+// worth a Pathé-specific fixture just for this.
+const PADDINGTON = {
+  uid: "paddington-uid",
+  title: "Paddington",
+  start: "2026-02-01T18:00:00.000Z",
+  end: "2026-02-01T19:40:00.000Z",
+  medium: "netflix",
+};
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -19,38 +40,75 @@ async function connect(page: Page) {
   await expect(page.getByRole("link", { name: "Map" })).toBeVisible();
 }
 
-// #237: a static preview of the real feature (#8/#203) ahead of
-// movie-planner's own GEO-coordinate support — no real data to load, so
-// no mock CalDAV fixtures beyond what connect() itself needs.
-test.describe("map placeholder", () => {
-  test("shows a themed placeholder with a sample pin and an explanation", async ({ page }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+// #8/#203: the real global map, now that movie-planner#170 ships
+// coordinates — replaces #237's static preview.
+test.describe("global map", () => {
+  test("pins every located viewing and omits unlocated ones, without error", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
     await connect(page);
 
     await page.goto("/map");
 
-    await expect(page.getByRole("heading", { name: "Map" })).toBeVisible();
-    await expect(page.getByText("Sample pin")).toBeVisible();
-    await expect(page.getByText(/not a real venue/)).toBeVisible();
+    await expect(page.getByText("1 located viewing of 2 logged.")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+  });
+
+  test("no located viewings at all renders an empty map, not an error", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON]);
+    await connect(page);
+
+    await page.goto("/map");
+
+    await expect(page.getByText("No located viewings yet.")).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "movie-planner's own CLI doesn't support surfacing yet" }),
-    ).toHaveAttribute("href", "https://github.com/alrayyes/movie-planner/issues/170");
+      page.getByRole("region", { name: "Map with no locations to show yet" }),
+    ).toBeVisible();
+  });
+
+  test("a pin's popup links to that viewing's own details page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/map");
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    await page.locator(".leaflet-marker-icon").click();
+    const popupLink = page.getByRole("link", { name: "Dune (2021)" });
+    await expect(popupLink).toBeVisible();
+    await popupLink.click();
+
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
   });
 
   test("reachable from the site nav", async ({ page }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
     await page.getByRole("link", { name: "Map" }).click();
     await expect(page.getByRole("heading", { name: "Map" })).toBeVisible();
   });
 
-  test("introduces no accessibility violations", async ({ page }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+  // #8/#203: design.md's own zero-network-privacy decision — verified
+  // directly, same as the per-venue map's own identical test.
+  test("makes no request to a map-tile provider", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    const tileRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/tile/i.test(request.url())) tileRequests.push(request.url());
+    });
     await connect(page);
 
     await page.goto("/map");
-    await expect(page.getByRole("heading", { name: "Map" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    expect(tileRequests).toEqual([]);
+  });
+
+  test("introduces no accessibility violations", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.goto("/map");
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

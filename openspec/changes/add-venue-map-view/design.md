@@ -131,6 +131,7 @@ Tomatoes/Letterboxd links work.
   Sidesteps the public-domain/CC0 sourcing question entirely (no
   external data, no licence to track) rather than answering it, which
   the "safe to pick during implementation" framing already allowed for.
-- Whether `/map` gets a top-nav link or is reached via the Venues page
-  is explicitly left open per proposal.md — a UI-placement detail, not a
-  behaviour the specs above depend on.
+- ~~Whether `/map` gets a top-nav link or is reached via the Venues
+  page~~ **Resolved:** a top-nav link, decided while building #237's
+  own static preview ahead of this proposal's real implementation —
+  kept as-is rather than revisited.
