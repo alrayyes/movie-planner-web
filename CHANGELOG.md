@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.65.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.64.0...movie-planner-web-v0.65.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-heatmap:** skip months with no viewings entirely ([#287](https://github.com/alrayyes/movie-planner-web/issues/287)) ([4e7b76e](https://github.com/alrayyes/movie-planner-web/commit/4e7b76ee827c4661f1318807286cc0301ac44dd2))
+* **map:** show the poster in a pin's popup, and open it on hover too ([#283](https://github.com/alrayyes/movie-planner-web/issues/283)) ([8062a54](https://github.com/alrayyes/movie-planner-web/commit/8062a54e0cae92b6f46193b21d3704c70e404249))
+
 ## [0.64.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.63.0...movie-planner-web-v0.64.0) (2026-09-06)
 
 
