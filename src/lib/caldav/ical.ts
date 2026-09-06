@@ -3,10 +3,19 @@ import type { LoggedViewing, NewViewing, Picklists } from "./types";
 const PROD_ID = "-//movie-planner-web//EN";
 export const SIDECAR_UID = "movie-planner-web-config";
 
+// Only the NewViewing fields this generic loop can actually read/write as
+// escaped TEXT — narrowed so TypeScript catches a future non-string field
+// (like `geo`, which round-trips through its own native GEO property
+// instead) added here by mistake, rather than surfacing as a cast error
+// somewhere downstream.
+type StringViewingField = {
+  [K in keyof NewViewing]-?: NewViewing[K] extends string | undefined ? K : never;
+}[keyof NewViewing];
+
 // The custom X-properties a viewing's OMDb-enriched metadata rides in — all
 // plain iCalendar RFC 5545 extensions (X- prefix), not a server-specific
 // feature. See types.ts for the full field mapping.
-const X_PROPERTIES: Record<string, keyof NewViewing> = {
+const X_PROPERTIES: Record<string, StringViewingField> = {
   "X-MEDIUM": "medium",
   "X-DIRECTOR": "director",
   "X-ACTORS": "actors",
@@ -104,6 +113,25 @@ function property(name: string, value: string): string {
   return foldLine(`${name}:${escapeText(value)}`);
 }
 
+// RFC 5545 §3.8.1.6: GEO is a FLOAT pair (`lat;lon`), not a TEXT value —
+// the semicolon here is a real value separator, not a delimiter TEXT's
+// own escaping rules would apply to. Going through property()/escapeText
+// would wrongly turn it into `52.3665062\;4.8947073`.
+function geoProperty(geo: { lat: number; lon: number }): string {
+  return foldLine(`GEO:${geo.lat};${geo.lon}`);
+}
+
+const GEO_RE = /^(-?\d+(?:\.\d+)?);(-?\d+(?:\.\d+)?)$/;
+
+function parseGeo(value: string): { lat: number; lon: number } | undefined {
+  const match = GEO_RE.exec(value);
+  if (!match) return undefined;
+  const lat = Number(match[1]);
+  const lon = Number(match[2]);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) return undefined;
+  return { lat, lon };
+}
+
 export function serializeViewingToVEvent(uid: string, viewing: NewViewing): string {
   const lines = [
     "BEGIN:VCALENDAR",
@@ -117,6 +145,7 @@ export function serializeViewingToVEvent(uid: string, viewing: NewViewing): stri
     property("SUMMARY", viewing.title),
   ];
   if (viewing.venue) lines.push(property("LOCATION", viewing.venue));
+  if (viewing.geo) lines.push(geoProperty(viewing.geo));
   for (const [xProp, field] of Object.entries(X_PROPERTIES)) {
     const value = viewing[field];
     if (value) lines.push(property(xProp, value));
@@ -254,6 +283,10 @@ export function parseVEventToViewing(raw: string): LoggedViewing {
     medium: properties["X-MEDIUM"] ?? "",
   };
   if (properties.LOCATION) viewing.venue = properties.LOCATION;
+  if (properties.GEO) {
+    const geo = parseGeo(properties.GEO);
+    if (geo) viewing.geo = geo;
+  }
   for (const [xProp, field] of Object.entries(X_PROPERTIES)) {
     if (field === "medium") continue;
     const value = properties[xProp];

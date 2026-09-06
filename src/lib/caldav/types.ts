@@ -50,6 +50,13 @@ export interface LoggedViewing {
   // app's own X-NOTES once written here; arrives via ical.ts's
   // DESCRIPTION fallback for a viewing the CLI logged first.
   notes?: string;
+  // #8/#203: the venue's own location, when known — round-trips through
+  // the VEVENT's native GEO property (RFC 5545 §3.8.1.6, `lat;lon`), not
+  // an X-* extension; movie-planner's own GEO-coordinate support
+  // (movie-planner#170) is what a CLI-logged viewing's geo arrives
+  // through. Absent, not a sentinel value, when the venue has no known
+  // coordinates.
+  geo?: { lat: number; lon: number };
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;

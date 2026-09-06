@@ -1,13 +1,13 @@
 ## 1. Confirm the CLI-side dependency before starting
 
-- [ ] 1.1 Confirm `movie-planner`'s own GEO-coordinate ticket/OpenSpec change exists and has resolved its two open questions (precedence against the hardcoded chain/city/country lookup, and whether a venue-update mechanism is needed) — do not proceed past this task until it does, per design.md's Context and first Risk
-- [ ] 1.2 Confirm the actual shape it lands on matches this change's assumption (`GEO:lat;long` on the `VEVENT`, alongside `LOCATION`) — if it differs, stop and revisit proposal.md/design.md/the specs before continuing
+- [x] 1.1 Confirm `movie-planner`'s own GEO-coordinate ticket/OpenSpec change exists and has resolved its two open questions (precedence against the hardcoded chain/city/country lookup, and whether a venue-update mechanism is needed) — do not proceed past this task until it does, per design.md's Context and first Risk (movie-planner#170, merged via movie-planner#183)
+- [x] 1.2 Confirm the actual shape it lands on matches this change's assumption (`GEO:lat;long` on the `VEVENT`, alongside `LOCATION`) — if it differs, stop and revisit proposal.md/design.md/the specs before continuing (confirmed: `GEO:{lat};{lon}` via `icalendar` 7.3's `vGeo`, omitted entirely — not `0;0` — when a venue has no coordinates)
 
 ## 2. Parse and carry `geo` through the CalDAV client
 
-- [ ] 2.1 Add an optional `geo?: { lat: number; lon: number }` field to `LoggedViewing` (`src/lib/caldav/types.ts`) and verify `bun run check` passes with the new field referenced nowhere yet
-- [ ] 2.2 Parse the `VEVENT`'s `GEO` property (`lat;lon`, semicolon-separated per RFC 5545 §3.8.1.6) into `geo` in the CalDAV client's read path, and verify a unit test covering a `GEO` value, a missing one, and a malformed one (non-numeric, wrong separator)
-- [ ] 2.3 Write `geo` back out as a `GEO` property when creating/updating a viewing that has it, and verify a unit test round-trips a `geo` value through write-then-read
+- [x] 2.1 Add an optional `geo?: { lat: number; lon: number }` field to `LoggedViewing` (`src/lib/caldav/types.ts`) and verify `bun run check` passes with the new field referenced nowhere yet
+- [x] 2.2 Parse the `VEVENT`'s `GEO` property (`lat;lon`, semicolon-separated per RFC 5545 §3.8.1.6) into `geo` in the CalDAV client's read path, and verify a unit test covering a `GEO` value, a missing one, and a malformed one (non-numeric, wrong separator)
+- [x] 2.3 Write `geo` back out as a `GEO` property when creating/updating a viewing that has it, and verify a unit test round-trips a `geo` value through write-then-read
 
 ## 3. Nominatim address-search lookup
 
