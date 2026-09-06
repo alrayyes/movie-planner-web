@@ -202,6 +202,32 @@ test.describe("viewing heatmap", () => {
     await expect(dialog).toContainText("IMDb 8.0");
   });
 
+  // #236
+  test("the popup shows a placeholder graphic instead of a gap when a viewing has no poster", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "paddington-uid",
+        title: "Paddington",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "netflix",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    await page.getByRole("button", { name: `${dayValue}: 1 viewing` }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("img", { name: "No poster available" })).toBeVisible();
+    await expect(dialog.locator("img[src]")).toHaveCount(0);
+  });
+
   test("a day with several viewings lists all of them in the popup", async ({ page }) => {
     const day = atNoon(daysAgo(7));
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [

@@ -161,6 +161,21 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #236
+  test("shows a placeholder graphic instead of an empty gap when a viewing has no poster", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    await expect(row.getByRole("img", { name: "No poster available" })).toBeVisible();
+    await expect(row.locator("img")).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #133
   test("the poster thumbnail links to the details page, same as the title", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
