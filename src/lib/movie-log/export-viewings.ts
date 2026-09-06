@@ -7,7 +7,7 @@ function pad(n: number): string {
 
 // The visitor's own browser-local date/time, not UTC — same convention
 // the minimal import format's date/start_time/end_time already uses
-// (movie-log-form.ts, run-import.ts's toIsoDateTime), so a plain
+// (LogViewingForm.svelte, run-import.ts's toIsoDateTime), so a plain
 // date/time reader sees the same wall-clock time a visitor logged.
 function localDateAndTime(iso: string): { date: string; time: string } {
   const d = new Date(iso);

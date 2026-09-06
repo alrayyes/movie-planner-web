@@ -1,5 +1,7 @@
 ---
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import LogViewingForm from "../components/LogViewingForm.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 import Layout from "../layouts/Layout.astro";
 ---
 
@@ -10,10 +12,11 @@ import Layout from "../layouts/Layout.astro";
     Log a viewing
   </h1>
   <div class="mt-6">
-    <movie-log-form></movie-log-form>
+    {
+      /* client:only, not client:load — reads stored credentials on
+      mount, which doesn't exist during the static build (see
+      VenuesOverview's own identical note). */
+    }
+    <LogViewingForm client:only="svelte" />
   </div>
 </Layout>
-
-<script>
-  import "../components/movie-log-form";
-</script>
