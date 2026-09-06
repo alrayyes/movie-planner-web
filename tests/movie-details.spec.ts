@@ -402,6 +402,82 @@ test.describe("movie details page", () => {
     await expect(picker).toHaveCount(0);
   });
 
+  // #311: unlike "Refresh metadata" (skips a viewing that already has
+  // any OMDb match at all), "Search OMDb" always lets a visitor
+  // re-search — DUNE already has a full match here, proving this isn't
+  // gated on that the way Refresh is.
+  test("Search OMDb lets a visitor fix a wrong match, even when one already exists", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("s") === "Dune 1984") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "1984",
+                imdbID: "tt0087182",
+                Poster: "https://example.com/dune-1984.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      expect(url.searchParams.get("i")).toBe("tt0087182");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "David Lynch",
+          imdbID: "tt0087182",
+          Poster: "https://example.com/dune-1984.jpg",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Dune 1984");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await picker.getByRole("button", { name: "Dune (1984)" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Refreshed.");
+    expect(server.updates).toHaveLength(1);
+    expect(server.updates[0]?.director).toBe("David Lynch");
+    expect(server.updates[0]?.posterUrl).toBe("https://example.com/dune-1984.jpg");
+    // The logged viewing's own fields are untouched — only OMDb-derived
+    // ones changed.
+    expect(server.updates[0]?.title).toBe("Dune");
+    expect(server.updates[0]?.venue).toBe(DUNE.venue);
+  });
+
+  test("cancelling the OMDb search leaves the existing metadata untouched", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await expect(page.locator("#omdb-search-query")).toHaveValue("Dune");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(page.locator("#omdb-search-query")).toHaveCount(0);
+    expect(server.updates).toHaveLength(0);
+  });
+
   // #153: a constructed search link (the only kind ever offered for RT,
   // and the fallback for Letterboxd without a real URL) looks identical
   // to a confirmed match unless it says otherwise — a visitor has no way
