@@ -11,8 +11,8 @@
 
 ## 3. Nominatim address-search lookup
 
-- [ ] 3.1 Add a small Nominatim client (`src/lib/geo/nominatim.ts` or similar): debounced query, a descriptive `User-Agent`, parses the response into candidate `{ label, lat, lon }` results, and verify unit tests cover a successful response, an empty result set, and a network/HTTP failure (fails soft, same pattern as OMDb lookups)
-- [ ] 3.2 Add a "reuse known coordinates" lookup: given a venue name and the viewings already loaded in the current context, return the first matching `geo` value found, and verify a unit test covers a match, no match, and multiple viewings at the same venue with differing `geo` (first-found wins, documented as such)
+- [x] 3.1 Add a small Nominatim client (`src/lib/geo/nominatim.ts` or similar): debounced query, a descriptive `User-Agent`, parses the response into candidate `{ label, lat, lon }` results, and verify unit tests cover a successful response, an empty result set, and a network/HTTP failure (fails soft, same pattern as OMDb lookups) — debouncing lives with the form that calls this (task 4/5), not the client itself; `User-Agent` turned out to be impossible to set from browser `fetch` (Fetch spec's forbidden-header list) — the browser's own `Referer` is what actually satisfies Nominatim's policy instead, see `nominatim.ts`'s own comment
+- [x] 3.2 Add a "reuse known coordinates" lookup: given a venue name and the viewings already loaded in the current context, return the first matching `geo` value found, and verify a unit test covers a match, no match, and multiple viewings at the same venue with differing `geo` (first-found wins, documented as such)
 
 ## 4. Log form: optional coordinate entry
 
