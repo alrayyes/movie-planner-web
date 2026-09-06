@@ -37,3 +37,14 @@ usually because of a typo, an alternate title, or too little to go on —
 you'll see a picker with OMDb's own search candidates (poster and year
 included) to choose the right one from, or you can continue without
 metadata and try again later.
+
+## Fixing a wrong match
+
+"Refresh" only runs when a viewing has no metadata yet. If OMDb matched
+the wrong film entirely — a remake, a same-titled short, a typo that
+still happened to resolve to something — use "Search OMDb" on the
+details page instead. It's available any time, defaults the search to
+the viewing's current title, and lets you pick a different result from
+the same poster-and-year picker. Choosing one overwrites every
+OMDb-derived field (poster, director, actors, genre, ratings, synopsis),
+but never the viewing's own logged title, venue, or watch time.

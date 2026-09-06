@@ -97,6 +97,13 @@ let venues = $state<string[]>([]);
 let pickerArea = $state<HTMLDivElement | undefined>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let showingPicker = $state(false);
+// #311: unlike "Refresh metadata" (best-effort, skips a viewing that
+// already has any OMDb match at all), this always lets a visitor
+// search — fixing a wrong match, or attaching one manually when
+// nothing was found automatically.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+let searchingOmdb = $state(false);
+let omdbSearchQuery = $state("");
 let editValues = $state<Record<string, string>>({});
 
 // #8/#203: same reuse-vs-search coordinate entry as the log form
@@ -284,6 +291,33 @@ function showOmdbPicker(current: LoggedViewing, candidates: OmdbCandidate[]) {
 			},
 		),
 	);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function startOmdbSearch(current: LoggedViewing) {
+	omdbSearchQuery = current.title;
+	searchingOmdb = true;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
+	event.preventDefault();
+	if (!omdbApiKey || !omdbSearchQuery.trim()) return;
+	searchingOmdb = false;
+	try {
+		const candidates = await searchMovies(omdbApiKey, omdbSearchQuery.trim());
+		if (candidates.length > 0) {
+			// #311: reuses the same picker/selection flow "Refresh metadata"
+			// already uses — picking a result overwrites every OMDb-derived
+			// field (poster included) via lookupByImdbId, regardless of
+			// whether this viewing already had a (possibly wrong) match.
+			showOmdbPicker(current, candidates);
+		} else {
+			statusText = "OMDb had no match for that search.";
+		}
+	} catch (error) {
+		statusText = error instanceof Error ? error.message : "Failed to search OMDb.";
+	}
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -647,6 +681,13 @@ reloadOnBfcacheRestore(() => void load());
               >
                 Refresh metadata
               </button>
+              <!-- #311: unlike Refresh (best-effort, skips a viewing that
+              already has any OMDb match), always available — fixing a
+              wrong match, or attaching one manually when nothing was
+              found automatically. -->
+              <button type="button" class={BUTTON_SM} onclick={() => startOmdbSearch(viewing)}>
+                Search OMDb
+              </button>
             {/if}
             <button
               type="button"
@@ -656,6 +697,31 @@ reloadOnBfcacheRestore(() => void load());
               Delete
             </button>
           </div>
+          {#if searchingOmdb}
+            <form
+              class="flex items-end gap-2"
+              aria-label="Search OMDb"
+              onsubmit={(event) => submitOmdbSearch(viewing, event)}
+            >
+              <label class={FIELD_WRAPPER} for="omdb-search-query">
+                <span class={LABEL}>Search OMDb</span>
+                <input
+                  class={INPUT}
+                  type="text"
+                  id="omdb-search-query"
+                  bind:value={omdbSearchQuery}
+                />
+              </label>
+              <button type="submit" class={BUTTON_PRIMARY}>Search</button>
+              <button
+                type="button"
+                class={BUTTON_SECONDARY}
+                onclick={() => (searchingOmdb = false)}
+              >
+                Cancel
+              </button>
+            </form>
+          {/if}
         </div>
       </div>
     {/if}
