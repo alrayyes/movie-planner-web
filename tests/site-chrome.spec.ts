@@ -165,6 +165,11 @@ test.describe("footer", () => {
     await expect(page.getByRole("heading", { name: "Disclaimer" })).toBeVisible();
     await expect(page.getByText(/independent hobby project/i)).toBeVisible();
     await expect(page.locator("main").getByText(/GPL-3.0-or-later/)).toBeVisible();
+    // Beta/use-at-your-own-risk warning, kept in sync with docs/connecting.md
+    // and the connect form's own intro.
+    await expect(page.getByText("Use at your own risk.")).toBeVisible();
+    await expect(page.getByText(/dedicated to your movie viewings/i)).toBeVisible();
+    await expect(page.getByText(/aren't responsible for data loss/i)).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

@@ -61,6 +61,20 @@ test.describe("first-load credentials capture", () => {
     await expect(privacyLink).toHaveAttribute("href", "/privacy");
   });
 
+  // Same warning as /disclaimer and docs/connecting.md — shown here since
+  // this is the point a visitor can still decide to use a dedicated
+  // calendar, before they've typed in real credentials.
+  test("shows a use-at-your-own-risk notice before the form fields", async ({ page }) => {
+    await page.goto("/");
+
+    const notice = page.getByText("Use at your own risk.");
+    await expect(notice).toBeVisible();
+    await expect(page.getByText(/dedicated to your movie viewings/i)).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   test("a returning visitor with stored credentials skips the first-load form", async ({
     page,
   }) => {

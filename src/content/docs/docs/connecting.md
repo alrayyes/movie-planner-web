@@ -3,6 +3,15 @@ title: Connecting your CalDAV server
 description: Point the app at your own CalDAV server and, optionally, an OMDb key.
 ---
 
+:::caution
+**Use at your own risk.** This is beta software, not yet fully tested.
+It reads, writes, and deletes events directly on the CalDAV server you
+point it at — set up a calendar dedicated to your movie viewings
+rather than pointing it at one you also use for anything else, so a
+bug here can't touch anything that matters. See the disclaimer page
+(linked in the footer) for the full terms.
+:::
+
 The first time you open the app, it asks for three things: your CalDAV
 server's URL, your username, and your password. These are stored only in
 your own browser (IndexedDB) — never sent anywhere except straight to
