@@ -19,6 +19,7 @@ const DUNE = {
   venue: "Tuschinski, Amsterdam, Netherlands",
   year: "2021",
   geo: { lat: 52.3665062, lon: 4.8947073 },
+  posterUrl: "https://example.com/dune-poster.jpg",
 };
 
 // Same medium, no venue/geo at all — a plain unlocated viewing, not
@@ -96,6 +97,37 @@ test.describe("global map", () => {
     await popupLink.click();
 
     await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
+  });
+
+  test("a pin's popup shows that viewing's poster", async ({ page }) => {
+    await mockTiles(page);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/map");
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    await page.locator(".leaflet-marker-icon").click();
+    const popup = page.locator(".leaflet-popup-content");
+    await expect(popup.locator("img")).toHaveAttribute("src", DUNE.posterUrl);
+  });
+
+  test("hovering a pin also opens its popup, closing again once the pointer leaves", async ({
+    page,
+  }) => {
+    await mockTiles(page);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/map");
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    const popupLink = page.getByRole("link", { name: "Dune (2021)" });
+    await expect(popupLink).toBeHidden();
+
+    await page.locator(".leaflet-marker-icon").hover();
+    await expect(popupLink).toBeVisible();
+
+    await page.mouse.move(0, 0);
+    await expect(popupLink).toBeHidden();
   });
 
   // venue-map spec's "A pin links out to a full, precise external map"

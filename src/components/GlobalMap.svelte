@@ -38,6 +38,7 @@ async function load() {
 				lon: (viewing.geo as { lat: number; lon: number }).lon,
 				label: viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title,
 				href: `/movie?uid=${encodeURIComponent(viewing.uid)}`,
+				posterUrl: viewing.posterUrl,
 			}));
 		status =
 			pins.length === 0
