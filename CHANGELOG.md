@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.55.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.54.2...movie-planner-web-v0.55.0) (2026-09-06)
+
+
+### Features
+
+* **map:** add a placeholder /map page ahead of real venue coordinates ([#240](https://github.com/alrayyes/movie-planner-web/issues/240)) ([1c983e0](https://github.com/alrayyes/movie-planner-web/commit/1c983e0fb89b1715c822e96e91182ecf2d360fee)), closes [#237](https://github.com/alrayyes/movie-planner-web/issues/237)
+* **ui:** show a placeholder graphic for movies with no poster ([#238](https://github.com/alrayyes/movie-planner-web/issues/238)) ([8d57e24](https://github.com/alrayyes/movie-planner-web/commit/8d57e243d7e45dfb625b4e5701a57734cbf0486e)), closes [#236](https://github.com/alrayyes/movie-planner-web/issues/236)
+
 ## [0.54.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.54.1...movie-planner-web-v0.54.2) (2026-09-05)
 
 
