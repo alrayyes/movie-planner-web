@@ -45,6 +45,21 @@ const DUNE_UNMATCHED = {
   venue: "Grand Vista Cinema",
 };
 
+// #262: a real, live tile provider now — OSM's own usage policy asks
+// for no automated bulk requests, and hitting the real internet from
+// every test run would make this suite flaky/offline-hostile for no
+// benefit. A minimal transparent 1x1 PNG stands in for a real tile.
+const BLANK_TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+async function mockTiles(page: Page) {
+  await page.route("https://*.tile.openstreetmap.org/**", async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: "image/png", body: BLANK_TILE_PNG });
+  });
+}
+
 async function connect(page: Page, omdbApiKey?: string) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -176,6 +191,7 @@ test.describe("movie details page", () => {
   test("offers an address-search lookup when editing to a venue with no known coordinates", async ({
     page,
   }) => {
+    await mockTiles(page);
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
     await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
@@ -214,6 +230,7 @@ test.describe("movie details page", () => {
   test("attaches a venue's known coordinates automatically when editing, without showing a search field", async ({
     page,
   }) => {
+    await mockTiles(page);
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       DUNE,
       {
@@ -245,6 +262,7 @@ test.describe("movie details page", () => {
   test("shows a per-venue map with an Open in Maps link when the viewing has known coordinates", async ({
     page,
   }) => {
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
     ]);
@@ -273,23 +291,28 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveCount(0);
   });
 
-  // #8/#203: design.md's own zero-network-privacy decision — the map
-  // renders from a bundled local asset, never a live tile-provider
-  // fetch. Asserts the negative directly rather than trusting the
-  // implementation not to regress toward one.
-  test("the per-venue map makes no request to a map-tile provider", async ({ page }) => {
+  // #262: reversed from the original "no live network call" design —
+  // confirmed with the user directly after a real device screenshot
+  // showed the old bundled abstract outline reading as unrecognizable
+  // and useless. Real tiles now, correctly attributed per OSM's usage
+  // policy.
+  test("the per-venue map loads real map tiles, correctly attributed", async ({ page }) => {
+    const tileRequest = page.waitForRequest((request) =>
+      request.url().includes("tile.openstreetmap.org"),
+    );
+    await mockTiles(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
     ]);
-    const tileRequests: string[] = [];
-    page.on("request", (request) => {
-      if (/tile/i.test(request.url())) tileRequests.push(request.url());
-    });
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
     await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
 
-    expect(tileRequests).toEqual([]);
+    await tileRequest;
+    await expect(page.getByRole("link", { name: "OpenStreetMap" })).toHaveAttribute(
+      "href",
+      "https://www.openstreetmap.org/copyright",
+    );
   });
 
   test("offers a disambiguation picker when refreshing finds no confident match", async ({

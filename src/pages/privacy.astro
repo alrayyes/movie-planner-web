@@ -27,5 +27,22 @@ import Layout from "../layouts/Layout.astro";
       analytics service of any kind in between. Clearing your browser's site
       data for this origin removes everything this site ever stored.
     </p>
+    <p>
+      Two features call other services directly, without going through this
+      site's own servers (it doesn't have any): searching for a venue's address
+      while logging or editing a viewing calls
+      <a
+        href="https://nominatim.org/"
+        class="text-indigo-600 underline dark:text-indigo-400"
+      >
+        Nominatim
+      </a>
+      , OpenStreetMap's free geocoder — only when you use that search field, never
+      automatically. Any map showing a located venue loads map tiles from OpenStreetMap
+      directly, which does happen automatically whenever such a map is on screen.
+      Neither service ever receives your CalDAV or OMDb credentials — Nominatim sees
+      only the address text you type, and the tile provider sees only the map area
+      being viewed.
+    </p>
   </div>
 </Layout>

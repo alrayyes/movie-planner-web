@@ -2,9 +2,9 @@
 
 Lets a visitor see where their logged viewings happened geographically —
 one map per venue on a viewing's details page, and one map pinning every
-located viewing across the whole history — without this app ever making
-an automatic network call to a third-party map or tile service just
-because a visitor opened a page.
+located viewing across the whole history — using real, recognizable
+map tiles (OpenStreetMap) rather than an abstract stand-in, so a pin
+actually means something at a glance.
 
 ## Requirements
 
@@ -42,25 +42,29 @@ coordinates, rather than a broken or empty one.
 - **WHEN** a visitor opens the details page for a viewing whose venue has no known coordinates
 - **THEN** the system SHALL show no map on that page
 
-### Requirement: Maps render without a live third-party network call
+### Requirement: Maps render real, recognizable geography
 
 The system SHALL render both the global map and the per-venue map using
-a bundled, local static asset as the map surface (not live tiles fetched
-from a third-party tile provider), so that viewing either map never
-makes an automatic network request to a service outside the visitor's
-own configured CalDAV/OMDb servers.
+real map tiles from a third-party tile provider (OpenStreetMap),
+correctly attributed per that provider's own usage policy, rather than
+an abstract stand-in — a deliberate reversal of this capability's
+original zero-network-call design, made after real use showed an
+abstract outline read as unrecognizable and unhelpful. Opening either
+map SHALL make a live network request to the tile provider as a
+result; this is disclosed on the privacy page, alongside the existing
+Nominatim disclosure.
 
-#### Scenario: Opening a map makes no third-party request
+#### Scenario: Opening a map loads real map tiles
 
 - **WHEN** a visitor opens `/map` or a details page showing a per-venue map
-- **THEN** the system SHALL NOT make any network request to a map-tile provider or other third-party service as a result
+- **THEN** the system SHALL render real, correctly-positioned map tiles from the configured tile provider, attributed per its usage policy
 
 ### Requirement: A pin links out to a full, precise external map
 
 The system SHALL offer an "Open in Maps" link alongside each pin, linking
 to an external map service at that venue's exact coordinates, for a
-visitor who wants a real, detailed, precise view the bundled local
-outline can't provide.
+visitor who wants more precision or a different view (satellite,
+street-level) than the tile map itself gives.
 
 #### Scenario: Following the external link
 
