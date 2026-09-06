@@ -67,6 +67,15 @@ interface MonthGroup {
 	key: string;
 	label: string;
 	days: string[];
+	// #259: a month with zero logged viewings across every one of its
+	// days renders as a single compact line instead of a full ~30-cell
+	// empty grid — a real device screenshot showed how much dead space
+	// several such months in a row add up to for a genuinely sparse but
+	// real history (a visitor a few viewings apart doesn't mean this
+	// app has nothing for that whole stretch). A month with at least
+	// one active day still renders its full grid, empty days and all —
+	// that's real, useful density information, not noise.
+	hasActivity: boolean;
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
@@ -81,10 +90,11 @@ const monthGroups = $derived.by(() => {
 				month: "long",
 				year: "numeric",
 			});
-			current = { key, label, days: [] };
+			current = { key, label, days: [], hasActivity: false };
 			groups.push(current);
 		}
 		current.days.push(day);
+		if (viewingsByDay.has(day)) current.hasActivity = true;
 	}
 	return groups;
 });
@@ -181,30 +191,34 @@ reloadOnBfcacheRestore(() => void load());
   {#each monthGroups as group (group.key)}
     <div class="flex flex-col gap-2">
       <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300">{group.label}</h2>
-      <div
-        class="grid gap-1"
-        style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
-      >
-        {#each group.days as day (day)}
-          {@const count = viewingsByDay.get(day)?.length ?? 0}
-          {#if count > 0}
-            <button
-              type="button"
-              class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
-              aria-label={cellLabel(day, count)}
-              title={cellLabel(day, count)}
-              onclick={(event) => openDay(day, event)}
-            ></button>
-          {:else}
-            <span
-              role="img"
-              class={`aspect-square rounded-sm ${shadeClass(count)}`}
-              aria-label={cellLabel(day, count)}
-              title={cellLabel(day, count)}
-            ></span>
-          {/if}
-        {/each}
-      </div>
+      {#if group.hasActivity}
+        <div
+          class="grid gap-1"
+          style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
+        >
+          {#each group.days as day (day)}
+            {@const count = viewingsByDay.get(day)?.length ?? 0}
+            {#if count > 0}
+              <button
+                type="button"
+                class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
+                aria-label={cellLabel(day, count)}
+                title={cellLabel(day, count)}
+                onclick={(event) => openDay(day, event)}
+              ></button>
+            {:else}
+              <span
+                role="img"
+                class={`aspect-square rounded-sm ${shadeClass(count)}`}
+                aria-label={cellLabel(day, count)}
+                title={cellLabel(day, count)}
+              ></span>
+            {/if}
+          {/each}
+        </div>
+      {:else}
+        <p class="text-sm text-slate-500 dark:text-slate-400">No viewings.</p>
+      {/if}
     </div>
   {/each}
 </div>

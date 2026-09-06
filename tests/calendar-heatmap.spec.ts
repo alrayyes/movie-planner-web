@@ -289,6 +289,49 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByRole("button", { name: `${emptyDay}: 0 viewings` })).toHaveCount(0);
   });
 
+  // #259: a real device screenshot showed how much dead space a genuinely
+  // sparse-but-real history adds up to — several months in a row, each a
+  // full ~30-cell empty grid, between two viewings months apart. A month
+  // with zero activity across every one of its days now collapses to one
+  // line instead.
+  test("a month with no viewings at all collapses to a single line, not a full empty grid", async ({
+    page,
+  }) => {
+    const recent = daysAgo(3);
+    const old = daysAgo(200);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: old.toISOString(),
+        end: new Date(old.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+      {
+        uid: "paddington-uid",
+        title: "Paddington",
+        start: recent.toISOString(),
+        end: new Date(recent.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("2 logged viewings.")).toBeVisible();
+
+    // ~200 days spans several whole calendar months with nothing logged
+    // in them at all — each renders the compact line instead of a grid.
+    await expect(page.getByText("No viewings.").first()).toBeVisible();
+    const monthHeadings = await page.getByRole("heading", { level: 2 }).count();
+    const collapsedMonths = await page.getByText("No viewings.").count();
+    expect(collapsedMonths).toBeGreaterThan(0);
+    expect(collapsedMonths).toBeLessThan(monthHeadings);
+
+    // The two genuinely active months still render their real grid —
+    // collapsing is only ever for a month with zero activity.
+    await expect(page.getByLabel(/: 1 viewing$/).first()).toBeVisible();
+  });
+
   // #241: used to fall back to rendering a 12-month grid of nothing but
   // empty cells for a genuinely empty account — noisy, not helpful.
   test("no logged viewings at all shows just the status text, no empty grid", async ({ page }) => {

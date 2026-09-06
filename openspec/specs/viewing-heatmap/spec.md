@@ -24,6 +24,11 @@ render as the lightest/empty shade, not an error or a gap in the grid.
 - **WHEN** a visitor opens `/calendar` with no logged viewings
 - **THEN** the system SHALL show the "no logged viewings" status text alone, rendering no month headings or grid cells — not a wall of empty-shaded cells across an arbitrary fallback range
 
+#### Scenario: A month with no logged viewings, inside an otherwise-active history
+
+- **WHEN** a visitor opens `/calendar` with logged viewings months apart, so that a month between them has none at all
+- **THEN** the system SHALL show that month's own heading with a compact single line stating it has no viewings, rather than a full day-by-day grid of empty cells
+
 ### Requirement: A day cell opens a popup listing that day's own viewings
 
 The system SHALL show a popup listing every viewing logged on that day
