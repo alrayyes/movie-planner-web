@@ -172,6 +172,75 @@ test.describe("movie details page", () => {
     expect(server.deletes).toEqual(["dune-uid"]);
   });
 
+  // #8/#203
+  test("offers an address-search lookup when editing to a venue with no known coordinates", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            display_name: "Tuschinski, Amsterdam, Netherlands",
+            lat: "52.3665062",
+            lon: "4.8947073",
+          },
+        ]),
+      });
+    });
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await page.locator("#details-venue").fill("Tuschinski");
+    await page.locator("#details-geo-search").fill("Tuschinski");
+    const candidate = page.getByRole("button", { name: "Tuschinski, Amsterdam, Netherlands" });
+    await expect(candidate).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await candidate.click();
+    await expect(page.getByText("Location set: Tuschinski, Amsterdam, Netherlands")).toBeVisible();
+
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
+  });
+
+  test("attaches a venue's known coordinates automatically when editing, without showing a search field", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      {
+        uid: "paddington-uid",
+        title: "Paddington",
+        start: "2025-12-01T18:00:00.000Z",
+        end: "2025-12-01T19:40:00.000Z",
+        medium: "cinema",
+        venue: "Tuschinski",
+        geo: { lat: 52.3665062, lon: 4.8947073 },
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await page.locator("#details-venue").fill("Tuschinski");
+
+    await expect(page.getByText("Using Tuschinski's known location.")).toBeVisible();
+    await expect(page.locator("#details-geo-search")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
+  });
+
   test("offers a disambiguation picker when refreshing finds no confident match", async ({
     page,
   }) => {

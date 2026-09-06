@@ -22,8 +22,8 @@
 
 ## 5. Movie-editing: optional coordinate entry
 
-- [ ] 5.1 Same behaviour as task 4, applied to the edit form on the movie-details page when a visitor changes the venue field — verify a Playwright test for both the new-venue and known-venue paths
-- [ ] 5.2 Verify editing a viewing's venue back to one with existing coordinates doesn't require re-entering them (matches 3.2's reuse lookup)
+- [x] 5.1 Same behaviour as task 4, applied to the edit form on the movie-details page when a visitor changes the venue field — verify a Playwright test for both the new-venue and known-venue paths
+- [x] 5.2 Verify editing a viewing's venue back to one with existing coordinates doesn't require re-entering them (matches 3.2's reuse lookup) — covered by "attaches a venue's known coordinates automatically when editing" (`findKnownGeo` scans the same wide-range `allViewings` load, which includes the viewing being edited itself once it's saved, so this falls out of the same mechanism without a special case)
 
 ## 6. Per-venue map on the details page
 
