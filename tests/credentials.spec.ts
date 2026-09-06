@@ -47,6 +47,20 @@ test.describe("first-load credentials capture", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #269: a brand-new visitor's very first screen used to be the bare
+  // form with no context for what CalDAV is or why this app wants it.
+  test("explains what the app is and why it's asking for CalDAV credentials, before the form fields", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(page.getByText(/same standard protocol most calendar apps/)).toBeVisible();
+    const docsLink = page.getByRole("link", { name: "connecting your CalDAV server" });
+    await expect(docsLink).toHaveAttribute("href", "/docs/connecting/");
+    const privacyLink = page.getByRole("link", { name: "privacy page" });
+    await expect(privacyLink).toHaveAttribute("href", "/privacy");
+  });
+
   test("a returning visitor with stored credentials skips the first-load form", async ({
     page,
   }) => {

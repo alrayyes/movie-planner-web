@@ -5,8 +5,11 @@ description: Point the app at your own CalDAV server and, optionally, an OMDb ke
 
 The first time you open the app, it asks for three things: your CalDAV
 server's URL, your username, and your password. These are stored only in
-your own browser (`localStorage`) — never sent anywhere except straight to
+your own browser (IndexedDB) — never sent anywhere except straight to
 the CalDAV URL you give it.
+
+![The first-load connect form, in light mode](/screenshots/connect-form-light.png)
+![The first-load connect form, in dark mode](/screenshots/connect-form-dark.png)
 
 Your CalDAV server has to allow requests from this app's origin (CORS).
 If you're setting one up yourself, the

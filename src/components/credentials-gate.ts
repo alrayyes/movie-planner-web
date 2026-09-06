@@ -21,6 +21,11 @@ export class CredentialsGate extends HTMLElement {
 
   private renderForm() {
     this.innerHTML = "";
+    // #269: a brand-new visitor's very first screen used to be the bare
+    // form — three unexplained fields (URL, username, password) with no
+    // context for what CalDAV even is or why this app is asking. This
+    // intro answers that before the fields, not after.
+    this.appendChild(buildIntro());
     const form = buildCredentialsForm({ submitLabel: "Connect" });
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -60,6 +65,46 @@ export class CredentialsGate extends HTMLElement {
 }
 
 customElements.define("credentials-gate", CredentialsGate);
+
+// #269: what a brand-new visitor sees before the connect form's own
+// fields — what CalDAV is, why this app is asking for it, and where
+// those credentials actually go, since the fields alone don't say any
+// of that. Kept short: the full picture is one click away on /docs and
+// /privacy, not repeated here.
+function buildIntro(): HTMLDivElement {
+  const wrap = document.createElement("div");
+  wrap.className = "mb-6 flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300";
+
+  const p1 = document.createElement("p");
+  p1.textContent =
+    "Movie Planner reads and writes your watch history straight to your own " +
+    "CalDAV calendar — the same standard protocol most calendar apps already " +
+    "speak. There's no account with this service and nothing stored anywhere " +
+    "but your own browser: the fields below are your CalDAV server's own " +
+    "address and login, the same ones you'd give any calendar app.";
+  wrap.appendChild(p1);
+
+  const p2 = document.createElement("p");
+  const docsLink = document.createElement("a");
+  docsLink.href = "/docs/connecting/";
+  docsLink.className = "text-indigo-600 underline dark:text-indigo-400";
+  docsLink.textContent = "connecting your CalDAV server";
+  const privacyLink = document.createElement("a");
+  privacyLink.href = "/privacy";
+  privacyLink.className = "text-indigo-600 underline dark:text-indigo-400";
+  privacyLink.textContent = "privacy page";
+  p2.append(
+    "No CalDAV server yet, or not sure what this is asking for? See ",
+    docsLink,
+    ". These credentials are never sent anywhere except straight to the " +
+      "CalDAV server you point them at below — see the ",
+    privacyLink,
+    " for the full, verifiable claim.",
+  );
+  wrap.appendChild(p2);
+
+  return wrap;
+}
 
 export function buildCredentialsForm(options: {
   submitLabel: string;
