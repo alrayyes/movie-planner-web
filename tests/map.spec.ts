@@ -79,6 +79,25 @@ test.describe("global map", () => {
     await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
   });
 
+  // venue-map spec's "A pin links out to a full, precise external map"
+  // requirement covers every pin, not just the per-venue map's single
+  // one (#252) — the global map's own multiple pins get theirs inside
+  // each one's own popup instead of a page-level link, since there's no
+  // single "next to the map" position that would unambiguously belong
+  // to one pin among several.
+  test("a pin's popup also offers Open in Maps, for real precision", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/map");
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    await page.locator(".leaflet-marker-icon").click();
+    await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveAttribute(
+      "href",
+      "https://www.openstreetmap.org/?mlat=52.3665062&mlon=4.8947073#map=18/52.3665062/4.8947073",
+    );
+  });
+
   test("reachable from the site nav", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

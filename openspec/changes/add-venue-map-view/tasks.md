@@ -40,6 +40,6 @@
 
 ## 8. Accessibility and finishing checks
 
-- [ ] 8.1 Axe-scan `/map` and the movie-details page's per-venue map, and fix any violation before merging
-- [ ] 8.2 Run `bun run check`, `bun run lint`, `bun run test`, `bun run format:check`, `bun run lint:mechanics` and confirm all green
-- [ ] 8.3 Update `openspec/specs/venue-map/spec.md` (new), `movie-log/spec.md`, and `movie-editing/spec.md` deltas are ready for archive; update the README if `/map` needs a mention alongside the other pages
+- [x] 8.1 Axe-scan `/map` and the movie-details page's per-venue map, and fix any violation before merging — clean in both (`tests/map.spec.ts`, `tests/movie-details.spec.ts`), no violations found needing a fix
+- [x] 8.2 Run `bun run check`, `bun run lint`, `bun run test`, `bun run format:check`, `bun run lint:mechanics` and confirm all green — confirmed once more on `main` after all six PRs merged (204 e2e + 167 unit, all green)
+- [x] 8.3 Update `openspec/specs/venue-map/spec.md` (new), `movie-log/spec.md`, and `movie-editing/spec.md` deltas are ready for archive; update the README if `/map` needs a mention alongside the other pages — deltas read correctly against what shipped, no changes needed; the README's own "Status" paragraph never grew a per-feature list past the original v1 scope (the viewing heatmap wasn't added there either when it shipped) — matched that precedent rather than starting a new one
