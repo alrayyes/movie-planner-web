@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.55.1...movie-planner-web-v0.56.0) (2026-09-06)
+
+
+### Features
+
+* **caldav:** parse and write a viewing's geo coordinates ([#244](https://github.com/alrayyes/movie-planner-web/issues/244)) ([9b56428](https://github.com/alrayyes/movie-planner-web/commit/9b56428b44bcd30ffae9a78b594408f82b546b5d))
+
 ## [0.55.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.55.0...movie-planner-web-v0.55.1) (2026-09-06)
 
 
