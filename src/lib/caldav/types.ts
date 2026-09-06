@@ -21,6 +21,9 @@ export interface CaldavConfig {
 //   X-BOOKING-REF -> the Pathé booking number, when logged from an email —
 //     what a re-submission is matched against, per the movie-log spec's
 //     "Re-submitted booking confirmation" scenario
+//   X-ROW, X-SEAT -> a Pathé booking's seat assignment, when known
+//     (alrayyes/movie-planner#218) — absent for anything else, since
+//     most media aren't a seated cinema booking at all
 export interface LoggedViewing {
   uid: string;
   title: string;
@@ -39,6 +42,8 @@ export interface LoggedViewing {
   imdbId?: string;
   synopsis?: string;
   bookingRef?: string;
+  row?: string;
+  seat?: string;
   // #79: OMDb has no Letterboxd data at all — this app never sets these
   // itself. They only ever arrive via ical.ts's DESCRIPTION fallback,
   // reading what the CLI already wrote (a real Letterboxd link, not the

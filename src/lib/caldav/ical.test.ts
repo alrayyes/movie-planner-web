@@ -25,6 +25,8 @@ const VIEWING: NewViewing = {
   synopsis:
     "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset.",
   geo: { lat: 52.3665062, lon: 4.8947073 },
+  row: "5",
+  seat: "17",
 };
 
 describe("VEVENT round trip", () => {
@@ -384,18 +386,11 @@ describe("extractUnknownProperties", () => {
       "SUMMARY:Dune",
       "X-CITY:Amsterdam",
       "X-COUNTRY:Netherlands",
-      "X-ROW:5",
-      "X-SEAT:17",
       "END:VEVENT",
       "END:VCALENDAR",
     ].join("\r\n");
 
-    expect(extractUnknownProperties(raw)).toEqual([
-      "X-CITY:Amsterdam",
-      "X-COUNTRY:Netherlands",
-      "X-ROW:5",
-      "X-SEAT:17",
-    ]);
+    expect(extractUnknownProperties(raw)).toEqual(["X-CITY:Amsterdam", "X-COUNTRY:Netherlands"]);
   });
 
   test("excludes every property this app already reads or writes itself", () => {

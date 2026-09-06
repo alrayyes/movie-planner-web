@@ -148,6 +148,25 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Notes", { exact: true })).toHaveCount(0);
   });
 
+  // #288
+  test("shows the row and seat when a Pathé booking has a known assignment", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, row: "5", seat: "17" }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Seat", { exact: true })).toBeVisible();
+    await expect(page.getByText("Row 5, Seat 17")).toBeVisible();
+  });
+
+  test("no seat field shows at all when the viewing has none", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+
+    await expect(page.getByRole("heading", { name: /Dune/ })).toBeVisible();
+    await expect(page.getByText("Seat", { exact: true })).toHaveCount(0);
+  });
+
   test("no synopsis field shows at all when the viewing has none", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE_UNMATCHED]);
     await connect(page);

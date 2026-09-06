@@ -590,6 +590,17 @@ reloadOnBfcacheRestore(() => void load());
                 </div>
               </dd>
             {/if}
+            {#if viewing.row || viewing.seat}
+              <!-- #288: a Pathé booking's seat assignment, when known —
+              most media aren't a seated cinema booking at all, so this
+              is absent far more often than present. -->
+              <dt class={DT}>Seat</dt>
+              <dd class={DD}>
+                {[viewing.row && `Row ${viewing.row}`, viewing.seat && `Seat ${viewing.seat}`]
+                  .filter(Boolean)
+                  .join(", ")}
+              </dd>
+            {/if}
             {#if viewing.synopsis}
               <dt class={DT}>Synopsis</dt>
               <dd class={DD}>{viewing.synopsis}</dd>
