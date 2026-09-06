@@ -392,8 +392,22 @@ test.describe("movie details page", () => {
 
     await page.getByRole("button", { name: "Refresh metadata" }).click();
 
+    // #249: the picker only renders after four sequential awaited network
+    // round trips (handleRefresh's own getViewing, lookupMovie's two
+    // searches — scoped-by-year then a plain-title fallback, both mocked
+    // above to return no match — then searchMovies), each going through
+    // Playwright's own route-interception layer. The default 5s
+    // assertion timeout is tuned for the one-round-trip case every other
+    // test here hits; under CI's parallel workers, CPU/network
+    // contention across four chained round trips routinely pushes this
+    // past 5s even though each one is fast in isolation — root cause for
+    // the flakiness this ticket was tracking, not a race in the app
+    // itself. A generous explicit timeout matches the real amount of
+    // work this path does rather than papering over a symptom.
     const picker = page.getByLabel("Choose the matching title");
-    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible({
+      timeout: 15000,
+    });
     await picker.getByRole("button", { name: "Dune (1984)" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Refreshed.");

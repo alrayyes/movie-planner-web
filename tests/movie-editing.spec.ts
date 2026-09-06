@@ -117,7 +117,13 @@ test.describe("deleting a logged viewing", () => {
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Delete" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Deleted.");
+    // #317: the default 5s assertion timeout assumes near-instant
+    // resolution of the single deleteViewing() network round trip this
+    // depends on — under this repo's 3-worker parallel Playwright run,
+    // CPU/event-loop contention across concurrent Chromium instances
+    // routinely pushes that past 5s even though it's fast in isolation,
+    // same root cause as #249's own fix.
+    await expect(page.getByRole("status")).toHaveText("Deleted.", { timeout: 15000 });
     expect(server.deletes).toHaveLength(1);
     expect(server.deletes[0]).toBe("dune-uid");
   });
