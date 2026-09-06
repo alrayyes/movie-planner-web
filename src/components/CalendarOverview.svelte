@@ -129,37 +129,75 @@ let actionStatusText = $state("");
 // or a narrower one a visitor picked there) wouldn't match what shows
 // up here, which otherwise defaults to a much narrower ~3-month window.
 const initialParams = new URLSearchParams(location.search);
+
+// #292: this component remounts fresh (with a bare `location.search`)
+// on any soft navigation away and back — a movie's own details page,
+// say, followed by the browser's Back button — since it's a plain
+// custom element imperatively mounting this island, not a persisted
+// Astro island. A query param is the deliberate, shareable case (a
+// link from the venues page); sessionStorage is what makes an
+// *incidental* trip elsewhere and back not silently drop whatever a
+// visitor had just filtered. Query params still win when both are
+// present. Wrapped in try/catch like every other storage access in
+// this app — private browsing, a full quota, or storage disabled
+// outright shouldn't break the page, just skip the restore.
+const FILTER_STORAGE_KEY = "movie-planner-web-overview-filters";
+type StoredFilterKey =
+	| "from"
+	| "to"
+	| "title"
+	| "medium"
+	| "venue"
+	| "director"
+	| "actor"
+	| "genre";
+type StoredFilters = Partial<Record<StoredFilterKey, string>> & { open?: boolean };
+
+function readStoredFilters(): StoredFilters {
+	try {
+		const raw = sessionStorage.getItem(FILTER_STORAGE_KEY);
+		return raw ? (JSON.parse(raw) as StoredFilters) : {};
+	} catch {
+		return {};
+	}
+}
+const storedFilters = readStoredFilters();
+
+function initialFilterValue(key: StoredFilterKey): string {
+	return initialParams.get(key) ?? storedFilters[key] ?? "";
+}
+
 // #221: closed by default — seven fields plus buttons took up a lot of
 // vertical space for something most visits don't touch. Starts open
-// when a query param already carries an active filter (arriving from
-// the venues page, say), so a visitor who's clearly filtering doesn't
-// have to reopen it to see what's applied. bind:open (not a one-way
+// when a query param or a stored filter already carries an active
+// filter (arriving from the venues page, or returning from elsewhere
+// mid-filter), so a visitor who's clearly filtering doesn't have to
+// reopen it to see what's applied. bind:open (not a one-way
 // expression) — every reload() below touches other $state fields, and
 // a one-way `open={...}` got re-applied on those unrelated updates,
 // silently closing a visitor's own manually-opened filters right after
 // they submitted one.
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 let filtersOpen = $state(
-	["from", "to", "title", "venue", "director", "actor", "genre"].some((key) =>
-		initialParams.get(key),
-	),
+	(
+		["from", "to", "title", "medium", "venue", "director", "actor", "genre"] as StoredFilterKey[]
+	).some((key) => initialParams.get(key)) || Boolean(storedFilters.open),
 );
-let fromValue = $state(initialParams.get("from") ?? "");
-let toValue = $state(initialParams.get("to") ?? "");
+let fromValue = $state(initialFilterValue("from"));
+let toValue = $state(initialFilterValue("to"));
 // #289: unlike medium/venue (exact match against a short, categorical
 // value), title is free text — a visitor typing "dune" expects it to
 // match "Dune: Part Two", so this filters by substring, not equality.
-let titleValue = $state(initialParams.get("title") ?? "");
-let mediumValue = $state("");
-let venueValue = $state(initialParams.get("venue") ?? "");
+let titleValue = $state(initialFilterValue("title"));
+let mediumValue = $state(initialFilterValue("medium"));
+let venueValue = $state(initialFilterValue("venue"));
 // #163/#183: director/actor/genre are multi-value comma-separated OMDb
 // fields, unlike venue/medium — matched against each individually
 // split value, not the raw whole-string field, so a filter click
 // always matches exactly the value a chip showed rather than a
 // substring of the whole string.
-let directorValue = $state(initialParams.get("director") ?? "");
-let actorValue = $state(initialParams.get("actor") ?? "");
-let genreValue = $state(initialParams.get("genre") ?? "");
+let directorValue = $state(initialFilterValue("director"));
+let actorValue = $state(initialFilterValue("actor"));
+let genreValue = $state(initialFilterValue("genre"));
 // #169: defaults match the previous hardcoded "most recently watched
 // first" behaviour — clicking a column header switches to sorting by
 // it (ascending on first click), and clicking the same header again
@@ -306,6 +344,39 @@ async function reload(options: { silent?: boolean } = {}) {
 	}
 }
 
+// #292: mirrors the active filter into sessionStorage (see
+// readStoredFilters above for why) — cleared outright once nothing is
+// actually set, so a fully-cleared filter doesn't linger and silently
+// reapply itself on the next incidental visit.
+function syncFilterState() {
+	const stored: StoredFilters = {};
+	const entries: [StoredFilterKey, string][] = [
+		["from", fromValue],
+		["to", toValue],
+		["title", titleValue],
+		["medium", mediumValue],
+		["venue", venueValue],
+		["director", directorValue],
+		["actor", actorValue],
+		["genre", genreValue],
+	];
+	for (const [key, value] of entries) {
+		if (value) stored[key] = value;
+	}
+	try {
+		if (Object.keys(stored).length === 0) {
+			sessionStorage.removeItem(FILTER_STORAGE_KEY);
+		} else {
+			stored.open = filtersOpen;
+			sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(stored));
+		}
+	} catch {
+		// Private browsing, a full quota, storage disabled outright —
+		// the filter still works for this visit, it just won't survive
+		// a trip away and back.
+	}
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function handleFilterSubmit(event: SubmitEvent) {
 	event.preventDefault();
@@ -313,6 +384,7 @@ function handleFilterSubmit(event: SubmitEvent) {
 	// always reset to its first page rather than potentially landing
 	// past its end.
 	currentPage = 0;
+	syncFilterState();
 	void reload();
 }
 
@@ -327,6 +399,7 @@ function handleClearFilter() {
 	actorValue = "";
 	genreValue = "";
 	currentPage = 0;
+	syncFilterState();
 	void reload();
 }
 

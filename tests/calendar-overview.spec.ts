@@ -476,6 +476,59 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-medium")).toBeVisible();
   });
 
+  // #292: confirmed via a real repro — filtering, opening a title, then
+  // going Back closed the filter panel and reset every field, because
+  // this page remounts fresh (a plain custom element mounting a fresh
+  // Svelte instance, not a persisted Astro island) against a bare "/"
+  // with nothing in `location.search` to restore from. Fixed by
+  // mirroring the active filter into sessionStorage on submit, which
+  // survives that remount regardless of how it was triggered — a raw
+  // history.replaceState() was tried first and rejected: it bypasses
+  // astro:transitions' own history bookkeeping, which then restored
+  // stale content (the previous page) on the very next Back.
+  test("the filter survives navigating to a title's details page and back", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await openFilters(page);
+    await page.locator("#overview-title").fill("Dune");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.getByRole("link", { name: "Dune" }).first().click();
+    await expect(page).toHaveURL(/\/movie/);
+    await page.goBack();
+    await expect(page).toHaveURL("/");
+
+    await expect(page.locator("#overview-title")).toBeVisible();
+    await expect(page.locator("#overview-title")).toHaveValue("Dune");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+  });
+
+  test("clearing the filter also clears what would otherwise be restored on the next visit", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await openFilters(page);
+    await page.locator("#overview-title").fill("Dune");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Clear filter" }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await page.getByRole("link", { name: "Dune" }).first().click();
+    await expect(page).toHaveURL(/\/movie/);
+    await page.goBack();
+    await expect(page).toHaveURL("/");
+
+    // Filters closed by default again — nothing left over to restore.
+    await expect(page.locator("#overview-title")).toBeHidden();
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+  });
+
   // #223: a visitor who deletes a viewing elsewhere (the details page,
   // another tab), then returns here via the browser's Back button, can
   // land on the exact pre-delete DOM the browser restored from its
