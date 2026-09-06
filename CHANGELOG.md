@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.59.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.58.0...movie-planner-web-v0.59.0) (2026-09-06)
+
+
+### Features
+
+* **movie-details:** render a per-venue map when the viewing has coordinates ([#252](https://github.com/alrayyes/movie-planner-web/issues/252)) ([aff39dd](https://github.com/alrayyes/movie-planner-web/commit/aff39ddeac6e660c6eac622a43e365b544dd1378))
+
 ## [0.58.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.57.0...movie-planner-web-v0.58.0) (2026-09-06)
 
 
