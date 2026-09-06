@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.60.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.59.0...movie-planner-web-v0.60.0) (2026-09-06)
+
+
+### Features
+
+* **map:** render the real global map, replacing the static preview ([#254](https://github.com/alrayyes/movie-planner-web/issues/254)) ([e15f595](https://github.com/alrayyes/movie-planner-web/commit/e15f595c902ac6e59e492faec0c5a448be52f180))
+
 ## [0.59.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.58.0...movie-planner-web-v0.59.0) (2026-09-06)
 
 
