@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.68.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.67.0...movie-planner-web-v0.68.0) (2026-09-06)
+
+
+### Features
+
+* **movie-details:** make the Venue field a clickable link ([#304](https://github.com/alrayyes/movie-planner-web/issues/304)) ([7a7be24](https://github.com/alrayyes/movie-planner-web/commit/7a7be244a873b48d5cef1f2a1fc61d20319831eb))
+
 ## [0.67.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.66.2...movie-planner-web-v0.67.0) (2026-09-06)
 
 
