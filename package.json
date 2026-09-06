@@ -36,6 +36,7 @@
     "@tailwindcss/vite": "4.3.3",
     "astro": "7.3.1",
     "fuzzball": "2.2.6",
+    "leaflet": "1.9.4",
     "postal-mime": "3.0.0",
     "svelte": "5.57.0",
     "tailwindcss": "4.3.3"
@@ -47,6 +48,7 @@
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
     "@playwright/test": "1.62.1",
+    "@types/leaflet": "1.9.22",
     "bun-types": "1.4.1",
     "lefthook": "2.1.10",
     "markdownlint-cli2": "0.23.2",

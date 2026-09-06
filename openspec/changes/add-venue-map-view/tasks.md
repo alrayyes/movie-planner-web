@@ -27,9 +27,9 @@
 
 ## 6. Per-venue map on the details page
 
-- [ ] 6.1 Add the bundled local map-outline asset (image or GeoJSON) and a small Leaflet-based map component configured with it instead of a tile layer, and verify no network request fires when the component mounts (a Playwright test asserting no request to a map-tile-shaped URL)
-- [ ] 6.2 Render the map on the movie-details page when the viewing's `geo` is present; render nothing when it isn't — verify a Playwright test for both
-- [ ] 6.3 Add the "Open in Maps" link next to the pin, pointing at the venue's exact coordinates — verify a Playwright test asserts its `href`
+- [x] 6.1 Add the bundled local map-outline asset (image or GeoJSON) and a small Leaflet-based map component configured with it instead of a tile layer, and verify no network request fires when the component mounts (a Playwright test asserting no request to a map-tile-shaped URL) — asset is `public/world-outline.svg`, an original, deliberately abstract low-detail outline (rough continent blobs, not real coastline data), sidestepping any dataset licence question entirely; also had to bundle Leaflet's own default marker icon PNGs into `public/leaflet/` and repoint `L.Icon.Default`'s URLs at them — Leaflet's own path-guessing for its marker icon breaks under a bundler (confirmed live: the marker rendered as a broken image before this fix, a real bug caught by actually looking at a screenshot, not just the passing automated assertions)
+- [x] 6.2 Render the map on the movie-details page when the viewing's `geo` is present; render nothing when it isn't — verify a Playwright test for both
+- [x] 6.3 Add the "Open in Maps" link next to the pin, pointing at the venue's exact coordinates — verify a Playwright test asserts its `href`
 
 ## 7. Global `/map` page
 

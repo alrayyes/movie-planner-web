@@ -123,10 +123,14 @@ Tomatoes/Letterboxd links work.
 
 ## Open Questions
 
-- The bundled outline asset's exact source and detail level (a specific
-  public-domain/CC0 world-boundaries dataset, simplified how far) is an
-  implementation detail that doesn't change the specs or approach above
-  — safe to pick during implementation.
+- ~~The bundled outline asset's exact source and detail level~~
+  **Resolved during implementation:** `public/world-outline.svg`, an
+  original, hand-drawn, deliberately abstract low-detail outline —
+  rough continent-shaped blobs positioned by their approximate
+  equirectangular lon/lat, not a copy of any real coastline dataset.
+  Sidesteps the public-domain/CC0 sourcing question entirely (no
+  external data, no licence to track) rather than answering it, which
+  the "safe to pick during implementation" framing already allowed for.
 - Whether `/map` gets a top-nav link or is reached via the Venues page
   is explicitly left open per proposal.md — a UI-placement detail, not a
   behaviour the specs above depend on.
