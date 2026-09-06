@@ -165,6 +165,35 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #305: same purely-decorative bar the details page already shows
+  // under Start/End, in the When column's own cell here.
+  test("shows a blocked-time bar under the When cell, positioned from the viewing's own start/duration", async ({
+    page,
+  }) => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0);
+    const end = new Date(start.getTime() + 150 * 60 * 1000); // 2.5 hours
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, start: start.toISOString(), end: end.toISOString() },
+    ]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    const bar = row.locator("div.relative.mt-1");
+    await expect(bar).toBeVisible();
+    await expect(bar).toHaveAttribute("aria-hidden", "true");
+
+    const fill = bar.locator("> div[style]");
+    const style = await fill.getAttribute("style");
+    const left = Number(/left:\s*([\d.]+)%/.exec(style ?? "")?.[1]);
+    const width = Number(/width:\s*([\d.]+)%/.exec(style ?? "")?.[1]);
+    expect(left).toBeCloseTo((19 * 60 * 100) / (24 * 60), 1);
+    expect(width).toBeCloseTo((150 * 100) / (24 * 60), 1);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #298
   test("the Edit icon opens the details page with its edit form already open", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
