@@ -211,7 +211,11 @@ export async function applyImportUpdate(
   const updated: NewViewing = { ...current };
   for (const change of entry.changes) {
     if (approvedFields.has(change.field)) {
-      (updated as Record<string, string>)[change.field] = change.newValue;
+      // #8/#203: NewViewing gained a non-string `geo` field, which this
+      // cast never actually targets — import rows have no geo column —
+      // but it's enough to break the direct `as` (no longer a
+      // sufficient structural overlap), hence the `unknown` hop.
+      (updated as unknown as Record<string, string>)[change.field] = change.newValue;
     }
   }
   await updateViewing(configFromCredentials(credentials), entry.uid, updated);

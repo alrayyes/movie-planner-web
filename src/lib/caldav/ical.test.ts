@@ -23,6 +23,7 @@ const VIEWING: NewViewing = {
   imdbId: "tt1160419",
   synopsis:
     "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset.",
+  geo: { lat: 52.3665062, lon: 4.8947073 },
 };
 
 describe("VEVENT round trip", () => {
@@ -84,6 +85,62 @@ describe("VEVENT round trip", () => {
     const parsed = parseVEventToViewing(allDayIcal);
     expect(parsed.start).toBe("2026-09-06T00:00:00.000Z");
     expect(parsed.end).toBe("2026-09-07T00:00:00.000Z");
+  });
+
+  // #8/#203: movie-planner#183 writes GEO as icalendar's vGeo.to_ical()
+  // produces it — verified live against the pinned icalendar==7.3.0,
+  // `52.3665062;4.8947073` (semicolon-separated per RFC 5545 §3.8.1.6).
+  // A minimal VEVENT built by hand, matching the CLI's own shape
+  // (LOCATION + GEO, no X-* properties), not serializeViewingToVEvent.
+  test("parses a CLI-written GEO property alongside LOCATION", () => {
+    const ical = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:tuschinski-uid",
+      "SUMMARY:Dune",
+      "DTSTART:20260101T190000Z",
+      "DTEND:20260101T213000Z",
+      "LOCATION:Tuschinski, Amsterdam, Netherlands",
+      "GEO:52.3665062;4.8947073",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const parsed = parseVEventToViewing(ical);
+    expect(parsed.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
+  });
+
+  test("leaves geo undefined when GEO is absent, not a sentinel value", () => {
+    const minimal: NewViewing = {
+      title: "Paddington",
+      start: "2026-02-01T18:00:00.000Z",
+      end: "2026-02-01T19:40:00.000Z",
+      medium: "netflix",
+    };
+    const parsed = parseVEventToViewing(serializeViewingToVEvent("uid-3", minimal));
+
+    expect(parsed.geo).toBeUndefined();
+  });
+
+  test("leaves geo undefined for a malformed GEO value, without throwing", () => {
+    const cases = [
+      "52.3665062,4.8947073", // comma, not semicolon
+      "not-a-number;4.8947073",
+      "52.3665062",
+    ];
+    for (const geoValue of cases) {
+      const ical = [
+        "BEGIN:VCALENDAR",
+        "BEGIN:VEVENT",
+        "UID:bad-geo-uid",
+        "SUMMARY:Dune",
+        "DTSTART:20260101T190000Z",
+        "DTEND:20260101T213000Z",
+        `GEO:${geoValue}`,
+        "END:VEVENT",
+        "END:VCALENDAR",
+      ].join("\r\n");
+      expect(parseVEventToViewing(ical).geo).toBeUndefined();
+    }
   });
 });
 
