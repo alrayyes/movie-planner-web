@@ -38,6 +38,7 @@
       "picklists",
       "Playwright",
       "Preact",
+      "Referer",
       "pre-commit",
       "prerender",
       "subpath",

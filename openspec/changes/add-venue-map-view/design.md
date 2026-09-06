@@ -65,15 +65,21 @@ answers the same question.
 
 **Nominatim for address search, called only from the log/edit forms —
 never automatically.** Free, no API key, but has a real ~1 request/second
-usage policy and requires a descriptive `User-Agent` identifying the
-application (not a browser's own default `User-Agent`, which Nominatim's
-policy explicitly calls out as insufficient). A fully static, browser-only
-app has no server to centralize or rate-limit this through — each
-visitor's own browser calls Nominatim directly, same trust/architecture
-model as this app's own OMDb calls. The address-search field debounces
-input (waits for the visitor to stop typing) before firing a lookup,
-both for a decent UX and to stay well under the rate limit from a single
-visitor's own typing.
+usage policy and asks for a descriptive `User-Agent` or `Referer`
+identifying the calling application. **Correction found during
+implementation:** a script-set `User-Agent` header turned out to be
+unachievable — it's on the Fetch spec's forbidden-header list, so a
+browser silently keeps its own UA string regardless of what `fetch()`'s
+`headers` option asks for (confirmed live against Chrome and Firefox).
+The browser's own default `Referer` (this app's own origin) is what
+actually satisfies the policy's "or Referer" clause instead — sent
+automatically, nothing to configure, no header override attempted. A
+fully static, browser-only app has no server to centralize or
+rate-limit this through — each visitor's own browser calls Nominatim
+directly, same trust/architecture model as this app's own OMDb calls.
+The address-search field debounces input (waits for the visitor to
+stop typing) before firing a lookup, both for a decent UX and to stay
+well under the rate limit from a single visitor's own typing.
 
 **Leaflet with a bundled local asset, not a tile provider.** `leaflet`
 supplies pan/zoom/marker interaction; the "map" itself is either
