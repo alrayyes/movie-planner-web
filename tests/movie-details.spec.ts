@@ -322,7 +322,15 @@ test.describe("movie details page", () => {
     await connect(page, "test-omdb-key");
     await page.getByRole("link", { name: "Dune" }).click();
 
-    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+    // #249: unlike every other page.route() call in this file, this one
+    // wasn't awaited — registration is async (a real CDP round trip), so
+    // without awaiting it the very next line's click could fire
+    // handleRefresh's fetch() before the mock was actually installed,
+    // sending it to the real (unreachable, in this sandbox) network
+    // instead. Confirmed real (dropped the flake rate sharply under
+    // repeated stress runs) but not the whole story — #249 stays open
+    // for the rest.
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
       const url = new URL(route.request().url());
       if (url.searchParams.get("t")) {
         await route.fulfill({
