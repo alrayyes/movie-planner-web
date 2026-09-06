@@ -1,6 +1,7 @@
 <script lang="ts">
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { openStreetMapUrl } from "../lib/geo/links";
 
 // #8/#203: a map that never makes a live third-party network call —
 // design.md's own zero-network-privacy decision. Leaflet supplies the
@@ -9,8 +10,11 @@ import "leaflet/dist/leaflet.css";
 // outline — not real coastline data, so there's no dataset license to
 // track) via L.imageOverlay, never L.tileLayer pointed at a live tile
 // provider. Real precision is a click away instead, via each pin's own
-// "Open in Maps" link (rendered by the caller, not this component —
-// design.md's own plain-link decision, not a Leaflet popup action).
+// "Open in Maps" link — every pin's popup carries one (venue-map spec's
+// own "each pin" wording), regardless of how many pins are on the map;
+// the movie-details page additionally repeats it as a plain link
+// outside the map for its own single pin, more discoverable there
+// without needing a click first.
 
 // Leaflet's default marker icon computes its image URLs relative to
 // wherever its own CSS/JS was loaded from, which breaks under a
@@ -61,16 +65,30 @@ function mount(el: HTMLDivElement) {
 }
 
 function popupContent(pin: MapPin): HTMLElement {
-	if (!pin.href) {
+	const wrap = document.createElement("div");
+	wrap.className = "flex flex-col gap-1";
+
+	if (pin.href) {
+		const a = document.createElement("a");
+		a.href = pin.href;
+		a.textContent = pin.label;
+		a.className = "text-indigo-600 hover:underline dark:text-indigo-400";
+		wrap.appendChild(a);
+	} else {
 		const span = document.createElement("span");
 		span.textContent = pin.label;
-		return span;
+		wrap.appendChild(span);
 	}
-	const a = document.createElement("a");
-	a.href = pin.href;
-	a.textContent = pin.label;
-	a.className = "text-indigo-600 hover:underline dark:text-indigo-400";
-	return a;
+
+	const openInMaps = document.createElement("a");
+	openInMaps.href = openStreetMapUrl({ lat: pin.lat, lon: pin.lon });
+	openInMaps.target = "_blank";
+	openInMaps.rel = "noopener noreferrer";
+	openInMaps.textContent = "Open in Maps";
+	openInMaps.className = "text-sm text-indigo-600 hover:underline dark:text-indigo-400";
+	wrap.appendChild(openInMaps);
+
+	return wrap;
 }
 
 $effect(() => {
