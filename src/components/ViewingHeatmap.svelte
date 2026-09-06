@@ -84,7 +84,6 @@ interface MonthGroup {
 	hasActivity: boolean;
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const monthGroups = $derived.by(() => {
 	const groups: MonthGroup[] = [];
 	let current: MonthGroup | undefined;
@@ -92,9 +91,11 @@ const monthGroups = $derived.by(() => {
 		const [y, m] = day.split("-") as [string, string];
 		const key = `${y}-${m}`;
 		if (!current || current.key !== key) {
+			// Just the month name, not the year — nested under its own year
+			// heading below, so repeating the year on every month would be
+			// redundant.
 			const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-US", {
 				month: "long",
-				year: "numeric",
 			});
 			current = { key, label, days: [], hasActivity: false };
 			groups.push(current);
@@ -104,6 +105,43 @@ const monthGroups = $derived.by(() => {
 	}
 	return groups;
 });
+
+interface YearGroup {
+	year: string;
+	months: MonthGroup[];
+}
+
+// #275: a year heading above its own months, both clickable — unlike a
+// day cell (which opens a popup so glancing at one day doesn't leave
+// the heatmap), a month or a whole year is too much to preview in a
+// popup, so these navigate to the overview instead, filtered to that
+// exact span.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const yearGroups = $derived.by(() => {
+	const groups: YearGroup[] = [];
+	let current: YearGroup | undefined;
+	for (const month of monthGroups) {
+		const year = month.key.slice(0, 4);
+		if (!current || current.year !== year) {
+			current = { year, months: [] };
+			groups.push(current);
+		}
+		current.months.push(month);
+	}
+	return groups;
+});
+
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+function yearHref(year: string): string {
+	return `/?from=${year}-01-01&to=${year}-12-31`;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+function monthHref(monthKey: string): string {
+	const [y, m] = monthKey.split("-").map(Number) as [number, number];
+	const lastDay = String(new Date(y, m, 0).getDate()).padStart(2, "0");
+	return `/?from=${monthKey}-01&to=${monthKey}-${lastDay}`;
+}
 
 // A small fixed set of buckets, not a continuous gradient — easier to
 // keep distinguishable in both light and dark mode (design.md).
@@ -242,41 +280,50 @@ reloadOnBfcacheRestore(() => void load());
 
 <div class="flex flex-col gap-6">
   <p class={STATUS_TEXT} role="status">{status}</p>
-  {#each monthGroups as group (group.key)}
-    <div class="flex flex-col gap-2">
-      <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300">{group.label}</h2>
-      {#if group.hasActivity}
-        <div
-          class="grid gap-1"
-          style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
-        >
-          {#each group.days as day (day)}
-            {@const count = viewingsByDay.get(day)?.length ?? 0}
-            {#if count > 0}
-              <button
-                type="button"
-                class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
-                aria-label={cellLabel(day, count)}
-                title={cellLabel(day, count)}
-                onclick={(event) => openDay(day, event)}
-                onmouseenter={(event) => openDayOnHover(day, event)}
-                onmouseleave={scheduleHoverClose}
-                onfocus={(event) => openDayOnHover(day, event)}
-                onblur={scheduleHoverClose}
-              ></button>
-            {:else}
-              <span
-                role="img"
-                class={`aspect-square rounded-sm ${shadeClass(count)}`}
-                aria-label={cellLabel(day, count)}
-                title={cellLabel(day, count)}
-              ></span>
-            {/if}
-          {/each}
+  {#each yearGroups as yearGroup (yearGroup.year)}
+    <div class="flex flex-col gap-4">
+      <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <a href={yearHref(yearGroup.year)} class="hover:underline">{yearGroup.year}</a>
+      </h2>
+      {#each yearGroup.months as group (group.key)}
+        <div class="flex flex-col gap-2">
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <a href={monthHref(group.key)} class="hover:underline">{group.label}</a>
+          </h3>
+          {#if group.hasActivity}
+            <div
+              class="grid gap-1"
+              style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
+            >
+              {#each group.days as day (day)}
+                {@const count = viewingsByDay.get(day)?.length ?? 0}
+                {#if count > 0}
+                  <button
+                    type="button"
+                    class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
+                    aria-label={cellLabel(day, count)}
+                    title={cellLabel(day, count)}
+                    onclick={(event) => openDay(day, event)}
+                    onmouseenter={(event) => openDayOnHover(day, event)}
+                    onmouseleave={scheduleHoverClose}
+                    onfocus={(event) => openDayOnHover(day, event)}
+                    onblur={scheduleHoverClose}
+                  ></button>
+                {:else}
+                  <span
+                    role="img"
+                    class={`aspect-square rounded-sm ${shadeClass(count)}`}
+                    aria-label={cellLabel(day, count)}
+                    title={cellLabel(day, count)}
+                  ></span>
+                {/if}
+              {/each}
+            </div>
+          {:else}
+            <p class="text-sm text-slate-500 dark:text-slate-400">No viewings.</p>
+          {/if}
         </div>
-      {:else}
-        <p class="text-sm text-slate-500 dark:text-slate-400">No viewings.</p>
-      {/if}
+      {/each}
     </div>
   {/each}
 </div>
