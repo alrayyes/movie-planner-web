@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.61.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.60.2...movie-planner-web-v0.61.0) (2026-09-06)
+
+
+### Features
+
+* **map:** switch from the bundled abstract outline to real map tiles ([#263](https://github.com/alrayyes/movie-planner-web/issues/263)) ([e43e11d](https://github.com/alrayyes/movie-planner-web/commit/e43e11d3869a75b91053202ff06b8cbd966f4cde))
+
 ## [0.60.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.60.1...movie-planner-web-v0.60.2) (2026-09-06)
 
 
