@@ -13,6 +13,20 @@ const CREDENTIALS = {
 const ONE_MONTH_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
+// #262/#277: a real, live tile provider — OSM's own usage policy asks
+// for no automated bulk requests, so a test suite never hits it for
+// real. Same 1x1 blank-PNG stand-in tests/map.spec.ts already uses.
+const BLANK_TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+async function mockTiles(page: Page) {
+  await page.route("https://*.tile.openstreetmap.org/**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "image/png", body: BLANK_TILE_PNG });
+  });
+}
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -382,5 +396,97 @@ test.describe("venues overview", () => {
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("An Old Favourite");
+  });
+
+  test("shows a map pinning every venue with known coordinates, omitting the rest", async ({
+    page,
+  }) => {
+    await mockTiles(page);
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Tuschinski, Amsterdam, Netherlands",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+        {
+          uid: "paddington-uid",
+          title: "Paddington",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Tuschinski, Amsterdam, Netherlands", "Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    const map = page.getByRole("region", { name: "Map showing 1 location" });
+    await expect(map).toBeVisible();
+
+    await page.locator(".leaflet-marker-icon").click();
+    const popupLink = map.getByRole("link", { name: "Tuschinski, Amsterdam, Netherlands" });
+    await expect(popupLink).toBeVisible();
+    await popupLink.click();
+
+    await expect(page).toHaveURL(/\/\?venue=Tuschinski/);
+    await expect(page.locator("#overview-venue")).toHaveValue("Tuschinski, Amsterdam, Netherlands");
+  });
+
+  test("the venues map introduces no accessibility violations", async ({ page }) => {
+    await mockTiles(page);
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Tuschinski, Amsterdam, Netherlands",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+      ],
+      { media: ["cinema"], venues: ["Tuschinski, Amsterdam, Netherlands"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("no map at all when no venue has known coordinates", async ({ page }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+
+    await expect(page.getByRole("region", { name: /^Map/ })).toHaveCount(0);
   });
 });
