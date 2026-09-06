@@ -14,6 +14,7 @@
       "dav",
       "equirectangular",
       "frontmatter",
+      "geocoder",
       "GeoJSON",
       "iCalendar",
       "IMDb",

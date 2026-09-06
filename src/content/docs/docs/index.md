@@ -21,6 +21,11 @@ optional OMDb key) and the developer setup.
   Pathé booking email.
 - **[The calendar overview](/docs/overview/)** — filtering, sorting, and
   the actions available on each row.
+- **[The viewing heatmap](/docs/heatmap/)** — a GitHub-contribution-style
+  view of your own viewing density.
+- **[Venues](/docs/venues/)** — every venue you've logged a viewing at,
+  with a count.
+- **[The map](/docs/map/)** — every located viewing pinned on one map.
 - **[Import and export](/docs/import-export/)** — moving your watch
   history in and out as CSV or JSON.
 - **[Keyboard shortcuts](/docs/keyboard-shortcuts/)** — vim-style

@@ -66,3 +66,6 @@ prerender
 GeoJSON
 Leaflet
 Nominatim
+heatmap
+geocoders?
+skippable

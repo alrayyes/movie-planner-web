@@ -84,4 +84,26 @@ test.describe("README screenshots", () => {
       });
     });
   }
+
+  // #269: the very first thing a brand-new visitor sees — used on
+  // /docs/connecting/ (the live docs site, not the README) so "what
+  // does this look like" doesn't require actually opening the app
+  // first. Written straight to public/ (not docs/screenshots/, which
+  // is README-only and GitHub-rendered) since this is the one Astro
+  // itself needs to serve. Both modes, same reasoning as the overview
+  // screenshots above — a visitor in dark mode shouldn't see a jarring
+  // light-mode screenshot embedded in the docs.
+  for (const mode of ["light", "dark"] as const) {
+    test(`captures the first-load connect form in ${mode} mode`, async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 960 });
+      await page.emulateMedia({ colorScheme: mode });
+      await page.goto("/");
+
+      await expect(page.locator("#caldav-url")).toBeVisible();
+
+      await page.locator("#page-container").screenshot({
+        path: `public/screenshots/connect-form-${mode}.png`,
+      });
+    });
+  }
 });
