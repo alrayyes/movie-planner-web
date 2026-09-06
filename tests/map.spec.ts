@@ -53,7 +53,7 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Map" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Map", exact: true })).toBeVisible();
 }
 
 // #8/#203/#262: the real global map — replaces #237's static preview,
@@ -155,7 +155,7 @@ test.describe("global map", () => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
-    await page.getByRole("link", { name: "Map" }).click();
+    await page.getByRole("link", { name: "Map", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Map" })).toBeVisible();
   });
 

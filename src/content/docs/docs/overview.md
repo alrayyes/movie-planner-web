@@ -30,9 +30,12 @@ to the first page.
 ## Per-row actions
 
 Each row shows a poster thumbnail, the title (linking to its details
-page), when it was watched, the venue, and a refresh control for its OMDb
-metadata. Editing and deleting a viewing both live on its own details
-page, not on the overview row — click the title to get there.
+page), when it was watched, and the venue — with a small location pin
+next to it when that venue has known coordinates, linking straight to
+the viewing's own details page and its real map. Edit, Delete, and a
+refresh control for OMDb metadata sit at the end of the row as their
+own icon buttons; Edit opens the details page with its edit form
+already open, Delete asks for confirmation first.
 
 ## Cross-links
 
