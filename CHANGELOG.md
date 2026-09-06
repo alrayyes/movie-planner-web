@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.75.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.75.0...movie-planner-web-v0.75.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **tests:** fix [#249](https://github.com/alrayyes/movie-planner-web/issues/249)'s real root cause — an unawaited ClientRouter transition ([#329](https://github.com/alrayyes/movie-planner-web/issues/329)) ([97a4c90](https://github.com/alrayyes/movie-planner-web/commit/97a4c906914069e2e50f65fe18c2b07a2149815d))
+
 ## [0.75.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.74.1...movie-planner-web-v0.75.0) (2026-09-06)
 
 
