@@ -1,6 +1,6 @@
 {
   "name": "movie-planner-web",
-  "version": "0.62.0",
+  "version": "0.63.0",
   "private": true,
   "description": "Public CalDAV-backed web client for movie-planner, deployed to Cloudflare Workers.",
   "scripts": {
