@@ -509,6 +509,13 @@ test.describe("movie details page", () => {
       "href",
       "https://letterboxd.com/search/Dune/",
     );
+
+    // #313: the "not linked" gap indicator's own color used to fail
+    // WCAG AA contrast — this is the only existing test that renders
+    // that state at all, so it's where a future regression would
+    // actually get caught.
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 
   test("shows a plain IMDb/Letterboxd link once each has a real match, no gap indicator", async ({

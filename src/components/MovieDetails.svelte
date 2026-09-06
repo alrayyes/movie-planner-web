@@ -533,7 +533,14 @@ reloadOnBfcacheRestore(() => void load());
                   <span class="sr-only">{link.label}</span>
                 </a>
               {:else}
-                <span class="text-sm text-slate-400 dark:text-slate-500">{link.label}</span>
+                <!-- #313: text-slate-400/dark:text-slate-500 failed WCAG
+                AA contrast (2.63:1, needs 4.5:1) — swapped for the same
+                slate-600/dark:slate-400 pair STATUS_TEXT already uses
+                everywhere else in the app, which passes. Still visually
+                muted against the real cross-links' indigo, keeping
+                #153's own "this is a guess, not a confirmed match"
+                distinction intact. -->
+                <span class="text-sm text-slate-600 dark:text-slate-400">{link.label}</span>
               {/if}
             {/each}
           </div>
