@@ -857,6 +857,79 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(25);
   });
 
+  // #300
+  test("clicking a page number jumps straight to it", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(30));
+    await connect(page);
+
+    await page.getByRole("button", { name: "Go to page 2" }).click();
+
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+    await expect(page.locator("tbody tr")).toHaveCount(5);
+    await expect(page.getByRole("button", { name: "Go to page 2" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  test("First and Last jump to the first and last page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(30));
+    await connect(page);
+
+    await page.getByRole("button", { name: "Last" }).click();
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Last" })).toBeDisabled();
+
+    await page.getByRole("button", { name: "First" }).click();
+    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+    await expect(page.getByRole("button", { name: "First" })).toBeDisabled();
+  });
+
+  test("a large page count collapses to first/last plus a window around the current page", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(300));
+    await connect(page);
+    // 300 viewings / 10 per page (the smallest option) = 30 pages.
+    await page.selectOption("#overview-page-size", "10");
+    for (let i = 0; i < 14; i++) {
+      await page.getByRole("button", { name: "Next page" }).click();
+    }
+    await expect(page.getByText("Page 15 of 30")).toBeVisible();
+
+    const pagination = page.getByLabel("Pagination");
+    await expect(
+      pagination.getByRole("button", { name: "Go to page 1", exact: true }),
+    ).toBeVisible();
+    await expect(pagination.getByRole("button", { name: "Go to page 30" })).toBeVisible();
+    await expect(pagination.getByRole("button", { name: "Go to page 13" })).toBeVisible();
+    await expect(pagination.getByRole("button", { name: "Go to page 17" })).toBeVisible();
+    // Not every page in between — just the window plus first/last.
+    await expect(pagination.getByRole("button", { name: "Go to page 5" })).toHaveCount(0);
+    await expect(pagination.getByRole("button", { name: "Go to page 25" })).toHaveCount(0);
+  });
+
+  test("changing results per page re-paginates and returns to the first page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(30));
+    await connect(page);
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+
+    await page.selectOption("#overview-page-size", "50");
+
+    await expect(page.locator("tbody tr")).toHaveCount(30);
+    await expect(page.getByRole("button", { name: "Next page" })).toHaveCount(0);
+  });
+
+  test("pagination controls introduce no accessibility violations", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], manyViewings(30));
+    await connect(page);
+    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #76: a landscape or square source poster used to squeeze into
   // whatever width the table column happened to have while height stayed
   // fixed (h-32 w-auto) — the resulting box's aspect ratio depended on

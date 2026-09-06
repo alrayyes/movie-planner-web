@@ -62,7 +62,12 @@ import PosterPlaceholder from "./PosterPlaceholder.svelte";
 // #59: bounds how many rows render at once so the overview stays fast
 // and scannable as the calendar grows, rather than rendering every
 // viewing in the selected date range in one table.
-const PAGE_SIZE = 25;
+// #300: a visitor's own choice now, not a fixed constant — a select
+// with fixed options rather than a free-typed number, so there's no
+// zero/negative/absurdly-large value to validate against.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+let pageSize = $state(25);
 
 // #169: Title/When/Venue are sortable columns — Poster and Refresh
 // aren't real data to sort by.
@@ -226,6 +231,11 @@ function handleSortClick(key: SortKey) {
 	}
 }
 let currentPage = $state(0);
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function handlePageSizeChange(event: Event) {
+	pageSize = Number((event.target as HTMLSelectElement).value);
+	currentPage = 0;
+}
 // #97: which row (by uid) or whether the bulk control is mid-request —
 // drives the spinner in place of the refresh icon and disables the
 // triggering control so it can't be double-clicked mid-flight.
@@ -281,16 +291,33 @@ const currentlyDisplayed = $derived.by(() => {
 	});
 });
 const total = $derived(currentlyDisplayed.length);
-const pages = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
-// #59: clamps a stale currentPage (a smaller reloaded set can leave it
-// past the new last page) rather than rendering an empty page silently.
+const pages = $derived(Math.max(1, Math.ceil(total / pageSize)));
+// #59: clamps a stale currentPage (a smaller reloaded set, or a larger
+// page size, can leave it past the new last page) rather than
+// rendering an empty page silently.
 $effect(() => {
 	if (currentPage > pages - 1) currentPage = pages - 1;
 	if (currentPage < 0) currentPage = 0;
 });
 const currentPageItems = $derived.by(() => {
-	const start = currentPage * PAGE_SIZE;
-	return currentlyDisplayed.slice(start, start + PAGE_SIZE);
+	const start = currentPage * pageSize;
+	return currentlyDisplayed.slice(start, start + pageSize);
+});
+// #300: Google-style windowed page numbers — first, last, and a small
+// run around the current page, "…" filling any gap, rather than every
+// page number when there are dozens of them.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const pageNumbers = $derived.by(() => {
+	const current = currentPage + 1;
+	const delta = 2;
+	const left = Math.max(2, current - delta);
+	const right = Math.min(pages - 1, current + delta);
+	const result: (number | "…")[] = [1];
+	if (left > 2) result.push("…");
+	for (let page = left; page <= right; page++) result.push(page);
+	if (right < pages - 1) result.push("…");
+	if (pages > 1) result.push(pages);
+	return result;
 });
 // #89: nothing to bulk-refresh once every title on this page already
 // has matched metadata — hide the control rather than offer an action
@@ -984,10 +1011,43 @@ getPicklists(config).then((picklists) => {
       </table>
     </div>
 
+    <!-- #300: a visitor's own choice of how many rows a page holds —
+    always offered once there's at least one result, not just once
+    there's a second page, since raising it is exactly how a visitor
+    with more than one page gets back down to one. -->
+    <div class="mt-2 flex items-center justify-end gap-2">
+      <label
+        class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400"
+        for="overview-page-size"
+      >
+        Results per page
+        <select
+          id="overview-page-size"
+          class={INPUT}
+          value={pageSize}
+          onchange={handlePageSizeChange}
+        >
+          {#each PAGE_SIZE_OPTIONS as option (option)}
+            <option value={option}>{option}</option>
+          {/each}
+        </select>
+      </label>
+    </div>
+
     <!-- #59: only rendered once there's a second page to reach — a
-    single page needs no "Page 1 of 1" chrome. -->
+    single page needs no "Page 1 of 1" chrome. #300: First/Last and
+    clickable page numbers alongside Previous/Next, Google-search-
+    results style, for a jump straight to a specific page. -->
     {#if pages > 1}
-      <div class="mt-2 flex items-center justify-center gap-3" aria-label="Pagination">
+      <div class="mt-2 flex flex-wrap items-center justify-center gap-2" aria-label="Pagination">
+        <button
+          type="button"
+          class={BUTTON_SM}
+          disabled={currentPage === 0}
+          onclick={() => (currentPage = 0)}
+        >
+          First
+        </button>
         <button
           type="button"
           class={BUTTON_SM}
@@ -996,7 +1056,23 @@ getPicklists(config).then((picklists) => {
         >
           Previous page
         </button>
-        <span class={STATUS_TEXT}>Page {currentPage + 1} of {pages}</span>
+        {#each pageNumbers as pageNumber, i (i)}
+          {#if pageNumber === "…"}
+            <span aria-hidden="true" class="px-1 text-slate-400 dark:text-slate-500">…</span>
+          {:else}
+            <button
+              type="button"
+              class={pageNumber === currentPage + 1
+                ? "inline-flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600 text-sm font-medium text-white"
+                : "inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"}
+              aria-current={pageNumber === currentPage + 1 ? "page" : undefined}
+              aria-label={`Go to page ${pageNumber}`}
+              onclick={() => (currentPage = pageNumber - 1)}
+            >
+              {pageNumber}
+            </button>
+          {/if}
+        {/each}
         <button
           type="button"
           class={BUTTON_SM}
@@ -1005,6 +1081,15 @@ getPicklists(config).then((picklists) => {
         >
           Next page
         </button>
+        <button
+          type="button"
+          class={BUTTON_SM}
+          disabled={currentPage >= pages - 1}
+          onclick={() => (currentPage = pages - 1)}
+        >
+          Last
+        </button>
+        <span class={STATUS_TEXT}>Page {currentPage + 1} of {pages}</span>
       </div>
     {/if}
   {/if}
