@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.57.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.56.0...movie-planner-web-v0.57.0) (2026-09-06)
+
+
+### Features
+
+* **geo:** add a Nominatim address-search client and a reuse lookup ([#246](https://github.com/alrayyes/movie-planner-web/issues/246)) ([51c540d](https://github.com/alrayyes/movie-planner-web/commit/51c540db37bd2d564dc36727726b88d44406d7bf))
+
 ## [0.56.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.55.1...movie-planner-web-v0.56.0) (2026-09-06)
 
 
