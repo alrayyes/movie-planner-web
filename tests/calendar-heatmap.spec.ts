@@ -390,12 +390,12 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByRole("button", { name: `${emptyDay}: 0 viewings` })).toHaveCount(0);
   });
 
-  // #259: a real device screenshot showed how much dead space a genuinely
-  // sparse-but-real history adds up to — several months in a row, each a
-  // full ~30-cell empty grid, between two viewings months apart. A month
-  // with zero activity across every one of its days now collapses to one
-  // line instead.
-  test("a month with no viewings at all collapses to a single line, not a full empty grid", async ({
+  // #259 first collapsed a fully-empty month to a single "No viewings."
+  // line instead of a full ~30-cell empty grid; #286 goes further and
+  // skips it entirely — a real excerpt from an actual import showed 20
+  // consecutive empty months each still rendering their own line, one
+  // after another.
+  test("a month with no viewings at all is skipped entirely, not shown as a compact line", async ({
     page,
   }) => {
     const recent = daysAgo(3);
@@ -421,15 +421,11 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByText("2 logged viewings.")).toBeVisible();
 
     // ~200 days spans several whole calendar months with nothing logged
-    // in them at all — each renders the compact line instead of a grid.
-    await expect(page.getByText("No viewings.").first()).toBeVisible();
-    const monthHeadings = await page.getByRole("heading", { level: 3 }).count();
-    const collapsedMonths = await page.getByText("No viewings.").count();
-    expect(collapsedMonths).toBeGreaterThan(0);
-    expect(collapsedMonths).toBeLessThan(monthHeadings);
+    // in them at all — none of them render anything, not even a line.
+    await expect(page.getByText("No viewings.")).toHaveCount(0);
 
-    // The two genuinely active months still render their real grid —
-    // collapsing is only ever for a month with zero activity.
+    // Only the two genuinely active months' headings render.
+    await expect(page.getByRole("heading", { level: 3 })).toHaveCount(2);
     await expect(page.getByLabel(/: 1 viewing$/).first()).toBeVisible();
   });
 

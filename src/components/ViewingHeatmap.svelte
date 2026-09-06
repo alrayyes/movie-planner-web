@@ -116,11 +116,20 @@ interface YearGroup {
 // the heatmap), a month or a whole year is too much to preview in a
 // popup, so these navigate to the overview instead, filtered to that
 // exact span.
+//
+// #286: a month with zero viewings across every one of its days is
+// skipped entirely — not rendered at all, not even a compact line — so
+// a real gap of many empty months in a row doesn't read as a wall of
+// "No viewings." lines, one after another. A year left with no active
+// months at all (the visitor's date range spans it, but nothing was
+// ever logged in it) is dropped too, rather than showing a heading
+// with nothing under it.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const yearGroups = $derived.by(() => {
 	const groups: YearGroup[] = [];
 	let current: YearGroup | undefined;
 	for (const month of monthGroups) {
+		if (!month.hasActivity) continue;
 		const year = month.key.slice(0, 4);
 		if (!current || current.year !== year) {
 			current = { year, months: [] };
@@ -290,38 +299,34 @@ reloadOnBfcacheRestore(() => void load());
           <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">
             <a href={monthHref(group.key)} class="hover:underline">{group.label}</a>
           </h3>
-          {#if group.hasActivity}
-            <div
-              class="grid gap-1"
-              style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
-            >
-              {#each group.days as day (day)}
-                {@const count = viewingsByDay.get(day)?.length ?? 0}
-                {#if count > 0}
-                  <button
-                    type="button"
-                    class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
-                    aria-label={cellLabel(day, count)}
-                    title={cellLabel(day, count)}
-                    onclick={(event) => openDay(day, event)}
-                    onmouseenter={(event) => openDayOnHover(day, event)}
-                    onmouseleave={scheduleHoverClose}
-                    onfocus={(event) => openDayOnHover(day, event)}
-                    onblur={scheduleHoverClose}
-                  ></button>
-                {:else}
-                  <span
-                    role="img"
-                    class={`aspect-square rounded-sm ${shadeClass(count)}`}
-                    aria-label={cellLabel(day, count)}
-                    title={cellLabel(day, count)}
-                  ></span>
-                {/if}
-              {/each}
-            </div>
-          {:else}
-            <p class="text-sm text-slate-500 dark:text-slate-400">No viewings.</p>
-          {/if}
+          <div
+            class="grid gap-1"
+            style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
+          >
+            {#each group.days as day (day)}
+              {@const count = viewingsByDay.get(day)?.length ?? 0}
+              {#if count > 0}
+                <button
+                  type="button"
+                  class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
+                  aria-label={cellLabel(day, count)}
+                  title={cellLabel(day, count)}
+                  onclick={(event) => openDay(day, event)}
+                  onmouseenter={(event) => openDayOnHover(day, event)}
+                  onmouseleave={scheduleHoverClose}
+                  onfocus={(event) => openDayOnHover(day, event)}
+                  onblur={scheduleHoverClose}
+                ></button>
+              {:else}
+                <span
+                  role="img"
+                  class={`aspect-square rounded-sm ${shadeClass(count)}`}
+                  aria-label={cellLabel(day, count)}
+                  title={cellLabel(day, count)}
+                ></span>
+              {/if}
+            {/each}
+          </div>
         </div>
       {/each}
     </div>
