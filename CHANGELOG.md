@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.60.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.60.1...movie-planner-web-v0.60.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* **calendar-heatmap:** collapse a zero-activity month to one line ([#260](https://github.com/alrayyes/movie-planner-web/issues/260)) ([ca7096b](https://github.com/alrayyes/movie-planner-web/commit/ca7096bee68cd440599eab16d632f9be28d99995)), closes [#259](https://github.com/alrayyes/movie-planner-web/issues/259)
+
 ## [0.60.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.60.0...movie-planner-web-v0.60.1) (2026-09-06)
 
 
