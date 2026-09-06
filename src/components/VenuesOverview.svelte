@@ -18,13 +18,17 @@ import {
 	TH,
 	TR_BODY,
 } from "../lib/ui/classes";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import VenueMap from "./VenueMap.svelte";
 
 // #99: every venue the visitor has ever logged a viewing at, or added
-// to their picklist, each with a count of logged viewings there — not
-// a map (#8, deferred, needs location data this app doesn't have),
-// just a plain list built from data already available: the union of
+// to their picklist, each with a count of logged viewings there — a
+// plain list built from data already available: the union of
 // location-management's own picklist (so a venue with zero viewings
 // still shows, #99's own scenario) and a calendar query.
+// #277: a map above the table, one pin per venue with known
+// coordinates — deferred from #99 (this app had no location data
+// yet), added once #8/#203 shipped venue geo.
 //
 // #116: the picklist alone isn't enough — it's this app's own
 // autocomplete suggestion list, populated only when a visitor types a
@@ -43,13 +47,19 @@ let toValue = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
 let venueCounts = $state<{ venue: string; count: number }[]>([]);
+// #277: one pin per venue with known coordinates — a venue's own geo
+// comes from whichever of its viewings happened to carry it first
+// (every viewing at the same venue shares the same coordinates, so
+// which one doesn't matter); a venue with no geo on any viewing is
+// simply left off, same "omit, don't guess" rule the other maps follow.
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+let venuePins = $state<{ venue: string; lat: number; lon: number }[]>([]);
 // #146: the exact range that produced the counts currently on screen —
 // not just whatever's typed into fromValue/toValue right now, which can
 // differ from what's loaded until "Filter" is clicked. A venue link
 // needs to carry this so the overview it lands on shows the same
 // viewings the count was drawn from, rather than falling back to its
 // own much narrower default window.
-// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let loadedRange = $state<{ from: string; to: string } | null>(null);
 
 function currentRange(): { from: string; to: string } {
@@ -60,11 +70,25 @@ function currentRange(): { from: string; to: string } {
 	};
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 function toDateInputValue(iso: string): string {
 	const d = new Date(iso);
 	const pad = (n: number) => String(n).padStart(2, "0");
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// #131/#146: the overview's own venue filter reads the `venue` query
+// param on load, and its From/To fields read `from`/`to` the same way
+// — see CalendarOverview.svelte's own venueValue/fromValue/toValue
+// init. Without carrying the range, the link would land on the
+// overview's own much narrower default window instead of the one that
+// produced this venue's count/pin. Shared by the table's own venue
+// link and the map pin's popup link below, so the two can't drift.
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+function venueHref(venue: string): string {
+	const range = loadedRange
+		? `&from=${toDateInputValue(loadedRange.from)}&to=${toDateInputValue(loadedRange.to)}`
+		: "";
+	return `/?venue=${encodeURIComponent(venue)}${range}`;
 }
 
 // Aborts a still-in-flight load when a newer one starts (a fast
@@ -95,13 +119,22 @@ async function load() {
 			listViewings(config, range, { signal: controller.signal }),
 		]);
 		const counts = new Map<string, number>(venues.map((venue) => [venue, 0]));
+		const geoByVenue = new Map<string, { lat: number; lon: number }>();
 		for (const viewing of viewings) {
 			if (!viewing.venue) continue;
 			counts.set(viewing.venue, (counts.get(viewing.venue) ?? 0) + 1);
+			if (viewing.geo && !geoByVenue.has(viewing.venue)) {
+				geoByVenue.set(viewing.venue, viewing.geo);
+			}
 		}
 		venueCounts = [...counts.entries()]
 			.map(([venue, count]) => ({ venue, count }))
 			.sort((a, b) => b.count - a.count || a.venue.localeCompare(b.venue));
+		venuePins = [...geoByVenue.entries()].map(([venue, geo]) => ({
+			venue,
+			lat: geo.lat,
+			lon: geo.lon,
+		}));
 		status = `${venueCounts.length} venue${venueCounts.length === 1 ? "" : "s"}.`;
 	} catch (error) {
 		// Superseded by a newer load — the newer call's own catch/success
@@ -151,6 +184,17 @@ reloadOnBfcacheRestore(() => void load());
 
   <p class={STATUS_TEXT} role="status">{status}</p>
 
+  {#if venuePins.length > 0}
+    <VenueMap
+      pins={venuePins.map((pin) => ({
+        lat: pin.lat,
+        lon: pin.lon,
+        label: pin.venue,
+        href: venueHref(pin.venue),
+      }))}
+    />
+  {/if}
+
   {#if venueCounts.length > 0}
     <div class={TABLE_WRAP}>
       <table class={TABLE}>
@@ -171,14 +215,7 @@ reloadOnBfcacheRestore(() => void load());
                 toValue init. Without carrying the range, the link would
                 land on the overview's own much narrower default window
                 instead of the one that produced this count. -->
-                <a
-                  href={`/?venue=${encodeURIComponent(venue)}${
-                    loadedRange
-                      ? `&from=${toDateInputValue(loadedRange.from)}&to=${toDateInputValue(loadedRange.to)}`
-                      : ""
-                  }`}
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
+                <a href={venueHref(venue)} class="text-indigo-600 hover:underline dark:text-indigo-400">
                   {venue}
                 </a>
               </td>
