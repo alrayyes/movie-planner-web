@@ -1,7 +1,16 @@
 <script lang="ts">
-import { deleteViewing, getPicklists, getViewing, updateViewing } from "../lib/caldav/client";
+import {
+	deleteViewing,
+	getPicklists,
+	getViewing,
+	listViewings,
+	updateViewing,
+} from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
+import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
+import { findKnownGeo } from "../lib/geo/reuse";
+import { importCheckRange } from "../lib/movie-log/run-import";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
@@ -25,6 +34,7 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { computeBlockedTimeBar, formatDateTime } from "../lib/ui/datetime";
+import { debounce } from "../lib/ui/debounce";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -85,6 +95,53 @@ let pickerArea = $state<HTMLDivElement | undefined>();
 let showingPicker = $state(false);
 let editValues = $state<Record<string, string>>({});
 
+// #8/#203: same reuse-vs-search coordinate entry as the log form
+// (LogViewingForm.svelte's own identical shape) — a lightweight
+// wide-range query purely to back findKnownGeo's reuse lookup, same
+// range Venues/heatmap/the log form already use.
+let allViewings = $state<LoggedViewing[]>([]);
+let editGeoQuery = $state("");
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let editGeoCandidates = $state<GeoCandidate[]>([]);
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let editGeoSearching = $state(false);
+let chosenEditGeo = $state<{ lat: number; lon: number } | undefined>();
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let chosenEditGeoLabel = $state("");
+let chosenEditGeoFor = $state("");
+
+const editKnownGeo = $derived(
+	editValues.venue ? findKnownGeo(editValues.venue, allViewings) : undefined,
+);
+const editGeo = $derived(
+	editKnownGeo ?? (chosenEditGeoFor === editValues.venue ? chosenEditGeo : undefined),
+);
+
+const runEditGeoSearch = debounce(async (query: string) => {
+	if (!query.trim()) {
+		editGeoCandidates = [];
+		editGeoSearching = false;
+		return;
+	}
+	editGeoSearching = true;
+	editGeoCandidates = await searchAddress(query);
+	editGeoSearching = false;
+}, 400);
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function onEditGeoQueryInput() {
+	runEditGeoSearch(editGeoQuery);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function chooseEditGeo(candidate: GeoCandidate) {
+	chosenEditGeo = { lat: candidate.lat, lon: candidate.lon };
+	chosenEditGeoLabel = candidate.label;
+	chosenEditGeoFor = editValues.venue ?? "";
+	editGeoCandidates = [];
+	editGeoQuery = "";
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function startEdit(current: LoggedViewing) {
 	editValues = Object.fromEntries(
@@ -96,6 +153,10 @@ function startEdit(current: LoggedViewing) {
 			];
 		}),
 	);
+	chosenEditGeo = undefined;
+	chosenEditGeoFor = "";
+	editGeoQuery = "";
+	editGeoCandidates = [];
 	editing = true;
 }
 
@@ -139,6 +200,7 @@ async function handleSave(current: LoggedViewing) {
 		end: new Date(editValues.end ?? "").toISOString(),
 		medium: editValues.medium ?? "",
 		venue: editValues.venue || undefined,
+		geo: editGeo,
 	};
 	try {
 		await updateViewing(config, current.uid, updated);
@@ -248,6 +310,12 @@ async function init() {
 	omdbPaused = credentials.omdbPaused ?? false;
 	await load();
 	await loadVenueSuggestions();
+	try {
+		allViewings = await listViewings(config, importCheckRange());
+	} catch {
+		// The geo reuse lookup just finds nothing; the address-search
+		// field still works.
+	}
 }
 
 init();
@@ -279,6 +347,50 @@ reloadOnBfcacheRestore(() => void load());
                 bind:value={editValues[field.key]}
               />
             </label>
+            {#if field.key === "venue"}
+              {#if editValues.venue && editKnownGeo}
+                <p class={`${STATUS_TEXT} sm:col-span-2`}>
+                  Using {editValues.venue}'s known location.
+                </p>
+              {:else if editValues.venue}
+                <div
+                  class="flex flex-col gap-2 rounded-lg bg-slate-50 p-3 sm:col-span-2 dark:bg-slate-900/40"
+                >
+                  <label class={LABEL} for="details-geo-search">
+                    Search for "{editValues.venue}"'s address (optional)
+                  </label>
+                  <input
+                    class={INPUT}
+                    id="details-geo-search"
+                    type="text"
+                    placeholder="Address or venue name"
+                    bind:value={editGeoQuery}
+                    oninput={onEditGeoQueryInput}
+                  />
+                  {#if editGeoSearching}
+                    <p class={STATUS_TEXT}>Searching…</p>
+                  {/if}
+                  {#if editGeoCandidates.length > 0}
+                    <ul class="flex flex-col gap-1">
+                      {#each editGeoCandidates as candidate (candidate.label)}
+                        <li>
+                          <button
+                            type="button"
+                            class="text-left text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+                            onclick={() => chooseEditGeo(candidate)}
+                          >
+                            {candidate.label}
+                          </button>
+                        </li>
+                      {/each}
+                    </ul>
+                  {/if}
+                  {#if chosenEditGeoFor === editValues.venue && chosenEditGeo}
+                    <p class={STATUS_TEXT}>Location set: {chosenEditGeoLabel}</p>
+                  {/if}
+                </div>
+              {/if}
+            {/if}
           {/each}
         </div>
         <div class="flex gap-2">
