@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.66.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.66.1...movie-planner-web-v0.66.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* **caldav:** preserve unknown VEVENT properties across an edit ([#296](https://github.com/alrayyes/movie-planner-web/issues/296)) ([9afc0a7](https://github.com/alrayyes/movie-planner-web/commit/9afc0a7add5be9cee9c607c8518cf92f3d9d77fd))
+
 ## [0.66.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.66.0...movie-planner-web-v0.66.1) (2026-09-06)
 
 
