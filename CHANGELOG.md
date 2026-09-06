@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.71.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.70.0...movie-planner-web-v0.71.0) (2026-09-06)
+
+
+### Features
+
+* **movie-details:** let a visitor re-search OMDb to fix a wrong match ([#314](https://github.com/alrayyes/movie-planner-web/issues/314)) ([610cb61](https://github.com/alrayyes/movie-planner-web/commit/610cb61920a0af1e01b4d22decfdf5c9311f8ac2)), closes [#311](https://github.com/alrayyes/movie-planner-web/issues/311)
+
 ## [0.70.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.69.0...movie-planner-web-v0.70.0) (2026-09-06)
 
 
