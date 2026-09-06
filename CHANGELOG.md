@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.67.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.66.2...movie-planner-web-v0.67.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-overview:** bring back Edit and Delete icons per row ([#299](https://github.com/alrayyes/movie-planner-web/issues/299)) ([d267ab5](https://github.com/alrayyes/movie-planner-web/commit/d267ab54497cdfce2006714a2fe2d6fb9ac22c92))
+
 ## [0.66.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.66.1...movie-planner-web-v0.66.2) (2026-09-06)
 
 
