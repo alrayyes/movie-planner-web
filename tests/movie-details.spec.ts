@@ -579,6 +579,69 @@ test.describe("movie details page", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #310
+  test("shows the rest of OMDb's fields (Rated, Runtime, Metascore, etc.) when present", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        ...DUNE,
+        rated: "PG-13",
+        runtime: "155 min",
+        movieLanguage: "English",
+        movieCountry: "USA, Canada",
+        metascore: "74",
+        imdbVotes: "789,012",
+        dvd: "N/A",
+        boxOffice: "$108,326,148",
+        production: "Legendary Pictures",
+        website: "https://www.dunemovie.com",
+        released: "22 Oct 2021",
+        awards: "Won 6 Oscars",
+        trailerUrl: "https://www.youtube.com/watch?v=8g18jFHCLXk",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("PG-13")).toBeVisible();
+    await expect(page.getByText("155 min")).toBeVisible();
+    await expect(page.getByText("22 Oct 2021")).toBeVisible();
+    await expect(page.getByText("English")).toBeVisible();
+    await expect(page.getByText("USA, Canada")).toBeVisible();
+    await expect(page.getByText("74", { exact: true })).toBeVisible();
+    await expect(page.getByText("789,012")).toBeVisible();
+    await expect(page.getByText("N/A")).toBeVisible();
+    await expect(page.getByText("$108,326,148")).toBeVisible();
+    await expect(page.getByText("Legendary Pictures")).toBeVisible();
+    await expect(page.getByText("Won 6 Oscars")).toBeVisible();
+    await expect(page.getByRole("link", { name: "https://www.dunemovie.com" })).toHaveAttribute(
+      "href",
+      "https://www.dunemovie.com",
+    );
+    await expect(page.getByRole("link", { name: "Watch trailer" })).toHaveAttribute(
+      "href",
+      "https://www.youtube.com/watch?v=8g18jFHCLXk",
+    );
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("shows none of the new OMDb/TMDb fields when the viewing has none of them", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Rated")).toHaveCount(0);
+    await expect(page.getByText("Runtime")).toHaveCount(0);
+    await expect(page.getByText("Metascore")).toHaveCount(0);
+    await expect(page.getByText("Website")).toHaveCount(0);
+    await expect(page.getByText("Watch trailer")).toHaveCount(0);
+  });
+
   test("positions and sizes the blocked-time bar from the viewing's own start/duration", async ({
     page,
   }) => {

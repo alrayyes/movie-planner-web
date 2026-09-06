@@ -62,6 +62,37 @@ export interface LoggedViewing {
   // through. Absent, not a sentinel value, when the venue has no known
   // coordinates.
   geo?: { lat: number; lon: number };
+  // #310: the rest of OMDb's own response fields (alrayyes/movie-planner#237),
+  // verbatim, no normalization — X-RATED/X-RUNTIME/X-MOVIE-LANGUAGE/
+  // X-MOVIE-COUNTRY/X-METASCORE/X-IMDB-VOTES/X-DVD/X-BOX-OFFICE/
+  // X-PRODUCTION/X-WEBSITE on a CLI-logged viewing. movieLanguage/
+  // movieCountry, not language/country — the movie's own country/
+  // language of origin, a different thing from the venue's own
+  // city/country above.
+  rated?: string;
+  runtime?: string;
+  movieLanguage?: string;
+  movieCountry?: string;
+  metascore?: string;
+  imdbVotes?: string;
+  dvd?: string;
+  boxOffice?: string;
+  production?: string;
+  website?: string;
+  // #310: longer-form OMDb text the CLI writes to DESCRIPTION rather
+  // than an X-* property (`Released`/`Awards` lines, alongside the
+  // existing `Plot` line this app already reads into `synopsis` above).
+  // Round-trip through this app's own X-RELEASED/X-AWARDS once written
+  // here, same "app's own X-* wins over DESCRIPTION" rule as
+  // letterboxdUrl/notes.
+  released?: string;
+  awards?: string;
+  // #310: a YouTube link to the movie's official trailer
+  // (alrayyes/movie-planner#236), from TMDb rather than OMDb — only
+  // ever present when the CLI has a `tmdb.api_key` configured, TMDb
+  // found a match, and it has an official YouTube trailer among its
+  // videos. Same "omit, never guess" rule as everything else here.
+  trailerUrl?: string;
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;
