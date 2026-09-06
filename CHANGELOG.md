@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.69.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.68.0...movie-planner-web-v0.69.0) (2026-09-06)
+
+
+### Features
+
+* **calendar-overview:** numbered page links, first/last, and a page-size control ([#302](https://github.com/alrayyes/movie-planner-web/issues/302)) ([85ce981](https://github.com/alrayyes/movie-planner-web/commit/85ce9812c640154cdc4f83db53f465e9c7a3ece2))
+* **calendar-overview:** show the blocked-time bar in the When column ([#307](https://github.com/alrayyes/movie-planner-web/issues/307)) ([e644194](https://github.com/alrayyes/movie-planner-web/commit/e64419489fc109de0e914ead49090b5dc6ea9bf0))
+
 ## [0.68.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.67.0...movie-planner-web-v0.68.0) (2026-09-06)
 
 
