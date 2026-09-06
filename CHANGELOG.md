@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.70.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.69.0...movie-planner-web-v0.70.0) (2026-09-06)
+
+
+### Features
+
+* **caldav:** show a Pathé booking's row/seat on the details page ([#309](https://github.com/alrayyes/movie-planner-web/issues/309)) ([51acd43](https://github.com/alrayyes/movie-planner-web/commit/51acd432537d7809934c497221d9dd6756a58d63))
+
 ## [0.69.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.68.0...movie-planner-web-v0.69.0) (2026-09-06)
 
 
