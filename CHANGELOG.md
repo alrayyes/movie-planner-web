@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.62.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.61.0...movie-planner-web-v0.62.0) (2026-09-06)
+
+
+### Features
+
+* **about:** add a public About page touring the app's features ([#272](https://github.com/alrayyes/movie-planner-web/issues/272)) ([a4c4c84](https://github.com/alrayyes/movie-planner-web/commit/a4c4c84d08292ccc156329a9615533dfcc9658bb))
+
+
+### Bug Fixes
+
+* **tests:** await the OMDb route registration in the disambiguation test ([#265](https://github.com/alrayyes/movie-planner-web/issues/265)) ([6c8e4b3](https://github.com/alrayyes/movie-planner-web/commit/6c8e4b3a02e6766d01fd4bcdb7ccb14b610f6398))
+
 ## [0.61.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.60.2...movie-planner-web-v0.61.0) (2026-09-06)
 
 
