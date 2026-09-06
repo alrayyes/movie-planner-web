@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.60.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.60.0...movie-planner-web-v0.60.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **map:** give every pin its own Open in Maps link, not just the single one ([#256](https://github.com/alrayyes/movie-planner-web/issues/256)) ([b201cbe](https://github.com/alrayyes/movie-planner-web/commit/b201cbe9a5bfb7d4e4a72b936dfa382d2073b119))
+
 ## [0.60.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.59.0...movie-planner-web-v0.60.0) (2026-09-06)
 
 
