@@ -1,0 +1,25 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import SharedOverview from "../components/SharedOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Shared viewings — Movie Planner" wide>
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Shared viewings
+  </h1>
+  <div class="mt-6">
+    {
+      /* #335: client:only, not client:load — this component reads the
+      "state" query parameter on mount, which doesn't exist during the
+      static build/prerender (no `location` at build time), same reason
+      every credential-reading island here already uses client:only. No
+      credentials are read at all — the whole point of this page is
+      that it works without any. */
+    }
+    <SharedOverview client:only="svelte" />
+  </div>
+</Layout>
