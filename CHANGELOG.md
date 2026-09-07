@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.75.2...movie-planner-web-v0.76.0) (2026-09-07)
+
+
+### Features
+
+* **calendar-overview:** share a read-only, frozen link to the filtered view ([#341](https://github.com/alrayyes/movie-planner-web/issues/341)) ([a43845b](https://github.com/alrayyes/movie-planner-web/commit/a43845b81f1e2abcb44ef48255a697ec8a5c15e3))
+
 ## [0.75.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.75.1...movie-planner-web-v0.75.2) (2026-09-07)
 
 
