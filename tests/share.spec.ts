@@ -107,6 +107,56 @@ test.describe("sharing a read-only snapshot", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #345: Brave/Android reported doing nothing at all on tap — the Web
+  // Share API is the mobile-native path, tried before falling back to
+  // the clipboard (which the test above already covers, since desktop
+  // Chromium — what Playwright drives — doesn't implement
+  // navigator.share at all, so that test already exercises the
+  // fallback branch on its own).
+  test("uses the native share sheet instead of the clipboard when the browser supports it", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await page.addInitScript(() => {
+      // biome-ignore lint/suspicious/noExplicitAny: stubbing a browser API this test environment doesn't implement
+      (navigator as any).share = async (data: { url: string }) => {
+        // biome-ignore lint/suspicious/noExplicitAny: stashing on window for the test to read back
+        (window as any).__sharedUrl = data.url;
+      };
+    });
+    await connect(page);
+
+    await page.getByRole("button", { name: "Share" }).click();
+    await expect(page.getByText(/Shared — 1 viewing/)).toBeVisible();
+
+    const sharedUrl = await page.evaluate(
+      () => (window as unknown as { __sharedUrl: string }).__sharedUrl,
+    );
+    expect(sharedUrl).toContain("/shared?state=");
+  });
+
+  test("a visitor closing the native share sheet without picking anything isn't shown as an error", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await page.addInitScript(() => {
+      // biome-ignore lint/suspicious/noExplicitAny: stubbing a browser API this test environment doesn't implement
+      (navigator as any).share = async () => {
+        throw new DOMException("Share canceled", "AbortError");
+      };
+    });
+    await connect(page);
+
+    const shareButton = page.getByRole("button", { name: "Share" });
+    await shareButton.click();
+
+    // Busy only while the (mocked, instantly-rejecting) share sheet is
+    // "open" — back to normal once the cancellation is handled, with
+    // nothing shown that reads like a failure.
+    await expect(shareButton).toBeEnabled();
+    await expect(page.getByText(/AbortError|Share canceled|Failed to prepare/)).toHaveCount(0);
+  });
+
   test("warns instead of producing a link when the filtered set is too big to fit", async ({
     page,
   }) => {

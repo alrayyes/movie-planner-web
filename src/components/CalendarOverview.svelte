@@ -612,6 +612,17 @@ async function handleRefreshAll() {
 // display fields the overview row itself already renders ever go into
 // the link (toSharedViewing's own allowlist) — no credential, server
 // URL, or API key has a field to land in.
+// #345: the Web Share API (navigator.share) first, when available —
+// opens the OS share sheet, unmistakable feedback on mobile that
+// something happened. Clipboard-only used to be the only path, and on
+// at least one real mobile browser (Brave/Android) that silently did
+// nothing a visitor could notice: clipboard-write needs a live user
+// activation at the moment it's called, which the async encode step
+// just above can outlast depending on the browser's own privacy
+// posture, and even when it works, a small status line below the
+// button is an easy thing to miss entirely on a phone. Desktop
+// browsers mostly don't implement navigator.share at all, so the
+// clipboard fallback stays the everyday path there.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleShare() {
 	sharing = true;
@@ -627,9 +638,22 @@ async function handleShare() {
 			shareStatusText = `That's too much to fit in a link (${state.viewings.length} viewings). Narrow the filter first, then share again.`;
 			return;
 		}
-		await navigator.clipboard.writeText(url);
-		shareStatusText = `Link copied — ${state.viewings.length} viewing${state.viewings.length === 1 ? "" : "s"}, read-only, frozen as of now.`;
+		const count = state.viewings.length;
+		const shareData = { title: "Movie Planner — shared viewings", url };
+		if (typeof navigator.share === "function") {
+			await navigator.share(shareData);
+			shareStatusText = `Shared — ${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
+		} else {
+			await navigator.clipboard.writeText(url);
+			shareStatusText = `Link copied — ${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
+		}
 	} catch (error) {
+		// Closing the native share sheet without picking anything throws
+		// AbortError — a visitor changing their mind, not a failure.
+		if (error instanceof Error && error.name === "AbortError") {
+			shareStatusText = "";
+			return;
+		}
 		shareStatusText = error instanceof Error ? error.message : "Failed to prepare the link.";
 	} finally {
 		sharing = false;
