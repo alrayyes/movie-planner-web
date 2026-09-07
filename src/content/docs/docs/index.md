@@ -28,5 +28,7 @@ optional OMDb key) and the developer setup.
 - **[The map](/docs/map/)** — every located viewing pinned on one map.
 - **[Import and export](/docs/import-export/)** — moving your watch
   history in and out as CSV or JSON.
+- **[The activity log](/docs/activity/)** — a local record of what this
+  app itself has done to your calendar.
 - **[Keyboard shortcuts](/docs/keyboard-shortcuts/)** — vim-style
   navigation on the overview.

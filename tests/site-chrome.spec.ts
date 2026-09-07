@@ -97,11 +97,12 @@ test.describe("site nav", () => {
     );
     await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveAttribute("href", "/log");
     await expect(page.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/import");
+    await expect(page.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
     await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
 
-    // #161/#204/#237: Viewings, Venues, Calendar, Map, Log a viewing,
-    // Import, Settings, in that order — not just present, but in the
-    // order a visitor reads them.
+    // #161/#204/#237/#349: Viewings, Venues, Calendar, Map, Log a
+    // viewing, Import, Activity, Settings, in that order — not just
+    // present, but in the order a visitor reads them.
     await expect(page.locator("site-nav a")).toHaveText([
       "Viewings",
       "Venues",
@@ -109,6 +110,7 @@ test.describe("site nav", () => {
       "Map",
       "Log a viewing",
       "Import",
+      "Activity",
       "Settings",
     ]);
 

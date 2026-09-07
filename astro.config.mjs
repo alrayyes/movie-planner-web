@@ -57,6 +57,7 @@ export default defineConfig({
         { label: "Venues", link: "/docs/venues/" },
         { label: "The map", link: "/docs/map/" },
         { label: "Import and export", link: "/docs/import-export/" },
+        { label: "The activity log", link: "/docs/activity/" },
         { label: "Keyboard shortcuts", link: "/docs/keyboard-shortcuts/" },
       ],
     }),

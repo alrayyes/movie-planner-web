@@ -1,0 +1,83 @@
+<script lang="ts">
+import { type ActivityLogEntry, getActivityLogStore } from "../lib/activity-log/store";
+import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
+
+// #349: a local, per-browser reference for "what did this app just do" —
+// not a shared audit trail with the CLI, and not synced across devices.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let entries = $state<ActivityLogEntry[]>([]);
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let loaded = $state(false);
+
+$effect(() => {
+	getActivityLogStore()
+		.list()
+		.then((list) => {
+			entries = list;
+			loaded = true;
+		});
+});
+
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+function formatWhen(iso: string): string {
+	return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const ACTION_LABEL: Record<ActivityLogEntry["action"], string> = {
+	created: "Created",
+	updated: "Updated",
+	deleted: "Deleted",
+};
+</script>
+
+{#if loaded && entries.length === 0}
+	<p class={STATUS_TEXT} role="status">
+		Nothing recorded yet — every create, edit, delete, refresh, or OMDb match this app makes
+		shows up here.
+	</p>
+{:else if loaded}
+	<p class={STATUS_TEXT} role="status">
+		{entries.length} entr{entries.length === 1 ? 'y' : 'ies'}
+	</p>
+	<div class={`mt-4 ${TABLE_WRAP}`}>
+		<table class={TABLE}>
+			<thead>
+				<tr>
+					<th class={TH} scope="col">When</th>
+					<th class={TH} scope="col">Action</th>
+					<th class={TH} scope="col">Title</th>
+					<th class={TH} scope="col">Changes</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+				{#each entries as entry (entry.id)}
+					<tr class={TR_BODY}>
+						<td class={TD}>{formatWhen(entry.at)}</td>
+						<td class={TD}>{ACTION_LABEL[entry.action]}</td>
+						<td class={TD}>
+							<a
+								href={`/movie?uid=${encodeURIComponent(entry.uid)}`}
+								class="text-indigo-600 hover:underline dark:text-indigo-400"
+							>
+								{entry.title ?? entry.uid}
+							</a>
+						</td>
+						<td class={TD}>
+							{#if entry.changes && entry.changes.length > 0}
+								<ul class="flex flex-col gap-1">
+									{#each entry.changes as change (change.field)}
+										<li>
+											<span class="font-medium">{change.field}</span>:
+											{change.before ?? '(none)'} → {change.after ?? '(none)'}
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+{/if}
