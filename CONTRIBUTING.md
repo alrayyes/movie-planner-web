@@ -98,7 +98,9 @@ permitting this app's origin — README.md documents the exact headers, and
 `test/integration/Caddyfile` is a real, tested example. See
 `openspec/specs/` for the capability specs this app was built against
 (`openspec/changes/archive/` holds the completed change that shipped
-them).
+them). [`docs/calendar-schema.md`](docs/calendar-schema.md) lists every
+iCalendar property this app reads and writes, and how it differs from
+what the CLI writes.
 
 Biome only lints a `.astro` file's frontmatter script, not the template
 below it — a frontmatter import or prop used only in the template reads
