@@ -14,6 +14,12 @@ import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/li
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import {
+	encodeSharedState,
+	MAX_SHARE_URL_LENGTH,
+	type SharedState,
+	toSharedViewing,
+} from "../lib/share/encode";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -136,6 +142,13 @@ let statusText = $state("");
 // why this used to disappear before anyone could read it.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let actionStatusText = $state("");
+// #335: separate from actionStatusText — sharing doesn't touch CalDAV,
+// so it shouldn't clobber (or be clobbered by) an edit/delete/refresh
+// confirmation that's mid-flight.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let shareStatusText = $state("");
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let sharing = $state(false);
 // #131/#146: pre-populated from `venue`/`from`/`to` query params so a
 // link from the venues page (or anywhere else) lands here already
 // filtered to the same viewings, with the values visible and editable
@@ -593,6 +606,36 @@ async function handleRefreshAll() {
 	}
 }
 
+// #335: the currently filtered result set, not just the current page —
+// a shared link should let the recipient page through everything the
+// active filter matched, same as the visitor sharing it can. Only the
+// display fields the overview row itself already renders ever go into
+// the link (toSharedViewing's own allowlist) — no credential, server
+// URL, or API key has a field to land in.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleShare() {
+	sharing = true;
+	shareStatusText = "Preparing link…";
+	try {
+		const state: SharedState = {
+			sharedAt: new Date().toISOString(),
+			viewings: currentlyDisplayed.map(toSharedViewing),
+		};
+		const encoded = await encodeSharedState(state);
+		const url = `${location.origin}/shared?state=${encoded}`;
+		if (url.length > MAX_SHARE_URL_LENGTH) {
+			shareStatusText = `That's too much to fit in a link (${state.viewings.length} viewings). Narrow the filter first, then share again.`;
+			return;
+		}
+		await navigator.clipboard.writeText(url);
+		shareStatusText = `Link copied — ${state.viewings.length} viewing${state.viewings.length === 1 ? "" : "s"}, read-only, frozen as of now.`;
+	} catch (error) {
+		shareStatusText = error instanceof Error ? error.message : "Failed to prepare the link.";
+	} finally {
+		sharing = false;
+	}
+}
+
 reload();
 // #223: a visitor deleting a viewing on the details page, then hitting
 // Back, can land on this exact pre-delete DOM restored from the
@@ -760,8 +803,36 @@ getPicklists(config).then((picklists) => {
     </p>
   {/if}
 
+  {#if total > 0}
+    <div class="mb-2">
+      <button
+        type="button"
+        class={BUTTON_SECONDARY}
+        disabled={sharing}
+        aria-busy={sharing}
+        onclick={handleShare}
+      >
+        Share
+      </button>
+      <p class={STATUS_TEXT}>
+        Copies a read-only link to what's currently filtered and shown here — frozen at the
+        moment you share it, no credentials included, works for anyone you send it to.
+      </p>
+    </div>
+  {/if}
+
   <p class={STATUS_TEXT} role="status">{statusText}</p>
   <p class={STATUS_TEXT} role="status">{actionStatusText}</p>
+  {#if shareStatusText}
+    <!-- #335: no role="status" until there's actually a message, unlike
+    statusText/actionStatusText above — those two are this island's own
+    permanent pair (existing tests target the last of them via
+    getByRole("status").last() to mean "the action confirmation line"),
+    and a third always-present status region would silently become the
+    new "last" one instead, the same trap export-json-button.ts's own
+    comment already documents. -->
+    <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
+  {/if}
   <div bind:this={pickerArea}></div>
 
   {#if total > 0}

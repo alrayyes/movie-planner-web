@@ -37,6 +37,18 @@ refresh control for OMDb metadata sit at the end of the row as their
 own icon buttons; Edit opens the details page with its edit form
 already open, Delete asks for confirmation first.
 
+## Sharing a read-only snapshot
+
+"Share" copies a link to whatever's currently filtered and shown — not
+your whole history, just what the active filter matches. Anyone who
+opens it sees the exact same list read-only, with nothing to edit and no
+CalDAV or OMDb credentials of yours anywhere in the link — the link
+itself carries the display data, frozen at the moment you shared it, so
+it never updates and never asks the recipient to connect to anything.
+Narrow the filter first if there's too much to fit in a link; a large,
+unfiltered history is what [Export as JSON](/docs/import-export/) is
+for instead.
+
 ## Cross-links
 
 A viewing with a matched IMDb ID links out to its IMDb page; Rotten
