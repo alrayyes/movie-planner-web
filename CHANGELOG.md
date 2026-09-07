@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.78.0...movie-planner-web-v0.79.0) (2026-09-07)
+
+
+### Features
+
+* **calendar-overview:** show a map of the currently-filtered viewings ([#356](https://github.com/alrayyes/movie-planner-web/issues/356)) ([1dff2c4](https://github.com/alrayyes/movie-planner-web/commit/1dff2c49fc2db047a61aabb07423eaa8b5b26793)), closes [#351](https://github.com/alrayyes/movie-planner-web/issues/351)
+
 ## [0.78.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.77.0...movie-planner-web-v0.78.0) (2026-09-07)
 
 
