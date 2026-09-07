@@ -13,6 +13,8 @@ import { openStreetMapUrl } from "../lib/geo/links";
 import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
 import { findKnownGeo } from "../lib/geo/reuse";
 import { importCheckRange } from "../lib/movie-log/run-import";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
@@ -677,17 +679,34 @@ reloadOnBfcacheRestore(() => void load());
             {#if viewing.trailerUrl}
               <!-- #310: TMDb's own official YouTube trailer link
               (alrayyes/movie-planner#236) — opportunistic, off by
-              default until a visitor's CLI has a TMDb key configured. -->
+              default until a visitor's CLI has a TMDb key configured.
+              #350: embedded via YouTube's privacy-enhanced
+              youtube-nocookie.com domain when the link is a recognizable
+              YouTube URL (it always is, in practice, since only YouTube
+              is ever supplied here) — falls back to a plain link for
+              anything youtubeEmbedUrl can't parse, rather than showing a
+              broken embed. -->
+              {@const embedUrl = youtubeEmbedUrl(viewing.trailerUrl)}
               <dt class={DT}>Trailer</dt>
               <dd class={DD}>
-                <a
-                  href={viewing.trailerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  Watch trailer
-                </a>
+                {#if embedUrl}
+                  <iframe
+                    class="aspect-video w-full max-w-xl rounded-lg"
+                    src={embedUrl}
+                    title={`${viewing.title} trailer`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                {:else}
+                  <a
+                    href={viewing.trailerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    Watch trailer
+                  </a>
+                {/if}
               </dd>
             {/if}
             {#if viewing.notes}

@@ -60,6 +60,23 @@ async function mockTiles(page: Page) {
   });
 }
 
+// #350: the real youtube-nocookie.com player is real third-party
+// content this repo doesn't control the accessibility of (a live
+// request confirmed it loads its own unlabeled internal controls,
+// which axe-core then flags as violations that have nothing to do with
+// this app's own markup) — mocked the same way tile requests already
+// are, both for a hermetic/offline-friendly suite and so an a11y scan
+// only ever sees markup this app actually owns.
+async function mockYoutubeEmbed(page: Page) {
+  await page.route("https://www.youtube-nocookie.com/embed/**", async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: "<!doctype html><title>stub player</title>",
+    });
+  });
+}
+
 async function connect(page: Page, omdbApiKey?: string) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -627,6 +644,7 @@ test.describe("movie details page", () => {
   test("shows the rest of OMDb's fields (Rated, Runtime, Metascore, etc.) when present", async ({
     page,
   }) => {
+    await mockYoutubeEmbed(page);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {
         ...DUNE,
@@ -663,13 +681,36 @@ test.describe("movie details page", () => {
       "href",
       "https://www.dunemovie.com",
     );
-    await expect(page.getByRole("link", { name: "Watch trailer" })).toHaveAttribute(
-      "href",
-      "https://www.youtube.com/watch?v=8g18jFHCLXk",
+    // #350: embedded, not just linked — a YouTube-recognizable
+    // trailerUrl renders as a privacy-enhanced youtube-nocookie.com
+    // iframe.
+    await expect(page.getByTitle("Dune trailer")).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/8g18jFHCLXk",
     );
+    await expect(page.getByRole("link", { name: "Watch trailer" })).toHaveCount(0);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
+  });
+
+  // #350: a trailerUrl that isn't a recognizable YouTube link (a
+  // hypothetical future source, or a malformed value) falls back to a
+  // plain link rather than an embed pointed at nowhere useful.
+  test("falls back to a plain link when the trailer URL isn't a recognizable YouTube link", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, trailerUrl: "https://vimeo.com/12345678" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "Watch trailer" })).toHaveAttribute(
+      "href",
+      "https://vimeo.com/12345678",
+    );
+    await expect(page.locator("iframe")).toHaveCount(0);
   });
 
   test("shows none of the new OMDb/TMDb fields when the viewing has none of them", async ({
@@ -684,6 +725,7 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Metascore")).toHaveCount(0);
     await expect(page.getByText("Website")).toHaveCount(0);
     await expect(page.getByText("Watch trailer")).toHaveCount(0);
+    await expect(page.locator("iframe")).toHaveCount(0);
   });
 
   test("positions and sizes the blocked-time bar from the viewing's own start/duration", async ({
