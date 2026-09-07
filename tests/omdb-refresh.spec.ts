@@ -92,6 +92,14 @@ test.describe("refreshing OMDb metadata from the overview", () => {
           Poster: "https://example.com/dune-poster.jpg",
           imdbID: "tt1160419",
           Ratings: [{ Source: "Internet Movie Database", Value: "8.0/10" }],
+          // #336: the rest of OMDb's own response fields — this app's
+          // refresh used to never fetch these at all, even though
+          // ical.ts already knew how to write them for a CLI-refreshed
+          // entry.
+          Rated: "PG-13",
+          Runtime: "155 min",
+          Awards: "Won 6 Oscars",
+          BoxOffice: "$108,327,830",
         }),
       });
     });
@@ -107,6 +115,10 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     expect(update?.year).toBe("2021");
     expect(update?.posterUrl).toBe("https://example.com/dune-poster.jpg");
     expect(update?.imdbId).toBe("tt1160419");
+    expect(update?.rated).toBe("PG-13");
+    expect(update?.runtime).toBe("155 min");
+    expect(update?.awards).toBe("Won 6 Oscars");
+    expect(update?.boxOffice).toBe("$108,327,830");
     // Unrelated fields the lookup doesn't touch stay as they were.
     expect(update?.title).toBe("Dune");
     expect(update?.medium).toBe("cinema");

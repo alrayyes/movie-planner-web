@@ -163,6 +163,53 @@ describe("lookupMovie", () => {
     expect(result?.year).toBeUndefined();
     expect(result?.posterUrl).toBeUndefined();
   });
+
+  // #336: these fields already round-trip through this app's own
+  // X-* properties (ical.ts) and already show on the details page
+  // (MovieDetails.svelte) for a CLI-refreshed entry — this app's own
+  // refresh just never fetched them from OMDb in the first place.
+  test("returns the rest of OMDb's own response fields movie-planner tracks", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          Response: "True",
+          imdbID: "tt1160419",
+          Ratings: [],
+          Rated: "PG-13",
+          Released: "22 Oct 2021",
+          Runtime: "155 min",
+          Language: "English",
+          Country: "United States, Canada",
+          Awards: "Won 6 Oscars",
+          Metascore: "74",
+          imdbVotes: "757,432",
+          DVD: "N/A",
+          BoxOffice: "$108,327,830",
+          Production: "N/A",
+          Website: "N/A",
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch;
+
+    const result = await lookupMovie("test-key", "Dune");
+
+    expect(result).toMatchObject({
+      rated: "PG-13",
+      released: "22 Oct 2021",
+      runtime: "155 min",
+      movieLanguage: "English",
+      movieCountry: "United States, Canada",
+      awards: "Won 6 Oscars",
+      metascore: "74",
+      imdbVotes: "757,432",
+      boxOffice: "$108,327,830",
+    });
+    // OMDb's literal "N/A" for a field it has nothing for — left unset,
+    // not written through as the string "N/A" or an empty string.
+    expect(result?.dvd).toBeUndefined();
+    expect(result?.production).toBeUndefined();
+    expect(result?.website).toBeUndefined();
+  });
 });
 
 describe("searchMovies", () => {
