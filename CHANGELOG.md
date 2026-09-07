@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.77.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.76.2...movie-planner-web-v0.77.0) (2026-09-07)
+
+
+### Features
+
+* **activity-log:** record every create/edit/delete locally, with a page to browse it ([#352](https://github.com/alrayyes/movie-planner-web/issues/352)) ([a42cbac](https://github.com/alrayyes/movie-planner-web/commit/a42cbac1d433c3d782e0a08375b3396d1257e01e)), closes [#349](https://github.com/alrayyes/movie-planner-web/issues/349)
+
 ## [0.76.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.76.1...movie-planner-web-v0.76.2) (2026-09-07)
 
 
