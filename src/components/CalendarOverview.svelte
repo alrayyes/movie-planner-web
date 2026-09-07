@@ -823,7 +823,16 @@ getPicklists(config).then((picklists) => {
 
   <p class={STATUS_TEXT} role="status">{statusText}</p>
   <p class={STATUS_TEXT} role="status">{actionStatusText}</p>
-  <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
+  {#if shareStatusText}
+    <!-- #335: no role="status" until there's actually a message, unlike
+    statusText/actionStatusText above — those two are this island's own
+    permanent pair (existing tests target the last of them via
+    getByRole("status").last() to mean "the action confirmation line"),
+    and a third always-present status region would silently become the
+    new "last" one instead, the same trap export-json-button.ts's own
+    comment already documents. -->
+    <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
+  {/if}
   <div bind:this={pickerArea}></div>
 
   {#if total > 0}
