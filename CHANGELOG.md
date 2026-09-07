@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.78.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.77.0...movie-planner-web-v0.78.0) (2026-09-07)
+
+
+### Features
+
+* **movie-details:** embed the trailer instead of just linking to it ([#354](https://github.com/alrayyes/movie-planner-web/issues/354)) ([c3ca2a7](https://github.com/alrayyes/movie-planner-web/commit/c3ca2a705bba94024ac30e064f14f8c211165125)), closes [#350](https://github.com/alrayyes/movie-planner-web/issues/350)
+
 ## [0.77.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.76.2...movie-planner-web-v0.77.0) (2026-09-07)
 
 
