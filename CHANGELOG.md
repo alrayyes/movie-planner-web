@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.76.0...movie-planner-web-v0.76.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **omdb:** extract the rest of OMDb's response fields on refresh ([#344](https://github.com/alrayyes/movie-planner-web/issues/344)) ([a5aa97c](https://github.com/alrayyes/movie-planner-web/commit/a5aa97cba55f67673b28f2d20d515fcfdbbcbd0f)), closes [#336](https://github.com/alrayyes/movie-planner-web/issues/336)
+
 ## [0.76.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.75.2...movie-planner-web-v0.76.0) (2026-09-07)
 
 
