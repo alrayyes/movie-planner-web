@@ -51,6 +51,8 @@ import IconLetterboxd from "./icons/IconLetterboxd.svelte";
 import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import VenueMap, { type MapPin } from "./VenueMap.svelte";
 
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
@@ -304,6 +306,21 @@ const currentlyDisplayed = $derived.by(() => {
 	});
 });
 const total = $derived(currentlyDisplayed.length);
+// #351: every currently-filtered viewing with known coordinates, not
+// just the current page — same "share the whole filtered set, not just
+// what's on screen" reasoning #335's own Share link already uses.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const mapPins = $derived.by((): MapPin[] =>
+	currentlyDisplayed
+		.filter((v): v is LoggedViewing & { geo: { lat: number; lon: number } } => Boolean(v.geo))
+		.map((v) => ({
+			lat: v.geo.lat,
+			lon: v.geo.lon,
+			label: v.year ? `${v.title} (${v.year})` : v.title,
+			href: `/movie?uid=${encodeURIComponent(v.uid)}`,
+			posterUrl: v.posterUrl,
+		})),
+);
 const pages = $derived(Math.max(1, Math.ceil(total / pageSize)));
 // #59: clamps a stale currentPage (a smaller reloaded set, or a larger
 // page size, can leave it past the new last page) rather than
@@ -858,6 +875,18 @@ getPicklists(config).then((picklists) => {
     <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
   {/if}
   <div bind:this={pickerArea}></div>
+
+  {#if mapPins.length > 0}
+    <!-- #351: every currently-filtered viewing with known coordinates —
+    same "no map, not a broken one" rule /map and Venues already follow
+    for a filter that matches nothing located. Reuses VenueMap directly
+    rather than re-querying CalDAV the way the standalone /map page
+    does, so this always matches whatever's actually filtered here. -->
+    <div class="mb-4">
+      <h2 class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">Map</h2>
+      <VenueMap pins={mapPins} />
+    </div>
+  {/if}
 
   {#if total > 0}
     <div class={TABLE_WRAP}>
