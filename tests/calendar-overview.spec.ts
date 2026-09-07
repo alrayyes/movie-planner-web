@@ -67,6 +67,20 @@ function manyViewings(count: number, medium = "cinema") {
   }));
 }
 
+// #262/#351: a real, live tile provider — OSM's own usage policy asks
+// for no automated bulk requests, so a test suite never hits it for
+// real. Same 1x1 blank-PNG stand-in venues.spec.ts/map.spec.ts already use.
+const BLANK_TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+async function mockTiles(page: Page) {
+  await page.route("https://*.tile.openstreetmap.org/**", async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: "image/png", body: BLANK_TILE_PNG });
+  });
+}
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
@@ -189,6 +203,64 @@ test.describe("calendar overview", () => {
     await expect(
       page.locator("tbody tr").getByRole("link", { name: "Show Dune on the map" }),
     ).toHaveCount(0);
+  });
+
+  // #351
+  test.describe("the currently-filtered map", () => {
+    test("shows a pin for every currently-filtered viewing with known coordinates, omitting the rest", async ({
+      page,
+    }) => {
+      await mockTiles(page);
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+        PADDINGTON,
+      ]);
+      await connect(page);
+
+      const map = page.getByRole("region", { name: "Map showing 1 location" });
+      await expect(map).toBeVisible();
+      await page.locator(".leaflet-marker-icon").click();
+      await expect(map.getByRole("link", { name: /Dune/ })).toBeVisible();
+    });
+
+    test("narrows to just the filtered pin once a filter excludes the other located viewing", async ({
+      page,
+    }) => {
+      await mockTiles(page);
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+        { ...PADDINGTON, geo: { lat: 40.7128, lon: -74.006 } },
+      ]);
+      await connect(page);
+      await expect(page.getByRole("region", { name: "Map showing 2 locations" })).toBeVisible();
+
+      await openFilters(page);
+      await page.locator("#overview-title").fill("Dune");
+      await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+      await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+    });
+
+    test("no map at all when nothing in the current filter has known coordinates", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+      await connect(page);
+
+      await expect(page.getByRole("region", { name: /^Map showing/ })).toHaveCount(0);
+    });
+
+    test("introduces no accessibility violations", async ({ page }) => {
+      await mockTiles(page);
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+      ]);
+      await connect(page);
+      await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+      const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(results.violations).toEqual([]);
+    });
   });
 
   // #305: same purely-decorative bar the details page already shows

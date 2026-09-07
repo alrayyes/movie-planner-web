@@ -37,6 +37,14 @@ refresh control for OMDb metadata sit at the end of the row as their
 own icon buttons; Edit opens the details page with its edit form
 already open, Delete asks for confirmation first.
 
+## Map
+
+The overview also shows a map of whatever's currently filtered, one pin
+per viewing with a known location — the same map [the map
+page](/docs/map/) and [Venues](/docs/venues/) use, just scoped to the
+current filter instead of your whole history. No filter, or nothing
+located yet, means no map shows at all rather than an empty one.
+
 ## Sharing a read-only snapshot
 
 "Share" copies a link to whatever's currently filtered and shown — not
