@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.76.1...movie-planner-web-v0.76.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* **calendar-overview:** use the Web Share API for Share, when available ([#347](https://github.com/alrayyes/movie-planner-web/issues/347)) ([fca7f88](https://github.com/alrayyes/movie-planner-web/commit/fca7f8803b1ff778c4c62db3299d6b961a4e8e05)), closes [#345](https://github.com/alrayyes/movie-planner-web/issues/345)
+
 ## [0.76.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.76.0...movie-planner-web-v0.76.1) (2026-09-07)
 
 
