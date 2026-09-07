@@ -1,3 +1,5 @@
+import { diffViewings } from "../activity-log/diff";
+import { recordActivity } from "../activity-log/store";
 import { boundedFetch, readBoundedText } from "./bounded-fetch";
 import { CaldavRequestFailedError } from "./errors";
 import {
@@ -122,7 +124,14 @@ export async function createViewing(
 ): Promise<LoggedViewing> {
   validateCaldavConfig(config);
   const uid = crypto.randomUUID();
-  return putViewing(config, uid, viewing);
+  const created = await putViewing(config, uid, viewing);
+  await recordActivity({
+    at: new Date().toISOString(),
+    action: "created",
+    uid,
+    title: viewing.title,
+  });
+  return created;
 }
 
 // #294: reads the existing raw VEVENT first (best-effort — a fetch or
@@ -130,7 +139,9 @@ export async function createViewing(
 // blocked save) so any property this app doesn't itself read or write
 // (X-CITY/X-COUNTRY, X-ROW/X-SEAT, or a future movie-planner extension)
 // survives being edited through this app instead of silently vanishing
-// the moment the PUT below regenerates the whole VEVENT body.
+// the moment the PUT below regenerates the whole VEVENT body. #349: the
+// same read also gives the activity log its "before" state for free —
+// no second fetch just to compute a diff.
 export async function updateViewing(
   config: CaldavConfig,
   uid: string,
@@ -138,18 +149,44 @@ export async function updateViewing(
 ): Promise<LoggedViewing> {
   validateCaldavConfig(config);
   let extraLines: string[] = [];
+  let before: LoggedViewing | null = null;
   try {
     const raw = await fetchRawViewing(config, uid);
-    if (raw !== null) extraLines = extractUnknownProperties(raw);
+    if (raw !== null) {
+      extraLines = extractUnknownProperties(raw);
+      before = parseVEventToViewing(raw);
+    }
   } catch {
     // Best-effort — an edit shouldn't fail just because this
     // preservation step couldn't read the existing resource.
   }
-  return putViewing(config, uid, viewing, extraLines);
+  const updated = await putViewing(config, uid, viewing, extraLines);
+  const changes = diffViewings(before, viewing);
+  if (changes.length > 0) {
+    await recordActivity({
+      at: new Date().toISOString(),
+      action: "updated",
+      uid,
+      title: viewing.title,
+      changes,
+    });
+  }
+  return updated;
 }
 
 export async function deleteViewing(config: CaldavConfig, uid: string): Promise<void> {
   validateCaldavConfig(config);
+
+  // Best-effort, same reasoning as updateViewing's own read above — a
+  // delete shouldn't fail just because grabbing the title for the
+  // activity log couldn't read the resource first.
+  let title: string | undefined;
+  try {
+    const raw = await fetchRawViewing(config, uid);
+    if (raw !== null) title = parseVEventToViewing(raw).title;
+  } catch {
+    // Best-effort.
+  }
 
   const response = await boundedFetch(resourceUrl(config, uid), {
     method: "DELETE",
@@ -157,6 +194,7 @@ export async function deleteViewing(config: CaldavConfig, uid: string): Promise<
   });
   if (response.status === 404) return;
   await assertOk(response, "deleting event");
+  await recordActivity({ at: new Date().toISOString(), action: "deleted", uid, title });
 }
 
 export async function getPicklists(config: CaldavConfig): Promise<Picklists> {

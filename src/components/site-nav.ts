@@ -13,6 +13,7 @@ const LINKS: [string, string][] = [
   ["/map", "Map"],
   ["/log", "Log a viewing"],
   ["/import", "Import"],
+  ["/activity", "Activity"],
   ["/settings", "Settings"],
 ];
 

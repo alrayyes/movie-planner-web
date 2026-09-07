@@ -214,15 +214,24 @@ describe("createViewing / updateViewing", () => {
 });
 
 describe("deleteViewing", () => {
-  test("DELETEs the resource", async () => {
-    const fetchMock = mock(async (_url: string, init: RequestInit) => {
-      expect(init.method).toBe("DELETE");
+  // #349: reads the resource first (best-effort, same pattern as
+  // updateViewing's own preservation read) purely to grab a title for
+  // the activity log — the DELETE itself doesn't need it.
+  test("DELETEs the resource, after a best-effort read for the activity log", async () => {
+    const requests: string[] = [];
+    const fetchMock = mock(async (_url: string, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      requests.push(method);
+      if (method === "GET")
+        return new Response(serializeViewingToVEvent("uid-1", VIEWING), {
+          status: 200,
+        });
       return new Response("", { status: 204 });
     });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     await deleteViewing(CONFIG, "uid-1");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(requests).toEqual(["GET", "DELETE"]);
   });
 
   test("treats a 404 as already deleted rather than an error", async () => {
