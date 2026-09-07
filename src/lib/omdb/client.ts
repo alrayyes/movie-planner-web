@@ -14,6 +14,24 @@ export interface MovieMetadata {
   posterUrl?: string;
   imdbId?: string;
   synopsis?: string;
+  // #336: the rest of OMDb's own response fields movie-planner's data
+  // model already tracks (alrayyes/movie-planner#237) — this app's own
+  // X-* properties and DESCRIPTION fallback (ical.ts) already know how
+  // to read/write these; a web-triggered refresh just never populated
+  // them, so a viewing logged and refreshed entirely through this app
+  // was silently missing fields a CLI-refreshed one already had.
+  rated?: string;
+  released?: string;
+  runtime?: string;
+  movieLanguage?: string;
+  movieCountry?: string;
+  awards?: string;
+  metascore?: string;
+  imdbVotes?: string;
+  dvd?: string;
+  boxOffice?: string;
+  production?: string;
+  website?: string;
 }
 
 // #49: a disambiguation candidate — the shape OMDb's search endpoint
@@ -42,6 +60,18 @@ interface OmdbResponse {
   Poster?: string;
   imdbID?: string;
   Plot?: string;
+  Rated?: string;
+  Released?: string;
+  Runtime?: string;
+  Language?: string;
+  Country?: string;
+  Awards?: string;
+  Metascore?: string;
+  imdbVotes?: string;
+  DVD?: string;
+  BoxOffice?: string;
+  Production?: string;
+  Website?: string;
 }
 
 interface OmdbSearchResult {
@@ -79,6 +109,18 @@ function toMetadata(data: OmdbResponse): MovieMetadata {
     posterUrl: field(data.Poster),
     imdbId: field(data.imdbID),
     synopsis: field(data.Plot),
+    rated: field(data.Rated),
+    released: field(data.Released),
+    runtime: field(data.Runtime),
+    movieLanguage: field(data.Language),
+    movieCountry: field(data.Country),
+    awards: field(data.Awards),
+    metascore: field(data.Metascore),
+    imdbVotes: field(data.imdbVotes),
+    dvd: field(data.DVD),
+    boxOffice: field(data.BoxOffice),
+    production: field(data.Production),
+    website: field(data.Website),
   };
 }
 
