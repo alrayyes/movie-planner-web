@@ -15,6 +15,7 @@ import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import { parseReleasedDate } from "../lib/omdb/released-date";
+import { activeFilterLabel } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -299,6 +300,39 @@ let ratedValue = $state(initialFilterValue("rated"));
 let releasedYearValue = $state(initialFilterValue("releasedYear"));
 let releasedMonthValue = $state(initialFilterValue("releasedMonth"));
 let releasedDateValue = $state(initialFilterValue("releasedDate"));
+
+// #376: a human-readable label for whichever single chip-driven filter
+// (per #374) is active, shared with #375's breadcrumb — see
+// lib/ui/active-filter.ts for why only some fields get shown here.
+const activeFilterLabelValue = $derived(
+	activeFilterLabel({
+		medium: mediumValue,
+		venue: venueValue,
+		director: directorValue,
+		actor: actorValue,
+		genre: genreValue,
+		city: cityValue,
+		country: countryValue,
+		movieCountry: movieCountryValue,
+		movieLanguage: movieLanguageValue,
+		rated: ratedValue,
+		releasedYear: releasedYearValue,
+		releasedMonth: releasedMonthValue,
+		releasedDate: releasedDateValue,
+	}),
+);
+
+// The page <title> is set at build time (index.astro's Layout prop), but
+// the filter state only exists client-side once this island reads the
+// URL — so the active filter's own contribution has to be a client-side
+// update on top of that build-time default, not a prop.
+const DEFAULT_TITLE = document.title;
+$effect(() => {
+	document.title = activeFilterLabelValue
+		? `${activeFilterLabelValue} — Movie Planner`
+		: DEFAULT_TITLE;
+});
+
 // #169: defaults match the previous hardcoded "most recently watched
 // first" behaviour — clicking a column header switches to sorting by
 // it (ascending on first click), and clicking the same header again

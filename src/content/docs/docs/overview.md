@@ -30,7 +30,10 @@ or any piece of the Released date (day, month, or year), on a viewing's
 own details page takes you straight to the overview pre-filtered to
 that exact value/granularity. Clicking a country or city heading on the
 [Venues page](/docs/venues/) does the same for every viewing at a venue
-in that country/city.
+in that country/city. When exactly one such filter is active, the
+browser tab's title reflects it — for example "Christopher Nolan
+(director) — Movie Planner" — so several filtered tabs stay easy to
+tell apart.
 
 ## Sorting and pagination
 
