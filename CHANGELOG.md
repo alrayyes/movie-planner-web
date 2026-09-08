@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.88.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.88.0...movie-planner-web-v0.88.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **caldav:** force no-store on single-resource GET requests ([#419](https://github.com/alrayyes/movie-planner-web/issues/419)) ([d349193](https://github.com/alrayyes/movie-planner-web/commit/d3491938ee7d6da5bfaf96a8f22a0e3757b6ea9f)), closes [#418](https://github.com/alrayyes/movie-planner-web/issues/418)
+
 ## [0.88.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.87.0...movie-planner-web-v0.88.0) (2026-09-08)
 
 
