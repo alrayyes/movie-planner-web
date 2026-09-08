@@ -582,6 +582,58 @@ test.describe("venues overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #372: clicking a country/city heading goes to the overview
+  // filtered to every viewing in that country/city — a different
+  // filter from clicking a single venue's own name (#131).
+  test("clicking a country or city heading goes to the overview, filtered to that country/city", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Tuschinski",
+          city: "Amsterdam",
+          country: "Netherlands",
+        },
+        {
+          uid: "us-uid",
+          title: "An Old Favourite",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "AMC Empire 25",
+          city: "New York",
+          country: "USA",
+        },
+      ],
+      { media: ["cinema"], venues: ["Tuschinski", "AMC Empire 25"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    await page.getByRole("heading", { name: "Amsterdam" }).getByRole("link").click();
+
+    await expect(page).toHaveURL(/\/\?city=Amsterdam/);
+    await expect(page.locator("#overview-city")).toHaveValue("Amsterdam");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.getByRole("link", { name: "Venues" }).click();
+    await page.getByRole("heading", { name: "Netherlands" }).getByRole("link").click();
+
+    await expect(page).toHaveURL(/\/\?country=Netherlands/);
+    await expect(page.locator("#overview-country")).toHaveValue("Netherlands");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
   test("shows the old flat, ungrouped view when no venue has a known city/country", async ({
     page,
   }) => {

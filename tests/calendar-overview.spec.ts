@@ -822,6 +822,88 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #372: the venue's own geocoded city/country (#267) — a different
+  // concept from the movie's own country/language below, so both need
+  // their own filter and their own query param.
+  test("filters by the venue's own city and country", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, city: "Amsterdam", country: "Netherlands" },
+      { ...PADDINGTON, city: "Rotterdam", country: "Netherlands" },
+    ]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await openFilters(page);
+    await page.locator("#overview-city").fill("Amsterdam");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.locator("#overview-city").fill("");
+    await page.locator("#overview-country").fill("Netherlands");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+  });
+
+  // #372: the movie's own OMDb-derived country/language/rated fields —
+  // not the venue's own city/country above.
+  test("filters by the movie's own country, language and rated fields", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, movieCountry: "United States", movieLanguage: "English", rated: "PG-13" },
+      { ...PADDINGTON, movieCountry: "United Kingdom", movieLanguage: "English", rated: "PG" },
+    ]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await openFilters(page);
+    await page.locator("#overview-movie-country").fill("United States");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.locator("#overview-movie-country").fill("");
+    await page.locator("#overview-rated").fill("PG");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Paddington");
+
+    await page.locator("#overview-rated").fill("");
+    await page.locator("#overview-movie-language").fill("English");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+  });
+
+  test("?city=, ?country=, ?movieCountry=, ?movieLanguage= and ?rated= query params pre-populate their filter fields on load", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, city: "Amsterdam", country: "Netherlands", movieCountry: "United States" },
+      PADDINGTON,
+    ]);
+    await connect(page);
+
+    await page.goto("/?city=Amsterdam");
+    await expect(page.locator("#overview-city")).toHaveValue("Amsterdam");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.goto("/?country=Netherlands");
+    await expect(page.locator("#overview-country")).toHaveValue("Netherlands");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.goto("/?movieCountry=United%20States");
+    await expect(page.locator("#overview-movie-country")).toHaveValue("United States");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.goto("/?movieLanguage=English");
+    await expect(page.locator("#overview-movie-language")).toHaveValue("English");
+
+    await page.goto("/?rated=PG-13");
+    await expect(page.locator("#overview-rated")).toHaveValue("PG-13");
+  });
+
   // #146: a link carrying only `venue` used to still fall back to this
   // page's own ~3-month default window, hiding anything older even
   // though the venues page's count (over its own much wider window)
@@ -898,10 +980,20 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-to")).toHaveValue("");
   });
 
-  test("clear filter resets the date range, title, medium, venue, director, actor and genre, and reloads", async ({
+  test("clear filter resets the date range, title, medium, venue, director, actor, genre, city, country, movie country/language and rated, and reloads", async ({
     page,
   }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        ...DUNE,
+        city: "Amsterdam",
+        country: "Netherlands",
+        movieCountry: "United States",
+        movieLanguage: "English",
+        rated: "PG-13",
+      },
+      PADDINGTON,
+    ]);
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
@@ -914,6 +1006,11 @@ test.describe("calendar overview", () => {
     await page.locator("#overview-director").fill("Denis Villeneuve");
     await page.locator("#overview-actor").fill("Zendaya");
     await page.locator("#overview-genre").fill("Drama");
+    await page.locator("#overview-city").fill("Amsterdam");
+    await page.locator("#overview-country").fill("Netherlands");
+    await page.locator("#overview-movie-country").fill("United States");
+    await page.locator("#overview-movie-language").fill("English");
+    await page.locator("#overview-rated").fill("PG-13");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
 
@@ -930,6 +1027,11 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-director")).toHaveValue("");
     await expect(page.locator("#overview-actor")).toHaveValue("");
     await expect(page.locator("#overview-genre")).toHaveValue("");
+    await expect(page.locator("#overview-city")).toHaveValue("");
+    await expect(page.locator("#overview-country")).toHaveValue("");
+    await expect(page.locator("#overview-movie-country")).toHaveValue("");
+    await expect(page.locator("#overview-movie-language")).toHaveValue("");
+    await expect(page.locator("#overview-rated")).toHaveValue("");
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     const lastRequest = server.listRequests.at(-1);

@@ -623,6 +623,30 @@ test.describe("movie details page", () => {
     );
   });
 
+  // #372
+  test("links Rated, Language and Country to the overview filtered to each exact value", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, rated: "PG-13", movieLanguage: "English", movieCountry: "United States" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "PG-13" })).toHaveAttribute(
+      "href",
+      "/?rated=PG-13",
+    );
+    await expect(page.getByRole("link", { name: "English" })).toHaveAttribute(
+      "href",
+      "/?movieLanguage=English",
+    );
+    await expect(page.getByRole("link", { name: "United States" })).toHaveAttribute(
+      "href",
+      "/?movieCountry=United%20States",
+    );
+  });
+
   // #359: start === end only ever means the time was never known at all
   // (a genuinely date-only import, or #278's own "missing end defaults
   // to start" rule) — showing two identical date-times would imply a
