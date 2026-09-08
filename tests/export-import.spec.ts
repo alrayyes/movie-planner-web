@@ -70,22 +70,25 @@ async function openFilters(page: Page) {
   await page.getByText("Filters", { exact: true }).click();
 }
 
-test.describe("Export as JSON", () => {
+test.describe("Export viewings", () => {
   test("downloads every viewing in the whole history with every field, using the CLI's own snake_case names", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
-    // Filter down to nothing shown on screen — export should still
-    // cover the visitor's whole history, not this filtered view.
+    // Filter down to nothing shown on the overview, then export from
+    // Settings — a separate page with no access to that filter state
+    // at all, which is itself the proof export covers the visitor's
+    // whole history rather than whatever the overview last showed.
     await openFilters(page);
     await page.locator("#overview-medium").fill("netflix");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(0);
 
+    await page.goto("/settings");
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("button", { name: "Export as JSON" }).click(),
+      page.getByRole("button", { name: "Export viewings" }).click(),
     ]);
 
     expect(download.suggestedFilename()).toMatch(/^movie-planner-export-\d{4}-\d{2}-\d{2}\.json$/);
@@ -110,25 +113,27 @@ test.describe("Export as JSON", () => {
     expect(row.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  // #174: previously only ever offered on the overview itself, so
-  // exporting from anywhere else meant navigating to "/" first.
-  test("is reachable from any connected page, not just the overview", async ({ page }) => {
+  // #387: moved off the overview (#174 had it globally on every page)
+  // onto Settings, this app's one "account/data" page — not shown
+  // inline anywhere else any more.
+  test("is only offered on Settings, not the overview or other connected pages", async ({
+    page,
+  }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
-    await page.goto("/settings");
+    await expect(page.getByRole("button", { name: "Export viewings" })).toHaveCount(0);
+    await page.goto("/venues");
+    await expect(page.getByRole("button", { name: "Export viewings" })).toHaveCount(0);
 
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByRole("button", { name: "Export as JSON" }).click(),
-    ]);
-    expect(download.suggestedFilename()).toMatch(/^movie-planner-export-\d{4}-\d{2}-\d{2}\.json$/);
+    await page.goto("/settings");
+    await expect(page.getByRole("button", { name: "Export viewings" })).toBeVisible();
   });
 
-  test("doesn't appear before a visitor has connected", async ({ page }) => {
-    await page.goto("/privacy");
+  test("doesn't appear on Settings before a visitor has connected", async ({ page }) => {
+    await page.goto("/settings");
 
-    await expect(page.getByRole("button", { name: "Export as JSON" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Export viewings" })).toHaveCount(0);
   });
 });
 

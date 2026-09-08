@@ -5,11 +5,11 @@ description: Move your watch history in and out as CSV or JSON.
 
 ## Exporting
 
-"Export as JSON" is reachable from the top of every page once you're
-connected — not just the overview. It downloads your whole watch history
-(every OMDb-derived field included: poster, ratings, everything), not
-just whatever's currently filtered or shown on the page you're on. The
-file follows movie-planner's own canonical field names, documented as a
+"Export viewings" lives on the [Settings](/settings/) page, under Data.
+It downloads your whole watch history (every OMDb-derived field
+included: poster, ratings, everything), not just whatever's currently
+filtered or shown on the overview. The file follows movie-planner's own
+canonical field names, documented as a
 [JSON Schema](https://github.com/alrayyes/movie-planner-web/blob/main/public/schemas/movie-viewings.schema.json)
 — a file this app exports is readable by the CLI, and vice versa.
 
