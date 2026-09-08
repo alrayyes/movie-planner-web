@@ -21,18 +21,27 @@ describe("formatDate", () => {
 });
 
 describe("formatTime", () => {
-  test("renders a 24-hour HH:MM:SS with no AM/PM", () => {
+  test("renders a 24-hour HH:MM with no seconds, no AM/PM, for a zero-second timestamp", () => {
     const time = formatTime("2026-08-29T12:40:00.000Z");
-    expect(time).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+    expect(time).toMatch(/^\d{2}:\d{2}$/);
     expect(time).not.toMatch(/[ap]\.?m\.?/i);
+  });
+
+  // #359: seconds are formatting noise for the overwhelming common
+  // case (a manually-logged or CLI-parsed time is always entered to
+  // the minute) — but a genuinely second-precise timestamp still shows
+  // them, rather than silently rounding away real information.
+  test("keeps HH:MM:SS when the source timestamp has real, non-zero seconds", () => {
+    const time = formatTime("2026-08-29T12:40:17.000Z");
+    expect(time).toMatch(/^\d{2}:\d{2}:17$/);
   });
 });
 
 describe("formatDateTime", () => {
-  test("renders a full date and 24-hour time with no AM/PM", () => {
+  test("renders an English short weekday, dd-mm-yyyy, and 24-hour time with no AM/PM", () => {
     const value = formatDateTime("2026-08-29T12:40:00.000Z");
+    expect(value).toMatch(/^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2}$/);
     expect(value).not.toMatch(/[ap]\.?m\.?/i);
-    expect(value).toMatch(/\d{4}/);
   });
 });
 
@@ -40,9 +49,16 @@ describe("formatPeriod", () => {
   test("merges a same-day start/end into one date plus a time range", () => {
     const period = formatPeriod("2026-08-29T12:40:00.000Z", "2026-08-29T13:40:00.000Z");
     // One date, two times joined by " - ", not two full date-times.
-    expect(period).toMatch(
-      /^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2}:\d{2} - \d{2}:\d{2}:\d{2}$/,
-    );
+    expect(period).toMatch(/^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2} - \d{2}:\d{2}$/);
+  });
+
+  // #359: same rule as MovieDetails.svelte's own Start/End collapse —
+  // identical start/end never means a real, distinct zero-duration
+  // range, just that no end time was ever recorded.
+  test("shows the date-time once, not a same-time range, when start and end are identical", () => {
+    const period = formatPeriod("2026-08-29T12:40:00.000Z", "2026-08-29T12:40:00.000Z");
+    expect(period).toMatch(/^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2}$/);
+    expect(period).not.toContain(" - ");
   });
 
   test("falls back to two full date-times when start and end are different days", () => {

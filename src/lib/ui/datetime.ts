@@ -23,18 +23,33 @@ export function formatDate(iso: string): string {
   return `${weekday} ${dayMonthYear}`;
 }
 
+// #359: seconds dropped unless the source data genuinely carries a
+// non-zero value — a manually-logged or CLI-parsed time is always
+// entered to the minute, so ":00" seconds are a formatting artefact,
+// not real information; a truly second-precise timestamp (unusual, but
+// possible from some import source) still shows them.
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(LOCALE, { hour12: false });
+  const date = new Date(iso);
+  return date.toLocaleTimeString(LOCALE, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: date.getSeconds() === 0 ? undefined : "2-digit",
+    hour12: false,
+  });
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(LOCALE, { hour12: false });
+  return `${formatDate(iso)} ${formatTime(iso)}`;
 }
 
 // #93: the overview's merged "When" column — one date plus a start-end
 // time range for the common same-day case, falling back to two full
-// date-times for a viewing that spans midnight.
+// date-times for a viewing that spans midnight. #359: start and end
+// being identical only ever means the time was never known at all (see
+// MovieDetails.svelte's own identical rule) — a "14:00 - 14:00" range
+// implies a real, distinct end time that was never actually recorded.
 export function formatPeriod(startIso: string, endIso: string): string {
+  if (startIso === endIso) return formatDateTime(startIso);
   const start = new Date(startIso);
   const end = new Date(endIso);
   if (start.toDateString() === end.toDateString()) {

@@ -37,7 +37,7 @@ import {
 	STATUS_TEXT,
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { computeBlockedTimeBar, formatDateTime } from "../lib/ui/datetime";
+import { computeBlockedTimeBar, formatDate, formatDateTime } from "../lib/ui/datetime";
 import { debounce } from "../lib/ui/debounce";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
@@ -547,10 +547,21 @@ reloadOnBfcacheRestore(() => void load());
             {/each}
           </div>
           <dl class={DL}>
-            <dt class={DT}>Start</dt>
-            <dd class={DD}>{formatDateTime(viewing.start)}</dd>
-            <dt class={DT}>End</dt>
-            <dd class={DD}>{formatDateTime(viewing.end)}</dd>
+            {#if viewing.start === viewing.end}
+              <!-- #359: start/end being identical only ever means the
+              time was never known at all (a genuinely date-only import,
+              or #278's own "missing end defaults to start" rule for a
+              real DTSTART with no DTEND) — showing two identical
+              date-times implies a specific time that was never actually
+              recorded. -->
+              <dt class={DT}>Date</dt>
+              <dd class={DD}>{formatDate(viewing.start)}</dd>
+            {:else}
+              <dt class={DT}>Start</dt>
+              <dd class={DD}>{formatDateTime(viewing.start)}</dd>
+              <dt class={DT}>End</dt>
+              <dd class={DD}>{formatDateTime(viewing.end)}</dd>
+            {/if}
           </dl>
           <!-- #199: purely visual — the dl above (Start/End) is already
           the real, complete accessible description of the viewing's
