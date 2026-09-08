@@ -652,6 +652,42 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-venue")).toBeVisible();
   });
 
+  // #374: "cleared — only the clicked filter applies" — a chip link
+  // (from a movie details page, Venues, the heatmap, /map) carrying a
+  // single filter param must not silently merge with whatever this
+  // visitor had filtered by earlier in the same session, even though
+  // that earlier state is still sitting in sessionStorage.
+  test("a single filter param overrides, rather than merges with, a previously stored filter", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    // Filter by venue and an explicit narrow date range via the form —
+    // this is what writes both into sessionStorage (#292's own restore
+    // mechanism).
+    await openFilters(page);
+    await page.locator("#overview-venue").fill("Grand Vista Cinema");
+    await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
+    await page.locator("#overview-to").fill(toDateInputValue(new Date()));
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    // Simulates arriving via a director chip link from a movie details
+    // page — a fresh navigation carrying only ?director=, nothing else.
+    await page.goto("/?director=Denis%20Villeneuve");
+
+    await expect(page.locator("#overview-director")).toHaveValue("Denis Villeneuve");
+    // The venue filter from before is gone, not silently reapplied
+    // alongside the director filter.
+    await expect(page.locator("#overview-venue")).toHaveValue("");
+    // The explicit narrow range is gone too — From/To fall back to the
+    // real first/last watched dates (#188's own default), not the
+    // previously-stored narrow range.
+    await expect(page.locator("#overview-from")).toHaveValue(toDateInputValue(TWO_MONTHS_AGO));
+    await expect(page.locator("#overview-to")).toHaveValue(toDateInputValue(ONE_MONTH_AGO));
+  });
+
   // #221
   test("the filter section is closed by default, open only when a filter is already active", async ({
     page,
