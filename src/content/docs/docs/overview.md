@@ -53,22 +53,20 @@ page](/docs/map/) and [Venues](/docs/venues/) use, just scoped to the
 current filter instead of your whole history. No filter, or nothing
 located yet, means no map shows at all rather than an empty one.
 
-## Sharing a read-only snapshot
+## Sharing a single viewing
 
-"Share" generates a link to whatever's currently filtered and shown —
-not your whole history, just what the active filter matches — and shows
-it as a plain, selectable text field with a Copy button next to it. On a
-browser that supports it, sharing tries the native share sheet first;
-either way, the link itself is always shown, since clipboard and native
-sharing can both fail depending on browser/permission quirks a visitor
-has no control over. Anyone who opens the link sees the exact same list
-read-only, with nothing to edit and no CalDAV or OMDb credentials of
-yours anywhere in it — the link itself carries the display data, frozen
-at the moment you shared it, so it never updates and never asks the
-recipient to connect to anything. Narrow the filter first if there's too
-much to fit in a link; a large,
-unfiltered history is what [Export viewings](/docs/import-export/) is
-for instead.
+"Share" on a viewing's own details page generates a link to just that
+one viewing, and shows it as a plain, selectable text field with a Copy
+button next to it. On a browser that supports it, sharing tries the
+native share sheet first; either way, the link itself is always shown,
+since clipboard and native sharing can both fail depending on
+browser/permission quirks a visitor has no control over. Anyone who
+opens the link sees that one viewing read-only, with nothing to edit and
+no CalDAV or OMDb credentials of yours anywhere in it — the link itself
+carries the display data, frozen at the moment you shared it, so it
+never updates and never asks the recipient to connect to anything.
+Sharing your whole (or a filtered) history is what
+[Export viewings](/docs/import-export/) is for instead.
 
 ## Cross-links
 
