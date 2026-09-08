@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.87.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.86.1...movie-planner-web-v0.87.0) (2026-09-08)
+
+
+### Features
+
+* **calendar-overview:** reflect the active filter in the page title ([#413](https://github.com/alrayyes/movie-planner-web/issues/413)) ([bd63838](https://github.com/alrayyes/movie-planner-web/commit/bd63838f3077fe4693212d9ef7ac7e8874158502)), closes [#376](https://github.com/alrayyes/movie-planner-web/issues/376)
+
 ## [0.86.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.86.0...movie-planner-web-v0.86.1) (2026-09-08)
 
 
