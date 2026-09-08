@@ -46,10 +46,12 @@ export function formatDateTime(iso: string): string {
 // time range for the common same-day case, falling back to two full
 // date-times for a viewing that spans midnight. #359: start and end
 // being identical only ever means the time was never known at all (see
-// MovieDetails.svelte's own identical rule) — a "14:00 - 14:00" range
-// implies a real, distinct end time that was never actually recorded.
+// MovieDetails.svelte's own identical rule) — showing a time at all
+// here (even a single one, not a "14:00 - 14:00" range) implies a real
+// value that was never actually recorded, so this drops it entirely
+// rather than just collapsing the range.
 export function formatPeriod(startIso: string, endIso: string): string {
-  if (startIso === endIso) return formatDateTime(startIso);
+  if (startIso === endIso) return formatDate(startIso);
   const start = new Date(startIso);
   const end = new Date(endIso);
   if (start.toDateString() === end.toDateString()) {
