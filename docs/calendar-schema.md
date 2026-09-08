@@ -47,6 +47,8 @@ X-LETTERBOXD-RATING       letterboxdRating
 X-NOTES                   notes
 X-CITY                    city
 X-COUNTRY                 country
+X-STREET-ADDRESS          streetAddress
+X-POSTAL-CODE             postalCode
 X-RATED                   rated
 X-RUNTIME                 runtime
 X-MOVIE-LANGUAGE          movieLanguage

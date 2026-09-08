@@ -859,6 +859,35 @@ test.describe("movie details page", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #363: the venue's own verified street address, once known.
+  test("shows the venue's verified street address, once known", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        ...DUNE,
+        city: "Amsterdam",
+        country: "Netherlands",
+        streetAddress: "Vijzelstraat 15",
+        postalCode: "1017 HD",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Vijzelstraat 15, 1017 HD Amsterdam, Netherlands")).toBeVisible();
+  });
+
+  test("shows no Address field at all when the venue has no verified street address", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, city: "Amsterdam", country: "Netherlands" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Address", { exact: true })).toHaveCount(0);
+  });
+
   // #350: a trailerUrl that isn't a recognizable YouTube link (a
   // hypothetical future source, or a malformed value) falls back to a
   // plain link rather than an embed pointed at nowhere useful.

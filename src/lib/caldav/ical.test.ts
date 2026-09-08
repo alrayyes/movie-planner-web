@@ -17,6 +17,8 @@ const VIEWING: NewViewing = {
   venue: "Grand Vista Cinema",
   city: "Amsterdam",
   country: "Netherlands",
+  streetAddress: "Vijzelstraat 15",
+  postalCode: "1017 HD",
   director: "Denis Villeneuve",
   actors: "Timothée Chalamet, Zendaya",
   ratingImdb: "8.0",
@@ -71,6 +73,8 @@ describe("VEVENT round trip", () => {
 
     expect(parsed.venue).toBeUndefined();
     expect(parsed.director).toBeUndefined();
+    expect(parsed.streetAddress).toBeUndefined();
+    expect(parsed.postalCode).toBeUndefined();
   });
 
   test("throws on a VEVENT missing required fields", () => {

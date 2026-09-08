@@ -36,6 +36,10 @@ const X_PROPERTIES: Record<string, StringViewingField> = {
   // #267: a recognized venue's city/country (alrayyes/movie-planner#217).
   "X-CITY": "city",
   "X-COUNTRY": "country",
+  // #363: a venue's own verified street address, once known
+  // (alrayyes/movie-planner#283).
+  "X-STREET-ADDRESS": "streetAddress",
+  "X-POSTAL-CODE": "postalCode",
   // #310: the rest of OMDb's response fields the CLI writes verbatim
   // (alrayyes/movie-planner#237).
   "X-RATED": "rated",
