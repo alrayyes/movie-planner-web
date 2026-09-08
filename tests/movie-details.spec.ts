@@ -339,7 +339,11 @@ test.describe("movie details page", () => {
       { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
     ]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    // #398: a viewing with known coordinates gets a map pin on the
+    // overview too (#361), whose own popup link carries the same
+    // accessible name as the row's title link — .first() picks the
+    // row's own link, which is what a visitor would actually click.
+    await page.getByRole("link", { name: "Dune (2021)" }).first().click();
 
     await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveAttribute(
@@ -377,7 +381,8 @@ test.describe("movie details page", () => {
       { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
     ]);
     await connect(page);
-    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    // #398: see the previous test's own comment for why .first().
+    await page.getByRole("link", { name: "Dune (2021)" }).first().click();
     await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
 
     await tileRequest;
