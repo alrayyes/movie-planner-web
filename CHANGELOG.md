@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.81.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.80.0...movie-planner-web-v0.81.0) (2026-09-08)
+
+
+### Features
+
+* **calendar-overview:** make venue city/country and movie country/language/rated clickable filters ([#378](https://github.com/alrayyes/movie-planner-web/issues/378)) ([47e0da2](https://github.com/alrayyes/movie-planner-web/commit/47e0da2e22086f4170455c26ee3cb1cb3bc070d7))
+
 ## [0.80.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.3...movie-planner-web-v0.80.0) (2026-09-08)
 
 
