@@ -179,25 +179,25 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
-  // #382: known city/country (#267) shown alongside the venue name, in
-  // both the desktop Venue column and the mobile under-title fallback.
-  test("shows the venue's known city and country alongside its name", async ({ page }) => {
+  // #382 appended a venue's known city/country next to its name; reverted
+  // (see the issue tracking this revert) because real-world venue names can
+  // already carry a full address, and appending city/country on top of that
+  // just duplicates it. The overview shows the venue name as stored, nothing
+  // appended.
+  test("shows the venue name as stored, without appending city or country", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       { ...DUNE, venue: "De Munt", city: "Amsterdam", country: "Netherlands" },
       PADDINGTON,
     ]);
     await connect(page);
 
-    await expect(page.locator("tbody tr", { hasText: "Dune" })).toContainText(
-      "De Munt, Amsterdam, Netherlands",
-    );
-    // No venue at all — nothing extra shown, no dangling separator.
-    await expect(page.locator("tbody tr", { hasText: "Paddington" })).not.toContainText(",");
+    const duneRow = page.locator("tbody tr", { hasText: "Dune" });
+    await expect(duneRow).toContainText("De Munt");
+    await expect(duneRow).not.toContainText("De Munt, Amsterdam, Netherlands");
 
     await page.setViewportSize({ width: 375, height: 800 });
-    await expect(page.locator("tbody tr", { hasText: "Dune" })).toContainText(
-      "De Munt, Amsterdam, Netherlands",
-    );
+    await expect(duneRow).toContainText("De Munt");
+    await expect(duneRow).not.toContainText("De Munt, Amsterdam, Netherlands");
   });
 
   // #268
