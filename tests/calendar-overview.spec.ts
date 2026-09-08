@@ -179,6 +179,27 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #382: known city/country (#267) shown alongside the venue name, in
+  // both the desktop Venue column and the mobile under-title fallback.
+  test("shows the venue's known city and country alongside its name", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, venue: "De Munt", city: "Amsterdam", country: "Netherlands" },
+      PADDINGTON,
+    ]);
+    await connect(page);
+
+    await expect(page.locator("tbody tr", { hasText: "Dune" })).toContainText(
+      "De Munt, Amsterdam, Netherlands",
+    );
+    // No venue at all — nothing extra shown, no dangling separator.
+    await expect(page.locator("tbody tr", { hasText: "Paddington" })).not.toContainText(",");
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await expect(page.locator("tbody tr", { hasText: "Dune" })).toContainText(
+      "De Munt, Amsterdam, Netherlands",
+    );
+  });
+
   // #268
   test("shows a location pin next to the venue when it has known coordinates, linking to the details page", async ({
     page,
