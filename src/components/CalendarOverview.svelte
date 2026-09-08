@@ -14,12 +14,6 @@ import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/li
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
-import {
-	encodeSharedState,
-	MAX_SHARE_URL_LENGTH,
-	type SharedState,
-	toSharedViewing,
-} from "../lib/share/encode";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -174,20 +168,6 @@ let statusText = $state("");
 // why this used to disappear before anyone could read it.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let actionStatusText = $state("");
-// #335: separate from actionStatusText — sharing doesn't touch CalDAV,
-// so it shouldn't clobber (or be clobbered by) an edit/delete/refresh
-// confirmation that's mid-flight.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let shareStatusText = $state("");
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let sharing = $state(false);
-// #362: the actual generated link, shown as visible/selectable text —
-// clipboard-write and the Web Share API both depend on browser
-// permission/gesture-timing quirks that a real visitor can hit (see
-// handleShare's own comment), so the link itself, not an invisible
-// side effect, is the one thing this feature can always fall back to.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let sharedUrl = $state("");
 // #131/#146: pre-populated from `venue`/`from`/`to` query params so a
 // link from the venues page (or anywhere else) lands here already
 // filtered to the same viewings, with the values visible and editable
@@ -712,96 +692,6 @@ async function handleRefreshAll() {
 	}
 }
 
-// #335: the currently filtered result set, not just the current page —
-// a shared link should let the recipient page through everything the
-// active filter matched, same as the visitor sharing it can. Only the
-// display fields the overview row itself already renders ever go into
-// the link (toSharedViewing's own allowlist) — no credential, server
-// URL, or API key has a field to land in.
-// #345: the Web Share API (navigator.share) first, when available —
-// opens the OS share sheet, unmistakable feedback on mobile that
-// something happened. Clipboard-only used to be the only path, and on
-// at least one real mobile browser (Brave/Android) that silently did
-// nothing a visitor could notice: clipboard-write needs a live user
-// activation at the moment it's called, which the async encode step
-// just above can outlast depending on the browser's own privacy
-// posture, and even when it works, a small status line below the
-// button is an easy thing to miss entirely on a phone. Desktop
-// browsers mostly don't implement navigator.share at all, so the
-// clipboard fallback stays the everyday path there.
-// #362: navigator.share and navigator.clipboard.writeText both turned
-// out to be unreliable in real browsers, not just a mobile-visibility
-// problem — confirmed live: a real (non-mocked-permission) browser
-// throws "NotAllowedError: Write permission denied" on the clipboard
-// call, since the async encode step above can outlast the click's own
-// "trusted user gesture" window Chromium tracks. Web Share is tried
-// first (it's the best UX when it works — an unmistakable native share
-// sheet), but the link is now always revealed as visible, selectable
-// text too, since that's the one path that can never fail regardless
-// of what either API decides to do.
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-async function handleShare() {
-	sharing = true;
-	shareStatusText = "Preparing link…";
-	sharedUrl = "";
-	try {
-		const state: SharedState = {
-			sharedAt: new Date().toISOString(),
-			viewings: currentlyDisplayed.map(toSharedViewing),
-		};
-		const encoded = await encodeSharedState(state);
-		const url = `${location.origin}/shared?state=${encoded}`;
-		if (url.length > MAX_SHARE_URL_LENGTH) {
-			shareStatusText = `That's too much to fit in a link (${state.viewings.length} viewings). Narrow the filter first, then share again.`;
-			return;
-		}
-		const count = state.viewings.length;
-
-		if (typeof navigator.share === "function") {
-			try {
-				await navigator.share({ title: "Movie Planner — shared viewings", url });
-				shareStatusText = `Shared — ${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
-				return;
-			} catch (shareError) {
-				// Closing the native share sheet without picking anything
-				// throws AbortError — a visitor changing their mind, not a
-				// failure worth falling through to the link box for.
-				if (shareError instanceof Error && shareError.name === "AbortError") {
-					shareStatusText = "";
-					return;
-				}
-				// Any other failure (permission/gesture-timing, no share
-				// targets available, ...) falls through to the visible link
-				// below instead of leaving a visitor with nothing.
-			}
-		}
-
-		sharedUrl = url;
-		shareStatusText = `${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
-	} catch (error) {
-		shareStatusText = error instanceof Error ? error.message : "Failed to prepare the link.";
-	} finally {
-		sharing = false;
-	}
-}
-
-// #362: a fresh click of its own, no async work ahead of the clipboard
-// call — unlike handleShare's own attempt, this one isn't subject to
-// the "user gesture expired during the await" failure, since the link
-// is already computed by the time this fires. Best-effort regardless:
-// the link is already visible and selectable either way, so a failure
-// here just means the status text doesn't update, not that sharing
-// stops working.
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-async function handleCopyShareLink() {
-	try {
-		await navigator.clipboard.writeText(sharedUrl);
-		shareStatusText = `Copied — ${shareStatusText}`;
-	} catch {
-		// Best-effort only — see comment above.
-	}
-}
-
 reload();
 // #223: a visitor deleting a viewing on the details page, then hitting
 // Back, can land on this exact pre-delete DOM restored from the
@@ -1049,53 +939,8 @@ getPicklists(config).then((picklists) => {
     </p>
   {/if}
 
-  {#if total > 0}
-    <div class="mb-2">
-      <button
-        type="button"
-        class={BUTTON_SECONDARY}
-        disabled={sharing}
-        aria-busy={sharing}
-        onclick={handleShare}
-      >
-        Share
-      </button>
-      <p class={STATUS_TEXT}>
-        Generates a read-only link to what's currently filtered and shown here — frozen at the
-        moment you share it, no credentials included, works for anyone you send it to.
-      </p>
-    </div>
-  {/if}
-
   <p class={STATUS_TEXT} role="status">{statusText}</p>
   <p class={STATUS_TEXT} role="status">{actionStatusText}</p>
-  {#if shareStatusText}
-    <!-- #335: no role="status" until there's actually a message, unlike
-    statusText/actionStatusText above — those two are this island's own
-    permanent pair (existing tests target the last of them via
-    getByRole("status").last() to mean "the action confirmation line"),
-    and a third always-present status region would silently become the
-    new "last" one instead, the same trap export-json-button.ts's own
-    comment already documents. -->
-    <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
-  {/if}
-  {#if sharedUrl}
-    <!-- #362: the actual, always-reliable fallback — visible, selectable
-    text, not dependent on either navigator.share or clipboard-write
-    succeeding. select-on-focus makes "click the box, Ctrl/Cmd+C" a
-    one-step copy even without the button next to it working. -->
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <input
-        type="text"
-        readonly
-        value={sharedUrl}
-        aria-label="Shareable link"
-        class={`${INPUT} max-w-md`}
-        onfocus={(event) => event.currentTarget.select()}
-      />
-      <button type="button" class={BUTTON_SM} onclick={handleCopyShareLink}> Copy </button>
-    </div>
-  {/if}
   <div bind:this={pickerArea}></div>
 
   {#if mapPins.length > 0}
