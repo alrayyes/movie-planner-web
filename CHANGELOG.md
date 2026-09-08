@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.84.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.84.0...movie-planner-web-v0.84.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **docs:** sync Starlight's theme with the main app's dark-mode preference ([#394](https://github.com/alrayyes/movie-planner-web/issues/394)) ([597691e](https://github.com/alrayyes/movie-planner-web/commit/597691ea94aab8b1549516f4d300f65511a40ec5))
+
 ## [0.84.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.83.0...movie-planner-web-v0.84.0) (2026-09-08)
 
 
