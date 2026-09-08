@@ -205,9 +205,10 @@ test.describe("calendar overview", () => {
     ).toHaveCount(0);
   });
 
-  // #351
-  test.describe("the currently-filtered map", () => {
-    test("shows a pin for every currently-filtered viewing with known coordinates, omitting the rest", async ({
+  // #358 (originally #351, scope narrowed after conversation): the map
+  // mirrors the current page, not the whole filtered set.
+  test.describe("the current-page map", () => {
+    test("shows a pin for every located viewing on the current page, omitting the rest", async ({
       page,
     }) => {
       await mockTiles(page);
@@ -248,6 +249,26 @@ test.describe("calendar overview", () => {
       await connect(page);
 
       await expect(page.getByRole("region", { name: /^Map showing/ })).toHaveCount(0);
+    });
+
+    // #358: a located viewing on page 2 shouldn't pin on page 1's map.
+    test("a located viewing on a later page isn't pinned until that page is shown", async ({
+      page,
+    }) => {
+      await mockTiles(page);
+      // The 26th item (0-indexed 25) lands on page 2 at the default
+      // page size of 25 — same boundary #59's own pagination tests use.
+      const many: (ReturnType<typeof manyViewings>[number] & {
+        geo?: { lat: number; lon: number };
+      })[] = manyViewings(30);
+      many[25] = { ...many[25], geo: { lat: 52.3665062, lon: 4.8947073 } };
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], many);
+      await connect(page);
+
+      await expect(page.getByRole("region", { name: /^Map showing/ })).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Next page" }).click();
+      await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
     });
 
     test("introduces no accessibility violations", async ({ page }) => {
