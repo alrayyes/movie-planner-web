@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.84.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.83.0...movie-planner-web-v0.84.0) (2026-09-08)
+
+
+### Features
+
+* **chrome:** move Export as JSON into Settings, rename it Export viewings ([#391](https://github.com/alrayyes/movie-planner-web/issues/391)) ([a9f8d9b](https://github.com/alrayyes/movie-planner-web/commit/a9f8d9b9c9cc1f1c1a7d3e5ecfbbb6424b7e8dd5))
+
 ## [0.83.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.82.0...movie-planner-web-v0.83.0) (2026-09-08)
 
 
