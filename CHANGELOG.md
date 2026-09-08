@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.85.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.84.1...movie-planner-web-v0.85.0) (2026-09-08)
+
+
+### Features
+
+* **movie-details:** export a single viewing as JSON ([#396](https://github.com/alrayyes/movie-planner-web/issues/396)) ([08bd083](https://github.com/alrayyes/movie-planner-web/commit/08bd083b4fea5467f62890a89f9cbed60f5ee7c4))
+
 ## [0.84.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.84.0...movie-planner-web-v0.84.1) (2026-09-08)
 
 
