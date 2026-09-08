@@ -57,3 +57,11 @@ export const TR_BODY = "even:bg-slate-50 dark:even:bg-slate-800/60";
 export const DL = "grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm";
 export const DT = "font-medium text-slate-500 dark:text-slate-400";
 export const DD = "text-slate-900 dark:text-slate-100";
+// #414: DL's fixed max-content label column ("IMDb Votes", "Box Office", ...)
+// squeezes the value column hard on a narrow phone, which is what made a
+// long venue name wrap mid-word — label above value on mobile instead,
+// side by side from sm: up. Kept separate from DL/DT/DD (used as-is by
+// LogViewingForm's short confirmation summary, which never hits this) so
+// this only changes movie-details's own longer, denser field list.
+export const DL_RESPONSIVE =
+  "grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]";

@@ -654,6 +654,58 @@ test.describe("movie details page", () => {
     );
   });
 
+  // #414: a title with a long cast used to render every actor as its own
+  // chip — a wall of dozens on a single page. Capped behind a toggle
+  // instead, same as any other chip list (director/genre) that happened
+  // to exceed the limit.
+  test("collapses a long actor list behind a '+N more' toggle, expandable on click", async ({
+    page,
+  }) => {
+    const manyActors = Array.from({ length: 12 }, (_, i) => `Actor ${i + 1}`).join(", ");
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, actors: manyActors }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "Actor 1", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Actor 8", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Actor 9", exact: true })).toHaveCount(0);
+    const toggle = page.getByRole("button", { name: "+4 more" });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    let results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await toggle.click();
+    await expect(page.getByRole("link", { name: "Actor 12", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show fewer" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  // #414: the details page groups its fields under section headings
+  // (Details, Cast & crew, Ratings, Extras, Trailer) instead of one flat
+  // list — each renders only when it actually has something to show.
+  test("groups fields under section headings, omitting any section with nothing to show", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("heading", { name: "Details" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cast & crew" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ratings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Extras" })).toBeVisible();
+    // DUNE (this file's default fixture) has no trailerUrl, no website —
+    // Trailer never renders at all, and Extras still shows for Synopsis
+    // alone.
+    await expect(page.getByRole("heading", { name: "Trailer" })).toHaveCount(0);
+  });
+
   // #372
   test("links Rated, Language and Country to the overview filtered to each exact value", async ({
     page,

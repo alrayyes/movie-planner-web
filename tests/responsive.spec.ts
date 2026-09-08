@@ -1,5 +1,15 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+async function mockYoutubeEmbed(page: Page) {
+  await page.route("https://www.youtube-nocookie.com/embed/**", async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: "<!doctype html><title>stub player</title>",
+    });
+  });
+}
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -104,6 +114,46 @@ for (const viewport of VIEWPORTS) {
       await connect(page);
       await page.getByRole("link", { name: "Dune", exact: true }).click();
       await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+      await assertNoHorizontalOverflow(page);
+    });
+
+    // #414: the trailer embed used to sit inside the same squeezed
+    // label/value grid column as every other field, so it rendered far
+    // narrower than the page's actual available width — this asserts it
+    // now uses (most of) the full content width, not just "doesn't
+    // overflow".
+    test("the trailer embed uses most of the available content width", async ({ page }) => {
+      await mockYoutubeEmbed(page);
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          trailerUrl: "https://www.youtube.com/watch?v=8g18jFHCLXk",
+        },
+      ]);
+      await page.goto("/");
+      await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+      await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+      await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+      await page.getByRole("button", { name: "Connect" }).click();
+      await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+      await page.getByRole("link", { name: "Dune", exact: true }).click();
+
+      // Compared against the "Trailer" heading's own width, not the
+      // whole page — on a desktop-width viewport the poster column sits
+      // beside this content column, so "close to the full page width"
+      // isn't the right bar. What matters is that the embed uses the
+      // same available width as everything else in its own column,
+      // rather than a further-squeezed sub-column the way the old
+      // max-w-xl-inside-the-dl layout did.
+      const iframeBox = await page.locator("iframe").boundingBox();
+      const headingBox = await page.getByRole("heading", { name: "Trailer" }).boundingBox();
+      expect(iframeBox).not.toBeNull();
+      expect(headingBox).not.toBeNull();
+      expect((iframeBox?.width ?? 0) / (headingBox?.width ?? 1)).toBeGreaterThan(0.95);
       await assertNoHorizontalOverflow(page);
     });
 

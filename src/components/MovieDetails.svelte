@@ -36,16 +36,19 @@ import {
 	BUTTON_SECONDARY,
 	BUTTON_SM,
 	DD,
-	DL,
+	DL_RESPONSIVE,
 	DT,
 	FIELD_WRAPPER,
 	INPUT,
 	LABEL,
+	SECTION_HEADING,
 	STATUS_TEXT,
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { computeBlockedTimeBar, formatDate, formatDateTime } from "../lib/ui/datetime";
 import { debounce } from "../lib/ui/debounce";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ChipList from "./ChipList.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -647,6 +650,22 @@ reloadOnBfcacheRestore(() => void load());
         ['Awards', viewing.awards],
       ]}
       {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
+      <!-- #414: whether each grouped section below has anything to show
+      — {@const} has to sit at this top level (immediate child of the
+      {:else} branch, same as fields/directorChips/etc. above) rather
+      than nested inside the wrapper div below, or Svelte rejects it. -->
+      {@const hasDetailsFields =
+        fields.some(([, value]) => value) ||
+        viewing.venue ||
+        viewing.rated ||
+        viewing.movieLanguage ||
+        viewing.movieCountry ||
+        viewing.released ||
+        viewing.row ||
+        viewing.seat}
+      {@const hasCastCrew =
+        directorChips.length > 0 || actorChips.length > 0 || genreChips.length > 0}
+      {@const hasExtras = viewing.synopsis || viewing.website || viewing.notes}
       <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
         {#if viewing.posterUrl}
           <!-- #76: a fixed width + max-w-none, not h-64 w-auto — same fix
@@ -697,7 +716,7 @@ reloadOnBfcacheRestore(() => void load());
               {/if}
             {/each}
           </div>
-          <dl class={DL}>
+          <dl class={DL_RESPONSIVE}>
             {#if viewing.start === viewing.end}
               <!-- #359: start/end being identical only ever means the
               time was never known at all (a genuinely date-only import,
@@ -732,229 +751,215 @@ reloadOnBfcacheRestore(() => void load());
               ></div>
             </div>
           {/if}
-          <dl class={DL}>
-            {#each fields as [term, value] (term)}
-              {#if value}
-                <dt class={DT}>{term}</dt>
-                <dd class={DD}>{value}</dd>
-              {/if}
-            {/each}
-            {#if viewing.venue}
-              <!-- #303: same overview-filter link the Venues page's own
-              venue link and director/actor/genre chips already use —
-              a single link, not a chip, since a viewing has exactly
-              one venue. -->
-              <dt class={DT}>Venue</dt>
-              <dd class={DD}>
-                <a
-                  href={`/?venue=${encodeURIComponent(viewing.venue)}`}
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  {viewing.venue}
-                </a>
-              </dd>
-            {/if}
-            {#if viewing.rated}
-              <!-- #372: the movie's own OMDb-derived Rated/Language/
-              Country fields, same single-link pattern as Venue above —
-              a different concept from the venue's own city/country,
-              which is clickable from the Venues page's own grouping
-              instead. -->
-              <dt class={DT}>Rated</dt>
-              <dd class={DD}>
-                <a
-                  href={`/?rated=${encodeURIComponent(viewing.rated)}`}
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  {viewing.rated}
-                </a>
-              </dd>
-            {/if}
-            {#if viewing.movieLanguage}
-              <dt class={DT}>Language</dt>
-              <dd class={DD}>
-                <a
-                  href={`/?movieLanguage=${encodeURIComponent(viewing.movieLanguage)}`}
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  {viewing.movieLanguage}
-                </a>
-              </dd>
-            {/if}
-            {#if viewing.movieCountry}
-              <dt class={DT}>Country</dt>
-              <dd class={DD}>
-                <a
-                  href={`/?movieCountry=${encodeURIComponent(viewing.movieCountry)}`}
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  {viewing.movieCountry}
-                </a>
-              </dd>
-            {/if}
-            {#if viewing.released}
-              <!-- #373: three independently clickable pieces — day,
-              month, year — since OMDb's own "DD MMM YYYY" shape splits
-              cleanly into exactly the three granularities the
-              overview's own releasedDate/releasedMonth/releasedYear
-              filters support. Falls back to plain text for a shape
-              parseReleasedDate doesn't recognize, rather than guessing
-              at filter values that wouldn't actually match anything. -->
-              {@const releasedParts = viewing.released.split(" ")}
-              {@const releasedFilters = parseReleasedDate(viewing.released)}
-              <dt class={DT}>Released</dt>
-              <dd class={DD}>
-                {#if releasedFilters && releasedParts.length === 3}
-                  <a
-                    href={`/?releasedDate=${releasedFilters.date}`}
-                    class="text-indigo-600 hover:underline dark:text-indigo-400"
-                  >
-                    {releasedParts[0]}
-                  </a>
-                  <a
-                    href={`/?releasedMonth=${releasedFilters.month}`}
-                    class="text-indigo-600 hover:underline dark:text-indigo-400"
-                  >
-                    {releasedParts[1]}
-                  </a>
-                  <a
-                    href={`/?releasedYear=${releasedFilters.year}`}
-                    class="text-indigo-600 hover:underline dark:text-indigo-400"
-                  >
-                    {releasedParts[2]}
-                  </a>
-                {:else}
-                  {viewing.released}
+          <!-- #414: grouped under section headings instead of one flat
+          dl — the single list made a title with a long cast or a full
+          set of OMDb fields read as an undifferentiated wall. Each
+          group is its own dl (and its own DL_RESPONSIVE, so the label
+          column stacks above the value on a narrow phone instead of
+          squeezing it), and a group renders nothing at all when none
+          of its fields are present. -->
+          {#if hasDetailsFields}
+            <h2 class={SECTION_HEADING}>Details</h2>
+            <dl class={DL_RESPONSIVE}>
+              {#each fields as [term, value] (term)}
+                {#if value}
+                  <dt class={DT}>{term}</dt>
+                  <dd class={DD}>{value}</dd>
                 {/if}
-              </dd>
-            {/if}
-            {#if directorChips.length > 0}
-              <dt class={DT}>Director</dt>
-              <dd class={DD}>
-                <div class="flex flex-wrap gap-1">
-                  {#each directorChips as director (director)}
-                    <a
-                      href={`/?director=${encodeURIComponent(director)}`}
-                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
-                    >
-                      {director}
-                    </a>
-                  {/each}
-                </div>
-              </dd>
-            {/if}
-            {#if actorChips.length > 0}
-              <dt class={DT}>Actors</dt>
-              <dd class={DD}>
-                <div class="flex flex-wrap gap-1">
-                  {#each actorChips as actor (actor)}
-                    <a
-                      href={`/?actor=${encodeURIComponent(actor)}`}
-                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
-                    >
-                      {actor}
-                    </a>
-                  {/each}
-                </div>
-              </dd>
-            {/if}
-            {#if genreChips.length > 0}
-              <dt class={DT}>Genre</dt>
-              <dd class={DD}>
-                <div class="flex flex-wrap gap-1">
-                  {#each genreChips as genre (genre)}
-                    <a
-                      href={`/?genre=${encodeURIComponent(genre)}`}
-                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
-                    >
-                      {genre}
-                    </a>
-                  {/each}
-                </div>
-              </dd>
-            {/if}
-            {#if ratings.length > 0}
-              <dt class={DT}>Ratings</dt>
-              <dd class={DD}>
-                <div class="flex flex-wrap gap-2">
-                  {#each ratings as rating (rating)}
-                    <span
-                      class="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-700"
-                    >
-                      {rating}
-                    </span>
-                  {/each}
-                </div>
-              </dd>
-            {/if}
-            {#if viewing.row || viewing.seat}
-              <!-- #288: a Pathé booking's seat assignment, when known —
-              most media aren't a seated cinema booking at all, so this
-              is absent far more often than present. -->
-              <dt class={DT}>Seat</dt>
-              <dd class={DD}>
-                {[viewing.row && `Row ${viewing.row}`, viewing.seat && `Seat ${viewing.seat}`]
-                  .filter(Boolean)
-                  .join(", ")}
-              </dd>
-            {/if}
-            {#if viewing.synopsis}
-              <dt class={DT}>Synopsis</dt>
-              <dd class={DD}>{viewing.synopsis}</dd>
-            {/if}
-            {#if viewing.website}
-              <!-- #310: OMDb's own official-site field, verbatim — shown
-              as a link since it's always a full URL when present. -->
-              <dt class={DT}>Website</dt>
-              <dd class={DD}>
-                <a
-                  href={viewing.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-indigo-600 hover:underline dark:text-indigo-400"
-                >
-                  {viewing.website}
-                </a>
-              </dd>
-            {/if}
-            {#if viewing.trailerUrl}
-              <!-- #310: TMDb's own official YouTube trailer link
-              (alrayyes/movie-planner#236) — opportunistic, off by
-              default until a visitor's CLI has a TMDb key configured.
-              #350: embedded via YouTube's privacy-enhanced
-              youtube-nocookie.com domain when the link is a recognizable
-              YouTube URL (it always is, in practice, since only YouTube
-              is ever supplied here) — falls back to a plain link for
-              anything youtubeEmbedUrl can't parse, rather than showing a
-              broken embed. -->
-              {@const embedUrl = youtubeEmbedUrl(viewing.trailerUrl)}
-              <dt class={DT}>Trailer</dt>
-              <dd class={DD}>
-                {#if embedUrl}
-                  <iframe
-                    class="aspect-video w-full max-w-xl rounded-lg"
-                    src={embedUrl}
-                    title={`${viewing.title} trailer`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                  ></iframe>
-                {:else}
+              {/each}
+              {#if viewing.venue}
+                <!-- #303: same overview-filter link the Venues page's own
+                venue link and director/actor/genre chips already use —
+                a single link, not a chip, since a viewing has exactly
+                one venue. -->
+                <dt class={DT}>Venue</dt>
+                <dd class={DD}>
                   <a
-                    href={viewing.trailerUrl}
+                    href={`/?venue=${encodeURIComponent(viewing.venue)}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {viewing.venue}
+                  </a>
+                </dd>
+              {/if}
+              {#if viewing.rated}
+                <!-- #372: the movie's own OMDb-derived Rated/Language/
+                Country fields, same single-link pattern as Venue above —
+                a different concept from the venue's own city/country,
+                which is clickable from the Venues page's own grouping
+                instead. -->
+                <dt class={DT}>Rated</dt>
+                <dd class={DD}>
+                  <a
+                    href={`/?rated=${encodeURIComponent(viewing.rated)}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {viewing.rated}
+                  </a>
+                </dd>
+              {/if}
+              {#if viewing.movieLanguage}
+                <dt class={DT}>Language</dt>
+                <dd class={DD}>
+                  <a
+                    href={`/?movieLanguage=${encodeURIComponent(viewing.movieLanguage)}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {viewing.movieLanguage}
+                  </a>
+                </dd>
+              {/if}
+              {#if viewing.movieCountry}
+                <dt class={DT}>Country</dt>
+                <dd class={DD}>
+                  <a
+                    href={`/?movieCountry=${encodeURIComponent(viewing.movieCountry)}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {viewing.movieCountry}
+                  </a>
+                </dd>
+              {/if}
+              {#if viewing.released}
+                <!-- #373: three independently clickable pieces — day,
+                month, year — since OMDb's own "DD MMM YYYY" shape splits
+                cleanly into exactly the three granularities the
+                overview's own releasedDate/releasedMonth/releasedYear
+                filters support. Falls back to plain text for a shape
+                parseReleasedDate doesn't recognize, rather than guessing
+                at filter values that wouldn't actually match anything. -->
+                {@const releasedParts = viewing.released.split(" ")}
+                {@const releasedFilters = parseReleasedDate(viewing.released)}
+                <dt class={DT}>Released</dt>
+                <dd class={DD}>
+                  {#if releasedFilters && releasedParts.length === 3}
+                    <a
+                      href={`/?releasedDate=${releasedFilters.date}`}
+                      class="text-indigo-600 hover:underline dark:text-indigo-400"
+                    >
+                      {releasedParts[0]}
+                    </a>
+                    <a
+                      href={`/?releasedMonth=${releasedFilters.month}`}
+                      class="text-indigo-600 hover:underline dark:text-indigo-400"
+                    >
+                      {releasedParts[1]}
+                    </a>
+                    <a
+                      href={`/?releasedYear=${releasedFilters.year}`}
+                      class="text-indigo-600 hover:underline dark:text-indigo-400"
+                    >
+                      {releasedParts[2]}
+                    </a>
+                  {:else}
+                    {viewing.released}
+                  {/if}
+                </dd>
+              {/if}
+              {#if viewing.row || viewing.seat}
+                <!-- #288: a Pathé booking's seat assignment, when known —
+                most media aren't a seated cinema booking at all, so this
+                is absent far more often than present. -->
+                <dt class={DT}>Seat</dt>
+                <dd class={DD}>
+                  {[viewing.row && `Row ${viewing.row}`, viewing.seat && `Seat ${viewing.seat}`]
+                    .filter(Boolean)
+                    .join(", ")}
+                </dd>
+              {/if}
+            </dl>
+          {/if}
+          {#if hasCastCrew}
+            <h2 class={SECTION_HEADING}>Cast & crew</h2>
+            <dl class={DL_RESPONSIVE}>
+              {#if directorChips.length > 0}
+                <dt class={DT}>Director</dt>
+                <dd class={DD}><ChipList items={directorChips} paramName="director" /></dd>
+              {/if}
+              {#if actorChips.length > 0}
+                <dt class={DT}>Actors</dt>
+                <dd class={DD}><ChipList items={actorChips} paramName="actor" /></dd>
+              {/if}
+              {#if genreChips.length > 0}
+                <dt class={DT}>Genre</dt>
+                <dd class={DD}><ChipList items={genreChips} paramName="genre" /></dd>
+              {/if}
+            </dl>
+          {/if}
+          {#if ratings.length > 0}
+            <h2 class={SECTION_HEADING}>Ratings</h2>
+            <div class="flex flex-wrap gap-2">
+              {#each ratings as rating (rating)}
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-700">
+                  {rating}
+                </span>
+              {/each}
+            </div>
+          {/if}
+          {#if hasExtras}
+            <h2 class={SECTION_HEADING}>Extras</h2>
+            <dl class={DL_RESPONSIVE}>
+              {#if viewing.synopsis}
+                <dt class={DT}>Synopsis</dt>
+                <dd class={DD}>{viewing.synopsis}</dd>
+              {/if}
+              {#if viewing.website}
+                <!-- #310: OMDb's own official-site field, verbatim — shown
+                as a link since it's always a full URL when present. -->
+                <dt class={DT}>Website</dt>
+                <dd class={DD}>
+                  <a
+                    href={viewing.website}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-indigo-600 hover:underline dark:text-indigo-400"
                   >
-                    Watch trailer
+                    {viewing.website}
                   </a>
-                {/if}
-              </dd>
+                </dd>
+              {/if}
+              {#if viewing.notes}
+                <dt class={DT}>Notes</dt>
+                <dd class={DD}>{viewing.notes}</dd>
+              {/if}
+            </dl>
+          {/if}
+          {#if viewing.trailerUrl}
+            <!-- #310: TMDb's own official YouTube trailer link
+            (alrayyes/movie-planner#236) — opportunistic, off by default
+            until a visitor's CLI has a TMDb key configured. #350:
+            embedded via YouTube's privacy-enhanced youtube-nocookie.com
+            domain when the link is a recognizable YouTube URL (it
+            always is, in practice, since only YouTube is ever supplied
+            here) — falls back to a plain link for anything
+            youtubeEmbedUrl can't parse, rather than showing a broken
+            embed. #414: pulled out of the dl entirely (it was sharing
+            the squeezed value column with every label above it, which
+            is why it used to render far smaller than the page's actual
+            available width) — full width of its own, not max-w-xl
+            capped, since a video wants the space a label/value pair
+            doesn't need. -->
+            {@const embedUrl = youtubeEmbedUrl(viewing.trailerUrl)}
+            <h2 class={SECTION_HEADING}>Trailer</h2>
+            {#if embedUrl}
+              <iframe
+                class="aspect-video w-full rounded-lg"
+                src={embedUrl}
+                title={`${viewing.title} trailer`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            {:else}
+              <a
+                href={viewing.trailerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Watch trailer
+              </a>
             {/if}
-            {#if viewing.notes}
-              <dt class={DT}>Notes</dt>
-              <dd class={DD}>{viewing.notes}</dd>
-            {/if}
-          </dl>
+          {/if}
           {#if viewing.geo}
             <!-- #8/#203: renders only when this viewing's venue has
             known coordinates; nothing here otherwise, not a broken or
