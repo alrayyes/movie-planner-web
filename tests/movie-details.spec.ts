@@ -623,6 +623,27 @@ test.describe("movie details page", () => {
     );
   });
 
+  // #359: start === end only ever means the time was never known at all
+  // (a genuinely date-only import, or #278's own "missing end defaults
+  // to start" rule) — showing two identical date-times would imply a
+  // specific time that was never actually recorded.
+  test("shows a single Date row, not two identical Start/End rows, when start and end are the same", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, start: DUNE.start, end: DUNE.start },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Date", { exact: true })).toBeVisible();
+    await expect(page.getByText("Start", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("End", { exact: true })).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #199
   test("shows a blocked-time bar below Start/End, purely decorative", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);

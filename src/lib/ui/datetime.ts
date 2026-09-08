@@ -23,12 +23,23 @@ export function formatDate(iso: string): string {
   return `${weekday} ${dayMonthYear}`;
 }
 
+// #359: seconds dropped unless the source data genuinely carries a
+// non-zero value — a manually-logged or CLI-parsed time is always
+// entered to the minute, so ":00" seconds are a formatting artefact,
+// not real information; a truly second-precise timestamp (unusual, but
+// possible from some import source) still shows them.
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(LOCALE, { hour12: false });
+  const date = new Date(iso);
+  return date.toLocaleTimeString(LOCALE, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: date.getSeconds() === 0 ? undefined : "2-digit",
+    hour12: false,
+  });
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(LOCALE, { hour12: false });
+  return `${formatDate(iso)} ${formatTime(iso)}`;
 }
 
 // #93: the overview's merged "When" column — one date plus a start-end
