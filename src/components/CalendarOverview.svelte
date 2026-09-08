@@ -15,7 +15,7 @@ import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import { parseReleasedDate } from "../lib/omdb/released-date";
-import { activeFilterLabel } from "../lib/ui/active-filter";
+import { ACTIVE_FILTER_LABEL_EVENT, activeFilterLabel } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -331,6 +331,13 @@ $effect(() => {
 	document.title = activeFilterLabelValue
 		? `${activeFilterLabelValue} — Movie Planner`
 		: DEFAULT_TITLE;
+	// #375: site-breadcrumb.ts is a plain custom element, not a Svelte
+	// island, so it can't read activeFilterLabelValue directly — this is
+	// what keeps its own "Home / <label>" trail in sync with every
+	// filter change here, not just the one the page loaded with.
+	window.dispatchEvent(
+		new CustomEvent(ACTIVE_FILTER_LABEL_EVENT, { detail: activeFilterLabelValue }),
+	);
 });
 
 // #169: defaults match the previous hardcoded "most recently watched

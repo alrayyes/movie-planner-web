@@ -38,7 +38,21 @@ const FILTER_QUALIFIERS: Record<keyof ActiveFilterValues, string | null> = {
   releasedDate: "release date",
 };
 
-const FILTER_KEYS = Object.keys(FILTER_QUALIFIERS) as (keyof ActiveFilterValues)[];
+// Exported so a caller building `values` from something other than
+// component state (site-breadcrumb.ts reading raw URLSearchParams, on
+// first paint before CalendarOverview.svelte's own island has mounted
+// and broadcast a live value) can do it generically, without repeating
+// this same key list a second time.
+export const FILTER_KEYS = Object.keys(FILTER_QUALIFIERS) as (keyof ActiveFilterValues)[];
+
+// #375: CalendarOverview.svelte broadcasts its own live activeFilterLabel
+// on this event whenever it changes — including a visitor typing
+// directly into a filter field, not just the initial URL a chip link
+// loaded with — so site-breadcrumb.ts (a plain custom element, not a
+// Svelte island, so it can't read CalendarOverview's own reactive state
+// directly) can stay in sync without re-deriving the same filter logic
+// from the URL a second time.
+export const ACTIVE_FILTER_LABEL_EVENT = "movie-planner-web-active-filter-label";
 
 export function activeFilterLabel(values: ActiveFilterValues): string | null {
   const active = FILTER_KEYS.filter((key) => values[key]);
