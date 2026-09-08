@@ -83,9 +83,15 @@ export async function listViewings(
 // (only wants whatever properties it doesn't itself know about, per
 // #294's own comment on extractUnknownProperties).
 async function fetchRawViewing(config: CaldavConfig, uid: string): Promise<string | null> {
+  // #418: unlike listViewings's own REPORT (never cached by browsers by
+  // default), a GET on one event's own resource URL is a genuinely
+  // cacheable request — a CalDAV server's ETag/Last-Modified headers
+  // could otherwise leave the browser quietly serving a stale copy of
+  // just this one event even after it's changed server-side.
   const response = await boundedFetch(resourceUrl(config, uid), {
     method: "GET",
     headers: { Authorization: authHeader(config) },
+    cache: "no-store",
   });
   if (response.status === 404) return null;
   await assertOk(response, "getting event");
@@ -200,9 +206,13 @@ export async function deleteViewing(config: CaldavConfig, uid: string): Promise<
 export async function getPicklists(config: CaldavConfig): Promise<Picklists> {
   validateCaldavConfig(config);
 
+  // #418: same reasoning as fetchRawViewing's own cache: "no-store" —
+  // this is a single-resource GET too, so it's cacheable by the browser
+  // the same way.
   const response = await boundedFetch(resourceUrl(config, SIDECAR_UID), {
     method: "GET",
     headers: { Authorization: authHeader(config) },
+    cache: "no-store",
   });
   if (response.status === 404) return parsePicklistsFromVJournal(null);
   if (!response.ok) return parsePicklistsFromVJournal(null);
