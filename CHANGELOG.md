@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.85.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.1...movie-planner-web-v0.85.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **movie-details:** action row overflow, move Share next to Back to overview ([#404](https://github.com/alrayyes/movie-planner-web/issues/404)) ([3d24cfb](https://github.com/alrayyes/movie-planner-web/commit/3d24cfbdeef878767f6dac1ebaa02e0a6516bb44))
+
 ## [0.85.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.0...movie-planner-web-v0.85.1) (2026-09-08)
 
 
