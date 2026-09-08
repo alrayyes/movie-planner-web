@@ -96,6 +96,17 @@ for (const viewport of VIEWPORTS) {
       await assertInputFontSizeAtLeast16px(page);
     });
 
+    // #403: the read-mode action row (Edit/Export/Refresh metadata/
+    // Search OMDb/Delete) is a different code path from the edit form
+    // above and was never covered on its own — confirmed live, this
+    // exact gap is what let it overflow a narrow viewport unnoticed.
+    test("movie details view-mode action buttons have no horizontal overflow", async ({ page }) => {
+      await connect(page);
+      await page.getByRole("link", { name: "Dune", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+      await assertNoHorizontalOverflow(page);
+    });
+
     test("log form has no horizontal overflow", async ({ page }) => {
       await connect(page);
       await page.getByRole("link", { name: "Log a viewing" }).click();

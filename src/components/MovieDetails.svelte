@@ -479,16 +479,54 @@ reloadOnBfcacheRestore(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">
-  <!-- #384: a real navigation to a different URL — WAI-ARIA/WCAG both
-  reserve <button> for an in-page action and <a> for navigation, so
-  this stays a link rather than becoming a <button> (which would also
-  lose right-click/open-in-new-tab and native browser back/forward
-  semantics). What was actually missing was visual prominence — plain
-  small text read as an afterthought — so it's styled with the app's
-  existing button look instead, a widely-used pattern (a link visually
-  styled as a button, semantically still a link). self-start keeps it
-  from stretching full-width in this flex-col container. -->
-  <a href="/" class={`${BUTTON_SECONDARY} self-start`}>Back to overview</a>
+  <div class="flex flex-wrap items-center gap-2">
+    <!-- #384: a real navigation to a different URL — WAI-ARIA/WCAG both
+    reserve <button> for an in-page action and <a> for navigation, so
+    this stays a link rather than becoming a <button> (which would also
+    lose right-click/open-in-new-tab and native browser back/forward
+    semantics). What was actually missing was visual prominence — plain
+    small text read as an afterthought — so it's styled with the app's
+    existing button look instead, a widely-used pattern (a link visually
+    styled as a button, semantically still a link). -->
+    <a href="/" class={BUTTON_SECONDARY}>Back to overview</a>
+    {#if viewing && !showingPicker}
+      <!-- #402: grouped with Back to overview rather than the
+      edit/export/refresh/delete row below — those all act on this
+      viewing's own stored data, while Share (like Back to overview) is
+      about this page itself, not a data operation. Also fixes that
+      row overflowing its container on a narrow viewport once it had
+      six buttons in it. -->
+      <button
+        type="button"
+        class={BUTTON_SECONDARY}
+        disabled={sharing}
+        aria-busy={sharing}
+        onclick={() => handleShare(viewing)}
+      >
+        Share
+      </button>
+    {/if}
+  </div>
+  {#if shareStatusText}
+    <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
+  {/if}
+  {#if sharedUrl}
+    <!-- #389: the always-reliable fallback — visible, selectable text,
+    not dependent on either navigator.share or clipboard-write
+    succeeding. select-on-focus makes "click the box, Ctrl/Cmd+C" a
+    one-step copy even without the button next to it working. -->
+    <div class="flex flex-wrap items-center gap-2">
+      <input
+        type="text"
+        readonly
+        value={sharedUrl}
+        aria-label="Shareable link"
+        class={`${INPUT} max-w-md`}
+        onfocus={(event) => event.currentTarget.select()}
+      />
+      <button type="button" class={BUTTON_SM} onclick={handleCopyShareLink}>Copy</button>
+    </div>
+  {/if}
 
   {#if notFound}
     <p class="text-slate-700 dark:text-slate-300">Viewing not found.</p>
@@ -905,21 +943,12 @@ reloadOnBfcacheRestore(() => void load());
               </a>
             </div>
           {/if}
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button type="button" class={BUTTON_SM} onclick={() => startEdit(viewing)}>
               Edit
             </button>
             <button type="button" class={BUTTON_SM} onclick={() => handleExport(viewing)}>
               Export
-            </button>
-            <button
-              type="button"
-              class={BUTTON_SM}
-              disabled={sharing}
-              aria-busy={sharing}
-              onclick={() => handleShare(viewing)}
-            >
-              Share
             </button>
             {#if omdbActive}
               <button
@@ -945,29 +974,6 @@ reloadOnBfcacheRestore(() => void load());
               Delete
             </button>
           </div>
-          {#if shareStatusText}
-            <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
-          {/if}
-          {#if sharedUrl}
-            <!-- #389: the always-reliable fallback — visible, selectable
-            text, not dependent on either navigator.share or
-            clipboard-write succeeding. select-on-focus makes "click the
-            box, Ctrl/Cmd+C" a one-step copy even without the button
-            next to it working. -->
-            <div class="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                readonly
-                value={sharedUrl}
-                aria-label="Shareable link"
-                class={`${INPUT} max-w-md`}
-                onfocus={(event) => event.currentTarget.select()}
-              />
-              <button type="button" class={BUTTON_SM} onclick={handleCopyShareLink}>
-                Copy
-              </button>
-            </div>
-          {/if}
           {#if searchingOmdb}
             <form
               class="flex items-end gap-2"
