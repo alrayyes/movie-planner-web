@@ -229,6 +229,32 @@ test.describe("movie details page", () => {
     expect(server.deletes).toEqual(["dune-uid"]);
   });
 
+  // #388: exports just this one viewing, not the whole history — the
+  // bulk export lives on Settings instead (#387).
+  test("exports just this one viewing as JSON", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Export" }).click(),
+    ]);
+
+    expect(download.suggestedFilename()).toMatch(
+      /^movie-planner-export-dune-\d{4}-\d{2}-\d{2}\.json$/,
+    );
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const rows = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].uid).toBe("dune-uid");
+    expect(rows[0].title).toBe("Dune");
+  });
+
   // #8/#203
   test("offers an address-search lookup when editing to a venue with no known coordinates", async ({
     page,

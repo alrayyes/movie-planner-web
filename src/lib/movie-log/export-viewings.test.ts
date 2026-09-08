@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { exportFilename, exportViewingsToJson } from "./export-viewings";
+import {
+  exportFilename,
+  exportSingleViewingFilename,
+  exportViewingsToJson,
+} from "./export-viewings";
 import { parseJsonImport } from "./import-rows";
 
 const VIEWING = {
@@ -86,5 +90,22 @@ describe("exportFilename", () => {
 
   test("double-digit month and day pass through unpadded-looking but correct", () => {
     expect(exportFilename(new Date(2026, 10, 23))).toBe("movie-planner-export-2026-11-23.json");
+  });
+});
+
+// #388: named from the viewing's own title/date rather than "today" —
+// a single-viewing export isn't a dated snapshot the way the bulk one
+// (exportFilename above) is, and two exports of two different
+// viewings on the same day shouldn't collide or look identical.
+describe("exportSingleViewingFilename", () => {
+  test("slugifies the title and appends the viewing's own local date", () => {
+    expect(exportSingleViewingFilename(VIEWING)).toBe("movie-planner-export-dune-2026-01-01.json");
+  });
+
+  test("strips punctuation and collapses spaces/colons into single hyphens", () => {
+    const viewing = { ...VIEWING, title: "Dune: Part Two (2024)" };
+    expect(exportSingleViewingFilename(viewing)).toBe(
+      "movie-planner-export-dune-part-two-2024-2026-01-01.json",
+    );
   });
 });

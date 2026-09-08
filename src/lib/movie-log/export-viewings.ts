@@ -69,3 +69,16 @@ export function exportViewingsToJson(viewings: LoggedViewing[]): string {
 export function exportFilename(now: Date): string {
   return `movie-planner-export-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
 }
+
+// #388: a single-viewing export isn't a dated snapshot the way the
+// bulk one above is — named from the viewing's own title/date instead
+// of "today", so two exports of two different viewings on the same
+// day don't collide or look identical.
+export function exportSingleViewingFilename(viewing: LoggedViewing): string {
+  const slug = viewing.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const { date } = localDateAndTime(viewing.start);
+  return `movie-planner-export-${slug}-${date}.json`;
+}
