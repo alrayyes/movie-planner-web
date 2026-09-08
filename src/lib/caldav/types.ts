@@ -41,6 +41,13 @@ export interface LoggedViewing {
   // `geo` below already follows.
   city?: string;
   country?: string;
+  // #363: a venue's own verified street-level address, from the same
+  // hardcoded chain/location table city/country above come from
+  // (alrayyes/movie-planner#283) — present only once the CLI has
+  // confirmed a venue's exact address, omitted otherwise, same "never
+  // guess" rule.
+  streetAddress?: string;
+  postalCode?: string;
   director?: string;
   actors?: string;
   ratingImdb?: string;

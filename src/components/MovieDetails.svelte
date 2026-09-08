@@ -657,6 +657,7 @@ reloadOnBfcacheRestore(() => void load());
       {@const hasDetailsFields =
         fields.some(([, value]) => value) ||
         viewing.venue ||
+        viewing.streetAddress ||
         viewing.rated ||
         viewing.movieLanguage ||
         viewing.movieCountry ||
@@ -780,6 +781,25 @@ reloadOnBfcacheRestore(() => void load());
                   >
                     {viewing.venue}
                   </a>
+                </dd>
+              {/if}
+              {#if viewing.streetAddress}
+                <!-- #363: the venue's own verified street-level address,
+                once known — plain text, not a link (the venue's own map
+                pin, when it has known coordinates, already offers
+                "Open in Maps" further down this page). Each part
+                omitted individually when unknown, same "never guess"
+                rule as everywhere else — a street address without a
+                postal code, city or country still reads sensibly. -->
+                <dt class={DT}>Address</dt>
+                <dd class={DD}>
+                  {[
+                    viewing.streetAddress,
+                    [viewing.postalCode, viewing.city].filter(Boolean).join(" "),
+                    viewing.country,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                 </dd>
               {/if}
               {#if viewing.rated}
