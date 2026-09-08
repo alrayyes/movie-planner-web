@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.1...movie-planner-web-v0.79.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **calendar-overview:** show the share link as visible text, not just an attempted copy ([#364](https://github.com/alrayyes/movie-planner-web/issues/364)) ([1500906](https://github.com/alrayyes/movie-planner-web/commit/1500906a9cc281caa5e1a803d0254459ea8da563))
+
 ## [0.79.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.0...movie-planner-web-v0.79.1) (2026-09-08)
 
 
