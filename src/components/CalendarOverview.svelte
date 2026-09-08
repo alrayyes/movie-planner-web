@@ -39,8 +39,6 @@ import {
 	toDateInputValue,
 } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { venueLabel } from "../lib/ui/venue";
-// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconLetterboxd from "./icons/IconLetterboxd.svelte";
@@ -1116,7 +1114,7 @@ getPicklists(config).then((picklists) => {
                   just relocated under the title the same way the
                   cross-link icons already are. -->
                   <p class="text-xs text-slate-500 sm:hidden dark:text-slate-400">
-                    {venueLabel(viewing.venue, viewing.city, viewing.country)}
+                    {viewing.venue}
                   </p>
                 {/if}
                 {#if links.length > 0}
@@ -1167,7 +1165,7 @@ getPicklists(config).then((picklists) => {
               </td>
               <td class={`${TD} hidden sm:table-cell`}>
                 <span class="inline-flex items-center gap-1">
-                  {venueLabel(viewing.venue, viewing.city, viewing.country)}
+                  {viewing.venue ?? ""}
                   {#if viewing.geo}
                     <!-- #268: a lightweight location cue right on the
                     row, rather than a full map per row (heavy on a
