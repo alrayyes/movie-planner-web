@@ -48,6 +48,25 @@ export default defineConfig({
       // No search trigger — skips building a pagefind index over a
       // handful of pages nothing queries yet.
       pagefind: false,
+      // #392: Starlight manages its own theme entirely independently —
+      // its own ThemeProvider.astro reads/writes localStorage's
+      // "starlight-theme" and sets <html data-theme>, while this app's
+      // own toggle (Layout.astro/theme-toggle.ts) reads/writes a
+      // completely different "movie-planner-web-theme" key and sets a
+      // .dark class instead — so a preference set on the main app never
+      // reached the docs. `head` entries render before Starlight's own
+      // ThemeProvider (confirmed by reading Page.astro: <Head/>, which
+      // renders this array, comes first) — this copies the app's own
+      // explicit choice into Starlight's key before ThemeProvider reads
+      // it, so it always wins; a visitor who never explicitly chose on
+      // the main app still gets Starlight's own system-preference
+      // default, unchanged.
+      head: [
+        {
+          tag: "script",
+          content: `(function(){try{var t=localStorage.getItem("movie-planner-web-theme");if(t==="dark"||t==="light"){localStorage.setItem("starlight-theme",t);}}catch(e){}})();`,
+        },
+      ],
       sidebar: [
         { label: "Overview", link: "/docs/" },
         { label: "Connecting your CalDAV server", link: "/docs/connecting/" },
