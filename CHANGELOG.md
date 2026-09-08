@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.0...movie-planner-web-v0.79.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **calendar-overview:** scope the map to the current page, not the whole filter ([#361](https://github.com/alrayyes/movie-planner-web/issues/361)) ([96bb438](https://github.com/alrayyes/movie-planner-web/commit/96bb438e30f553ca3fb6f6757c118fd844283882)), closes [#358](https://github.com/alrayyes/movie-planner-web/issues/358)
+
 ## [0.79.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.78.0...movie-planner-web-v0.79.0) (2026-09-07)
 
 
