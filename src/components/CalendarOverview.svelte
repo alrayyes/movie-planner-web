@@ -206,6 +206,22 @@ type StoredFilterKey =
 	| "rated";
 type StoredFilters = Partial<Record<StoredFilterKey, string>> & { open?: boolean };
 
+const ALL_FILTER_KEYS: StoredFilterKey[] = [
+	"from",
+	"to",
+	"title",
+	"medium",
+	"venue",
+	"director",
+	"actor",
+	"genre",
+	"city",
+	"country",
+	"movieCountry",
+	"movieLanguage",
+	"rated",
+];
+
 function readStoredFilters(): StoredFilters {
 	try {
 		const raw = sessionStorage.getItem(FILTER_STORAGE_KEY);
@@ -216,8 +232,21 @@ function readStoredFilters(): StoredFilters {
 }
 const storedFilters = readStoredFilters();
 
+// #374: a URL carrying any recognized filter param is the deliberate,
+// single-filter case every chip link (Venues, movie details,
+// heatmap, /map) already produces — "cleared, only the clicked filter
+// applies" was the confirmed design decision. Centralized here, in the
+// one place every one of those entry points already funnels through
+// (initialFilterValue, called once per field below), rather than each
+// link site having to build its own "clear everything else" URL. A
+// plain visit with no filter params at all still restores whatever was
+// stored from an earlier visit, same as before this existed — only an
+// explicit filter link overrides that instead of merging with it.
+const hasAnyUrlFilter = ALL_FILTER_KEYS.some((key) => initialParams.get(key));
+
 function initialFilterValue(key: StoredFilterKey): string {
-	return initialParams.get(key) ?? storedFilters[key] ?? "";
+	if (hasAnyUrlFilter) return initialParams.get(key) ?? "";
+	return storedFilters[key] ?? "";
 }
 
 // #221: closed by default — seven fields plus buttons took up a lot of
@@ -230,25 +259,7 @@ function initialFilterValue(key: StoredFilterKey): string {
 // a one-way `open={...}` got re-applied on those unrelated updates,
 // silently closing a visitor's own manually-opened filters right after
 // they submitted one.
-let filtersOpen = $state(
-	(
-		[
-			"from",
-			"to",
-			"title",
-			"medium",
-			"venue",
-			"director",
-			"actor",
-			"genre",
-			"city",
-			"country",
-			"movieCountry",
-			"movieLanguage",
-			"rated",
-		] as StoredFilterKey[]
-	).some((key) => initialParams.get(key)) || Boolean(storedFilters.open),
-);
+let filtersOpen = $state(hasAnyUrlFilter || Boolean(storedFilters.open));
 let fromValue = $state(initialFilterValue("from"));
 let toValue = $state(initialFilterValue("to"));
 // #289: unlike medium/venue (exact match against a short, categorical
