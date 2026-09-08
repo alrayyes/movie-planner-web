@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.85.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.0...movie-planner-web-v0.85.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **share:** remove the overview's whole-list sharing, add per-viewing sharing instead ([#401](https://github.com/alrayyes/movie-planner-web/issues/401)) ([673d952](https://github.com/alrayyes/movie-planner-web/commit/673d952bc99ddd62c27cd70e67421e203cd17c32))
+
 ## [0.85.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.84.1...movie-planner-web-v0.85.0) (2026-09-08)
 
 
