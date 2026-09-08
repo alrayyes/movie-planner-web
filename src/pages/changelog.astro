@@ -1,20 +1,21 @@
 ---
-// #369: `?raw` inlines the file's text content at build time — a plain
-// fs.readFileSync of a relative path resolves against the bundled
-// chunk's own location once Astro moves this page's code into
-// dist/.prerender/, not against the source tree, and 404s at build
-// time (confirmed live: ENOENT for dist/CHANGELOG.md).
-import changelogMarkdown from "../../CHANGELOG.md?raw";
+import { getCollection } from "astro:content";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 import Layout from "../layouts/Layout.astro";
-import { parseChangelog } from "../lib/changelog/parse";
+import { compareReleasesNewestFirst } from "../lib/changelog/parse";
 
-// #369: parsed from the same CHANGELOG.md release-please already
-// maintains with real versions and dates, filtered to end-user-relevant
-// entries — see parse.ts for why this beats a hand-maintained second
-// list.
+// #369: the changelog collection is loaded from CHANGELOG.md (already
+// release-please-maintained, with real versions and dates) and filtered
+// to end-user-relevant entries by content.config.ts's changelogLoader —
+// see parse.ts for why this beats a hand-maintained second list. A
+// Content Layer collection doesn't promise to preserve the loader's own
+// insertion order, so this sorts explicitly rather than trusting
+// getCollection()'s own order — see compareReleasesNewestFirst for why a
+// plain date comparison isn't enough on its own.
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below the frontmatter fence, which Biome does not parse for .astro files
-const releases = parseChangelog(changelogMarkdown);
+const releases = (await getCollection("changelog"))
+  .map((entry) => entry.data)
+  .sort(compareReleasesNewestFirst);
 
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 function scopeLabel(scope: string): string {

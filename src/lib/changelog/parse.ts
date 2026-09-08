@@ -75,3 +75,24 @@ export function parseChangelog(markdown: string): ChangelogRelease[] {
 
   return releases;
 }
+
+// #369: a Content Layer collection doesn't promise to preserve the
+// loader's own insertion order (confirmed live: getCollection() came
+// back sorted by version *string*, "0.79.1" before "0.79.2" before
+// "0.79.3", which reads right in isolation but wrongly interleaves once
+// several same-day releases and a much older release are all in the
+// list together) — so the page sorts explicitly, and a plain date
+// comparison isn't enough on its own since more than one release can
+// land on the same calendar date. Comparing the version numerically
+// breaks that tie unambiguously; the date is only a secondary check for
+// the (currently impossible, given release-please's own numbering) case
+// of two equal versions.
+export function compareReleasesNewestFirst(a: ChangelogRelease, b: ChangelogRelease): number {
+  const aParts = a.version.split(".").map(Number);
+  const bParts = b.version.split(".").map(Number);
+  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+    const diff = (bParts[i] ?? 0) - (aParts[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return b.date.localeCompare(a.date);
+}

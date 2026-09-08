@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { parseChangelog } from "./parse";
+import { type ChangelogRelease, compareReleasesNewestFirst, parseChangelog } from "./parse";
+
+function release(overrides: Partial<ChangelogRelease>): ChangelogRelease {
+  return { version: "1.0.0", date: "2026-01-01", entries: [], ...overrides };
+}
 
 describe("parseChangelog", () => {
   test("keeps an entry from a real product scope", () => {
@@ -102,5 +106,33 @@ describe("parseChangelog", () => {
       { version: "0.79.0", date: "2026-09-07" },
       { version: "0.78.0", date: "2026-09-07" },
     ]);
+  });
+});
+
+describe("compareReleasesNewestFirst", () => {
+  test("sorts by version number, not the date string, when several releases share a date", () => {
+    // #369's own bug: a plain date comparison leaves same-day releases
+    // in whatever order the collection happened to return them, which
+    // isn't guaranteed to be newest-first.
+    const releases = [
+      release({ version: "0.79.1", date: "2026-09-08" }),
+      release({ version: "0.79.3", date: "2026-09-08" }),
+      release({ version: "0.79.2", date: "2026-09-08" }),
+    ];
+
+    releases.sort(compareReleasesNewestFirst);
+
+    expect(releases.map((r) => r.version)).toEqual(["0.79.3", "0.79.2", "0.79.1"]);
+  });
+
+  test("sorts a minor version above a later patch of an older minor", () => {
+    const releases = [
+      release({ version: "0.79.5", date: "2026-09-10" }),
+      release({ version: "0.80.0", date: "2026-09-09" }),
+    ];
+
+    releases.sort(compareReleasesNewestFirst);
+
+    expect(releases.map((r) => r.version)).toEqual(["0.80.0", "0.79.5"]);
   });
 });
