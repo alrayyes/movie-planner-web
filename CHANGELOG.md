@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.88.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.87.0...movie-planner-web-v0.88.0) (2026-09-08)
+
+
+### Features
+
+* **movie-details:** group fields into sections, cap long chip lists, widen the trailer ([#416](https://github.com/alrayyes/movie-planner-web/issues/416)) ([7af680c](https://github.com/alrayyes/movie-planner-web/commit/7af680c78700dff3425f5ae7cccc1d0fc0ca0cc2)), closes [#414](https://github.com/alrayyes/movie-planner-web/issues/414)
+
 ## [0.87.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.86.1...movie-planner-web-v0.87.0) (2026-09-08)
 
 
