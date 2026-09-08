@@ -146,6 +146,15 @@ test.describe("footer", () => {
     await expect(footer).toContainText("GPL-3.0-or-later");
   });
 
+  // #369: the deployed package.json version, linked to the changelog.
+  test("links to the changelog, labelled with the deployed version", async ({ page }) => {
+    await page.goto("/");
+
+    const footer = page.locator("footer");
+    const versionLink = footer.getByRole("link", { name: /^v\d+\.\d+\.\d+$/ });
+    await expect(versionLink).toHaveAttribute("href", "/changelog");
+  });
+
   test("privacy page states the fully static, browser-only storage claim, with a clean a11y scan", async ({
     page,
   }) => {
