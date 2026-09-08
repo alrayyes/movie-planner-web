@@ -879,6 +879,35 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #376: the page <title> reflects whichever single chip-driven filter
+  // (#374) is active, so several overview tabs are distinguishable.
+  test("the page title reflects the active filter, and reverts once it's cleared", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page).toHaveTitle("Movie Planner");
+
+    await page.goto("/?director=Denis%20Villeneuve");
+    await expect(page).toHaveTitle("Denis Villeneuve (director) — Movie Planner");
+
+    // #221: the filter panel is already open here, since a URL-carried
+    // filter opens it automatically — no need to click it open first.
+    await page.locator("#overview-director").fill("");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page).toHaveTitle("Movie Planner");
+  });
+
+  test("the page title shows no qualifier for a country filter, since the name reads fine alone", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, country: "Netherlands" }]);
+    await connect(page);
+
+    await page.goto("/?country=Netherlands");
+    await expect(page).toHaveTitle("Netherlands — Movie Planner");
+  });
+
   // #372: the venue's own geocoded city/country (#267) — a different
   // concept from the movie's own country/language below, so both need
   // their own filter and their own query param.
