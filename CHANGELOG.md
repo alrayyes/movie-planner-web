@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.80.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.3...movie-planner-web-v0.80.0) (2026-09-08)
+
+
+### Features
+
+* **changelog:** show the deployed version and an end-user-relevant changelog ([#370](https://github.com/alrayyes/movie-planner-web/issues/370)) ([b39c644](https://github.com/alrayyes/movie-planner-web/commit/b39c64415941914f832d65f8a44c509453c91881))
+
 ## [0.79.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.2...movie-planner-web-v0.79.3) (2026-09-08)
 
 
