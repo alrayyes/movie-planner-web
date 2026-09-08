@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.85.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.2...movie-planner-web-v0.85.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* **calendar-overview:** clicking any filter chip clears every other active filter ([#406](https://github.com/alrayyes/movie-planner-web/issues/406)) ([6bae2b9](https://github.com/alrayyes/movie-planner-web/commit/6bae2b925b9ee77ae16776b74b104744dbd34816))
+
 ## [0.85.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.1...movie-planner-web-v0.85.2) (2026-09-08)
 
 
