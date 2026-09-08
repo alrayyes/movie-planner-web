@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.82.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.81.0...movie-planner-web-v0.82.0) (2026-09-08)
+
+
+### Features
+
+* **calendar-overview:** show venue's city/country alongside its name ([#383](https://github.com/alrayyes/movie-planner-web/issues/383)) ([21f523b](https://github.com/alrayyes/movie-planner-web/commit/21f523bbf3361472c0b69e21152763e933fbae66))
+
 ## [0.81.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.80.0...movie-planner-web-v0.81.0) (2026-09-08)
 
 
