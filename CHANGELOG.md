@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.86.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.3...movie-planner-web-v0.86.0) (2026-09-08)
+
+
+### Features
+
+* **calendar-overview:** filter by release date, at day/month/year granularity ([#408](https://github.com/alrayyes/movie-planner-web/issues/408)) ([6d423c1](https://github.com/alrayyes/movie-planner-web/commit/6d423c15cc1eccd69a846cec58532db7f5645fb9))
+
 ## [0.85.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.2...movie-planner-web-v0.85.3) (2026-09-08)
 
 
