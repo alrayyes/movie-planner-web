@@ -306,21 +306,6 @@ const currentlyDisplayed = $derived.by(() => {
 	});
 });
 const total = $derived(currentlyDisplayed.length);
-// #351: every currently-filtered viewing with known coordinates, not
-// just the current page — same "share the whole filtered set, not just
-// what's on screen" reasoning #335's own Share link already uses.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const mapPins = $derived.by((): MapPin[] =>
-	currentlyDisplayed
-		.filter((v): v is LoggedViewing & { geo: { lat: number; lon: number } } => Boolean(v.geo))
-		.map((v) => ({
-			lat: v.geo.lat,
-			lon: v.geo.lon,
-			label: v.year ? `${v.title} (${v.year})` : v.title,
-			href: `/movie?uid=${encodeURIComponent(v.uid)}`,
-			posterUrl: v.posterUrl,
-		})),
-);
 const pages = $derived(Math.max(1, Math.ceil(total / pageSize)));
 // #59: clamps a stale currentPage (a smaller reloaded set, or a larger
 // page size, can leave it past the new last page) rather than
@@ -333,6 +318,23 @@ const currentPageItems = $derived.by(() => {
 	const start = currentPage * pageSize;
 	return currentlyDisplayed.slice(start, start + pageSize);
 });
+// #358: every viewing with known coordinates on the current page only —
+// mirrors the table exactly, rather than the whole filtered set (#351's
+// original scope), so the map never shows a pin for a viewing that
+// isn't in the rows below it. The "see everything at once, across
+// pages" view already has a home at /map and Venues.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const mapPins = $derived.by((): MapPin[] =>
+	currentPageItems
+		.filter((v): v is LoggedViewing & { geo: { lat: number; lon: number } } => Boolean(v.geo))
+		.map((v) => ({
+			lat: v.geo.lat,
+			lon: v.geo.lon,
+			label: v.year ? `${v.title} (${v.year})` : v.title,
+			href: `/movie?uid=${encodeURIComponent(v.uid)}`,
+			posterUrl: v.posterUrl,
+		})),
+);
 // #300: Google-style windowed page numbers — first, last, and a small
 // run around the current page, "…" filling any gap, rather than every
 // page number when there are dozens of them.
