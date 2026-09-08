@@ -663,6 +663,10 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Date", { exact: true })).toBeVisible();
     await expect(page.getByText("Start", { exact: true })).toHaveCount(0);
     await expect(page.getByText("End", { exact: true })).toHaveCount(0);
+    // #379: no real duration to visualize when start and end are the
+    // same instant, so the decorative bar doesn't render at all.
+    const bar = page.locator('[aria-hidden="true"]').filter({ has: page.locator("div[style]") });
+    await expect(bar).toHaveCount(0);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

@@ -560,19 +560,24 @@ reloadOnBfcacheRestore(() => void load());
               <dd class={DD}>{formatDateTime(viewing.end)}</dd>
             {/if}
           </dl>
-          <!-- #199: purely visual — the dl above (Start/End) is already
-          the real, complete accessible description of the viewing's
-          timing, so this decorative duration bar carries nothing a
-          screen reader needs to hear a second time. -->
-          <div
-            class="relative h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
-            aria-hidden="true"
-          >
+          {#if viewing.start !== viewing.end}
+            <!-- #199: purely visual — the dl above (Start/End) is already
+            the real, complete accessible description of the viewing's
+            timing, so this decorative duration bar carries nothing a
+            screen reader needs to hear a second time. #379: hidden
+            entirely (not just zero-width) when start/end are identical
+            — there's no real duration to visualize, same reasoning as
+            the Date row above showing no time at all in that case. -->
             <div
-              class="absolute inset-y-0 rounded-full bg-indigo-500 dark:bg-indigo-400"
-              style={`left: ${blockedTimeBar.positionPercent}%; width: ${blockedTimeBar.widthPercent}%;`}
-            ></div>
-          </div>
+              class="relative h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+              aria-hidden="true"
+            >
+              <div
+                class="absolute inset-y-0 rounded-full bg-indigo-500 dark:bg-indigo-400"
+                style={`left: ${blockedTimeBar.positionPercent}%; width: ${blockedTimeBar.widthPercent}%;`}
+              ></div>
+            </div>
+          {/if}
           <dl class={DL}>
             {#each fields as [term, value] (term)}
               {#if value}
