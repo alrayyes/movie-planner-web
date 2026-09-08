@@ -39,6 +39,12 @@ export const NAV =
 export const NAV_LINK =
   "text-sm font-medium text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400";
 
+// #375
+export const BREADCRUMB_LIST = "mb-4 flex items-center gap-1.5 text-sm";
+export const BREADCRUMB_LINK = "text-indigo-600 hover:underline dark:text-indigo-400";
+export const BREADCRUMB_CURRENT = "font-medium text-slate-700 dark:text-slate-300";
+export const BREADCRUMB_SEPARATOR = "text-slate-400 dark:text-slate-600";
+
 export const SECTION_HEADING = "text-base font-semibold text-slate-900 dark:text-slate-100";
 
 export const TABLE_WRAP =

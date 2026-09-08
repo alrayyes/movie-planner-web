@@ -125,6 +125,102 @@ test.describe("site nav", () => {
   });
 });
 
+// #375
+test.describe("breadcrumb", () => {
+  const ONE_MONTH_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const DUNE = {
+    uid: "dune-uid",
+    title: "Dune",
+    start: ONE_MONTH_AGO.toISOString(),
+    end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+    medium: "cinema",
+    director: "Denis Villeneuve",
+  };
+
+  test("shows nothing on the unfiltered overview — a single 'Home' crumb linking to itself carries nothing", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toHaveCount(0);
+  });
+
+  test("reads 'Home / <label>' on the overview filtered by a chip-driven query param, linking back to the unfiltered overview", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.goto("/?director=Denis%20Villeneuve");
+
+    const nav = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(nav).toBeVisible();
+    await expect(nav).toContainText("Denis Villeneuve (director)");
+    await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+  });
+
+  test("stays in sync with a filter typed directly into the form, not just the URL a chip link loaded with", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toHaveCount(0);
+
+    await page.getByText("Filters", { exact: true }).click();
+    await page.locator("#overview-director").fill("Denis Villeneuve");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText(
+      "Denis Villeneuve (director)",
+    );
+  });
+
+  test("shows a fixed 'Home / <page name>' trail on every other page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    for (const [href, name] of [
+      ["/venues", "Venues"],
+      ["/import", "Import"],
+      ["/log", "Log a viewing"],
+      ["/settings", "Settings"],
+      ["/map", "Map"],
+      ["/activity", "Activity"],
+    ] as const) {
+      await page.goto(href);
+      const nav = page.getByRole("navigation", { name: "Breadcrumb" });
+      await expect(nav).toBeVisible();
+      await expect(nav).toContainText(name);
+      await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    }
+  });
+
+  test("shows 'Home / Movie details' on a viewing's own details page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+
+    const nav = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(nav).toBeVisible();
+    await expect(nav).toContainText("Movie details");
+  });
+
+  test("uses <nav aria-label='Breadcrumb'> with an ordered list, and introduces no accessibility violations", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/venues");
+
+    await expect(page.locator("nav[aria-label='Breadcrumb'] ol")).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
 // #67
 test.describe("footer", () => {
   test("links to GitHub, the disclaimer, and the privacy page, with a copyright line", async ({
