@@ -52,6 +52,15 @@ describe("formatPeriod", () => {
     expect(period).toMatch(/^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2} - \d{2}:\d{2}$/);
   });
 
+  // #359: same rule as MovieDetails.svelte's own Start/End collapse —
+  // identical start/end never means a real, distinct zero-duration
+  // range, just that no end time was ever recorded.
+  test("shows the date-time once, not a same-time range, when start and end are identical", () => {
+    const period = formatPeriod("2026-08-29T12:40:00.000Z", "2026-08-29T12:40:00.000Z");
+    expect(period).toMatch(/^[A-Z][a-z]{2} \d{2}-\d{2}-2026 \d{2}:\d{2}$/);
+    expect(period).not.toContain(" - ");
+  });
+
   test("falls back to two full date-times when start and end are different days", () => {
     // Two days apart in UTC, not just either side of a single midnight —
     // margin enough that this stays a different local calendar day

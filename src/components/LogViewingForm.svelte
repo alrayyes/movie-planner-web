@@ -390,10 +390,19 @@ async function handleConfirm() {
         <dl class={DL}>
           <dt class={DT}>Title</dt>
           <dd class={DD}>{parsedBooking.title}</dd>
-          <dt class={DT}>Start</dt>
-          <dd class={DD}>{formatDateTime(parsedBooking.start)}</dd>
-          <dt class={DT}>End</dt>
-          <dd class={DD}>{formatDateTime(parsedBooking.end)}</dd>
+          {#if parsedBooking.start === parsedBooking.end}
+            <!-- #359: same rule as MovieDetails.svelte's own Start/End
+            collapse — a real Pathé booking always parses a distinct end
+            time, but this stays consistent with every other place this
+            app shows Start/End rather than assuming that's guaranteed. -->
+            <dt class={DT}>Date</dt>
+            <dd class={DD}>{formatDateTime(parsedBooking.start)}</dd>
+          {:else}
+            <dt class={DT}>Start</dt>
+            <dd class={DD}>{formatDateTime(parsedBooking.start)}</dd>
+            <dt class={DT}>End</dt>
+            <dd class={DD}>{formatDateTime(parsedBooking.end)}</dd>
+          {/if}
           <dt class={DT}>Cinema</dt>
           <dd class={DD}>{parsedBooking.cinema}</dd>
           <dt class={DT}>Booking number</dt>
