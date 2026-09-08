@@ -48,4 +48,46 @@ test.describe("docs", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Movie Planner" })).toBeVisible();
   });
+
+  // #392: Starlight manages its own theme independently (its own
+  // localStorage key, its own <html data-theme> attribute) — an
+  // explicit choice made on the main app (a different key, a .dark
+  // class) previously never reached it.
+  test.describe("theme sync with the main app", () => {
+    test("an explicit dark preference on the main app carries over to a docs page", async ({
+      page,
+    }) => {
+      await page.addInitScript(() => {
+        localStorage.setItem("movie-planner-web-theme", "dark");
+      });
+
+      await page.goto("/docs/");
+
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    });
+
+    test("an explicit light preference on the main app carries over to a docs page", async ({
+      page,
+    }) => {
+      await page.addInitScript(() => {
+        localStorage.setItem("movie-planner-web-theme", "light");
+      });
+
+      await page.goto("/docs/");
+
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    });
+
+    // No stored app-side preference at all — Starlight's own default
+    // (system preference) stays in charge, unchanged from before #392.
+    test("with no stored app preference, Starlight's own default still applies", async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: "light" });
+
+      await page.goto("/docs/");
+
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    });
+  });
 });
