@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.2...movie-planner-web-v0.79.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* **movie-details:** show just the date when Start and End are identical ([#367](https://github.com/alrayyes/movie-planner-web/issues/367)) ([f76797c](https://github.com/alrayyes/movie-planner-web/commit/f76797c342b2e5f13e447e473554b8a2c95126fa))
+
 ## [0.79.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.79.1...movie-planner-web-v0.79.2) (2026-09-08)
 
 
