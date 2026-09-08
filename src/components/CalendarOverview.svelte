@@ -151,6 +151,13 @@ let actionStatusText = $state("");
 let shareStatusText = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let sharing = $state(false);
+// #362: the actual generated link, shown as visible/selectable text —
+// clipboard-write and the Web Share API both depend on browser
+// permission/gesture-timing quirks that a real visitor can hit (see
+// handleShare's own comment), so the link itself, not an invisible
+// side effect, is the one thing this feature can always fall back to.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let sharedUrl = $state("");
 // #131/#146: pre-populated from `venue`/`from`/`to` query params so a
 // link from the venues page (or anywhere else) lands here already
 // filtered to the same viewings, with the values visible and editable
@@ -640,10 +647,21 @@ async function handleRefreshAll() {
 // button is an easy thing to miss entirely on a phone. Desktop
 // browsers mostly don't implement navigator.share at all, so the
 // clipboard fallback stays the everyday path there.
+// #362: navigator.share and navigator.clipboard.writeText both turned
+// out to be unreliable in real browsers, not just a mobile-visibility
+// problem — confirmed live: a real (non-mocked-permission) browser
+// throws "NotAllowedError: Write permission denied" on the clipboard
+// call, since the async encode step above can outlast the click's own
+// "trusted user gesture" window Chromium tracks. Web Share is tried
+// first (it's the best UX when it works — an unmistakable native share
+// sheet), but the link is now always revealed as visible, selectable
+// text too, since that's the one path that can never fail regardless
+// of what either API decides to do.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleShare() {
 	sharing = true;
 	shareStatusText = "Preparing link…";
+	sharedUrl = "";
 	try {
 		const state: SharedState = {
 			sharedAt: new Date().toISOString(),
@@ -656,24 +674,49 @@ async function handleShare() {
 			return;
 		}
 		const count = state.viewings.length;
-		const shareData = { title: "Movie Planner — shared viewings", url };
+
 		if (typeof navigator.share === "function") {
-			await navigator.share(shareData);
-			shareStatusText = `Shared — ${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
-		} else {
-			await navigator.clipboard.writeText(url);
-			shareStatusText = `Link copied — ${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
+			try {
+				await navigator.share({ title: "Movie Planner — shared viewings", url });
+				shareStatusText = `Shared — ${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
+				return;
+			} catch (shareError) {
+				// Closing the native share sheet without picking anything
+				// throws AbortError — a visitor changing their mind, not a
+				// failure worth falling through to the link box for.
+				if (shareError instanceof Error && shareError.name === "AbortError") {
+					shareStatusText = "";
+					return;
+				}
+				// Any other failure (permission/gesture-timing, no share
+				// targets available, ...) falls through to the visible link
+				// below instead of leaving a visitor with nothing.
+			}
 		}
+
+		sharedUrl = url;
+		shareStatusText = `${count} viewing${count === 1 ? "" : "s"}, read-only, frozen as of now.`;
 	} catch (error) {
-		// Closing the native share sheet without picking anything throws
-		// AbortError — a visitor changing their mind, not a failure.
-		if (error instanceof Error && error.name === "AbortError") {
-			shareStatusText = "";
-			return;
-		}
 		shareStatusText = error instanceof Error ? error.message : "Failed to prepare the link.";
 	} finally {
 		sharing = false;
+	}
+}
+
+// #362: a fresh click of its own, no async work ahead of the clipboard
+// call — unlike handleShare's own attempt, this one isn't subject to
+// the "user gesture expired during the await" failure, since the link
+// is already computed by the time this fires. Best-effort regardless:
+// the link is already visible and selectable either way, so a failure
+// here just means the status text doesn't update, not that sharing
+// stops working.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleCopyShareLink() {
+	try {
+		await navigator.clipboard.writeText(sharedUrl);
+		shareStatusText = `Copied — ${shareStatusText}`;
+	} catch {
+		// Best-effort only — see comment above.
 	}
 }
 
@@ -856,7 +899,7 @@ getPicklists(config).then((picklists) => {
         Share
       </button>
       <p class={STATUS_TEXT}>
-        Copies a read-only link to what's currently filtered and shown here — frozen at the
+        Generates a read-only link to what's currently filtered and shown here — frozen at the
         moment you share it, no credentials included, works for anyone you send it to.
       </p>
     </div>
@@ -873,6 +916,23 @@ getPicklists(config).then((picklists) => {
     new "last" one instead, the same trap export-json-button.ts's own
     comment already documents. -->
     <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
+  {/if}
+  {#if sharedUrl}
+    <!-- #362: the actual, always-reliable fallback — visible, selectable
+    text, not dependent on either navigator.share or clipboard-write
+    succeeding. select-on-focus makes "click the box, Ctrl/Cmd+C" a
+    one-step copy even without the button next to it working. -->
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <input
+        type="text"
+        readonly
+        value={sharedUrl}
+        aria-label="Shareable link"
+        class={`${INPUT} max-w-md`}
+        onfocus={(event) => event.currentTarget.select()}
+      />
+      <button type="button" class={BUTTON_SM} onclick={handleCopyShareLink}> Copy </button>
+    </div>
   {/if}
   <div bind:this={pickerArea}></div>
 

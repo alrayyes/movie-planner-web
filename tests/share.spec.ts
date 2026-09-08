@@ -70,18 +70,26 @@ async function connect(page: Page) {
 }
 
 test.describe("sharing a read-only snapshot", () => {
-  test("copies a link that renders the same viewings read-only, with no credentials involved", async ({
+  // #362: deliberately grants NO clipboard permission — the default
+  // state for a real, fresh visitor, and the exact condition that
+  // reproduced the real bug this feature shipped with (clipboard-write
+  // throwing NotAllowedError, silently making Share look like it did
+  // nothing). The visible link box is the fix: it has to work
+  // regardless of clipboard/share permissions, not just when a test
+  // grants them upfront.
+  test("shows the link as visible, selectable text — the reliable path when clipboard/share aren't available", async ({
     page,
     context,
   }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [PADDINGTON, DUNE]);
     await connect(page);
 
     await page.getByRole("button", { name: "Share" }).click();
-    await expect(page.getByText(/Link copied — 2 viewings/)).toBeVisible();
+    await expect(page.getByText(/^2 viewings, read-only, frozen as of now\.$/)).toBeVisible();
 
-    const sharedUrl = await page.evaluate(() => navigator.clipboard.readText());
+    const linkBox = page.getByRole("textbox", { name: "Shareable link" });
+    await expect(linkBox).toBeVisible();
+    const sharedUrl = await linkBox.inputValue();
     expect(sharedUrl).toContain("/shared?state=");
     expect(sharedUrl).not.toContain(CREDENTIALS["caldav-username"]);
     expect(sharedUrl).not.toContain(CREDENTIALS["caldav-password"]);
@@ -105,6 +113,26 @@ test.describe("sharing a read-only snapshot", () => {
 
     const results = await new AxeBuilder({ page: freshPage }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
+  });
+
+  test("the Copy button copies the shown link, when clipboard permission is actually granted", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.getByRole("button", { name: "Share" }).click();
+    const linkBox = page.getByRole("textbox", { name: "Shareable link" });
+    await expect(linkBox).toBeVisible();
+    const shownUrl = await linkBox.inputValue();
+
+    await page.getByRole("button", { name: "Copy" }).click();
+    await expect(page.getByText(/^Copied — 1 viewing, read-only/)).toBeVisible();
+
+    const clipboardValue = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipboardValue).toBe(shownUrl);
   });
 
   // #345: Brave/Android reported doing nothing at all on tap — the Web
