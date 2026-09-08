@@ -12,6 +12,10 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import { openStreetMapUrl } from "../lib/geo/links";
 import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
 import { findKnownGeo } from "../lib/geo/reuse";
+import {
+	exportSingleViewingFilename,
+	exportViewingsToJson,
+} from "../lib/movie-log/export-viewings";
 import { importCheckRange } from "../lib/movie-log/run-import";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
@@ -320,6 +324,22 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 	} catch (error) {
 		statusText = error instanceof Error ? error.message : "Failed to search OMDb.";
 	}
+}
+
+// #388: reuses exportViewingsToJson (already accepts an array) with a
+// single-element array — same field shape as the bulk export, just one
+// row, named from this viewing's own title/date rather than "today"
+// (exportSingleViewingFilename).
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function handleExport(current: LoggedViewing) {
+	const blob = new Blob([exportViewingsToJson([current])], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = exportSingleViewingFilename(current);
+	link.click();
+	URL.revokeObjectURL(url);
+	statusText = "Exported.";
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -800,6 +820,9 @@ reloadOnBfcacheRestore(() => void load());
           <div class="flex gap-2">
             <button type="button" class={BUTTON_SM} onclick={() => startEdit(viewing)}>
               Edit
+            </button>
+            <button type="button" class={BUTTON_SM} onclick={() => handleExport(viewing)}>
+              Export
             </button>
             {#if omdbActive}
               <button
