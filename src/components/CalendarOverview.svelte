@@ -137,6 +137,34 @@ const genreOptions = $derived.by(() => {
 	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.genre)))].sort();
 });
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const cityOptions = $derived.by(() => {
+	return [...new Set(allViewings.map((v) => v.city).filter((v): v is string => Boolean(v)))].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const countryOptions = $derived.by(() => {
+	return [
+		...new Set(allViewings.map((v) => v.country).filter((v): v is string => Boolean(v))),
+	].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const movieCountryOptions = $derived.by(() => {
+	return [
+		...new Set(allViewings.map((v) => v.movieCountry).filter((v): v is string => Boolean(v))),
+	].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const movieLanguageOptions = $derived.by(() => {
+	return [
+		...new Set(allViewings.map((v) => v.movieLanguage).filter((v): v is string => Boolean(v))),
+	].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const ratedOptions = $derived.by(() => {
+	return [
+		...new Set(allViewings.map((v) => v.rated).filter((v): v is string => Boolean(v))),
+	].sort();
+});
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let statusText = $state("");
 // Separate from statusText (the result count, rewritten on every
 // reload) so a "Saved."/"Refreshed." confirmation isn't clobbered the
@@ -188,7 +216,12 @@ type StoredFilterKey =
 	| "venue"
 	| "director"
 	| "actor"
-	| "genre";
+	| "genre"
+	| "city"
+	| "country"
+	| "movieCountry"
+	| "movieLanguage"
+	| "rated";
 type StoredFilters = Partial<Record<StoredFilterKey, string>> & { open?: boolean };
 
 function readStoredFilters(): StoredFilters {
@@ -217,7 +250,21 @@ function initialFilterValue(key: StoredFilterKey): string {
 // they submitted one.
 let filtersOpen = $state(
 	(
-		["from", "to", "title", "medium", "venue", "director", "actor", "genre"] as StoredFilterKey[]
+		[
+			"from",
+			"to",
+			"title",
+			"medium",
+			"venue",
+			"director",
+			"actor",
+			"genre",
+			"city",
+			"country",
+			"movieCountry",
+			"movieLanguage",
+			"rated",
+		] as StoredFilterKey[]
 	).some((key) => initialParams.get(key)) || Boolean(storedFilters.open),
 );
 let fromValue = $state(initialFilterValue("from"));
@@ -236,6 +283,15 @@ let venueValue = $state(initialFilterValue("venue"));
 let directorValue = $state(initialFilterValue("director"));
 let actorValue = $state(initialFilterValue("actor"));
 let genreValue = $state(initialFilterValue("genre"));
+// #372: city/country are the venue's own geocoded location (#267) —
+// a different concept from movieCountry/movieLanguage, the movie's own
+// OMDb-derived fields. All five are exact-match, single-value, same as
+// venue/medium above.
+let cityValue = $state(initialFilterValue("city"));
+let countryValue = $state(initialFilterValue("country"));
+let movieCountryValue = $state(initialFilterValue("movieCountry"));
+let movieLanguageValue = $state(initialFilterValue("movieLanguage"));
+let ratedValue = $state(initialFilterValue("rated"));
 // #169: defaults match the previous hardcoded "most recently watched
 // first" behaviour — clicking a column header switches to sorting by
 // it (ascending on first click), and clicking the same header again
@@ -282,6 +338,11 @@ const currentlyDisplayed = $derived.by(() => {
 	const directorFilter = directorValue.trim().toLowerCase();
 	const actorFilter = actorValue.trim().toLowerCase();
 	const genreFilter = genreValue.trim().toLowerCase();
+	const cityFilter = cityValue.trim().toLowerCase();
+	const countryFilter = countryValue.trim().toLowerCase();
+	const movieCountryFilter = movieCountryValue.trim().toLowerCase();
+	const movieLanguageFilter = movieLanguageValue.trim().toLowerCase();
+	const ratedFilter = ratedValue.trim().toLowerCase();
 	const filtered = allViewings.filter((v) => {
 		if (titleFilter && !v.title.toLowerCase().includes(titleFilter)) return false;
 		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
@@ -301,6 +362,13 @@ const currentlyDisplayed = $derived.by(() => {
 			!splitMultiValue(v.genre).some((genre) => genre.toLowerCase() === genreFilter)
 		)
 			return false;
+		if (cityFilter && (v.city ?? "").toLowerCase() !== cityFilter) return false;
+		if (countryFilter && (v.country ?? "").toLowerCase() !== countryFilter) return false;
+		if (movieCountryFilter && (v.movieCountry ?? "").toLowerCase() !== movieCountryFilter)
+			return false;
+		if (movieLanguageFilter && (v.movieLanguage ?? "").toLowerCase() !== movieLanguageFilter)
+			return false;
+		if (ratedFilter && (v.rated ?? "").toLowerCase() !== ratedFilter) return false;
 		return true;
 	});
 	// Re-sorted fresh every time rather than relying on insertion order,
@@ -441,6 +509,11 @@ function syncFilterState() {
 		["director", directorValue],
 		["actor", actorValue],
 		["genre", genreValue],
+		["city", cityValue],
+		["country", countryValue],
+		["movieCountry", movieCountryValue],
+		["movieLanguage", movieLanguageValue],
+		["rated", ratedValue],
 	];
 	for (const [key, value] of entries) {
 		if (value) stored[key] = value;
@@ -480,6 +553,11 @@ function handleClearFilter() {
 	directorValue = "";
 	actorValue = "";
 	genreValue = "";
+	cityValue = "";
+	countryValue = "";
+	movieCountryValue = "";
+	movieLanguageValue = "";
+	ratedValue = "";
 	currentPage = 0;
 	syncFilterState();
 	void reload();
@@ -847,6 +925,86 @@ getPicklists(config).then((picklists) => {
         <datalist id="overview-genre-choices">
           {#each genreOptions as genre (genre)}
             <option value={genre}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-city">
+        <span class={LABEL}>City</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-city"
+          placeholder="e.g. Amsterdam"
+          list="overview-city-choices"
+          bind:value={cityValue}
+        />
+        <datalist id="overview-city-choices">
+          {#each cityOptions as city (city)}
+            <option value={city}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-country">
+        <span class={LABEL}>Country</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-country"
+          placeholder="e.g. Netherlands"
+          list="overview-country-choices"
+          bind:value={countryValue}
+        />
+        <datalist id="overview-country-choices">
+          {#each countryOptions as country (country)}
+            <option value={country}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-movie-country">
+        <span class={LABEL}>Movie country</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-movie-country"
+          placeholder="e.g. United States"
+          list="overview-movie-country-choices"
+          bind:value={movieCountryValue}
+        />
+        <datalist id="overview-movie-country-choices">
+          {#each movieCountryOptions as movieCountry (movieCountry)}
+            <option value={movieCountry}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-movie-language">
+        <span class={LABEL}>Movie language</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-movie-language"
+          placeholder="e.g. English"
+          list="overview-movie-language-choices"
+          bind:value={movieLanguageValue}
+        />
+        <datalist id="overview-movie-language-choices">
+          {#each movieLanguageOptions as movieLanguage (movieLanguage)}
+            <option value={movieLanguage}></option>
+          {/each}
+        </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-rated">
+        <span class={LABEL}>Rated</span>
+        <input
+          class={INPUT}
+          type="text"
+          id="overview-rated"
+          placeholder="e.g. PG-13"
+          list="overview-rated-choices"
+          bind:value={ratedValue}
+        />
+        <datalist id="overview-rated-choices">
+          {#each ratedOptions as rated (rated)}
+            <option value={rated}></option>
           {/each}
         </datalist>
       </label>

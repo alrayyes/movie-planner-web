@@ -11,14 +11,22 @@ watched first by default.
 From and To date fields default to your own actual first and last logged
 viewing, so they always show what's actually being applied rather than
 looking blank while a narrower default silently filters underneath. You
-can also filter by medium, venue, director, actor, or genre — every text
-field offers autocomplete drawn from your own logged viewings (and, for
-medium and venue, from your saved [venue list](/docs/import-export/) too).
-Director, actor, and genre match one exact value, not a substring — a
-genre filter for "Action" won't also catch "Live Action Adaptation".
+can also filter by medium, venue, director, actor, genre, city, country,
+movie country, movie language, or rated — every text field offers
+autocomplete drawn from your own logged viewings (and, for medium and
+venue, from your saved [venue list](/docs/import-export/) too). City and
+country are the venue's own location, when known; movie country and
+movie language are the film's own OMDb-derived fields, a different thing
+from where you watched it. Director, actor, genre, city, country, movie
+country, movie language, and rated all match one exact value, not a
+substring — a genre filter for "Action" won't also catch "Live Action
+Adaptation".
 
-Clicking a director, actor, or genre chip on a viewing's own details page
-takes you straight to the overview pre-filtered to that exact value.
+Clicking a director, actor, or genre chip, or a Rated/Language/Country
+row, on a viewing's own details page takes you straight to the overview
+pre-filtered to that exact value. Clicking a country or city heading on
+the [Venues page](/docs/venues/) does the same for every viewing at a
+venue in that country/city.
 
 ## Sorting and pagination
 

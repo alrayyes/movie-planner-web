@@ -483,11 +483,8 @@ reloadOnBfcacheRestore(() => void load());
       {@const genreChips = splitMultiValue(viewing.genre)}
       {@const fields = [
         ['Medium', viewing.medium],
-        ['Rated', viewing.rated],
         ['Runtime', viewing.runtime],
         ['Released', viewing.released],
-        ['Language', viewing.movieLanguage],
-        ['Country', viewing.movieCountry],
         ['Metascore', viewing.metascore],
         ['IMDb Votes', viewing.imdbVotes],
         ['Box Office', viewing.boxOffice],
@@ -595,6 +592,44 @@ reloadOnBfcacheRestore(() => void load());
                   class="text-indigo-600 hover:underline dark:text-indigo-400"
                 >
                   {viewing.venue}
+                </a>
+              </dd>
+            {/if}
+            {#if viewing.rated}
+              <!-- #372: the movie's own OMDb-derived Rated/Language/
+              Country fields, same single-link pattern as Venue above —
+              a different concept from the venue's own city/country,
+              which is clickable from the Venues page's own grouping
+              instead. -->
+              <dt class={DT}>Rated</dt>
+              <dd class={DD}>
+                <a
+                  href={`/?rated=${encodeURIComponent(viewing.rated)}`}
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {viewing.rated}
+                </a>
+              </dd>
+            {/if}
+            {#if viewing.movieLanguage}
+              <dt class={DT}>Language</dt>
+              <dd class={DD}>
+                <a
+                  href={`/?movieLanguage=${encodeURIComponent(viewing.movieLanguage)}`}
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {viewing.movieLanguage}
+                </a>
+              </dd>
+            {/if}
+            {#if viewing.movieCountry}
+              <dt class={DT}>Country</dt>
+              <dd class={DD}>
+                <a
+                  href={`/?movieCountry=${encodeURIComponent(viewing.movieCountry)}`}
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {viewing.movieCountry}
                 </a>
               </dd>
             {/if}
