@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.89.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.88.1...movie-planner-web-v0.89.0) (2026-09-08)
+
+
+### Features
+
+* **chrome:** add breadcrumb navigation ([#421](https://github.com/alrayyes/movie-planner-web/issues/421)) ([7d6764c](https://github.com/alrayyes/movie-planner-web/commit/7d6764cd6be7b84b807f1fb708785cc3b5b67a86)), closes [#375](https://github.com/alrayyes/movie-planner-web/issues/375)
+
 ## [0.88.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.88.0...movie-planner-web-v0.88.1) (2026-09-08)
 
 
