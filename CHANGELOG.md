@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.86.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.86.0...movie-planner-web-v0.86.1) (2026-09-08)
+
+
+### Reverts
+
+* **calendar-overview:** stop appending venue city/country to the name ([#411](https://github.com/alrayyes/movie-planner-web/issues/411)) ([ccb0ec5](https://github.com/alrayyes/movie-planner-web/commit/ccb0ec5b9ea015935b49a290e35f2849005c416b))
+
 ## [0.86.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.85.3...movie-planner-web-v0.86.0) (2026-09-08)
 
 
