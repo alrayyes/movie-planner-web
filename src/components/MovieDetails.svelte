@@ -371,9 +371,16 @@ reloadOnBfcacheRestore(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">
-  <a href="/" class="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-    Back to overview
-  </a>
+  <!-- #384: a real navigation to a different URL — WAI-ARIA/WCAG both
+  reserve <button> for an in-page action and <a> for navigation, so
+  this stays a link rather than becoming a <button> (which would also
+  lose right-click/open-in-new-tab and native browser back/forward
+  semantics). What was actually missing was visual prominence — plain
+  small text read as an afterthought — so it's styled with the app's
+  existing button look instead, a widely-used pattern (a link visually
+  styled as a button, semantically still a link). self-start keeps it
+  from stretching full-width in this flex-col container. -->
+  <a href="/" class={`${BUTTON_SECONDARY} self-start`}>Back to overview</a>
 
   {#if notFound}
     <p class="text-slate-700 dark:text-slate-300">Viewing not found.</p>
