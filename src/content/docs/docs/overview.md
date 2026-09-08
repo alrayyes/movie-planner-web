@@ -22,11 +22,15 @@ country, movie language, and rated all match one exact value, not a
 substring — a genre filter for "Action" won't also catch "Live Action
 Adaptation".
 
-Clicking a director, actor, or genre chip, or a Rated/Language/Country
-row, on a viewing's own details page takes you straight to the overview
-pre-filtered to that exact value. Clicking a country or city heading on
-the [Venues page](/docs/venues/) does the same for every viewing at a
-venue in that country/city.
+You can also filter by release date, at whichever precision you pick —
+exact date, month, or year — each matched independently of the others.
+
+Clicking a director, actor, or genre chip, a Rated/Language/Country row,
+or any piece of the Released date (day, month, or year), on a viewing's
+own details page takes you straight to the overview pre-filtered to
+that exact value/granularity. Clicking a country or city heading on the
+[Venues page](/docs/venues/) does the same for every viewing at a venue
+in that country/city.
 
 ## Sorting and pagination
 

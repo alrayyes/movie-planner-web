@@ -678,6 +678,39 @@ test.describe("movie details page", () => {
     );
   });
 
+  // #373
+  test("links each piece of Released (day, month, year) to the overview filtered to that granularity", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, released: "22 Oct 2021" }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "22" })).toHaveAttribute(
+      "href",
+      "/?releasedDate=2021-10-22",
+    );
+    await expect(page.getByRole("link", { name: "Oct" })).toHaveAttribute(
+      "href",
+      "/?releasedMonth=2021-10",
+    );
+    await expect(page.getByRole("link", { name: "2021" })).toHaveAttribute(
+      "href",
+      "/?releasedYear=2021",
+    );
+  });
+
+  test("falls back to plain text for a Released value parseReleasedDate doesn't recognize", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, released: "Coming soon" }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Coming soon")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Coming soon" })).toHaveCount(0);
+  });
+
   // #359: start === end only ever means the time was never known at all
   // (a genuinely date-only import, or #278's own "missing end defaults
   // to start" rule) — showing two identical date-times would imply a

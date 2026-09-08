@@ -26,6 +26,8 @@ import { hasOmdbMetadata } from "../lib/omdb/metadata";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { parseReleasedDate } from "../lib/omdb/released-date";
 import { encodeSharedState, type SharedState, toSharedViewing } from "../lib/share/encode";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -637,7 +639,6 @@ reloadOnBfcacheRestore(() => void load());
       {@const fields = [
         ['Medium', viewing.medium],
         ['Runtime', viewing.runtime],
-        ['Released', viewing.released],
         ['Metascore', viewing.metascore],
         ['IMDb Votes', viewing.imdbVotes],
         ['Box Office', viewing.boxOffice],
@@ -789,6 +790,42 @@ reloadOnBfcacheRestore(() => void load());
                 >
                   {viewing.movieCountry}
                 </a>
+              </dd>
+            {/if}
+            {#if viewing.released}
+              <!-- #373: three independently clickable pieces — day,
+              month, year — since OMDb's own "DD MMM YYYY" shape splits
+              cleanly into exactly the three granularities the
+              overview's own releasedDate/releasedMonth/releasedYear
+              filters support. Falls back to plain text for a shape
+              parseReleasedDate doesn't recognize, rather than guessing
+              at filter values that wouldn't actually match anything. -->
+              {@const releasedParts = viewing.released.split(" ")}
+              {@const releasedFilters = parseReleasedDate(viewing.released)}
+              <dt class={DT}>Released</dt>
+              <dd class={DD}>
+                {#if releasedFilters && releasedParts.length === 3}
+                  <a
+                    href={`/?releasedDate=${releasedFilters.date}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {releasedParts[0]}
+                  </a>
+                  <a
+                    href={`/?releasedMonth=${releasedFilters.month}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {releasedParts[1]}
+                  </a>
+                  <a
+                    href={`/?releasedYear=${releasedFilters.year}`}
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {releasedParts[2]}
+                  </a>
+                {:else}
+                  {viewing.released}
+                {/if}
               </dd>
             {/if}
             {#if directorChips.length > 0}
