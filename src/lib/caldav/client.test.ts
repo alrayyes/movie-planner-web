@@ -141,6 +141,26 @@ describe("getViewing", () => {
     ) as unknown as typeof fetch;
     await expect(getViewing(CONFIG, "uid-1")).rejects.toThrow(CaldavRequestFailedError);
   });
+
+  // A specific event's own resource URL, unlike REPORT's calendar-query,
+  // is a real, cacheable GET — a CalDAV server's ETag/Last-Modified
+  // headers can otherwise leave the browser serving last visit's stale
+  // copy of just this one event even after it's genuinely changed
+  // server-side, while listViewings's own REPORT (never cached by
+  // browsers) always sees fresh data. Confirmed live: exactly one
+  // venue's details page lagged behind a real server-side data refresh
+  // that every other entry picked up immediately.
+  test("forces the browser to skip its own HTTP cache for this event's resource", async () => {
+    const ical = serializeViewingToVEvent("uid-1", VIEWING);
+    const fetchMock = mock(async (_url: string, init: RequestInit) => {
+      expect(init.cache).toBe("no-store");
+      return new Response(ical, { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await getViewing(CONFIG, "uid-1");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("createViewing / updateViewing", () => {
@@ -263,6 +283,17 @@ describe("sidecar picklists", () => {
       media: ["cinema"],
       venues: ["Grand Vista Cinema"],
     });
+  });
+
+  test("getPicklists forces the browser to skip its own HTTP cache too, same as getViewing", async () => {
+    const fetchMock = mock(async (_url: string, init: RequestInit) => {
+      expect(init.cache).toBe("no-store");
+      return new Response("", { status: 404 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await getPicklists(CONFIG);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   test("updatePicklists PUTs the serialized sidecar to its well-known UID", async () => {
