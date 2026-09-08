@@ -33,7 +33,8 @@ that exact value/granularity. Clicking a country or city heading on the
 in that country/city. When exactly one such filter is active, the
 browser tab's title reflects it — for example "Christopher Nolan
 (director) — Movie Planner" — so several filtered tabs stay easy to
-tell apart.
+tell apart. A long cast on a details page shows only the first
+several actor chips, with a "+N more" toggle to reveal the rest.
 
 ## Sorting and pagination
 
