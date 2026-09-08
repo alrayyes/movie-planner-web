@@ -67,7 +67,7 @@ yours anywhere in it — the link itself carries the display data, frozen
 at the moment you shared it, so it never updates and never asks the
 recipient to connect to anything. Narrow the filter first if there's too
 much to fit in a link; a large,
-unfiltered history is what [Export as JSON](/docs/import-export/) is
+unfiltered history is what [Export viewings](/docs/import-export/) is
 for instead.
 
 ## Cross-links

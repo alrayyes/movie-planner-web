@@ -6,10 +6,13 @@ import { importCheckRange } from "../lib/movie-log/run-import";
 import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
 
 // #174: previously lived only on the overview itself (CalendarOverview.svelte),
-// so exporting from any other page meant navigating to "/" first. Mounted
-// once in Layout.astro, same pattern as site-nav.ts — reads the visitor's
-// own stored credentials directly rather than depending on a prop only the
-// overview island received.
+// so exporting from any other page meant navigating to "/" first. #387:
+// later mounted globally in Layout.astro, then moved to /settings once
+// that made every page's own chrome noisier than the control's actual
+// frequency of use justified — Settings is this app's one "account/data"
+// page, so it stays reachable from one consistent place either way.
+// Reads the visitor's own stored credentials directly rather than
+// depending on a prop only the overview island received.
 export class ExportJsonButton extends HTMLElement {
   private readonly handleConnected = () => void this.render();
 
@@ -45,7 +48,7 @@ export class ExportJsonButton extends HTMLElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = BUTTON_SECONDARY;
-    button.textContent = "Export as JSON";
+    button.textContent = "Export viewings";
     // #69: the whole history, not whatever's currently filtered/shown —
     // the calendar is the source of truth, so "export" means everything,
     // the same wide range bulk-import's own duplicate check already
