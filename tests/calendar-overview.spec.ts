@@ -932,6 +932,60 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(2);
   });
 
+  // #373: OMDb's own "DD MMM YYYY" Released field, at three independent
+  // granularities.
+  test("filters by the movie's own released date, at day/month/year granularity", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, released: "22 Oct 2021" },
+      { ...PADDINGTON, released: "08 Nov 2024" },
+    ]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    await openFilters(page);
+    await page.locator("#overview-released-year").fill("2021");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.locator("#overview-released-year").fill("");
+    await page.locator("#overview-released-month").fill("2024-11");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Paddington");
+
+    await page.locator("#overview-released-month").fill("");
+    await page.locator("#overview-released-date").fill("2021-10-22");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  test("?releasedYear=, ?releasedMonth= and ?releasedDate= query params pre-populate their filter fields on load", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, released: "22 Oct 2021" },
+      PADDINGTON,
+    ]);
+    await connect(page);
+
+    await page.goto("/?releasedYear=2021");
+    await expect(page.locator("#overview-released-year")).toHaveValue("2021");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+
+    await page.goto("/?releasedMonth=2021-10");
+    await expect(page.locator("#overview-released-month")).toHaveValue("2021-10");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.goto("/?releasedDate=2021-10-22");
+    await expect(page.locator("#overview-released-date")).toHaveValue("2021-10-22");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+  });
+
   test("?city=, ?country=, ?movieCountry=, ?movieLanguage= and ?rated= query params pre-populate their filter fields on load", async ({
     page,
   }) => {
@@ -1048,6 +1102,7 @@ test.describe("calendar overview", () => {
         movieCountry: "United States",
         movieLanguage: "English",
         rated: "PG-13",
+        released: "22 Oct 2021",
       },
       PADDINGTON,
     ]);
@@ -1068,6 +1123,7 @@ test.describe("calendar overview", () => {
     await page.locator("#overview-movie-country").fill("United States");
     await page.locator("#overview-movie-language").fill("English");
     await page.locator("#overview-rated").fill("PG-13");
+    await page.locator("#overview-released-year").fill("2021");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
 
@@ -1089,6 +1145,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-movie-country")).toHaveValue("");
     await expect(page.locator("#overview-movie-language")).toHaveValue("");
     await expect(page.locator("#overview-rated")).toHaveValue("");
+    await expect(page.locator("#overview-released-year")).toHaveValue("");
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     const lastRequest = server.listRequests.at(-1);

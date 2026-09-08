@@ -14,6 +14,7 @@ import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/li
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import { parseReleasedDate } from "../lib/omdb/released-date";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -203,7 +204,10 @@ type StoredFilterKey =
 	| "country"
 	| "movieCountry"
 	| "movieLanguage"
-	| "rated";
+	| "rated"
+	| "releasedYear"
+	| "releasedMonth"
+	| "releasedDate";
 type StoredFilters = Partial<Record<StoredFilterKey, string>> & { open?: boolean };
 
 const ALL_FILTER_KEYS: StoredFilterKey[] = [
@@ -220,6 +224,9 @@ const ALL_FILTER_KEYS: StoredFilterKey[] = [
 	"movieCountry",
 	"movieLanguage",
 	"rated",
+	"releasedYear",
+	"releasedMonth",
+	"releasedDate",
 ];
 
 function readStoredFilters(): StoredFilters {
@@ -285,6 +292,15 @@ let countryValue = $state(initialFilterValue("country"));
 let movieCountryValue = $state(initialFilterValue("movieCountry"));
 let movieLanguageValue = $state(initialFilterValue("movieLanguage"));
 let ratedValue = $state(initialFilterValue("rated"));
+// #373: the movie's own release date (parseReleasedDate, from OMDb's
+// "DD MMM YYYY" Released field), at three granularities — only one is
+// ever meaningfully active at a time from a chip click (#374 already
+// clears the other two, same as every other filter), but nothing here
+// enforces that for a visitor typing directly into more than one of
+// these three fields by hand.
+let releasedYearValue = $state(initialFilterValue("releasedYear"));
+let releasedMonthValue = $state(initialFilterValue("releasedMonth"));
+let releasedDateValue = $state(initialFilterValue("releasedDate"));
 // #169: defaults match the previous hardcoded "most recently watched
 // first" behaviour — clicking a column header switches to sorting by
 // it (ascending on first click), and clicking the same header again
@@ -336,6 +352,9 @@ const currentlyDisplayed = $derived.by(() => {
 	const movieCountryFilter = movieCountryValue.trim().toLowerCase();
 	const movieLanguageFilter = movieLanguageValue.trim().toLowerCase();
 	const ratedFilter = ratedValue.trim().toLowerCase();
+	const releasedYearFilter = releasedYearValue.trim();
+	const releasedMonthFilter = releasedMonthValue.trim();
+	const releasedDateFilter = releasedDateValue.trim();
 	const filtered = allViewings.filter((v) => {
 		if (titleFilter && !v.title.toLowerCase().includes(titleFilter)) return false;
 		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
@@ -362,6 +381,13 @@ const currentlyDisplayed = $derived.by(() => {
 		if (movieLanguageFilter && (v.movieLanguage ?? "").toLowerCase() !== movieLanguageFilter)
 			return false;
 		if (ratedFilter && (v.rated ?? "").toLowerCase() !== ratedFilter) return false;
+		if (releasedYearFilter || releasedMonthFilter || releasedDateFilter) {
+			const released = v.released ? parseReleasedDate(v.released) : null;
+			if (!released) return false;
+			if (releasedYearFilter && released.year !== releasedYearFilter) return false;
+			if (releasedMonthFilter && released.month !== releasedMonthFilter) return false;
+			if (releasedDateFilter && released.date !== releasedDateFilter) return false;
+		}
 		return true;
 	});
 	// Re-sorted fresh every time rather than relying on insertion order,
@@ -507,6 +533,9 @@ function syncFilterState() {
 		["movieCountry", movieCountryValue],
 		["movieLanguage", movieLanguageValue],
 		["rated", ratedValue],
+		["releasedYear", releasedYearValue],
+		["releasedMonth", releasedMonthValue],
+		["releasedDate", releasedDateValue],
 	];
 	for (const [key, value] of entries) {
 		if (value) stored[key] = value;
@@ -551,6 +580,9 @@ function handleClearFilter() {
 	movieCountryValue = "";
 	movieLanguageValue = "";
 	ratedValue = "";
+	releasedYearValue = "";
+	releasedMonthValue = "";
+	releasedDateValue = "";
 	currentPage = 0;
 	syncFilterState();
 	void reload();
@@ -910,6 +942,25 @@ getPicklists(config).then((picklists) => {
             <option value={rated}></option>
           {/each}
         </datalist>
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-released-year">
+        <span class={LABEL}>Released year</span>
+        <input
+          class={INPUT}
+          type="text"
+          inputmode="numeric"
+          id="overview-released-year"
+          placeholder="e.g. 1994"
+          bind:value={releasedYearValue}
+        />
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-released-month">
+        <span class={LABEL}>Released month</span>
+        <input class={INPUT} type="month" id="overview-released-month" bind:value={releasedMonthValue} />
+      </label>
+      <label class={FIELD_WRAPPER} for="overview-released-date">
+        <span class={LABEL}>Released date</span>
+        <input class={INPUT} type="date" id="overview-released-date" bind:value={releasedDateValue} />
       </label>
       <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
       <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>
