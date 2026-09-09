@@ -101,6 +101,24 @@ test.describe("first-load credentials capture", () => {
 
     await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
   });
+
+  // #360/#400 (credentials spec, "TMDb API key is optional"): same
+  // optional/opt-in treatment as the OMDb key above — submitting with
+  // none set doesn't block connecting, and no TMDb call is ever made.
+  test("submitting with no TMDb key set succeeds and doesn't block connecting", async ({
+    page,
+  }) => {
+    mockEmptyEventList(page);
+    await page.goto("/");
+    await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+    await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+    await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+    await expect(page.locator("#tmdb-api-key")).toHaveValue("");
+
+    await page.getByRole("button", { name: "Connect" }).click();
+
+    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  });
 });
 
 test.describe("settings screen", () => {
@@ -143,5 +161,20 @@ test.describe("settings screen", () => {
 
     await page.reload();
     await expect(page.locator("#omdb-paused")).toBeChecked();
+  });
+
+  // #360/#400: the new TMDb key persists across a reload the same way
+  // the existing OMDb key already does.
+  test("setting a TMDb key on the settings screen persists across reload", async ({ page }) => {
+    await connect(page);
+    await page.goto("/settings");
+
+    await expect(page.locator("#tmdb-api-key")).toHaveValue("");
+    await page.locator("#tmdb-api-key").fill("test-tmdb-key");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+
+    await page.reload();
+    await expect(page.locator("#tmdb-api-key")).toHaveValue("test-tmdb-key");
   });
 });

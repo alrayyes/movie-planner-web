@@ -66,6 +66,12 @@ const X_PROPERTIES: Record<string, StringViewingField> = {
   // serializing, so it participates in this same generic read/write
   // loop like any other field, rather than needing a special case here.
   "X-LAST-MODIFIED-BY": "lastModifiedBy",
+  // #360/#400: the rest of TMDb's own enrichment data.
+  "X-COLLECTION": "collection",
+  "X-CERTIFICATION": "certification",
+  "X-KEYWORDS": "keywords",
+  "X-BUDGET": "budget",
+  "X-POPULARITY": "popularity",
 };
 
 function formatDateTimeUtc(iso: string): string {
