@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.90.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.90.0...movie-planner-web-v0.90.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **a11y:** give genuine errors a distinct toast, not routine status text ([#459](https://github.com/alrayyes/movie-planner-web/issues/459)) ([52d4563](https://github.com/alrayyes/movie-planner-web/commit/52d4563d0120afd7cc4720b488ee27e735d3b6b6))
+* **chrome:** stop clipping the mobile GitHub ribbon's text ([#456](https://github.com/alrayyes/movie-planner-web/issues/456)) ([0794e37](https://github.com/alrayyes/movie-planner-web/commit/0794e37d501404471458403fac6ead1aad41fec0)), closes [#433](https://github.com/alrayyes/movie-planner-web/issues/433)
+* **homepage:** remove duplicate visible "Movie Planner" heading ([#453](https://github.com/alrayyes/movie-planner-web/issues/453)) ([6cade49](https://github.com/alrayyes/movie-planner-web/commit/6cade49f46a109be057f54767b0cf6ae555ae25d))
+* **overview:** relabel map icon to describe navigation, not an inline reveal ([#460](https://github.com/alrayyes/movie-planner-web/issues/460)) ([5cb9143](https://github.com/alrayyes/movie-planner-web/commit/5cb91434863c0addaccf6acfc0eea779c02cce52)), closes [#443](https://github.com/alrayyes/movie-planner-web/issues/443)
+* **overview:** select a filter field's value on focus so switching suggestions needs no manual clear ([#462](https://github.com/alrayyes/movie-planner-web/issues/462)) ([808d5db](https://github.com/alrayyes/movie-planner-web/commit/808d5db4367dfe759dbe0f0cba0ca890f8a5f1be)), closes [#438](https://github.com/alrayyes/movie-planner-web/issues/438)
+* **tooling:** exclude .claude/ from prettier's format check ([#454](https://github.com/alrayyes/movie-planner-web/issues/454)) ([d541580](https://github.com/alrayyes/movie-planner-web/commit/d5415806e86662079d9e4a0cda0db4e8a449b920))
+* **ui:** hide the decorative time bar when a viewing has no meaningful duration ([#461](https://github.com/alrayyes/movie-planner-web/issues/461)) ([b89eb0c](https://github.com/alrayyes/movie-planner-web/commit/b89eb0cf61650ace7e64cdc9d155dfef2d45cb33)), closes [#444](https://github.com/alrayyes/movie-planner-web/issues/444)
+
 ## [0.90.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.89.0...movie-planner-web-v0.90.0) (2026-09-08)
 
 
