@@ -334,6 +334,21 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #444: start equal to end means no real duration to visualize — the
+  // bar used to still render as an empty, meaningless gray track.
+  test("shows no blocked-time bar when the viewing has no meaningful duration", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, end: DUNE.start }]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    await expect(row.locator("div.relative.mt-1")).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #298
   test("the Edit icon opens the details page with its edit form already open", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);

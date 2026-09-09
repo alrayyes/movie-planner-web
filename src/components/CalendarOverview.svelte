@@ -1213,16 +1213,20 @@ getPicklists(config).then((picklists) => {
                 page already shows under Start/End — the text above it
                 is already the real, complete accessible description of
                 the timing, so this carries nothing a screen reader
-                needs to hear a second time. -->
-                <div
-                  class="relative mt-1 h-1.5 w-full max-w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
-                  aria-hidden="true"
-                >
+                needs to hear a second time. #444: hidden entirely (not
+                just zero-width) when the viewing has no meaningful
+                duration — there's nothing to visualize. -->
+                {#if blockedTimeBar.widthPercent > 0}
                   <div
-                    class="absolute inset-y-0 rounded-full bg-indigo-500 dark:bg-indigo-400"
-                    style={`left: ${blockedTimeBar.positionPercent}%; width: ${blockedTimeBar.widthPercent}%;`}
-                  ></div>
-                </div>
+                    class="relative mt-1 h-1.5 w-full max-w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                    aria-hidden="true"
+                  >
+                    <div
+                      class="absolute inset-y-0 rounded-full bg-indigo-500 dark:bg-indigo-400"
+                      style={`left: ${blockedTimeBar.positionPercent}%; width: ${blockedTimeBar.widthPercent}%;`}
+                    ></div>
+                  </div>
+                {/if}
               </td>
               <td class={`${TD} hidden sm:table-cell`}>
                 <span class="inline-flex items-center gap-1">
