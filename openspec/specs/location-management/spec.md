@@ -45,15 +45,13 @@ either appears on a logged viewing or is in the visitor's picklist (a
 CalDAV entry not logged through this app's own log form, such as one
 created by the CLI, carries a venue that was never typed into this
 app and so was never added to the picklist), alongside a count of
-logged viewings at that venue, computed by default over the visitor's
-whole history rather than the calendar overview's narrower default
-window. A venue with zero logged viewings SHALL still be listed, with
-a count of zero, rather than omitted. A venue appearing in both
-sources SHALL be listed exactly once. The system SHALL let a visitor
-narrow the counted range with a From/To date filter, matching the
-calendar overview's own filter shape, and SHALL keep the visitor's
-entered filter values visible rather than resetting them after
-filtering.
+logged viewings at that venue, always computed over the visitor's
+whole logged history. A venue with zero logged viewings SHALL still be
+listed, with a count of zero, rather than omitted. A venue appearing in
+both sources SHALL be listed exactly once. The system SHALL NOT offer
+any date-range filter on this page, and the counted range SHALL NOT be
+narrowed by a date range active elsewhere in the app (for example, a
+`from`/`to` query parameter).
 
 #### Scenario: Venues listed with counts
 
@@ -73,12 +71,22 @@ filtering.
 #### Scenario: A venue links to its filtered viewings
 
 - **WHEN** a visitor clicks a venue name on `/venues`
-- **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter), over the same date range that produced the count they clicked from, not the overview's own separate default window
+- **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter)
+
+#### Scenario: No filter UI
+
+- **WHEN** a visitor opens `/venues`
+- **THEN** the system SHALL NOT show any From/To or other date-range filter control
+
+#### Scenario: Counts always cover the visitor's whole history
+
+- **WHEN** a visitor opens `/venues` with a `from`/`to` query parameter present in the URL (for example, arriving from a link carrying one), or with a date filter active elsewhere in the app
+- **THEN** the system SHALL still compute every venue's count over the visitor's whole logged history, ignoring any such range
 
 #### Scenario: A filter submitted before the previous load finishes doesn't get clobbered by it
 
-- **WHEN** a visitor submits a new date-range filter while a previous load (the initial page load, or an earlier filter) is still in flight
-- **THEN** the system SHALL cancel that previous load rather than let its result overwrite the newer filter's own result once it eventually resolves
+- **WHEN** a new reload of `/venues` starts (for example, a revisit or retry — there is no longer a filter to submit) while a previous one is still in flight
+- **THEN** the system SHALL cancel that previous load rather than let its result overwrite the newer one's own result once it eventually resolves
 
 ### Requirement: Missing or unparsable sidecar degrades gracefully
 

@@ -5,19 +5,7 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import {
-	BUTTON_PRIMARY,
-	BUTTON_SECONDARY,
-	FIELD_WRAPPER,
-	INPUT,
-	LABEL,
-	STATUS_TEXT,
-	TABLE,
-	TABLE_WRAP,
-	TD,
-	TH,
-	TR_BODY,
-} from "../lib/ui/classes";
+import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -45,13 +33,11 @@ import VenueMap from "./VenueMap.svelte";
 // real LOCATION text on the calendar entry — counting only picklist
 // hits silently dropped every such venue.
 //
-// #123: defaults to the same wide range bulk-import's own duplicate
+// #123/#446: always the same wide range bulk-import's own duplicate
 // check already uses (importCheckRange's 15-years-back window) — the
-// visitor's whole history, same as before this filter existed — but a
-// visitor can narrow it, same From/To shape as the calendar overview's
-// own filter.
-let fromValue = $state("");
-let toValue = $state("");
+// visitor's whole history. There's no filter UI to narrow it anymore,
+// and no other date range in the app (a `from`/`to` query param,
+// say) narrows it either.
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
 // #442: a genuine load failure gets the distinct error-toast treatment
@@ -74,21 +60,12 @@ interface VenueInfo {
 // A field missing from every viewing at that venue is simply left off,
 // same "omit, don't guess" rule the other maps already follow.
 let venueInfos = $state<VenueInfo[]>([]);
-// #146: the exact range that produced the counts currently on screen —
-// not just whatever's typed into fromValue/toValue right now, which can
-// differ from what's loaded until "Filter" is clicked. A venue link
-// needs to carry this so the overview it lands on shows the same
-// viewings the count was drawn from, rather than falling back to its
-// own much narrower default window.
+// #146: the exact range that produced the counts currently on screen.
+// A venue link needs to carry this so the overview it lands on shows
+// the same viewings the count was drawn from, rather than falling back
+// to its own much narrower default window. #446: always the wide
+// whole-history default now, never visitor-adjustable.
 let loadedRange = $state<{ from: string; to: string } | null>(null);
-
-function currentRange(): { from: string; to: string } {
-	const wide = importCheckRange();
-	return {
-		from: fromValue ? new Date(fromValue).toISOString() : wide.from,
-		to: toValue ? new Date(toValue).toISOString() : wide.to,
-	};
-}
 
 function toDateInputValue(iso: string): string {
 	const d = new Date(iso);
@@ -190,10 +167,9 @@ const countryGroups = $derived.by((): CountryGroup[] => {
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 const ungroupedVenues = $derived(venueInfos.filter((v) => !v.city || !v.country));
 
-// Aborts a still-in-flight load when a newer one starts (a fast
-// double-submit of the filter form, a mount-time load overlapping a
-// filter change) — same reasoning as CalendarOverview's own
-// reloadController, see its comment there.
+// Aborts a still-in-flight load when a newer one starts (a mount-time
+// load overlapping a bfcache-restore reload) — same reasoning as
+// CalendarOverview's own reloadController, see its comment there.
 let loadController: AbortController | undefined;
 
 async function load() {
@@ -212,7 +188,7 @@ async function load() {
 		password: credentials.caldavPassword,
 	};
 	try {
-		const range = currentRange();
+		const range = importCheckRange();
 		loadedRange = range;
 		const [{ venues }, viewings] = await Promise.all([
 			getPicklists(config),
@@ -246,44 +222,12 @@ async function load() {
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function handleFilterSubmit(event: SubmitEvent) {
-	event.preventDefault();
-	void load();
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function handleClearFilter() {
-	fromValue = "";
-	toValue = "";
-	void load();
-}
-
 load();
 // #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call.
 reloadOnBfcacheRestore(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">
-  <form
-    class="flex flex-wrap items-end gap-3"
-    aria-label="Filter venues"
-    onsubmit={handleFilterSubmit}
-  >
-    <label class={FIELD_WRAPPER} for="venues-from">
-      <span class={LABEL}>From</span>
-      <input class={INPUT} type="date" id="venues-from" bind:value={fromValue} />
-    </label>
-    <label class={FIELD_WRAPPER} for="venues-to">
-      <span class={LABEL}>To</span>
-      <input class={INPUT} type="date" id="venues-to" bind:value={toValue} />
-    </label>
-    <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
-    <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>
-      Clear filter
-    </button>
-  </form>
-
   <p class={STATUS_TEXT} role="status">{status}</p>
   {#if loadError}
     <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />

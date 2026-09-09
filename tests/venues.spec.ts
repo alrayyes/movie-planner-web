@@ -173,8 +173,39 @@ test.describe("venues overview", () => {
     await expect(rows.nth(0)).toContainText("1");
   });
 
-  // #123
-  test("a date-range filter narrows the counts, and clearing it returns to the whole-history default", async ({
+  // #446: the From/To filter is gone entirely — there is no
+  // visitor-facing way to narrow the counts shown on this page anymore.
+  test("has no From/To filter UI", async ({ page }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+    await page.getByRole("link", { name: "Venues" }).click();
+
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+    await expect(page.locator("#venues-from")).toHaveCount(0);
+    await expect(page.locator("#venues-to")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Filter", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Clear filter" })).toHaveCount(0);
+  });
+
+  // #446: a `from`/`to` query parameter present in the URL (for
+  // example, arriving from a link that carries one) must not narrow the
+  // counts shown here — the page always counts the visitor's whole
+  // logged history now, regardless of any date range active elsewhere.
+  test("ignores a from/to query parameter, still counting the visitor's whole history", async ({
     page,
   }) => {
     mockCaldavServer(
@@ -201,36 +232,27 @@ test.describe("venues overview", () => {
       { media: ["cinema"], venues: ["Grand Vista Cinema"] },
     );
     await connect(page);
-    await page.getByRole("link", { name: "Venues" }).click();
-    await expect(page.locator("tbody tr")).toContainText(["2"]);
-
-    // Narrow to a window covering only the one-month-ago viewing.
+    // A range narrow enough to cover only the one-month-ago viewing, if
+    // it were honored.
     const from = new Date(ONE_MONTH_AGO.getTime() - 3 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
     const to = new Date(ONE_MONTH_AGO.getTime() + 3 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
-    await page.locator("#venues-from").fill(from);
-    await page.locator("#venues-to").fill(to);
-    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await page.goto(`/venues?from=${from}&to=${to}`);
 
-    await expect(page.locator("tbody tr")).toContainText(["1"]);
-    // The entered values stay visible — not reset after filtering.
-    await expect(page.locator("#venues-from")).toHaveValue(from);
-    await expect(page.locator("#venues-to")).toHaveValue(to);
-
-    await page.getByRole("button", { name: "Clear filter" }).click();
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
     await expect(page.locator("tbody tr")).toContainText(["2"]);
-    await expect(page.locator("#venues-from")).toHaveValue("");
-    await expect(page.locator("#venues-to")).toHaveValue("");
   });
 
   // Same fix, same reasoning as CalendarOverview's own "a reload
   // triggered while the previous one is still in flight" test — load()
-  // now aborts its own stale in-flight request rather than letting a
-  // slow, superseded one clobber a fresher result.
-  test("a filter submitted while the initial load is still in flight isn't clobbered by the stale one", async ({
+  // aborts its own stale in-flight request rather than letting a slow,
+  // superseded one clobber a fresher result. There's no filter left to
+  // submit, so the newer load here comes from a revisit (bfcache
+  // restore) instead.
+  test("a reload triggered while the previous one is still in flight isn't clobbered by the stale one", async ({
     page,
   }) => {
     const server = mockCaldavServer(
@@ -277,19 +299,14 @@ test.describe("venues overview", () => {
 
     await page.getByRole("link", { name: "Venues" }).click();
     await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
-    // The page's own initial load() (the wide default range, matching
-    // both viewings) is now the stalled first REPORT above. Narrow to a
-    // window matching only the one-month-ago viewing before the second
-    // (superseding) load resolves.
-    const from = new Date(ONE_MONTH_AGO.getTime() - 3 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
-    const to = new Date(ONE_MONTH_AGO.getTime() + 3 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
-    await page.locator("#venues-from").fill(from);
-    await page.locator("#venues-to").fill(to);
-    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    // The page's own initial load() (matching both viewings) is now the
+    // stalled first REPORT above. Remove one viewing server-side, then
+    // trigger a newer, superseding load via a bfcache restore before
+    // the first resolves.
+    server.viewings.delete("paddington-uid");
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
     await expect(page.locator("tbody tr")).toContainText(["1"]);
 
     releaseFirst?.();
