@@ -1,6 +1,7 @@
 # movie-planner-web
 
 [![CI](https://github.com/alrayyes/movie-planner-web/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alrayyes/movie-planner-web/actions/workflows/ci.yml)
+[![coverage](https://codecov.io/gh/alrayyes/movie-planner-web/graph/badge.svg)](https://codecov.io/gh/alrayyes/movie-planner-web)
 [![release](https://img.shields.io/github/v/release/alrayyes/movie-planner-web?sort=semver)](https://github.com/alrayyes/movie-planner-web/releases/latest)
 [![licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
