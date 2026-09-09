@@ -22,6 +22,13 @@ export interface ActivityLogEntry {
   // diffViewings(). Empty (not present) means either "created"/"deleted",
   // or an "updated" that ended up writing back identical values.
   changes?: FieldChange[];
+  // #432: who made this change — "web" for this app's own write-time
+  // logging (client.ts), or whatever the diff-on-sync pass read off
+  // X-LAST-MODIFIED-BY ("cli", or "unknown" when absent — a resource
+  // neither app has attributed yet, or a deleted one with nothing left
+  // to read it from). Absent entirely on any entry logged before #432
+  // shipped.
+  actor?: string;
 }
 
 export interface ActivityLogStore {

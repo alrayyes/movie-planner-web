@@ -57,7 +57,9 @@ describe("caldav client against a real Baikal instance", () => {
     expect(created.uid).toBeTruthy();
 
     const fetched = await getViewing(CONFIG, created.uid);
-    expect(fetched).toEqual({ uid: created.uid, ...viewing });
+    // #432: every write this app makes now attributes itself via
+    // X-LAST-MODIFIED-BY, forced by client.ts's putViewing.
+    expect(fetched).toEqual({ uid: created.uid, ...viewing, lastModifiedBy: "web" });
 
     const listed = await listViewings(CONFIG, {
       from: "2025-12-01T00:00:00.000Z",

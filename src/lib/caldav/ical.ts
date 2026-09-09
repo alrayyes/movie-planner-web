@@ -61,6 +61,11 @@ const X_PROPERTIES: Record<string, StringViewingField> = {
   "X-AWARDS": "awards",
   // #310: the movie's own official trailer, from TMDb (alrayyes/movie-planner#236).
   "X-TRAILER-URL": "trailerUrl",
+  // #432: cross-app write attribution for the diff-on-sync activity
+  // log — client.ts's putViewing always forces this to "web" before
+  // serializing, so it participates in this same generic read/write
+  // loop like any other field, rather than needing a special case here.
+  "X-LAST-MODIFIED-BY": "lastModifiedBy",
 };
 
 function formatDateTimeUtc(iso: string): string {

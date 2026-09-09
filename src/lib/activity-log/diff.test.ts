@@ -41,6 +41,17 @@ describe("diffViewings", () => {
     expect(changes.some((c) => c.field === "uid")).toBe(false);
   });
 
+  // #432: lastModifiedBy is bookkeeping (client.ts's putViewing always
+  // forces it to "web" on this app's own write path), not content a
+  // visitor cares about — reporting it here would spam a "lastModifiedBy:
+  // cli -> web" line on every edit that follows a CLI-made one, same
+  // reason uid is excluded above.
+  test("never reports lastModifiedBy as a changed field", () => {
+    const after: NewViewing = { ...BEFORE, lastModifiedBy: "web" };
+    const changes = diffViewings({ ...BEFORE, lastModifiedBy: "cli" }, after);
+    expect(changes.some((c) => c.field === "lastModifiedBy")).toBe(false);
+  });
+
   test("formats an object field (geo) as a comparable string", () => {
     const before: LoggedViewing = { ...BEFORE, geo: { lat: 1, lon: 2 } };
     const after: NewViewing = { ...BEFORE, geo: { lat: 3, lon: 4 } };

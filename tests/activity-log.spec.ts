@@ -161,3 +161,152 @@ test.describe("activity log", () => {
     await expect(toast).toHaveCount(0);
   });
 });
+
+// #432: diffs a full CalDAV fetch against a local snapshot on every sync
+// to surface changes this app didn't make itself. `syncCaldavActivityLog`
+// runs fire-and-forget from CalendarOverview.svelte's own mount, so every
+// test here waits for the network to go quiet before either mutating the
+// mock server's state or reading the activity log back — otherwise a
+// navigation could cut the background sync off mid-flight.
+test.describe("diff-derived activity from CalDAV (#432)", () => {
+  test("a fresh browser's first sync logs nothing for its pre-existing history", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.waitForLoadState("networkidle");
+
+    await page.goto("/activity");
+    await expect(page.getByText("Nothing recorded yet")).toBeVisible();
+  });
+
+  test("a change made outside this browser appears on the next sync, attributed to the CLI", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.waitForLoadState("networkidle"); // first sync: bootstrap only
+
+    // Simulates the movie-planner CLI editing this same viewing while
+    // this browser wasn't looking, and attributing its own write —
+    // exactly what #432's design expects the CLI to start doing.
+    server.viewings.set(DUNE.uid, {
+      ...DUNE,
+      venue: "Pathé De Munt",
+      lastModifiedBy: "cli",
+    });
+
+    await page.reload(); // this app's next sync
+    await page.waitForLoadState("networkidle");
+
+    await page.goto("/activity");
+    await expect(page.getByText("1 entry")).toBeVisible();
+    const row = page.locator("tbody tr");
+    await expect(row).toContainText("Updated");
+    await expect(row).toContainText("CLI");
+    await expect(row).toContainText("Dune");
+    await expect(row).toContainText("venue");
+    await expect(row).toContainText("Pathé De Munt");
+  });
+
+  test("a change deleted outside this browser is logged from the last-known snapshot", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.waitForLoadState("networkidle");
+
+    server.viewings.delete(DUNE.uid);
+
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+
+    await page.goto("/activity");
+    await expect(page.getByText("1 entry")).toBeVisible();
+    const row = page.locator("tbody tr");
+    await expect(row).toContainText("Deleted");
+    await expect(row).toContainText("Dune");
+    await expect(row).toContainText("Unknown");
+  });
+
+  // #432 dedup: an edit this browser makes itself is logged once by
+  // client.ts's write-time path — the diff pass, run again on the very
+  // next sync, must not log the exact same change a second time just
+  // because it also shows up in the fresh fetch.
+  test("a self-made edit is logged exactly once, not doubled by the next sync's diff pass", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.waitForLoadState("networkidle"); // bootstrap
+
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+    await page.locator("#details-venue").fill("Grand Vista Cinema");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+
+    await page.goto("/"); // this app's next sync
+    await page.waitForLoadState("networkidle");
+
+    await page.goto("/activity");
+    await expect(page.getByText("1 entry")).toBeVisible();
+    const row = page.locator("tbody tr");
+    await expect(row).toContainText("Updated");
+    await expect(row).toContainText("This app");
+    await expect(row).toContainText("Grand Vista Cinema");
+  });
+
+  // design.md's own risk/trade-off: the diff pass always fetches this
+  // app's full, unfiltered calendar (importCheckRange), independent of
+  // the overview's own From/To filter — a filtered fetch would
+  // misread anything outside the filter as deleted.
+  test("narrowing the overview's own filter doesn't misread an out-of-filter viewing as deleted", async ({
+    page,
+  }) => {
+    const paddington = {
+      uid: "paddington-uid",
+      title: "Paddington",
+      start: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(),
+      end: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000 + 100 * 60 * 1000).toISOString(),
+      medium: "netflix",
+    };
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, paddington]);
+    await connect(page);
+    await page.waitForLoadState("networkidle"); // bootstrap: seeds both
+
+    // Narrows the visible table to a range covering only Dune —
+    // Paddington still exists on the server, just outside this filter.
+    await page.getByText("Filters", { exact: true }).click();
+    const from = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const to = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    await page.locator("#overview-from").fill(from);
+    await page.locator("#overview-to").fill(to);
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.reload(); // this app's next sync, filter persisted via sessionStorage
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    await page.goto("/activity");
+    await expect(page.getByText("Nothing recorded yet")).toBeVisible();
+  });
+
+  test("this app attributes its own writes with X-LAST-MODIFIED-BY: web", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    await page.locator("#log-title").fill("Paddington");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.locator("#log-start-time").fill("18:00");
+    await page.locator("#log-end-time").fill("19:40");
+    await page.locator("#log-medium").fill("netflix");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+
+    expect(server.creates).toHaveLength(1);
+    expect(server.creates[0]?.lastModifiedBy).toBe("web");
+  });
+});
