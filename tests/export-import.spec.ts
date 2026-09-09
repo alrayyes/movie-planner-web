@@ -64,7 +64,10 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Import" })).toBeVisible();
+  // #436: "Log a viewing" is the header button present on every
+  // connected page — Import moved to the Settings hub, so it's no
+  // longer a reliable "connect landed" signal here.
+  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #221: the overview's filter fields sit inside a <details>, closed by
@@ -154,7 +157,9 @@ test.describe("importing the exported format", () => {
       omdbCalls++;
     });
 
-    await page.getByRole("link", { name: "Import" }).click();
+    // #436: Import moved to the Settings hub — a direct navigation
+    // stands in for what used to be a nav click.
+    await page.goto("/import");
     await page.locator("#import-file").setInputFiles({
       name: "export.json",
       mimeType: "application/json",
@@ -178,7 +183,9 @@ test.describe("importing the exported format", () => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
 
-    await page.getByRole("link", { name: "Import" }).click();
+    // #436: Import moved to the Settings hub — a direct navigation
+    // stands in for what used to be a nav click.
+    await page.goto("/import");
     await page.locator("#import-file").setInputFiles({
       name: "movies.json",
       mimeType: "application/json",
@@ -208,7 +215,9 @@ test.describe("updating an existing entry by uid", () => {
       poster_url: "https://example.com/new-poster.jpg", // changed
       // venue, actors, etc. all unchanged
     };
-    await page.getByRole("link", { name: "Import" }).click();
+    // #436: Import moved to the Settings hub — a direct navigation
+    // stands in for what used to be a nav click.
+    await page.goto("/import");
     await page.locator("#import-file").setInputFiles({
       name: "export.json",
       mimeType: "application/json",
@@ -252,7 +261,9 @@ test.describe("updating an existing entry by uid", () => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
 
-    await page.getByRole("link", { name: "Import" }).click();
+    // #436: Import moved to the Settings hub — a direct navigation
+    // stands in for what used to be a nav click.
+    await page.goto("/import");
     await page.locator("#import-file").setInputFiles({
       name: "export.json",
       mimeType: "application/json",

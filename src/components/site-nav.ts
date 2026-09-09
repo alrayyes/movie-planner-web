@@ -5,15 +5,22 @@ import { NAV, NAV_LINK } from "../lib/ui/classes";
 // connecting, and the nav previously gave it no link at all once a
 // visitor had navigated away (only the "Movie Planner" brand link did,
 // with no indication that's what it led back to).
+//
+// #436: reduced to browsing destinations only. "Log a viewing" is now
+// a persistent header button (<log-viewing-button>, mounted in
+// Layout.astro alongside the theme toggle) rather than a nav-list
+// item — it's the app's primary create action, not a page to browse
+// to. Import and Activity are both inherently low-frequency (an
+// occasional bulk operation, and a debugging aid respectively — see
+// their own doc pages) and are reached from the Settings hub instead.
+// This keeps the nav to 5 entries, fitting one row at real mobile
+// widths instead of wrapping to two.
 const LINKS: [string, string][] = [
   ["/", "Viewings"],
   ["/venues", "Venues"],
   ["/calendar", "Calendar"],
   // #8/#203: placed with the other read-only views.
   ["/map", "Map"],
-  ["/log", "Log a viewing"],
-  ["/import", "Import"],
-  ["/activity", "Activity"],
   ["/settings", "Settings"],
 ];
 
