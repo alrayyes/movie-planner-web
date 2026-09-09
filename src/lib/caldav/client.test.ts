@@ -96,6 +96,25 @@ describe("listViewings", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  // #445: a REPORT is never cached by the browser itself (#418's own
+  // reasoning), but that doesn't account for an intermediate cache — a
+  // reverse proxy or CDN in front of a visitor's real CalDAV server —
+  // which is exactly what let a just-deleted viewing's row keep showing
+  // in the table until a full page reload. Confirmed live.
+  test("forces the browser (and any intermediate cache) to skip a cached response", async () => {
+    const fetchMock = mock(async (_url: string, init: RequestInit) => {
+      expect(init.cache).toBe("no-store");
+      return new Response('<D:multistatus xmlns:D="DAV:"/>', { status: 207 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await listViewings(CONFIG, {
+      from: "2026-01-01T00:00:00.000Z",
+      to: "2026-02-01T00:00:00.000Z",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   test("sequential requests for different visitors use only each request's own credentials", async () => {
     const seenAuth: string[] = [];
     globalThis.fetch = (async (_url: string, init: RequestInit) => {

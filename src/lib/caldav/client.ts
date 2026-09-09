@@ -70,6 +70,13 @@ export async function listViewings(
         "Content-Type": "application/xml; charset=utf-8",
       },
       body,
+      // #445: a REPORT is never cached by the browser itself (#418's
+      // reasoning still holds for that layer), but that doesn't cover an
+      // intermediate cache — a reverse proxy or CDN in front of a
+      // visitor's real CalDAV server — which can otherwise keep serving
+      // a list response that predates a write that just succeeded (e.g.
+      // a delete), until a full page reload happens to bypass it.
+      cache: "no-store",
     },
     { signal: options.signal },
   );
