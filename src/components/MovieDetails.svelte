@@ -734,14 +734,15 @@ reloadOnBfcacheRestore(() => void load());
               <dd class={DD}>{formatDateTime(viewing.end)}</dd>
             {/if}
           </dl>
-          {#if viewing.start !== viewing.end}
+          {#if blockedTimeBar.widthPercent > 0}
             <!-- #199: purely visual — the dl above (Start/End) is already
             the real, complete accessible description of the viewing's
             timing, so this decorative duration bar carries nothing a
-            screen reader needs to hear a second time. #379: hidden
-            entirely (not just zero-width) when start/end are identical
-            — there's no real duration to visualize, same reasoning as
-            the Date row above showing no time at all in that case. -->
+            screen reader needs to hear a second time. #379/#444: hidden
+            entirely (not just zero-width) whenever there's no
+            meaningful duration to visualize — start/end identical, or
+            end before start — same reasoning as the Date row above
+            showing no time at all in the identical case. -->
             <div
               class="relative h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
               aria-hidden="true"

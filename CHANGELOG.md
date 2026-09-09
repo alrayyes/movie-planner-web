@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.90.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.89.0...movie-planner-web-v0.90.0) (2026-09-08)
+
+
+### Features
+
+* **movie-details:** show a venue's verified street address, once known ([#423](https://github.com/alrayyes/movie-planner-web/issues/423)) ([4d5eff0](https://github.com/alrayyes/movie-planner-web/commit/4d5eff068a5e9d0987ccc86ad328195a8d5c6402)), closes [#363](https://github.com/alrayyes/movie-planner-web/issues/363)
+
 ## [0.89.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.88.1...movie-planner-web-v0.89.0) (2026-09-08)
 
 

@@ -334,6 +334,21 @@ test.describe("calendar overview", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #444: start equal to end means no real duration to visualize — the
+  // bar used to still render as an empty, meaningless gray track.
+  test("shows no blocked-time bar when the viewing has no meaningful duration", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, end: DUNE.start }]);
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    await expect(row.locator("div.relative.mt-1")).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #298
   test("the Edit icon opens the details page with its edit form already open", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
@@ -591,6 +606,45 @@ test.describe("calendar overview", () => {
       .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
     expect(genreOptions.sort()).toEqual(["Action", "Adventure", "Drama"]);
     await expect(page.locator("#overview-genre")).toHaveAttribute("list", "overview-genre-choices");
+  });
+
+  // #438: most browsers only offer datalist suggestions that prefix-match
+  // the current text, so once a full value is typed, switching to a
+  // *different* suggestion needs the field cleared first unless focusing
+  // it selects the existing value — verify the selection happens, then
+  // that typing over it lands directly on the other suggestion in one
+  // interaction.
+  test("selects a filter field's existing value on focus, so typing switches to a different suggestion without clearing first", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON], {
+      media: [],
+      venues: ["Regal Union Square"],
+    });
+    await connect(page);
+    await openFilters(page);
+
+    const venueInput = page.locator("#overview-venue");
+    await venueInput.fill("Grand Vista Cinema");
+    await expect(venueInput).toHaveValue("Grand Vista Cinema");
+
+    // Move focus away and back, the way a visitor returning to the field
+    // would, rather than relying on fill()'s own focus side effect.
+    await page.locator("#overview-title").focus();
+    await venueInput.focus();
+
+    const selection = await venueInput.evaluate((el: HTMLInputElement) => ({
+      start: el.selectionStart,
+      end: el.selectionEnd,
+    }));
+    expect(selection).toEqual({ start: 0, end: "Grand Vista Cinema".length });
+
+    // With the old value selected, typing replaces it outright — landing
+    // on the other suggestion in one interaction instead of appending to
+    // or inserting into stale text a browser would otherwise keep
+    // prefix-filtering against.
+    await page.keyboard.type("Regal Union Square");
+    await expect(venueInput).toHaveValue("Regal Union Square");
   });
 
   // #131

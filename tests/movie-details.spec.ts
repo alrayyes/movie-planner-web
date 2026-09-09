@@ -805,6 +805,22 @@ test.describe("movie details page", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #444: end before start is another way to end up with no meaningful
+  // duration — computeBlockedTimeBar returns a negative widthPercent for
+  // it, same as the identical-start/end case above, so the bar must be
+  // gated on that computed value rather than just start !== end.
+  test("shows no blocked-time bar when the end time is before the start", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, start: DUNE.end, end: DUNE.start },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+    await expect(page.getByText("Start")).toBeVisible();
+
+    const bar = page.locator('[aria-hidden="true"]').filter({ has: page.locator("div[style]") });
+    await expect(bar).toHaveCount(0);
+  });
+
   // #310
   test("shows the rest of OMDb's fields (Rated, Runtime, Metascore, etc.) when present", async ({
     page,
