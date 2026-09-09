@@ -24,6 +24,7 @@ concurrency:
 jobs:
   release-please:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: write # tags the release and writes it
       pull-requests: write # keeps the release pull request up to date
