@@ -585,8 +585,10 @@ test.describe("refreshing OMDb metadata from the overview", () => {
       mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
       await connect(page, "test-omdb-key");
 
-      const countStatus = page.getByRole("status").first();
-      await expect(countStatus).toHaveText("1 logged viewing.");
+      // #435: the count now lives in its own persistent element, not
+      // statusText — found by its text rather than by status role.
+      const countStatus = page.getByText("1 logged viewing.");
+      await expect(countStatus).toBeVisible();
 
       await page.route("https://www.omdbapi.com/**", async (route: Route) => {
         await route.fulfill({
