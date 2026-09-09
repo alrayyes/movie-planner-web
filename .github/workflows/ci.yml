@@ -65,6 +65,19 @@ jobs:
           bun audit --ignore GHSA-rgj7-g3m4-5g8c ||
             (sleep 5 && bun audit --ignore GHSA-rgj7-g3m4-5g8c)
 
+  # Biome's pattern-based rules (lint, above) can't do cross-file taint
+  # tracking; this is the separate security pass that can — the free
+  # Semgrep Registry ruleset, no paid tier or account needed.
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: semgrep/semgrep@sha256:51c9f53a4fce0d55e9abd08d7b96968654248a4b1122e77f20e0a49c0072446c # 1.175.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: semgrep
+        run: semgrep scan --config auto --error
+
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
