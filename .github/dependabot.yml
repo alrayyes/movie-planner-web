@@ -16,6 +16,10 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Amsterdam
+    # A newly published version can be malicious or unstable before anyone's
+    # had a chance to notice — wait a week before proposing it.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     commit-message:
       # Conventional Commits, because commitlint checks these messages and
@@ -38,6 +42,8 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Amsterdam
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ci
       include: scope
