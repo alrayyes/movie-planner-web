@@ -71,7 +71,7 @@ narrowed by a date range active elsewhere in the app (for example, a
 #### Scenario: A venue links to its filtered viewings
 
 - **WHEN** a visitor clicks a venue name on `/venues`
-- **THEN** the system SHALL take them to the calendar overview, filtered to logged viewings at that venue (calendar-overview capability's own venue filter)
+- **THEN** the system SHALL take them to the venue-detail capability's own `/venue?venue=<value>` page, not the calendar overview
 
 #### Scenario: No filter UI
 

@@ -1,0 +1,22 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import VenueOverview from "../components/VenueOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Movie Planner" wide>
+  {
+    /* #448: client:only, not client:load — same reasoning as
+    movie.astro's own MovieDetails island. This component reads the
+    visitor's stored credentials from IndexedDB and the `venue` query
+    string, neither of which exists during the static build/prerender
+    (Node has no `indexedDB` global, and this app is fully static with
+    no getStaticPaths — a visitor's venue names are private data
+    unknowable at build time, same as MovieDetails.svelte's `?uid=`).
+    client:load still server-renders the initial markup at build time
+    and crashes on that; client:only skips server rendering entirely
+    and mounts purely in the browser. */
+  }
+  <VenueOverview client:only="svelte" />
+</Layout>

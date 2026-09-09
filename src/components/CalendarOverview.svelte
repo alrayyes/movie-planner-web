@@ -43,6 +43,8 @@ import {
 	toDateInputValue,
 } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { computePageNumbers, PAGE_SIZE_OPTIONS } from "../lib/ui/pagination";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay } from "../lib/venue/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
@@ -75,9 +77,9 @@ import VenueMap, { type MapPin } from "./VenueMap.svelte";
 // viewing in the selected date range in one table.
 // #300: a visitor's own choice now, not a fixed constant — a select
 // with fixed options rather than a free-typed number, so there's no
-// zero/negative/absurdly-large value to validate against.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+// zero/negative/absurdly-large value to validate against. #448: the
+// options themselves moved to lib/ui/pagination.ts, shared with the
+// per-venue page.
 let pageSize = $state(25);
 
 // #169: Title/When/Venue are sortable columns — Poster and Refresh
@@ -528,22 +530,12 @@ const mapPins = $derived.by((): MapPin[] =>
 			posterUrl: v.posterUrl,
 		})),
 );
-// #300: Google-style windowed page numbers — first, last, and a small
-// run around the current page, "…" filling any gap, rather than every
-// page number when there are dozens of them.
+// #300/#448: Google-style windowed page numbers — first, last, and a
+// small run around the current page, "…" filling any gap, rather than
+// every page number when there are dozens of them. computePageNumbers
+// itself lives in lib/ui/pagination.ts, shared with the per-venue page.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const pageNumbers = $derived.by(() => {
-	const current = currentPage + 1;
-	const delta = 2;
-	const left = Math.max(2, current - delta);
-	const right = Math.min(pages - 1, current + delta);
-	const result: (number | "…")[] = [1];
-	if (left > 2) result.push("…");
-	for (let page = left; page <= right; page++) result.push(page);
-	if (right < pages - 1) result.push("…");
-	if (pages > 1) result.push(pages);
-	return result;
-});
+const pageNumbers = $derived(computePageNumbers(currentPage, pages));
 // #89: nothing to bulk-refresh once every title on this page already
 // has matched metadata — hide the control rather than offer an action
 // that would call OMDb for nobody.

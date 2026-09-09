@@ -73,18 +73,12 @@ function toDateInputValue(iso: string): string {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// #131/#146: the overview's own venue filter reads the `venue` query
-// param on load, and its From/To fields read `from`/`to` the same way
-// — see CalendarOverview.svelte's own venueValue/fromValue/toValue
-// init. Without carrying the range, the link would land on the
-// overview's own much narrower default window instead of the one that
-// produced this venue's count/pin. Shared by the table's own venue
+// #448: the dedicated per-venue page — no filter chrome to carry a
+// date range into, since that page always shows the venue's whole
+// history regardless of any range. Shared by the table's own venue
 // link and the map pin's popup link below, so the two can't drift.
 function venueHref(venue: string): string {
-	const range = loadedRange
-		? `&from=${toDateInputValue(loadedRange.from)}&to=${toDateInputValue(loadedRange.to)}`
-		: "";
-	return `/?venue=${encodeURIComponent(venue)}${range}`;
+	return `/venue?venue=${encodeURIComponent(venue)}`;
 }
 
 // #372: same date-range-carrying pattern as venueHref above — a city

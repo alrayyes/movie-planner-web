@@ -346,8 +346,12 @@ test.describe("venues overview", () => {
     expect(range?.from.getTime()).toBeLessThan(fiveYearsAgo.getTime());
   });
 
-  // #131
-  test("clicking a venue name goes to the overview, filtered to just that venue", async ({
+  // #448: clicking a venue used to land on the main overview,
+  // pre-filtered — carrying that page's own full filter chrome, which
+  // doesn't apply to a single-venue view. It now goes to the dedicated
+  // per-venue page instead (see tests/venue.spec.ts for that page's own
+  // coverage).
+  test("clicking a venue name goes to its own dedicated page, showing only that venue's viewings", async ({
     page,
   }) => {
     mockCaldavServer(
@@ -377,42 +381,11 @@ test.describe("venues overview", () => {
 
     await page.getByRole("link", { name: "Grand Vista Cinema" }).click();
 
-    await expect(page).toHaveURL(/\/\?venue=Grand(\+|%20)Vista(\+|%20)Cinema/);
-    await expect(page.locator("#overview-venue")).toHaveValue("Grand Vista Cinema");
+    await expect(page).toHaveURL(/\/venue\/?\?venue=Grand(\+|%20)Vista(\+|%20)Cinema/);
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
-  });
-
-  // #146: the venues page counts over its own wide (15-years-back)
-  // default window, but the overview it links to defaults to a much
-  // narrower ~3-months-back window — a viewing older than that used to
-  // vanish the moment a visitor clicked through, even though the count
-  // right next to the venue name said it should be there.
-  test("clicking a venue carries the same date range that produced its count", async ({ page }) => {
-    const fiveYearsAgo = new Date(Date.now() - 5 * 365 * 24 * 60 * 60 * 1000);
-    mockCaldavServer(
-      page,
-      CREDENTIALS["caldav-url"],
-      [
-        {
-          uid: "old-uid",
-          title: "An Old Favourite",
-          start: fiveYearsAgo.toISOString(),
-          end: new Date(fiveYearsAgo.getTime() + 60 * 60 * 1000).toISOString(),
-          medium: "cinema",
-          venue: "Grand Vista Cinema",
-        },
-      ],
-      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
-    );
-    await connect(page);
-    await page.getByRole("link", { name: "Venues" }).click();
-    await expect(page.locator("tbody tr")).toContainText(["1"]);
-
-    await page.getByRole("link", { name: "Grand Vista Cinema" }).click();
-
-    await expect(page.locator("tbody tr")).toHaveCount(1);
-    await expect(page.locator("tbody tr")).toContainText("An Old Favourite");
+    // No filter chrome of any kind on the per-venue page.
+    await expect(page.getByText("Filters", { exact: true })).toHaveCount(0);
   });
 
   test("shows a map pinning every venue with known coordinates, omitting the rest", async ({
@@ -454,8 +427,12 @@ test.describe("venues overview", () => {
     await expect(popupLink).toBeVisible();
     await popupLink.click();
 
-    await expect(page).toHaveURL(/\/\?venue=Tuschinski/);
-    await expect(page.locator("#overview-venue")).toHaveValue("Tuschinski, Amsterdam, Netherlands");
+    // #448: the pin's popup link goes to the dedicated per-venue page too.
+    // #440: trimmed to just the name — this fixture's venue bakes its
+    // address into the raw LOCATION text but never sets a separate
+    // `city` field, so there's no known city to append.
+    await expect(page).toHaveURL(/\/venue\/?\?venue=Tuschinski/);
+    await expect(page.getByRole("heading", { name: "Tuschinski", exact: true })).toBeVisible();
   });
 
   test("the venues map introduces no accessibility violations", async ({ page }) => {
