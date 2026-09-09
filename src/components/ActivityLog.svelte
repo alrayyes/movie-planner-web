@@ -41,6 +41,20 @@ const ACTION_LABEL: Record<ActivityLogEntry["action"], string> = {
 	updated: "Updated",
 	deleted: "Deleted",
 };
+
+// #432: an entry logged before this shipped has no `actor` at all —
+// shown as "This app", the only thing it could have been at the time.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const ACTOR_LABEL: Record<string, string> = {
+	web: "This app",
+	cli: "CLI",
+	unknown: "Unknown",
+};
+
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+function actorLabel(entry: ActivityLogEntry): string {
+	return ACTOR_LABEL[entry.actor ?? "web"] ?? entry.actor ?? "This app";
+}
 </script>
 
 {#if loadError}
@@ -60,6 +74,7 @@ const ACTION_LABEL: Record<ActivityLogEntry["action"], string> = {
 				<tr>
 					<th class={TH} scope="col">When</th>
 					<th class={TH} scope="col">Action</th>
+					<th class={TH} scope="col">Actor</th>
 					<th class={TH} scope="col">Title</th>
 					<th class={TH} scope="col">Changes</th>
 				</tr>
@@ -69,6 +84,7 @@ const ACTION_LABEL: Record<ActivityLogEntry["action"], string> = {
 					<tr class={TR_BODY}>
 						<td class={TD}>{formatWhen(entry.at)}</td>
 						<td class={TD}>{ACTION_LABEL[entry.action]}</td>
+						<td class={TD}>{actorLabel(entry)}</td>
 						<td class={TD}>
 							<a
 								href={`/movie?uid=${encodeURIComponent(entry.uid)}`}

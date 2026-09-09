@@ -18,7 +18,12 @@ export function diffViewings(before: LoggedViewing | null, after: NewViewing): F
   const changes: FieldChange[] = [];
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]) as Set<keyof LoggedViewing>;
   for (const key of keys) {
-    if (key === "uid") continue;
+    // #432: lastModifiedBy is bookkeeping (client.ts's putViewing always
+    // sets it to "web" on this app's own write path) — reporting it as
+    // a "changed field" would spam a "lastModifiedBy: cli -> web" line
+    // on every edit that follows a CLI-made one, same reason uid (a
+    // different kind of identity field) is excluded too.
+    if (key === "uid" || key === "lastModifiedBy") continue;
     const beforeValue = formatValue(before[key]);
     const afterValue = formatValue((after as LoggedViewing)[key]);
     if (beforeValue !== afterValue) {

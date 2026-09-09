@@ -1,4 +1,5 @@
 import { diffViewings } from "../activity-log/diff";
+import { forgetCaldavSnapshot } from "../activity-log/snapshot-store";
 import { recordActivity } from "../activity-log/store";
 import { boundedFetch, readBoundedText } from "./bounded-fetch";
 import { CaldavRequestFailedError } from "./errors";
@@ -119,16 +120,22 @@ async function putViewing(
   viewing: NewViewing,
   extraLines: string[] = [],
 ): Promise<LoggedViewing> {
+  // #432: every write this app makes attributes itself via
+  // X-LAST-MODIFIED-BY, overriding whatever the caller passed (nobody
+  // upstream sets this themselves) — this is what lets the diff-on-sync
+  // pass tell a self-made change apart from one made by the CLI or
+  // another device, and skip logging it a second time.
+  const attributed: NewViewing = { ...viewing, lastModifiedBy: "web" };
   const response = await boundedFetch(resourceUrl(config, uid), {
     method: "PUT",
     headers: {
       Authorization: authHeader(config),
       "Content-Type": "text/calendar; charset=utf-8",
     },
-    body: serializeViewingToVEvent(uid, viewing, extraLines),
+    body: serializeViewingToVEvent(uid, attributed, extraLines),
   });
   await assertOk(response, "saving event");
-  return { ...viewing, uid };
+  return { ...attributed, uid };
 }
 
 export async function createViewing(
@@ -143,6 +150,7 @@ export async function createViewing(
     action: "created",
     uid,
     title: viewing.title,
+    actor: "web",
   });
   return created;
 }
@@ -182,6 +190,7 @@ export async function updateViewing(
       uid,
       title: viewing.title,
       changes,
+      actor: "web",
     });
   }
   return updated;
@@ -207,7 +216,19 @@ export async function deleteViewing(config: CaldavConfig, uid: string): Promise<
   });
   if (response.status === 404) return;
   await assertOk(response, "deleting event");
-  await recordActivity({ at: new Date().toISOString(), action: "deleted", uid, title });
+  await recordActivity({
+    at: new Date().toISOString(),
+    action: "deleted",
+    uid,
+    title,
+    actor: "web",
+  });
+  // #432: strips this uid from the diff-on-sync snapshot right away —
+  // without this, the next sync's full fetch would find it missing,
+  // compare that against a snapshot that still has it, and log a
+  // second "deleted" entry for a delete this app already just logged
+  // above. Best-effort, same reasoning as recordActivity itself.
+  await forgetCaldavSnapshot(uid);
 }
 
 export async function getPicklists(config: CaldavConfig): Promise<Picklists> {

@@ -62,7 +62,20 @@ X-WEBSITE                  website
 X-RELEASED                 released
 X-AWARDS                   awards
 X-TRAILER-URL               trailerUrl
+X-LAST-MODIFIED-BY          lastModifiedBy
 ```
+
+`X-LAST-MODIFIED-BY` is this app's own write attribution (#432,
+`web` | `cli`) rather than movie metadata — `client.ts`'s `putViewing`
+always forces it to `web` before serializing, overriding whatever a
+caller passed. It's what the diff-on-sync activity log (see
+[`docs/activity.md`](../src/content/docs/docs/activity.md)) reads to
+tell a change this app made itself apart from one made by the CLI or
+another device, so it can skip logging a self-made change twice. It's
+a single current-state property, not a history — deleting a `VEVENT`
+doesn't destroy anything this design depends on, because the _log
+entry_ for that deletion lives in this app's own local snapshot, not
+on the resource that's gone.
 
 `X-RELEASED`, `X-AWARDS` and `X-TRAILER-URL` are this app's own
 additions — the CLI never writes them (it only puts `Released`/`Awards`
