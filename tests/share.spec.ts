@@ -88,6 +88,34 @@ test.describe("sharing a single viewing", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #440: the shared page's own row gets the same venue trim as every
+  // other read-only render site — SharedViewing (encode.ts) carries no
+  // `city` field at all, so only the trim-to-first-comma half of the
+  // helper ever applies here, never a city appended.
+  test("trims the shared row's venue to its name, dropping anything after the first comma", async ({
+    page,
+    context,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, venue: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).first().click();
+
+    await page.getByRole("button", { name: "Share" }).click();
+    const linkBox = page.getByRole("textbox", { name: "Shareable link" });
+    const sharedUrl = await linkBox.inputValue();
+
+    const freshPage = await context.newPage();
+    await freshPage.goto(sharedUrl);
+
+    await expect(freshPage.getByText(/frozen as of/)).toBeVisible();
+    const row = freshPage.locator("tbody tr");
+    await expect(row).toContainText("De Munt");
+    await expect(row).not.toContainText("Vijzelstraat");
+    await expect(row).not.toContainText("Netherlands");
+  });
+
   test("the Copy button copies the shown link, when clipboard permission is actually granted", async ({
     page,
     context,

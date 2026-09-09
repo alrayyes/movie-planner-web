@@ -10,6 +10,8 @@ import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
 import { formatTime, toDateInputValue } from "../lib/ui/datetime";
 import { groupViewingsByLocalDay } from "../lib/ui/heatmap";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { venueDisplay } from "../lib/venue/display";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
@@ -381,7 +383,7 @@ the dialog element itself, not the inner content div. -->
             </a>
             <p class="text-sm text-slate-600 dark:text-slate-400">
               {formatTime(viewing.start)}–{formatTime(viewing.end)} · {viewing.medium}{viewing.venue
-                ? ` · ${viewing.venue}`
+                ? ` · ${venueDisplay(viewing.venue, viewing.city)}`
                 : ""}
             </p>
             {#if viewing.director || viewing.genre}

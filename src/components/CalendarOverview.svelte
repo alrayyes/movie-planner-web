@@ -42,6 +42,8 @@ import {
 	toDateInputValue,
 } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { venueDisplay } from "../lib/venue/display";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
@@ -1238,9 +1240,10 @@ getPicklists(config).then((picklists) => {
                   (see the header row above) — shown here instead, so
                   the information stays reachable rather than dropped,
                   just relocated under the title the same way the
-                  cross-link icons already are. -->
+                  cross-link icons already are. #440: trimmed to name +
+                  known city, same as the Venue column itself. -->
                   <p class="text-xs text-slate-500 sm:hidden dark:text-slate-400">
-                    {viewing.venue}
+                    {venueDisplay(viewing.venue, viewing.city)}
                   </p>
                 {/if}
                 {#if links.length > 0}
@@ -1294,8 +1297,11 @@ getPicklists(config).then((picklists) => {
                 {/if}
               </td>
               <td class={`${TD} hidden sm:table-cell`}>
+                <!-- #440: trimmed to name + known city — the sort key
+                below and the filter/link elsewhere on this page still
+                use the full raw venue value untouched. -->
                 <span class="inline-flex items-center gap-1">
-                  {viewing.venue ?? ""}
+                  {venueDisplay(viewing.venue, viewing.city)}
                   {#if viewing.geo}
                     <!-- #268: a lightweight location cue right on the
                     row, rather than a full map per row (heavy on a

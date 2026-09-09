@@ -9,6 +9,8 @@ import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/class
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatPeriod } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { venueDisplay } from "../lib/venue/display";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
@@ -117,7 +119,10 @@ function formatSharedAt(iso: string): string {
 						</td>
 						<td class={TD}>{formatPeriod(viewing.start, viewing.end)}</td>
 						<td class={TD}>
-							{viewing.venue ?? ""}
+							<!-- #440: trimmed to name only — a shared snapshot never
+							carries the venue's own city (SharedViewing's own
+							allowlist, encode.ts), just the raw venue value. -->
+							{venueDisplay(viewing.venue)}
 							{#if viewing.geo}
 								<a
 									href={openStreetMapUrl(viewing.geo)}
