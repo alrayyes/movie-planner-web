@@ -1,0 +1,54 @@
+---
+// #451: extracted out of Layout.astro so the same header can also be
+// rendered inside Starlight's own page frame
+// (src/components/starlight/Header.astro, wired in via astro.config.mjs's
+// `starlight({ components: { Header: ... } })`) — a docs page gets this
+// app's own chrome instead of Starlight's default title/search/theme-select
+// bar, same as every other page. The Web Components mounted below
+// (site-nav, log-viewing-button, keyboard-nav, theme-toggle) behave
+// identically wherever this is rendered — including site-nav's own
+// credentials gate, so a docs page shows no nav links either until a
+// visitor has connected, exactly like everywhere else.
+---
+
+<header class="mb-6 flex items-center justify-between">
+  <a
+    href="/"
+    class="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900 hover:text-indigo-600 dark:text-slate-100 dark:hover:text-indigo-400"
+  >
+    <!-- #434: the same mark as favicon.svg, inlined rather than
+    reused via `<img src="/favicon.svg">` — its own fill switches
+    on the OS-level `prefers-color-scheme` media query, which is
+    right for a browser tab icon but wrong here: this app's dark
+    mode is a class on <html> toggled by the in-page switch
+    (global.css's `@custom-variant dark`), independent of the OS
+    setting, so an <img> reuse would go illegible the moment a
+    visitor's manual choice disagrees with their OS preference.
+    `fill-current` ties the mark to the same `text-*`/`dark:text-*`
+    (and hover) classes already on this link instead. -->
+    <svg
+      viewBox="0 0 128 128"
+      class="h-7 w-7 shrink-0 fill-current"
+      aria-hidden="true"
+    >
+      <rect x="24" y="70" width="64" height="34" rx="6"></rect>
+      <g transform="rotate(-14 22 58)">
+        <rect x="20" y="48" width="72" height="18" rx="4"></rect>
+      </g>
+    </svg>
+    Movie Planner
+  </a>
+  <div class="header-actions flex items-center gap-2">
+    <keyboard-nav></keyboard-nav>
+    <log-viewing-button></log-viewing-button>
+    <theme-toggle></theme-toggle>
+  </div>
+</header>
+<site-nav></site-nav>
+
+<script>
+  import "./keyboard-nav";
+  import "./log-viewing-button";
+  import "./site-nav";
+  import "./theme-toggle";
+</script>

@@ -1,0 +1,11 @@
+---
+// #451: same reasoning as Header.astro (this directory) — this app's own
+// footer instead of Starlight's own edit-link/pagination/credits footer.
+// Rendered inside Starlight's ContentPanel, which already constrains and
+// pads the main content column, so no extra wrapper is needed here the
+// way Header.astro needs one.
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import SiteFooter from "../SiteFooter.astro";
+---
+
+<SiteFooter />

@@ -314,6 +314,17 @@ test.describe("settings hub", () => {
     await expect(page.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
   });
 
+  // #451: Docs joins Import/Activity here rather than the top nav — see
+  // docs.spec.ts for the docs pages sharing this app's own header/footer.
+  test("links to Docs, clearly labeled", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/settings");
+
+    await expect(page.getByRole("link", { name: "Docs" })).toHaveAttribute("href", "/docs/");
+  });
+
   test("introduces no accessibility violations", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"]);
     await connect(page);

@@ -55,6 +55,20 @@ import Layout from "../layouts/Layout.astro";
           — a local record of what this app itself has changed.</span
         >
       </li>
+      <!-- #451: added alongside Import/Activity rather than the top nav —
+      #436 deliberately shrank that to 5 items to fit one row on mobile,
+      and a 6th item would undo it. Docs is exactly as low-frequency as
+      Import/Activity, so it fits the same pattern. -->
+      <li>
+        <a
+          class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          href="/docs/">Docs</a
+        >
+        <span class="text-slate-600 dark:text-slate-400">
+          — how to use this app, from connecting a CalDAV server to keyboard
+          shortcuts.</span
+        >
+      </li>
     </ul>
   </div>
 </Layout>

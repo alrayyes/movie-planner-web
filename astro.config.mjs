@@ -25,11 +25,18 @@ export default defineConfig({
     // its pages land under /docs/... instead of taking over the site's
     // root — same approach washy-washy-web uses for the same reason.
     // No `locales`/i18n config, unlike that sibling project — this app
-    // has none. Starlight's own chrome (header/sidebar/theme toggle) is
-    // used as-is rather than reskinned into this app's own — a much
-    // smaller surface than washy-washy-web's marketing site, so a
-    // visitor landing on /docs from a search engine loses little by not
-    // seeing this app's own nav there too.
+    // has none.
+    //
+    // #451: this reverses an earlier decision to use Starlight's own
+    // chrome as-is. `components` below swaps in this app's own
+    // header/footer (src/components/starlight/{Header,Footer}.astro —
+    // Starlight's documented override mechanism) so docs feels like a
+    // first-class part of the site rather than a separate mini-site,
+    // matching washy-washy-web's own `/docs/` pattern. Starlight's own
+    // sidebar (docs-internal navigation) is untouched. The "Docs" link
+    // itself lives on the Settings hub (settings.astro), not the top
+    // nav — #436 deliberately shrank the top nav to 5 items to fit one
+    // row on mobile, and a 6th item would undo that.
     starlight({
       title: "Movie Planner docs",
       description:
@@ -45,26 +52,39 @@ export default defineConfig({
         baseUrl: "https://github.com/alrayyes/movie-planner-web/edit/main/",
       },
       customCss: ["./src/styles/global.css"],
+      // #451: this app's own header/footer, in place of Starlight's own.
+      components: {
+        Header: "./src/components/starlight/Header.astro",
+        Footer: "./src/components/starlight/Footer.astro",
+      },
       // No search trigger — skips building a pagefind index over a
       // handful of pages nothing queries yet.
       pagefind: false,
       // #392: Starlight manages its own theme entirely independently —
       // its own ThemeProvider.astro reads/writes localStorage's
       // "starlight-theme" and sets <html data-theme>, while this app's
-      // own toggle (Layout.astro/theme-toggle.ts) reads/writes a
-      // completely different "movie-planner-web-theme" key and sets a
-      // .dark class instead — so a preference set on the main app never
-      // reached the docs. `head` entries render before Starlight's own
-      // ThemeProvider (confirmed by reading Page.astro: <Head/>, which
-      // renders this array, comes first) — this copies the app's own
-      // explicit choice into Starlight's key before ThemeProvider reads
-      // it, so it always wins; a visitor who never explicitly chose on
-      // the main app still gets Starlight's own system-preference
-      // default, unchanged.
+      // own toggle (Layout.astro/theme-toggle.ts, also mounted on docs
+      // pages as of #451 via SiteHeader.astro) reads/writes a completely
+      // different "movie-planner-web-theme" key and sets a .dark class
+      // instead — so a preference set on the main app never reached the
+      // docs. `head` entries render before Starlight's own ThemeProvider
+      // (confirmed by reading Page.astro: <Head/>, which renders this
+      // array, comes first) — this copies the app's own explicit choice
+      // into Starlight's key before ThemeProvider reads it, so it always
+      // wins; a visitor who never explicitly chose on the main app still
+      // gets Starlight's own system-preference default, unchanged.
+      //
+      // #451: also applies the `.dark` class itself, mirroring
+      // Layout.astro's own inline script — Starlight's sidebar/content
+      // styling reacts to its own `data-theme` attribute above, but this
+      // app's own header/footer (now shared onto docs pages) are styled
+      // with Tailwind's `dark:` variant, which only reacts to `.dark` on
+      // <html> (global.css's `@custom-variant dark`). Without this,
+      // those two pieces of chrome would disagree on first paint.
       head: [
         {
           tag: "script",
-          content: `(function(){try{var t=localStorage.getItem("movie-planner-web-theme");if(t==="dark"||t==="light"){localStorage.setItem("starlight-theme",t);}}catch(e){}})();`,
+          content: `(function(){try{var t=localStorage.getItem("movie-planner-web-theme");var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",dark);if(t==="dark"||t==="light"){localStorage.setItem("starlight-theme",t);}}catch(e){}})();`,
         },
       ],
       sidebar: [

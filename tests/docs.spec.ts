@@ -1,7 +1,23 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+
+const CREDENTIALS = {
+  "caldav-url": "https://caldav.example.com/calendars/me/movies/",
+  "caldav-username": "me",
+  "caldav-password": "secret",
+};
+
+async function connect(page: Page) {
+  await page.goto("/");
+  await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+  await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+  await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+  await page.getByRole("button", { name: "Connect" }).click();
+  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+}
 
 // #71: the Starlight-powered usage guide, mounted at /docs alongside the
 // rest of this fully static app — a build-time integration, so this is a
@@ -49,6 +65,91 @@ test.describe("docs", () => {
     await expect(page.getByRole("heading", { name: "Movie Planner" })).toBeVisible();
   });
 
+  // #451: docs pages get this app's own header/footer instead of
+  // Starlight's own default chrome — the same nav and footer as every
+  // other page. Starlight's own sidebar (docs-internal navigation) is
+  // untouched.
+  test.describe("shared header and footer", () => {
+    test("shows the app's own header and footer, not Starlight's defaults", async ({ page }) => {
+      await page.goto("/docs/");
+
+      await expect(page.getByRole("link", { name: "Movie Planner" })).toHaveAttribute("href", "/");
+      await expect(
+        page.getByRole("switch", { name: /switch to (dark|light) mode/i }),
+      ).toBeVisible();
+
+      const footer = page.locator("footer");
+      await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+        "href",
+        "https://github.com/alrayyes/movie-planner-web",
+      );
+      await expect(footer.getByRole("link", { name: "Disclaimer" })).toHaveAttribute(
+        "href",
+        "/disclaimer",
+      );
+      await expect(footer.getByRole("link", { name: "Privacy" })).toHaveAttribute(
+        "href",
+        "/privacy",
+      );
+
+      // Starlight's own default Footer renders an "Edit page" link
+      // (editLink.baseUrl is configured) — its absence confirms the
+      // override actually replaced Starlight's Footer, not just added
+      // to it.
+      await expect(page.getByRole("link", { name: "Edit page" })).toHaveCount(0);
+    });
+
+    test("shows the same nav links as every other page, once connected", async ({ page }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+      await connect(page);
+
+      await page.goto("/docs/");
+
+      await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+      await expect(page.locator("site-nav a")).toHaveText([
+        "Viewings",
+        "Venues",
+        "Calendar",
+        "Map",
+        "Settings",
+      ]);
+    });
+
+    // Mirrors site-nav.ts's own credentials gate — same component,
+    // same behavior, everywhere it's mounted.
+    test("shows no nav links before a visitor has connected", async ({ page }) => {
+      await page.goto("/docs/");
+
+      await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+      await expect(page.locator("site-nav a")).toHaveCount(0);
+    });
+
+    test("Starlight's own sidebar is still present and navigates", async ({ page }) => {
+      await page.goto("/docs/");
+
+      // The wrapping <nav aria-label="Main"> itself has no box of its own
+      // (Starlight positions both its mobile toggle and the sidebar pane
+      // with `position: fixed`, taking them out of flow) — checking the
+      // link actually reachable inside it is the real assertion.
+      const sidebarLink = page
+        .getByRole("navigation", { name: "Main" })
+        .getByRole("link", { name: "Keyboard shortcuts", exact: true });
+      await expect(sidebarLink).toBeVisible();
+
+      await sidebarLink.click();
+      await expect(
+        page.getByRole("heading", { name: "Keyboard shortcuts", level: 1 }),
+      ).toBeVisible();
+    });
+
+    test("introduces no accessibility violations", async ({ page }) => {
+      await page.goto("/docs/");
+
+      const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(results.violations).toEqual([]);
+    });
+  });
+
   // #392: Starlight manages its own theme independently (its own
   // localStorage key, its own <html data-theme> attribute) — an
   // explicit choice made on the main app (a different key, a .dark
@@ -87,6 +188,32 @@ test.describe("docs", () => {
 
       await page.goto("/docs/");
 
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    });
+
+    // #451: the sync above only ever runs once, on first load, before
+    // paint — using the app's own toggle (now mounted on docs pages
+    // too) has to keep pushing the same update itself, or Starlight's
+    // own chrome would drift out of sync with this app's the moment a
+    // visitor actually uses it here.
+    test("using the app's own theme toggle on a docs page updates Starlight's theme too, live", async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: "light" });
+      await page.goto("/docs/");
+
+      const toggle = page.getByRole("switch", { name: /switch to (dark|light) mode/i });
+      await expect(page.locator("html")).not.toHaveClass(/dark/);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+      await toggle.click();
+
+      await expect(page.locator("html")).toHaveClass(/dark/);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+      await toggle.click();
+
+      await expect(page.locator("html")).not.toHaveClass(/dark/);
       await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     });
   });
