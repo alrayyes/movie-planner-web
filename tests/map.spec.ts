@@ -130,6 +130,30 @@ test.describe("global map", () => {
     await expect(popupLink).toBeHidden();
   });
 
+  // #441: mouseout fired on the marker alone the instant the cursor left
+  // its small icon hit area, closing the popup before the cursor ever
+  // reached its own separate DOM element — including while moving
+  // toward a link inside it, making that link unreachable by mouse.
+  test("moving the mouse from a pin to its popup keeps it open, its link clickable", async ({
+    page,
+  }) => {
+    await mockTiles(page);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await page.goto("/map");
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+    const popupLink = page.getByRole("link", { name: "Dune (2021)" });
+    await page.locator(".leaflet-marker-icon").hover();
+    await expect(popupLink).toBeVisible();
+
+    await popupLink.hover();
+    await expect(popupLink).toBeVisible();
+
+    await popupLink.click();
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
+  });
+
   // venue-map spec's "A pin links out to a full, precise external map"
   // requirement covers every pin, not just the per-venue map's single
   // one (#252) — the global map's own multiple pins get theirs inside
