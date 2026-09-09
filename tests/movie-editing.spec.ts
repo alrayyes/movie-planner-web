@@ -52,7 +52,7 @@ test.describe("updating a logged viewing", () => {
 
     await page.getByRole("button", { name: "Save" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Saved.");
+    await expect(page.locator("#movie-status")).toHaveText("Saved.");
     expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.uid).toBe("dune-uid");
     expect(server.updates[0]?.venue).toBe("Regal Union Square");
@@ -86,7 +86,7 @@ test.describe("updating a logged viewing", () => {
     await page.locator("#details-venue").fill("Regal Union Square");
     await page.getByRole("button", { name: "Save" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Saved.");
+    await expect(page.locator("#movie-status")).toHaveText("Saved.");
     expect(server.updates[0]?.director).toBe("Denis Villeneuve");
     expect(server.updates[0]?.ratingImdb).toBe("8.0");
   });
@@ -130,7 +130,7 @@ test.describe("deleting a logged viewing", () => {
     // CPU/event-loop contention across concurrent Chromium instances
     // routinely pushes that past 5s even though it's fast in isolation,
     // same root cause as #249's own fix.
-    await expect(page.getByRole("status")).toHaveText("Deleted.", { timeout: 15000 });
+    await expect(page.locator("#movie-status")).toHaveText("Deleted.", { timeout: 15000 });
     expect(server.deletes).toHaveLength(1);
     expect(server.deletes[0]).toBe("dune-uid");
   });

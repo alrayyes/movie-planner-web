@@ -1077,7 +1077,7 @@ reloadOnBfcacheRestore(() => void load());
 
   <div bind:this={pickerArea}></div>
 
-  <p class={STATUS_TEXT} role="status">{statusText}</p>
+  <p id="movie-status" class={STATUS_TEXT} role="status">{statusText}</p>
   {#if errorMessage}
     <ErrorToast message={errorMessage} onDismiss={() => (errorMessage = "")} />
   {/if}
