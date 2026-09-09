@@ -210,7 +210,7 @@ test.describe("calendar overview", () => {
     await connect(page);
 
     const row = page.locator("tbody tr");
-    const pin = row.getByRole("link", { name: "Show Dune on the map" });
+    const pin = row.getByRole("link", { name: "View Dune on the map" });
     await expect(pin).toHaveAttribute("href", "/movie?uid=dune-uid");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
@@ -222,7 +222,7 @@ test.describe("calendar overview", () => {
     await connect(page);
 
     await expect(
-      page.locator("tbody tr").getByRole("link", { name: "Show Dune on the map" }),
+      page.locator("tbody tr").getByRole("link", { name: "View Dune on the map" }),
     ).toHaveCount(0);
   });
 
