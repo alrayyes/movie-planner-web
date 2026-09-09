@@ -202,6 +202,39 @@ test.describe("viewing heatmap", () => {
     await expect(dialog).toBeHidden();
   });
 
+  // #440: the popup's own venue text gets the same trim-to-name +
+  // known-city treatment as movie details and the overview table — a
+  // street address baked into the raw venue value never shows up here.
+  test("the popup shows a trimmed venue, name and known city only", async ({ page }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+        venue: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+        city: "Amsterdam",
+        country: "Netherlands",
+        year: "2021",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    const cell = page.getByRole("button", { name: `${dayValue}: 1 viewing` });
+    await cell.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("cinema · De Munt, Amsterdam");
+    await expect(dialog).not.toContainText("Vijzelstraat");
+    await expect(dialog).not.toContainText("Netherlands");
+  });
+
   test("hovering a day cell also opens the popup, closing again once the pointer leaves", async ({
     page,
   }) => {

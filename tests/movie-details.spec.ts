@@ -875,11 +875,17 @@ test.describe("movie details page", () => {
     expect(results.violations).toEqual([]);
   });
 
-  // #363: the venue's own verified street address, once known.
-  test("shows the venue's verified street address, once known", async ({ page }) => {
+  // #440: the venue's own trimmed name + known city absorbed what used
+  // to be a separate Address row (streetAddress/postalCode/city/country,
+  // #363) — that row is gone entirely, and the Venue line itself never
+  // shows a street address, postal code, or country.
+  test("trims the venue to its name and known city, dropping the street address entirely", async ({
+    page,
+  }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {
         ...DUNE,
+        venue: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
         city: "Amsterdam",
         country: "Netherlands",
         streetAddress: "Vijzelstraat 15",
@@ -889,14 +895,49 @@ test.describe("movie details page", () => {
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
-    await expect(page.getByText("Vijzelstraat 15, 1017 HD Amsterdam, Netherlands")).toBeVisible();
+    const venueLink = page.getByRole("link", { name: "De Munt, Amsterdam" });
+    await expect(venueLink).toBeVisible();
+    await expect(page.getByText("Vijzelstraat 15")).toHaveCount(0);
+    await expect(page.getByText("1017 HD")).toHaveCount(0);
+    await expect(page.getByText("Netherlands")).toHaveCount(0);
+
+    // Presentation-only: the link's own href still carries the full raw
+    // venue value, unaffected by the trimmed display text.
+    await expect(venueLink).toHaveAttribute(
+      "href",
+      "/?venue=De%20Munt%2C%20Vijzelstraat%2015%2C%201017%20HD%20Amsterdam%2C%20Netherlands",
+    );
   });
 
-  test("shows no Address field at all when the venue has no verified street address", async ({
+  test("shows just the trimmed venue name when it has no known city", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, venue: "De Munt, Vijzelstraat 15, Amsterdam" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "De Munt", exact: true })).toBeVisible();
+  });
+
+  test("leaves a venue with no comma in its raw value unchanged", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, venue: "AFAS Cinema" }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "AFAS Cinema", exact: true })).toBeVisible();
+  });
+
+  test("shows no separate Address field at all, regardless of whether a street address is known", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      { ...DUNE, city: "Amsterdam", country: "Netherlands" },
+      {
+        ...DUNE,
+        city: "Amsterdam",
+        country: "Netherlands",
+        streetAddress: "Vijzelstraat 15",
+        postalCode: "1017 HD",
+      },
     ]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();

@@ -184,24 +184,46 @@ test.describe("calendar overview", () => {
   });
 
   // #382 appended a venue's known city/country next to its name; reverted
-  // (see the issue tracking this revert) because real-world venue names can
-  // already carry a full address, and appending city/country on top of that
-  // just duplicates it. The overview shows the venue name as stored, nothing
-  // appended.
-  test("shows the venue name as stored, without appending city or country", async ({ page }) => {
+  // because real-world venue names can already carry a full address, and
+  // appending city/country on top of that just duplicates it. #440
+  // replaces that with a narrower rule: trim to whatever's before the
+  // venue's own first comma (dropping any address baked into `venue`
+  // itself), then append only the separately-stored `city` field —
+  // never the country, never anything parsed out of the trimmed
+  // remainder.
+  test("trims the venue to its name and known city, in both the table column and the mobile under-title text", async ({
+    page,
+  }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      { ...DUNE, venue: "De Munt", city: "Amsterdam", country: "Netherlands" },
+      {
+        ...DUNE,
+        venue: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+        city: "Amsterdam",
+        country: "Netherlands",
+      },
       PADDINGTON,
     ]);
     await connect(page);
 
     const duneRow = page.locator("tbody tr", { hasText: "Dune" });
-    await expect(duneRow).toContainText("De Munt");
-    await expect(duneRow).not.toContainText("De Munt, Amsterdam, Netherlands");
+    await expect(duneRow).toContainText("De Munt, Amsterdam");
+    await expect(duneRow).not.toContainText("Vijzelstraat");
+    await expect(duneRow).not.toContainText("Netherlands");
 
     await page.setViewportSize({ width: 375, height: 800 });
-    await expect(duneRow).toContainText("De Munt");
-    await expect(duneRow).not.toContainText("De Munt, Amsterdam, Netherlands");
+    await expect(duneRow).toContainText("De Munt, Amsterdam");
+    await expect(duneRow).not.toContainText("Vijzelstraat");
+    await expect(duneRow).not.toContainText("Netherlands");
+  });
+
+  test("leaves a venue with no comma in its raw value unchanged when it has no known city", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, venue: "AFAS Cinema" }]);
+    await connect(page);
+
+    const duneRow = page.locator("tbody tr", { hasText: "Dune" });
+    await expect(duneRow).toContainText("AFAS Cinema");
   });
 
   // #268
