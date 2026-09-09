@@ -1,4 +1,5 @@
 <script lang="ts">
+import { syncCaldavActivityLog } from "../lib/activity-log/sync";
 import {
 	deleteViewing,
 	getPicklists,
@@ -811,12 +812,36 @@ async function handleRefreshAll() {
 	}
 }
 
+// #432: this page's own mount is "opening the app" — the natural place
+// to run the diff-on-sync activity-log pass. Fire-and-forget and
+// independent of reload() below: it fetches its own full, unfiltered
+// range (see importCheckRange's own reasoning in sync.ts) rather than
+// whatever currentRange() the visible table is scoped to, so it must
+// never block, or be blocked by, the visible list loading.
+//
+// Astro's <ClientRouter/> keeps this page's own script running across
+// a soft, client-side navigation (Layout.astro's own astro:before-swap
+// handling deals with the same thing for dark mode) — without this
+// abort, clicking through to a viewing's own details page moments
+// after landing here would leave this sync's network/IndexedDB work
+// still running underneath it. astro:before-swap fires once, right
+// before that happens.
+function syncActivityLogUntilNavigatedAway() {
+	const controller = new AbortController();
+	document.addEventListener("astro:before-swap", () => controller.abort(), { once: true });
+	void syncCaldavActivityLog(config, { signal: controller.signal });
+}
+
 reload();
+syncActivityLogUntilNavigatedAway();
 // #223: a visitor deleting a viewing on the details page, then hitting
 // Back, can land on this exact pre-delete DOM restored from the
 // browser's bfcache rather than a fresh load — reload() never re-runs
 // on its own in that case.
-reloadOnBfcacheRestore(() => reload({ silent: true }));
+reloadOnBfcacheRestore(() => {
+	reload({ silent: true });
+	syncActivityLogUntilNavigatedAway();
+});
 getPicklists(config).then((picklists) => {
 	mediumPicklist = picklists.media;
 	venuePicklist = picklists.venues;

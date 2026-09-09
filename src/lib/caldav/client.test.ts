@@ -195,6 +195,8 @@ describe("createViewing / updateViewing", () => {
     const created = await createViewing(CONFIG, VIEWING);
     expect(created.uid).toBeTruthy();
     expect(created.title).toBe("Dune");
+    // #432: every write this app makes attributes itself.
+    expect(created.lastModifiedBy).toBe("web");
   });
 
   test("updateViewing PUTs to the given UID's resource", async () => {
@@ -208,7 +210,12 @@ describe("createViewing / updateViewing", () => {
       ...VIEWING,
       title: "Dune: Part Two",
     });
-    expect(updated).toEqual({ uid: "existing-uid", ...VIEWING, title: "Dune: Part Two" });
+    expect(updated).toEqual({
+      uid: "existing-uid",
+      ...VIEWING,
+      title: "Dune: Part Two",
+      lastModifiedBy: "web",
+    });
   });
 
   // #294: this app's own X_PROPERTIES allow-list can't know about every
@@ -249,6 +256,8 @@ describe("createViewing / updateViewing", () => {
     expect(requests.map((r) => r.method)).toEqual(["GET", "PUT"]);
     expect(putBody).toContain("X-FUTURE-FIELD:some value");
     expect(putBody).toContain("SUMMARY:Dune: Part Two");
+    // #432: written on every write this app makes.
+    expect(putBody).toContain("X-LAST-MODIFIED-BY:web");
   });
 });
 

@@ -110,6 +110,17 @@ export interface LoggedViewing {
   // found a match, and it has an official YouTube trailer among its
   // videos. Same "omit, never guess" rule as everything else here.
   trailerUrl?: string;
+  // #432: who last wrote this resource — "web" (this app, forced on
+  // every write by client.ts's putViewing) or "cli" (movie-planner's
+  // own equivalent write path, once it starts writing this too).
+  // Absent on a resource neither app has attributed yet: one that
+  // predates #432, or was last touched by a CLI version that doesn't
+  // write it. This is what the diff-on-sync activity log (#432) reads
+  // to tell a self-made change apart from one made elsewhere, and it's
+  // a single current-state property, not a history — deliberately not
+  // the mechanism the log entries themselves live in (see
+  // activity-log/ for why that design was rejected).
+  lastModifiedBy?: string;
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;

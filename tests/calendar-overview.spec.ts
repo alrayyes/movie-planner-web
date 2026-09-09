@@ -547,10 +547,15 @@ test.describe("calendar overview", () => {
     // re-sends whatever date range the fields already show (by now
     // auto-populated to the real first/last viewing dates, #188),
     // confirming the medium filter itself is applied to the response
-    // rather than sent to the server.
-    expect(server.listRequests).toHaveLength(2);
-    expect(server.listRequests[1]?.from.toDateString()).toBe(TWO_MONTHS_AGO.toDateString());
-    expect(server.listRequests[1]?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
+    // rather than sent to the server. #432's own background diff-sync
+    // pass also issues a REPORT at mount — a separate, always-wide
+    // importCheckRange request, distinct from this narrow one — so the
+    // request this filter click produced is matched by its actual date
+    // range rather than a fixed array position.
+    const filterRequest = server.listRequests.find(
+      (r) => r.from.toDateString() === TWO_MONTHS_AGO.toDateString(),
+    );
+    expect(filterRequest?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
   });
 
   // #140: sourced from the union of the location-management picklist and
@@ -666,9 +671,14 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
     // Venue isn't part of the CalDAV query either, same as medium — the
-    // second request just carries the auto-populated real date range.
-    expect(server.listRequests[1]?.from.toDateString()).toBe(TWO_MONTHS_AGO.toDateString());
-    expect(server.listRequests[1]?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
+    // filter-triggered request just carries the auto-populated real
+    // date range. Matched by its actual dates rather than a fixed array
+    // position — see the medium filter test above for why (#432's own
+    // background diff-sync pass also issues a REPORT at mount).
+    const filterRequest = server.listRequests.find(
+      (r) => r.from.toDateString() === TWO_MONTHS_AGO.toDateString(),
+    );
+    expect(filterRequest?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
   });
 
   // #289: substring, case-insensitive — not exact match like venue/
