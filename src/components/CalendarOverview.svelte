@@ -1217,8 +1217,8 @@ getPicklists(config).then((picklists) => {
                     <a
                       href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
                       class="inline-flex text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400"
-                      title="Show on map"
-                      aria-label={`Show ${viewing.title} on the map`}
+                      title="View on map"
+                      aria-label={`View ${viewing.title} on the map`}
                     >
                       <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                         <path
