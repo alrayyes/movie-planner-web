@@ -1083,7 +1083,7 @@ reloadOnBfcacheRestore(() => void load());
   {/if}
   <datalist id="details-venue-choices">
     {#each venues as venue (venue)}
-      <option value={venue}>{venue}</option>
+      <option value={venue}>{venueDisplay(venue)}</option>
     {/each}
   </datalist>
 </div>

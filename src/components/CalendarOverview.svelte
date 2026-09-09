@@ -127,6 +127,19 @@ const venueOptions = $derived.by(() => {
 	const fromViewings = allViewings.map((v) => v.venue).filter((v): v is string => Boolean(v));
 	return [...new Set([...venuePicklist, ...fromViewings])].sort();
 });
+// #498: a venue's city, for the datalist suggestion's trimmed display
+// label only — matching/submission still key on the raw venue value in
+// venueOptions above. Same "whichever viewing happens to carry it"
+// lookup VenuesOverview.svelte already uses for its own city/country
+// aggregation.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const venueCities = $derived.by(() => {
+	const cities = new Map<string, string>();
+	for (const v of allViewings) {
+		if (v.venue && v.city && !cities.has(v.venue)) cities.set(v.venue, v.city);
+	}
+	return cities;
+});
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const directorOptions = $derived.by(() => {
 	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.director)))].sort();
@@ -928,7 +941,7 @@ getPicklists(config).then((picklists) => {
         />
         <datalist id="overview-venue-choices">
           {#each venueOptions as venue (venue)}
-            <option value={venue}></option>
+            <option value={venue}>{venueDisplay(venue, venueCities.get(venue))}</option>
           {/each}
         </datalist>
       </label>

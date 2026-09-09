@@ -226,6 +226,30 @@ test.describe("calendar overview", () => {
     await expect(duneRow).toContainText("AFAS Cinema");
   });
 
+  // #498: the Venue filter's own datalist suggestions get the same
+  // name+city trim as every other read-only render — matching/submission
+  // still key on the untouched raw value, only the suggestion's visible
+  // label changes.
+  test("the Venue filter's datalist suggestions show the trimmed name+city, while the option's value stays the raw venue", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        ...DUNE,
+        venue: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+        city: "Amsterdam",
+      },
+    ]);
+    await connect(page);
+
+    const option = page.locator("#overview-venue-choices option");
+    await expect(option).toHaveAttribute(
+      "value",
+      "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+    );
+    await expect(option).toHaveText("De Munt, Amsterdam");
+  });
+
   // #268
   test("shows a location pin next to the venue when it has known coordinates, linking to the details page", async ({
     page,
