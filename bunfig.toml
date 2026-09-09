@@ -1,0 +1,5 @@
+# Bun-specific settings live here rather than duplicated across scripts.
+[test]
+coverage = true
+coverageReporter = ["text", "lcov"]
+coveragePathIgnorePatterns = ["*.test.ts"]
