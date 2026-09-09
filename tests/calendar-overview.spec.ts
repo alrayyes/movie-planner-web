@@ -593,6 +593,45 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-genre")).toHaveAttribute("list", "overview-genre-choices");
   });
 
+  // #438: most browsers only offer datalist suggestions that prefix-match
+  // the current text, so once a full value is typed, switching to a
+  // *different* suggestion needs the field cleared first unless focusing
+  // it selects the existing value — verify the selection happens, then
+  // that typing over it lands directly on the other suggestion in one
+  // interaction.
+  test("selects a filter field's existing value on focus, so typing switches to a different suggestion without clearing first", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON], {
+      media: [],
+      venues: ["Regal Union Square"],
+    });
+    await connect(page);
+    await openFilters(page);
+
+    const venueInput = page.locator("#overview-venue");
+    await venueInput.fill("Grand Vista Cinema");
+    await expect(venueInput).toHaveValue("Grand Vista Cinema");
+
+    // Move focus away and back, the way a visitor returning to the field
+    // would, rather than relying on fill()'s own focus side effect.
+    await page.locator("#overview-title").focus();
+    await venueInput.focus();
+
+    const selection = await venueInput.evaluate((el: HTMLInputElement) => ({
+      start: el.selectionStart,
+      end: el.selectionEnd,
+    }));
+    expect(selection).toEqual({ start: 0, end: "Grand Vista Cinema".length });
+
+    // With the old value selected, typing replaces it outright — landing
+    // on the other suggestion in one interaction instead of appending to
+    // or inserting into stale text a browser would otherwise keep
+    // prefix-filtering against.
+    await page.keyboard.type("Regal Union Square");
+    await expect(venueInput).toHaveValue("Regal Union Square");
+  });
+
   // #131
   test("filters by venue client-side, over whatever the date range already returned", async ({
     page,

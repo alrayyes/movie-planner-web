@@ -593,6 +593,21 @@ function syncFilterState() {
 	}
 }
 
+// #438: a browser only offers datalist suggestions that prefix-match the
+// current text, so once a value is fully typed, switching to a *different*
+// suggestion needs the field cleared first. Selecting the field's existing
+// contents on focus means the next keystroke replaces it outright, landing
+// on a fresh, unfiltered suggestion list instead of appending to stale
+// text — shared across Title, Venue, Director, Actor and Genre rather than
+// five one-off handlers.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function handleFilterFieldFocus(event: FocusEvent) {
+	const target = event.currentTarget;
+	if (target instanceof HTMLInputElement) {
+		target.select();
+	}
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function handleFilterSubmit(event: SubmitEvent) {
 	event.preventDefault();
@@ -815,6 +830,7 @@ getPicklists(config).then((picklists) => {
           placeholder="e.g. Dune"
           list="overview-title-choices"
           bind:value={titleValue}
+          onfocus={handleFilterFieldFocus}
         />
         <datalist id="overview-title-choices">
           {#each titleOptions as title (title)}
@@ -847,6 +863,7 @@ getPicklists(config).then((picklists) => {
           placeholder="e.g. Grand Vista Cinema"
           list="overview-venue-choices"
           bind:value={venueValue}
+          onfocus={handleFilterFieldFocus}
         />
         <datalist id="overview-venue-choices">
           {#each venueOptions as venue (venue)}
@@ -863,6 +880,7 @@ getPicklists(config).then((picklists) => {
           placeholder="e.g. Denis Villeneuve"
           list="overview-director-choices"
           bind:value={directorValue}
+          onfocus={handleFilterFieldFocus}
         />
         <datalist id="overview-director-choices">
           {#each directorOptions as director (director)}
@@ -879,6 +897,7 @@ getPicklists(config).then((picklists) => {
           placeholder="e.g. Zendaya"
           list="overview-actor-choices"
           bind:value={actorValue}
+          onfocus={handleFilterFieldFocus}
         />
         <datalist id="overview-actor-choices">
           {#each actorOptions as actor (actor)}
@@ -895,6 +914,7 @@ getPicklists(config).then((picklists) => {
           placeholder="e.g. Drama"
           list="overview-genre-choices"
           bind:value={genreValue}
+          onfocus={handleFilterFieldFocus}
         />
         <datalist id="overview-genre-choices">
           {#each genreOptions as genre (genre)}
