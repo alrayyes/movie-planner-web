@@ -10,6 +10,7 @@ import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email
 import { importCheckRange, toIsoDateTime } from "../lib/movie-log/run-import";
 import { lookupByImdbId, type OmdbCandidate } from "../lib/omdb/client";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import { enrichWithTmdb } from "../lib/tmdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
 	BUTTON_PRIMARY,
@@ -131,7 +132,14 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 				try {
 					const metadata = await lookupByImdbId(credentials.omdbApiKey, candidate.imdbId);
 					if (metadata) {
-						await updateViewing(caldavConfig(), viewing.uid, { ...viewing, ...metadata });
+						// #360/#400: TMDb only ever runs off an IMDb ID OMDb has
+						// already resolved — here, the picker selection itself.
+						const tmdbFields = await enrichWithTmdb(credentials.tmdbApiKey, metadata.imdbId);
+						await updateViewing(caldavConfig(), viewing.uid, {
+							...viewing,
+							...metadata,
+							...tmdbFields,
+						});
 					}
 					status = "Logged and matched.";
 				} catch (error) {

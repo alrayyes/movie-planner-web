@@ -10,6 +10,12 @@ export interface Credentials {
   // enabled behavior — existing stored credentials with no opinion on
   // this default to still working exactly as before.
   omdbPaused?: boolean;
+  // #360/#400: same optional/opt-in, graceful-degradation treatment as
+  // omdbApiKey — no key configured means no TMDb calls at all, never a
+  // hard failure. TMDb only ever runs once OMDb has already resolved an
+  // IMDb ID, so this has no pause flag of its own: pausing OMDb already
+  // stops every TMDb call downstream of it too.
+  tmdbApiKey?: string;
 }
 
 export interface CredentialsStore {

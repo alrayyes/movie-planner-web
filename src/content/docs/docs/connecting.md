@@ -1,6 +1,6 @@
 ---
 title: Connecting your CalDAV server
-description: Point the app at your own CalDAV server and, optionally, an OMDb key.
+description: Point the app at your own CalDAV server and, optionally, OMDb and TMDb keys.
 ---
 
 :::caution
@@ -41,6 +41,18 @@ logging a large batch, tick "Pause OMDb lookups" (also on the settings
 page) to skip every OMDb call without losing the stored key, then use
 "Refresh metadata" on individual entries (or "Refresh all" on the
 overview) once you're ready to fetch it.
+
+## TMDb key (optional)
+
+Adding a [TMDb API key](https://www.themoviedb.org/settings/api) on the
+connect form or the settings page enriches an already-matched viewing
+further: a trailer link, the collection it belongs to, its
+certification, keywords, and budget/popularity, plus richer actors and
+website links when TMDb has more than OMDb does. TMDb only ever runs
+once OMDb has already resolved an IMDb ID for a viewing — it's never
+used as a search on its own, so it has nothing to add without an OMDb
+key also set. Without a TMDb key, logging, refreshing, and editing all
+still work exactly as before — you just don't get the extra fields.
 
 ## Switching accounts or servers
 

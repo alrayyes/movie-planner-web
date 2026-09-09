@@ -16,6 +16,7 @@ import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import { parseReleasedDate } from "../lib/omdb/released-date";
+import { enrichWithTmdb } from "../lib/tmdb/client";
 import { ACTIVE_FILTER_LABEL_EVENT, activeFilterLabel } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -90,8 +91,9 @@ interface Props {
 	config: CaldavConfig;
 	omdbApiKey?: string;
 	omdbPaused?: boolean;
+	tmdbApiKey?: string;
 }
-const { config, omdbApiKey, omdbPaused = false }: Props = $props();
+const { config, omdbApiKey, omdbPaused = false, tmdbApiKey }: Props = $props();
 
 // #80: a key alone isn't enough — a visitor can pause lookups to stay
 // under OMDb's daily rate limit without clearing the stored key.
@@ -690,7 +692,10 @@ async function handleRefresh(viewing: LoggedViewing) {
 			new Date(current.start).getFullYear().toString(),
 		);
 		if (metadata) {
-			await updateViewing(config, current.uid, { ...current, ...metadata });
+			// #360/#400: TMDb only ever runs off an IMDb ID OMDb has just
+			// resolved — never a title/year search of its own.
+			const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
+			await updateViewing(config, current.uid, { ...current, ...metadata, ...tmdbFields });
 			await reload({ silent: true });
 			actionStatusText = "Refreshed.";
 			return;
@@ -744,7 +749,10 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 				try {
 					const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
 					if (metadata) {
-						await updateViewing(config, viewing.uid, { ...viewing, ...metadata });
+						// #360/#400: same TMDb enrichment step as the confident-match
+						// branch above, since this is the same refresh action.
+						const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
+						await updateViewing(config, viewing.uid, { ...viewing, ...metadata, ...tmdbFields });
 					}
 					await reload({ silent: true });
 					actionStatusText = "Refreshed.";
@@ -791,7 +799,11 @@ async function handleRefreshAll() {
 					new Date(viewing.start).getFullYear().toString(),
 				);
 				if (metadata) {
-					await updateViewing(config, viewing.uid, { ...viewing, ...metadata });
+					// #360/#400: added to the same per-viewing sequential loop,
+					// not parallelized — same rate-limit posture as the existing
+					// OMDb bulk refresh.
+					const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
+					await updateViewing(config, viewing.uid, { ...viewing, ...metadata, ...tmdbFields });
 					refreshed++;
 				} else {
 					misses++;

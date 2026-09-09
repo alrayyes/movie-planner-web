@@ -44,6 +44,11 @@ const VIEWING: NewViewing = {
   released: "22 Oct 2021",
   awards: "Won 6 Oscars",
   trailerUrl: "https://www.youtube.com/watch?v=8g18jFHCLXk",
+  collection: "Dune Collection",
+  certification: "PG-13",
+  keywords: "epic, desert, prophecy",
+  budget: "165000000",
+  popularity: "123.456",
 };
 
 describe("VEVENT round trip", () => {
@@ -75,6 +80,41 @@ describe("VEVENT round trip", () => {
     expect(parsed.director).toBeUndefined();
     expect(parsed.streetAddress).toBeUndefined();
     expect(parsed.postalCode).toBeUndefined();
+    expect(parsed.collection).toBeUndefined();
+    expect(parsed.certification).toBeUndefined();
+    expect(parsed.keywords).toBeUndefined();
+    expect(parsed.budget).toBeUndefined();
+    expect(parsed.popularity).toBeUndefined();
+  });
+
+  // tasks.md 1.2: a dedicated round-trip test for the five new TMDb
+  // X-properties, on top of the full-metadata fixture above already
+  // covering them.
+  test("round-trips the new TMDb X-properties (X-COLLECTION, X-CERTIFICATION, X-KEYWORDS, X-BUDGET, X-POPULARITY)", () => {
+    const withTmdbFields: NewViewing = {
+      title: "Dune",
+      start: "2026-01-01T19:00:00.000Z",
+      end: "2026-01-01T21:30:00.000Z",
+      medium: "cinema",
+      collection: "Dune Collection",
+      certification: "PG-13",
+      keywords: "epic, desert, prophecy",
+      budget: "165000000",
+      popularity: "123.456",
+    };
+    const ical = serializeViewingToVEvent("uid-tmdb", withTmdbFields);
+    expect(ical).toContain("X-COLLECTION:Dune Collection");
+    expect(ical).toContain("X-CERTIFICATION:PG-13");
+    expect(ical).toContain("X-KEYWORDS:epic\\, desert\\, prophecy");
+    expect(ical).toContain("X-BUDGET:165000000");
+    expect(ical).toContain("X-POPULARITY:123.456");
+
+    const parsed = parseVEventToViewing(ical);
+    expect(parsed.collection).toBe("Dune Collection");
+    expect(parsed.certification).toBe("PG-13");
+    expect(parsed.keywords).toBe("epic, desert, prophecy");
+    expect(parsed.budget).toBe("165000000");
+    expect(parsed.popularity).toBe("123.456");
   });
 
   // #432: X-LAST-MODIFIED-BY attributes cross-app writes for the

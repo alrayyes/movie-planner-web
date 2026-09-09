@@ -2,6 +2,7 @@ import { createViewing, listViewings, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
 import { lookupMovie, type OmdbCandidate, searchMovies } from "../omdb/client";
+import { enrichWithTmdb } from "../tmdb/client";
 import type { PatheBooking } from "./pathe-email";
 
 // #49: the outcome of a logged/refreshed OMDb lookup — either a confident
@@ -34,7 +35,12 @@ async function enrichWithOmdb(
   try {
     const year = new Date(watchedAt).getFullYear().toString();
     const metadata = await lookupMovie(credentials.omdbApiKey, title, year);
-    if (metadata) return { fields: metadata };
+    if (metadata) {
+      // #360/#400: TMDb only ever runs off an IMDb ID OMDb has already
+      // resolved — never a title/year search of its own.
+      const tmdbFields = await enrichWithTmdb(credentials.tmdbApiKey, metadata.imdbId);
+      return { fields: { ...metadata, ...tmdbFields } };
+    }
     const candidates = await searchMovies(credentials.omdbApiKey, title);
     return candidates.length > 0 ? { fields: {}, candidates } : { fields: {} };
   } catch {

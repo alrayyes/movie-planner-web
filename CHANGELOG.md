@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.93.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.92.0...movie-planner-web-v0.93.0) (2026-09-09)
+
+
+### Features
+
+* **chrome:** add a logo to the left of the header title ([#478](https://github.com/alrayyes/movie-planner-web/issues/478)) ([513e5d6](https://github.com/alrayyes/movie-planner-web/commit/513e5d6b12f9f11120ad20c47aff23dbbac0123d)), closes [#434](https://github.com/alrayyes/movie-planner-web/issues/434)
+
 ## [0.92.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.91.0...movie-planner-web-v0.92.0) (2026-09-09)
 
 
