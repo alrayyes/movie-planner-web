@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.90.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.90.1...movie-planner-web-v0.90.2) (2026-09-09)
+
+
+### Bug Fixes
+
+* **caldav:** force no-store on listViewings's own REPORT request ([#466](https://github.com/alrayyes/movie-planner-web/issues/466)) ([0dc7eee](https://github.com/alrayyes/movie-planner-web/commit/0dc7eee136a7b2219a3c795d88a68addfa46775b)), closes [#445](https://github.com/alrayyes/movie-planner-web/issues/445)
+* **calendar-overview:** give the viewing total its own persistent element ([#467](https://github.com/alrayyes/movie-planner-web/issues/467)) ([43f378a](https://github.com/alrayyes/movie-planner-web/commit/43f378a8cbc2a6a0efbeabda020c1ca668c4b78e)), closes [#435](https://github.com/alrayyes/movie-planner-web/issues/435)
+* **map:** keep a pin's popup open while the cursor crosses to it ([#464](https://github.com/alrayyes/movie-planner-web/issues/464)) ([29f0f4c](https://github.com/alrayyes/movie-planner-web/commit/29f0f4c4e8934f6e0f832b4982577dccdeed02ef)), closes [#441](https://github.com/alrayyes/movie-planner-web/issues/441)
+
 ## [0.90.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.90.0...movie-planner-web-v0.90.1) (2026-09-09)
 
 
