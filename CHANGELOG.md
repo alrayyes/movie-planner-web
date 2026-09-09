@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.95.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.95.0...movie-planner-web-v0.95.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** override smol-toml to 1.7.1, fixing the DoS CVE ([#490](https://github.com/alrayyes/movie-planner-web/issues/490)) ([0441b61](https://github.com/alrayyes/movie-planner-web/commit/0441b61bfc676e03bd81ff03cc20b752f2105178))
+
 ## [0.95.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.94.0...movie-planner-web-v0.95.0) (2026-09-09)
 
 
