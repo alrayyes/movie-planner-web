@@ -46,11 +46,6 @@ by the other.
 - **[bun](https://bun.sh) 1.3 or newer.** It's the package manager, the
   runner for every script below, and the [lefthook](https://lefthook.dev)
   that runs the git hooks.
-- A **Cloudflare account**, only for deploying — `bun run dev`/`build`/
-  `check`/`test` need nothing external. Cloudflare's own GitHub
-  integration builds and deploys this repo directly (preview builds per
-  pull request, production on `main`); there's no deploy step to run by
-  hand or configure here.
 - Your own **CalDAV calendar** (Baikal or otherwise) to point the app at —
   this project doesn't provision one. **It has to send CORS headers
   permitting this app's origin**, since your browser talks to it directly:
@@ -152,9 +147,15 @@ bun run check     # astro check — type-checks .astro and .ts files together
 bun run test      # unit tests, then Playwright against a build served through wrangler
 ```
 
-Deploying isn't a local command or part of this repo's own CI — Cloudflare's
-GitHub integration builds and deploys on every push, independent of the
-[release job](.github/workflows/release.yml), which only tags versions.
+`bun run build` writes a plain static site to `dist/`, nothing specific to
+any one host, and no account is needed to build, run, or test this repo.
+This deployment happens to run on a Cloudflare Worker (`wrangler.jsonc`'s
+static-assets mode), whose own GitHub integration builds and deploys on
+every push (preview builds per pull request, production on `main`),
+independent of the [release job](.github/workflows/release.yml), which
+only tags versions — but that's this repo's own hosting choice, not a
+requirement of the app itself. Point any static host at `dist/` and it
+works the same way.
 
 ## Contributing
 
