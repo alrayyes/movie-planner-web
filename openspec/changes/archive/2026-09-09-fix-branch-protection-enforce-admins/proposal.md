@@ -20,4 +20,4 @@
 ## Impact
 
 - GitHub branch protection settings for `main` (not a file in this repo).
-- `.github/workflows/dependabot-auto-merge.yml`, `release-auto-merge.yml`: verify, and adjust if they were depending on the bypass.
+- `.github/workflows/dependabot-auto-merge.yml`, `release-auto-merge.yml`: verify, and adjust if they relied on the bypass.
