@@ -106,6 +106,87 @@ test.describe("Fork me on GitHub ribbon", () => {
   }
 });
 
+// #434: a logo to the left of the "Movie Planner" title, in the same
+// link to /.
+test.describe("header brand logo", () => {
+  test("shows a decorative logo immediately to the left of the title, inside the link to /", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const brandLink = page.getByRole("link", { name: "Movie Planner" });
+    const logo = brandLink.locator("svg");
+    await expect(logo).toBeVisible();
+
+    // Decorative — the "Movie Planner" text right next to it already
+    // says the same thing, so the mark doesn't get its own label and the
+    // link's accessible name stays just the title text.
+    await expect(logo).toHaveAttribute("aria-hidden", "true");
+    await expect(brandLink).toHaveAccessibleName("Movie Planner");
+
+    // "Immediately to the left" is a box-order claim: the logo's box has
+    // to end at or before where the title text's own box begins.
+    const { logoRight, textLeft } = await brandLink.evaluate((el) => {
+      const svg = el.querySelector("svg");
+      if (svg === null) {
+        throw new Error("expected the brand link to contain an svg logo");
+      }
+      const svgRect = svg.getBoundingClientRect();
+      const textNode = Array.from(el.childNodes).find(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+      );
+      if (textNode === undefined) {
+        throw new Error("expected the brand link to contain a title text node");
+      }
+      const range = document.createRange();
+      range.selectNode(textNode);
+      const textRect = range.getBoundingClientRect();
+      return { logoRight: svgRect.right, textLeft: textRect.left };
+    });
+    expect(logoRight).toBeLessThanOrEqual(textLeft);
+  });
+
+  // design.md's risk callout: a favicon-sized mark's internal `@media
+  // (prefers-color-scheme)` fill doesn't track this app's own
+  // class-based toggle (global.css's `@custom-variant dark`, flipped by
+  // the dark-mode switch rather than the OS setting alone) — reusing
+  // favicon.svg via a plain <img> would go illegible the moment a
+  // visitor's manual choice disagrees with their OS preference. This
+  // confirms the logo's fill actually follows the in-app toggle.
+  test("logo's fill follows the in-app dark-mode toggle, not just the OS preference", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const logo = page.getByRole("link", { name: "Movie Planner" }).locator("svg");
+
+    const before = await logo.evaluate((el) => getComputedStyle(el).fill);
+    await page.getByRole("switch", { name: /switch to (dark|light) mode/i }).click();
+    const after = await logo.evaluate((el) => getComputedStyle(el).fill);
+
+    expect(after).not.toBe(before);
+  });
+
+  // #434 acceptance criteria: doesn't crowd the title or header-actions
+  // at a mobile viewport.
+  test("doesn't overlap the title text or header-actions at a mobile viewport", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/");
+
+    const brandLink = page.getByRole("link", { name: "Movie Planner" });
+    const actions = page.locator(".header-actions");
+
+    const linkBox = await brandLink.boundingBox();
+    const actionsBox = await actions.boundingBox();
+
+    if (linkBox === null || actionsBox === null) {
+      throw new Error("expected both the brand link and header-actions to have a layout box");
+    }
+    expect(linkBox.x + linkBox.width).toBeLessThanOrEqual(actionsBox.x);
+  });
+});
+
 // #127: used to only ever appear on the home page (built inside
 // credentials-gate.ts's own renderConnected()) — every other page had
 // no way to reach any other page except editing the URL.
