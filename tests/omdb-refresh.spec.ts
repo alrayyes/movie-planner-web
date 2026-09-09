@@ -1,6 +1,9 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { serializeViewingToVEvent } from "../src/lib/caldav/ical";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -107,6 +110,10 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     await page.getByRole("button", { name: "Refresh metadata" }).click();
 
     await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
     expect(server.updates).toHaveLength(1);
     const [update] = server.updates;
     expect(update?.director).toBe("Denis Villeneuve");
@@ -374,6 +381,10 @@ test.describe("refreshing OMDb metadata from the overview", () => {
 
     const picker = page.getByLabel("Choose the matching title");
     await expect(picker.getByRole("button", { name: "Dune (2021)" })).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
     await picker.getByRole("button", { name: "Dune (2021)" }).click();
 
     await expect(page.getByRole("status").last()).toHaveText("Refreshed.");

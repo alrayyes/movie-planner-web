@@ -1,5 +1,8 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -86,6 +89,9 @@ test.describe("Export viewings", () => {
     await expect(page.locator("tbody tr")).toHaveCount(0);
 
     await page.goto("/settings");
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("button", { name: "Export viewings" }).click(),
@@ -217,6 +223,9 @@ test.describe("updating an existing entry by uid", () => {
     );
     // Nothing in the "new entry" create table — this is purely an update.
     await expect(page.locator("tbody tr")).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
 
     // Reject the poster change, keep the director change.
     await block

@@ -1,5 +1,8 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -43,6 +46,10 @@ test.describe("updating a logged viewing", () => {
     const venueInput = page.locator("#details-venue");
     await expect(venueInput).toHaveValue("Grand Vista Cinema");
     await venueInput.fill("Regal Union Square");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
     await page.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Saved.");

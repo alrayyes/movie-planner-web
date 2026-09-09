@@ -1,5 +1,8 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -32,6 +35,9 @@ test.describe("CSV/JSON import", () => {
       buffer: Buffer.from(CSV_TWO_MOVIES),
     });
     await expect(page.getByRole("row", { name: /Paddington/ }).first()).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
 
     await page.getByRole("button", { name: "Import checked rows" }).click();
 
