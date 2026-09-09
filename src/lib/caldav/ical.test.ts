@@ -77,6 +77,17 @@ describe("VEVENT round trip", () => {
     expect(parsed.postalCode).toBeUndefined();
   });
 
+  // #432: X-LAST-MODIFIED-BY attributes cross-app writes for the
+  // diff-on-sync activity log — read back exactly like any other X-*
+  // property.
+  test("round-trips the X-LAST-MODIFIED-BY attribution property", () => {
+    const attributed: NewViewing = { ...VIEWING, lastModifiedBy: "cli" };
+    const ical = serializeViewingToVEvent("uid-attributed", attributed);
+    const parsed = parseVEventToViewing(ical);
+
+    expect(parsed.lastModifiedBy).toBe("cli");
+  });
+
   test("throws on a VEVENT missing required fields", () => {
     const brokenIcal = [
       "BEGIN:VCALENDAR",
