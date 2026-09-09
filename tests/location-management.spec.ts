@@ -1,6 +1,9 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import type { LoggedViewing, Picklists } from "../src/lib/caldav/types";
 import { mockCaldavServer } from "./support/mock-caldav";
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
@@ -38,6 +41,9 @@ test.describe("location-management", () => {
     expect(listId).toBeTruthy();
     const options = page.locator(`#${listId} option`);
     await expect(options).toContainText(["Grand Vista Cinema"]);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 
   test("logging with a new venue adds it to the sidecar picklist", async ({ page }) => {
@@ -87,5 +93,8 @@ test.describe("location-management", () => {
     expect(listId).toBeTruthy();
     const options = page.locator(`#${listId} option`);
     await expect(options).toContainText(["Grand Vista Cinema", "Regal Union Square"]);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 });
