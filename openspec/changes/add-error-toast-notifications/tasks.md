@@ -1,6 +1,6 @@
 ## 1. Shared component
 
-- [x] 1.1 Build a shared error-toast component/pattern: `role="alert"`, color + icon + fixed position, no auto-dismiss, manually dismissible
+- [x] 1.1 Build a shared error-toast component/pattern: `role="alert"`, colour + icon + fixed position, no auto-dismiss, manually dismissible
 - [x] 1.2 Verify an axe-core scan against a page showing the toast passes WCAG 2.1 AA
 
 ## 2. Roll out to every error call site

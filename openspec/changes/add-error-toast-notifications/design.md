@@ -10,7 +10,7 @@ See proposal.md - Why. Every component's `role="status"` + `STATUS_TEXT` pattern
 
 ## Decisions
 
-**One shared component, not per-component styling.** A single `ErrorToast`-style component (or a small composable pattern) takes a message and renders the color/icon/`role="alert"` treatment consistently — every listed component calls it for its error path instead of writing `actionStatusText`/`statusText` to a plain `<p role="status">`.
+**One shared component, not per-component styling.** A single `ErrorToast`-style component (or a small composable pattern) takes a message and renders the colour/icon/`role="alert"` treatment consistently — every listed component calls it for its error path instead of writing `actionStatusText`/`statusText` to a plain `<p role="status">`.
 
 **Manual dismiss, no auto-timer**, per the design principle that a visitor needs time to read and act on an error (general convention — not a specific citation, called out in the ticket as worth revisiting if it doesn't feel right in practice).
 

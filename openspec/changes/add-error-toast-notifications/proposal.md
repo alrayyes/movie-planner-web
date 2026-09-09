@@ -4,7 +4,7 @@ Nearly every component shares the same quiet `STATUS_TEXT` style and `role="stat
 
 ## What Changes
 
-- A shared, visually distinct error-toast treatment (color, icon, fixed position) for genuine errors, separate from the existing quiet inline status pattern (which stays for routine loading/count/success text).
+- A shared, visually distinct error-toast treatment (colour, icon, fixed position) for genuine errors, separate from the existing quiet inline status pattern (which stays for routine loading/count/success text).
 - Errors use `role="alert"` instead of `role="status"`, so assistive technology announces them immediately rather than queuing them behind routine updates.
 - Errors don't auto-dismiss on a short timer — a visitor needs time to read and act on them.
 - Rolled out to every existing error call site across the listed components.
@@ -13,7 +13,7 @@ Nearly every component shares the same quiet `STATUS_TEXT` style and `role="stat
 
 ### New Capabilities
 
-- `notifications`: the app's shared pattern for surfacing transient, task-generated feedback — specifically how a genuine error differs from routine status text (visual treatment, ARIA role, dismiss behavior). Not previously captured as its own capability; each component currently reimplements the same undifferentiated pattern independently.
+- `notifications`: the app's shared pattern for surfacing transient, task-generated feedback — specifically how a genuine error differs from routine status text (visual treatment, ARIA role, dismiss behaviour). Not previously captured as its own capability; each component currently reimplements the same undifferentiated pattern independently.
 
 ### Modified Capabilities
 

@@ -8,14 +8,14 @@ Defines how this app surfaces a genuine error to a visitor, distinct from routin
 
 The system SHALL show a genuine error (a failed load, refresh, delete,
 or similar action) with a visually distinct treatment — combining
-color, an icon, and a fixed position — separate from the plain, quiet
+colour, an icon, and a fixed position — separate from the plain, quiet
 text style used for routine status updates (loading, counts, success
 confirmations).
 
 #### Scenario: A failed action shows a distinct error
 
 - **WHEN** an action fails (for example, a NetworkError during a refresh)
-- **THEN** the system SHALL present the error with its distinct color/icon/position treatment, not the same plain text style as a routine status message
+- **THEN** the system SHALL present the error with its distinct colour/icon/position treatment, not the same plain text style as a routine status message
 
 #### Scenario: Routine status is unaffected
 
