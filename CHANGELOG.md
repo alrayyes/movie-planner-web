@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.95.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.94.0...movie-planner-web-v0.95.0) (2026-09-09)
+
+
+### Features
+
+* **chrome:** restructure top nav — header button + Settings hub ([#480](https://github.com/alrayyes/movie-planner-web/issues/480)) ([badb9d0](https://github.com/alrayyes/movie-planner-web/commit/badb9d0b7f62619bdceabe5e47ea42878e06ea56)), closes [#436](https://github.com/alrayyes/movie-planner-web/issues/436)
+
 ## [0.94.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.93.0...movie-planner-web-v0.94.0) (2026-09-09)
 
 
