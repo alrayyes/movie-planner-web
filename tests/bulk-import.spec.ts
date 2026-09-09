@@ -21,8 +21,13 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  // #436: no longer a single click away — Import moved to the Settings
-  // hub, so landing on it directly stands in for that click.
+  // #436: "Log a viewing" is the header button present on every connected
+  // page — wait for it before navigating directly, or credentials aren't
+  // stored yet and movie-import-form's connectedCallback throws on an
+  // empty store.
+  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  // Import moved to the Settings hub, so landing on it directly stands in
+  // for that nav click.
   await page.goto("/import");
 }
 
