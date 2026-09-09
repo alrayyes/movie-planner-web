@@ -64,7 +64,12 @@ export class MovieImportForm extends HTMLElement {
     label.textContent = "Choose a CSV or JSON export";
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.className = "text-sm text-slate-600 dark:text-slate-400";
+    // text-base (16px), not text-sm — same iOS Safari auto-zoom-on-focus
+    // reasoning as INPUT in classes.ts (responsive.spec.ts's own
+    // assertInputFontSizeAtLeast16px check, which #436's direct
+    // page.goto("/import") — replacing a nav-link click now that Import
+    // sits behind Settings — started actually reaching this element).
+    fileInput.className = "text-base text-slate-600 dark:text-slate-400";
     fileInput.id = "import-file";
     fileInput.accept = ".csv,.json,text/csv,application/json";
     fileInput.addEventListener("change", () => void this.handleFileSelected(fileInput));

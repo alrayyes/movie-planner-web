@@ -217,24 +217,22 @@ test.describe("site nav", () => {
       "href",
       "/map",
     );
-    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveAttribute("href", "/log");
-    await expect(page.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/import");
-    await expect(page.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
     await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
 
-    // #161/#204/#237/#349: Viewings, Venues, Calendar, Map, Log a
-    // viewing, Import, Activity, Settings, in that order — not just
-    // present, but in the order a visitor reads them.
+    // #436: Viewings, Venues, Calendar, Map, Settings, in that order —
+    // "Log a viewing" is a header button (checked separately below, not
+    // part of this list), and Import/Activity moved to the Settings hub.
     await expect(page.locator("site-nav a")).toHaveText([
       "Viewings",
       "Venues",
       "Calendar",
       "Map",
-      "Log a viewing",
-      "Import",
-      "Activity",
       "Settings",
     ]);
+
+    // #436: no longer a nav-list item at all.
+    await expect(page.locator("site-nav").getByRole("link", { name: "Import" })).toHaveCount(0);
+    await expect(page.locator("site-nav").getByRole("link", { name: "Activity" })).toHaveCount(0);
 
     await page.getByRole("link", { name: "Venues" }).click();
     await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
@@ -244,6 +242,108 @@ test.describe("site nav", () => {
     await page.goto("/privacy");
 
     await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+  });
+
+  // #436: the nav previously wrapped to two rows at real mobile widths
+  // (8 entries) — shrinking it to 5 destinations is the whole point of
+  // the restructure, so this pins the fit rather than just trusting it.
+  for (const width of [375, 390, 393]) {
+    test(`fits on a single row at ${width}px wide`, async ({ page }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+      await page.setViewportSize({ width, height: 800 });
+      await connect(page);
+
+      const tops = await page
+        .locator("site-nav a")
+        .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().top));
+      expect(tops.length).toBe(5);
+      for (const top of tops) {
+        expect(top).toBeCloseTo(tops[0], 0);
+      }
+    });
+  }
+});
+
+// #436: a persistent header button, not a nav-list item — the primary
+// "create" action, reachable from every page, distinct from the browsing
+// destinations in <site-nav>.
+test.describe("log a viewing header button", () => {
+  test("isn't present before a visitor has connected", async ({ page }) => {
+    await page.goto("/privacy");
+
+    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+  });
+
+  test("is present in the header, distinct from the nav links, on every page once connected", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    for (const path of ["/", "/venues", "/calendar", "/map", "/settings"]) {
+      await page.goto(path);
+      const button = page.getByRole("link", { name: "Log a viewing" });
+      await expect(button).toBeVisible();
+      await expect(button).toHaveAttribute("href", "/log");
+      // Not one of site-nav's browsing destinations.
+      await expect(
+        page.locator("site-nav").getByRole("link", { name: "Log a viewing" }),
+      ).toHaveCount(0);
+    }
+  });
+
+  test("introduces no accessibility violations", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
+// #436: Import and Activity moved from top-level nav items to links on
+// the Settings hub — both stay reachable, just one level deeper.
+test.describe("settings hub", () => {
+  test("links to Import and Activity, clearly labeled", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/settings");
+
+    await expect(page.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/import");
+    await expect(page.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
+  });
+
+  test("introduces no accessibility violations", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/settings");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
+// #436: removed from the top nav, but a direct URL still has to work
+// exactly as before.
+test.describe("Import and Activity direct URLs", () => {
+  test("/import still renders directly, without a nav entry point", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/import");
+
+    await expect(page.getByRole("heading", { name: "Import viewings" })).toBeVisible();
+  });
+
+  test("/activity still renders directly, without a nav entry point", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/activity");
+
+    await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
   });
 });
 

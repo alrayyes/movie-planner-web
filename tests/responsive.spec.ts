@@ -166,7 +166,9 @@ for (const viewport of VIEWPORTS) {
 
     test("import page has no horizontal overflow", async ({ page }) => {
       await connect(page);
-      await page.getByRole("link", { name: "Import" }).click();
+      // #436: reached from Settings now, not a top-level nav link — a
+      // direct navigation stands in for that click.
+      await page.goto("/import");
       await assertNoHorizontalOverflow(page);
       await assertInputFontSizeAtLeast16px(page);
     });

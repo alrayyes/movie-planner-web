@@ -121,6 +121,7 @@ const { title, wide = false } = Astro.props;
         </a>
         <div class="header-actions flex items-center gap-2">
           <keyboard-nav></keyboard-nav>
+          <log-viewing-button></log-viewing-button>
           <theme-toggle></theme-toggle>
         </div>
       </header>
@@ -135,6 +136,7 @@ const { title, wide = false } = Astro.props;
     </div>
     <script>
       import "../components/keyboard-nav";
+      import "../components/log-viewing-button";
       import "../components/site-breadcrumb";
       import "../components/site-nav";
       import "../components/theme-toggle";

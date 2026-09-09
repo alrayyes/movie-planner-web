@@ -21,7 +21,9 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await page.getByRole("link", { name: "Import" }).click();
+  // #436: no longer a single click away — Import moved to the Settings
+  // hub, so landing on it directly stands in for that click.
+  await page.goto("/import");
 }
 
 test.describe("CSV/JSON import", () => {

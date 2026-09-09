@@ -89,10 +89,12 @@ test.describe("activity log", () => {
     await expect(rows.nth(1)).toContainText("Grand Vista Cinema");
   });
 
-  test("the Activity link is reachable from the nav once connected", async ({ page }) => {
+  // #436: moved from a top-level nav item to a Settings hub link.
+  test("the Activity link is reachable from the Settings hub once connected", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
-    await expect(page.getByRole("link", { name: "Activity" })).toBeVisible();
+    await page.goto("/settings");
+    await expect(page.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
   });
 
   // #442: this store read had no failure path at all before — a

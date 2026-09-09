@@ -25,6 +25,38 @@ import Layout from "../layouts/Layout.astro";
       <export-json-button></export-json-button>
     </div>
   </div>
+  <!-- #436: Import and Activity moved here from the top nav — both are
+  inherently low-frequency (Import is an occasional bulk operation;
+  Activity is explicitly "a debugging aid, not a permanent record" per
+  its own code comment), so this hub is their entry point instead of a
+  slot in every page's own chrome. Links out rather than embedding, so
+  each page keeps its own existing behavior, tests, and URL untouched —
+  this is purely a change to how they're reached. -->
+  <div class="mt-10">
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      More
+    </h2>
+    <ul class="mt-3 flex flex-col gap-2 text-sm">
+      <li>
+        <a
+          class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          href="/import">Import</a
+        >
+        <span class="text-slate-600 dark:text-slate-400">
+          — bring in viewings from a CSV or JSON file.</span
+        >
+      </li>
+      <li>
+        <a
+          class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          href="/activity">Activity</a
+        >
+        <span class="text-slate-600 dark:text-slate-400">
+          — a local record of what this app itself has changed.</span
+        >
+      </li>
+    </ul>
+  </div>
 </Layout>
 
 <script>
