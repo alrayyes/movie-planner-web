@@ -29,6 +29,8 @@ import {
 import { formatDateTime } from "../lib/ui/datetime";
 import { debounce } from "../lib/ui/debounce";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { venueDisplay } from "../lib/venue/display";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 
 // movie-log spec: logging a viewing, via the manual form or by parsing a
@@ -442,7 +444,7 @@ async function handleConfirm() {
   </datalist>
   <datalist id="log-venue-choices">
     {#each picklists.venues as option (option)}
-      <option value={option}>{option}</option>
+      <option value={option}>{venueDisplay(option)}</option>
     {/each}
   </datalist>
 

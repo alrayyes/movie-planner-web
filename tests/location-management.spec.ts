@@ -46,6 +46,26 @@ test.describe("location-management", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #498: the log form's venue picker trims a comma-laden raw picklist
+  // entry to its name for display, while the option's value (what
+  // actually gets logged if selected) stays the raw, untrimmed string.
+  test("trims a venue with a full address baked into it, in the log form's own picker", async ({
+    page,
+  }) => {
+    await connect(page, {
+      media: [],
+      venues: ["De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands"],
+    });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const option = page.locator("#log-venue-choices option");
+    await expect(option).toHaveAttribute(
+      "value",
+      "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+    );
+    await expect(option).toHaveText("De Munt");
+  });
+
   test("logging with a new venue adds it to the sidecar picklist", async ({ page }) => {
     const server = await connect(page, { media: [], venues: [] });
     await page.getByRole("link", { name: "Log a viewing" }).click();
@@ -96,5 +116,35 @@ test.describe("location-management", () => {
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
+  });
+
+  // #498: same trim as the log form's own picker, applied to the details
+  // page's edit-form venue picker.
+  test("trims a venue with a full address baked into it, in the details page's own edit picker", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      venue: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+    };
+    await connect(
+      page,
+      { media: ["cinema"], venues: ["De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands"] },
+      [dune],
+    );
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+
+    const option = page.locator("#details-venue-choices option");
+    await expect(option).toHaveAttribute(
+      "value",
+      "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
+    );
+    await expect(option).toHaveText("De Munt");
   });
 });
