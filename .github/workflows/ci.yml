@@ -58,13 +58,13 @@ jobs:
         # bunfig.toml turns coverage on for every `bun test` run, so
         # coverage/lcov.info comes out of this step as a side effect.
         run: bun run test
-      # Visibility, not a gate (rules/testing.md) — never fails the job.
-      # fail_ci_if_error stays false until the repo's actually connected to
-      # Codecov (an account-level step, not something CI can do).
+      # Visibility, not a gate (rules/testing.md) — never fails the job,
+      # even now that the repo's connected to Codecov.
       - name: upload coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
       # #195: tests/screenshots.spec.ts overwrites docs/screenshots/*.png
       # on every run — uploaded here so a reviewer can eyeball whether the
