@@ -97,7 +97,16 @@ jobs:
         # thing the Cloudflare Worker deploy runs — see playwright.config.ts.
         # bunfig.toml turns coverage on for every `bun test` run, so
         # coverage/lcov.info comes out of this step as a side effect.
-        run: bun run test
+        #
+        # #501: retries the whole e2e run once — the webServer itself
+        # (wrangler/workerd, or esbuild's bundler-watch service under it)
+        # has crashed under CI runner load a few different ways, each
+        # killing every test still queued behind it in that worker. A
+        # fresh run starts a fresh server. Unit tests never touch a
+        # server, so they run once, unretried; only the e2e half restarts.
+        run: |
+          bun run test:unit
+          bun run test:e2e || (echo "retrying e2e after a possible webServer crash" && bun run test:e2e)
       # Visibility, not a gate (rules/testing.md) — never fails the job,
       # even now that the repo's connected to Codecov.
       - name: upload coverage to Codecov
