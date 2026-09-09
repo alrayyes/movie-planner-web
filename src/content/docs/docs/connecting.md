@@ -51,7 +51,7 @@ certification, keywords, and budget/popularity, plus richer actors and
 website links when TMDb has more than OMDb does. TMDb only ever runs
 once OMDb has already resolved an IMDb ID for a viewing — it's never
 used as a search on its own, so it has nothing to add without an OMDb
-key also set. Without a TMDb key, logging, refreshing and editing all
+key also set. Without a TMDb key, logging, refreshing, and editing all
 still work exactly as before — you just don't get the extra fields.
 
 ## Switching accounts or servers
