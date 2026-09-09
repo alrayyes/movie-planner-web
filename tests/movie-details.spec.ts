@@ -220,12 +220,12 @@ test.describe("movie details page", () => {
     await page.getByRole("button", { name: "Edit" }).click();
     await page.locator("#details-venue").fill("Regal Union Square");
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByRole("status")).toHaveText("Saved.");
+    await expect(page.locator("#movie-status")).toHaveText("Saved.");
     expect(server.updates[0]?.venue).toBe("Regal Union Square");
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Delete" }).click();
-    await expect(page.getByRole("status")).toHaveText("Deleted.");
+    await expect(page.locator("#movie-status")).toHaveText("Deleted.");
     expect(server.deletes).toEqual(["dune-uid"]);
   });
 
@@ -293,7 +293,7 @@ test.describe("movie details page", () => {
 
     await page.getByRole("button", { name: "Save" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Saved.");
+    await expect(page.locator("#movie-status")).toHaveText("Saved.");
     expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
   });
 
@@ -326,7 +326,7 @@ test.describe("movie details page", () => {
 
     await page.getByRole("button", { name: "Save" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Saved.");
+    await expect(page.locator("#movie-status")).toHaveText("Saved.");
     expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
   });
 
@@ -481,7 +481,7 @@ test.describe("movie details page", () => {
     });
     await picker.getByRole("button", { name: "Dune (1984)" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Refreshed.");
+    await expect(page.locator("#movie-status")).toHaveText("Refreshed.");
     expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.director).toBe("David Lynch");
     await expect(picker).toHaveCount(0);
@@ -540,7 +540,7 @@ test.describe("movie details page", () => {
     await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
     await picker.getByRole("button", { name: "Dune (1984)" }).click();
 
-    await expect(page.getByRole("status")).toHaveText("Refreshed.");
+    await expect(page.locator("#movie-status")).toHaveText("Refreshed.");
     expect(server.updates).toHaveLength(1);
     expect(server.updates[0]?.director).toBe("David Lynch");
     expect(server.updates[0]?.posterUrl).toBe("https://example.com/dune-1984.jpg");
@@ -1100,7 +1100,7 @@ test.describe("movie details page", () => {
       await expect(toast).toContainText(/the CalDAV server responded 500/);
       // "Saved." never shows for a failed save — routine status is only
       // ever the success confirmation, not blended with the error.
-      await expect(page.getByRole("status")).not.toHaveText("Saved.");
+      await expect(page.locator("#movie-status")).not.toHaveText("Saved.");
 
       await page.waitForTimeout(1000);
       await expect(toast).toBeVisible();
