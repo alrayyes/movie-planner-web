@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.92.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.91.0...movie-planner-web-v0.92.0) (2026-09-09)
+
+
+### Features
+
+* **activity-log:** derive log entries by diffing CalDAV state, not just self-made writes ([#483](https://github.com/alrayyes/movie-planner-web/issues/483)) ([651407f](https://github.com/alrayyes/movie-planner-web/commit/651407f72c0490f99e890d8b991ec6c0bb352724))
+
+
+### Bug Fixes
+
+* **deps:** override sharp to 0.35.4, fixing the libheif CVE ([#482](https://github.com/alrayyes/movie-planner-web/issues/482)) ([e8beca0](https://github.com/alrayyes/movie-planner-web/commit/e8beca05236829ec35a887314bbf6b7baf9a4f39)), closes [#469](https://github.com/alrayyes/movie-planner-web/issues/469)
+
 ## [0.91.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.90.2...movie-planner-web-v0.91.0) (2026-09-09)
 
 
