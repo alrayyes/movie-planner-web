@@ -109,6 +109,8 @@ export interface LoggedViewing {
   // ever present when the CLI has a `tmdb.api_key` configured, TMDb
   // found a match, and it has an official YouTube trailer among its
   // videos. Same "omit, never guess" rule as everything else here.
+  // #360/#400: previously CLI-only-written; this app now writes it too,
+  // via the same TMDb enrichment step as the fields below.
   trailerUrl?: string;
   // #432: who last wrote this resource — "web" (this app, forced on
   // every write by client.ts's putViewing) or "cli" (movie-planner's
@@ -121,6 +123,18 @@ export interface LoggedViewing {
   // the mechanism the log entries themselves live in (see
   // activity-log/ for why that design was rejected).
   lastModifiedBy?: string;
+  // #360/#400: the rest of TMDb's own data, fetched via the shared TMDb
+  // enrichment helper (src/lib/tmdb/client.ts) once OMDb has resolved an
+  // IMDb ID — never a TMDb-only search. budget/popularity are stored as
+  // strings, same round-trip convention as every other numeric-looking
+  // OMDb field above (imdbVotes, boxOffice); TMDb's own `0` for either
+  // (its own "not entered" sentinel) is normalized away to `undefined`
+  // before it ever reaches here.
+  collection?: string;
+  certification?: string;
+  keywords?: string;
+  budget?: string;
+  popularity?: string;
 }
 
 export type NewViewing = Omit<LoggedViewing, "uid">;

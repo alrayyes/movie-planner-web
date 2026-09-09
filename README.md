@@ -15,9 +15,10 @@ nothing in between. There's no shared database and no server, of any
 kind, that ever sees your credentials — not even in transit. You can
 verify this claim yourself: `src/lib/credentials/store.ts` is the only
 place credentials are held (the visitor's own browser storage), and
-`src/lib/caldav/client.ts`/`src/lib/omdb/client.ts` are the only places
-they're ever sent anywhere — straight to the CalDAV/OMDb URLs you
-configured, with no server-side code in this repo's build output at all
+`src/lib/caldav/client.ts`/`src/lib/omdb/client.ts`/`src/lib/tmdb/client.ts`
+are the only places they're ever sent anywhere — straight to the
+CalDAV/OMDb/TMDb URLs you configured, with no server-side code in this
+repo's build output at all
 (there's no `src/pages/api/` any more — the build is fully static, see
 `astro.config.mjs`). Only tested against
 [Baikal](https://sabre.io/baikal/) so far — other CalDAV servers may or
@@ -127,6 +128,11 @@ by the other.
   without clearing the stored key, for when you're logging or
   importing a large batch and want to stay under that limit, then
   refresh deliberately once you're done.
+- A **[TMDb API key](https://www.themoviedb.org/settings/api)**, also
+  optional — enriches an already-matched viewing further (trailer,
+  collection, certification, keywords, budget, popularity). TMDb only
+  ever runs once OMDb has resolved an IMDb ID for a viewing; without a
+  TMDb key, or without an OMDb key set alongside it, nothing changes.
 
 ## Installation
 

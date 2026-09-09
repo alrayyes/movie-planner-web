@@ -59,6 +59,7 @@ export class CredentialsGate extends HTMLElement {
         },
         omdbApiKey: credentials.omdbApiKey,
         omdbPaused: credentials.omdbPaused,
+        tmdbApiKey: credentials.tmdbApiKey,
       },
     });
   }
@@ -162,6 +163,13 @@ export function buildCredentialsForm(options: {
       false,
     ),
     omdbPausedField(values?.omdbPaused ?? false),
+    labelledField(
+      "tmdb-api-key",
+      "TMDb API key (optional)",
+      "text",
+      values?.tmdbApiKey ?? "",
+      false,
+    ),
   );
 
   const submit = document.createElement("button");
@@ -227,11 +235,13 @@ function labelledField(
 export function readCredentialsForm(form: HTMLFormElement): Credentials {
   const data = new FormData(form);
   const omdbApiKey = String(data.get("omdb-api-key") ?? "").trim();
+  const tmdbApiKey = String(data.get("tmdb-api-key") ?? "").trim();
   return {
     caldavUrl: String(data.get("caldav-url") ?? "").trim(),
     caldavUsername: String(data.get("caldav-username") ?? "").trim(),
     caldavPassword: String(data.get("caldav-password") ?? ""),
     ...(omdbApiKey ? { omdbApiKey } : {}),
     ...(data.get("omdb-paused") ? { omdbPaused: true } : {}),
+    ...(tmdbApiKey ? { tmdbApiKey } : {}),
   };
 }
