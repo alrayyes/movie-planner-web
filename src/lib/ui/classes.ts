@@ -34,6 +34,20 @@ export const BUTTON_SM =
 
 export const STATUS_TEXT = "text-sm text-slate-600 dark:text-slate-400";
 
+// #442: a genuine error gets a visually distinct treatment — color, an
+// icon, and its own bordered box — separate from STATUS_TEXT's quiet
+// inline style used for routine status (loading, counts, success).
+// role="alert" on the element itself (not set here — it's structural,
+// not a class) is what makes the actual ARIA difference; this pair
+// covers the visual half of the three redundant indicators NN/G's
+// error-message guidelines call for (color, icon, position/shape) —
+// see movie-planner-web#442's research and ErrorToast.svelte, the one
+// shared component every error call site renders through.
+export const ERROR_TOAST =
+  "flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900 shadow-sm dark:border-red-700 dark:bg-red-950 dark:text-red-100";
+export const ERROR_TOAST_DISMISS =
+  "shrink-0 rounded p-1 text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 dark:text-red-400 dark:hover:bg-red-900/60";
+
 export const NAV =
   "mb-6 flex flex-wrap items-center gap-4 border-b border-slate-200 pb-4 dark:border-slate-700";
 export const NAV_LINK =

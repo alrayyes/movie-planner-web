@@ -1,6 +1,8 @@
 <script lang="ts">
 import { type ActivityLogEntry, getActivityLogStore } from "../lib/activity-log/store";
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
 
 // #349: a local, per-browser reference for "what did this app just do" —
 // not a shared audit trail with the CLI, and not synced across devices.
@@ -8,6 +10,13 @@ import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/class
 let entries = $state<ActivityLogEntry[]>([]);
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let loaded = $state(false);
+// #442: this store read had no failure path at all before — a rejected
+// promise (IndexedDB unavailable, a full quota) just left `loaded`
+// false forever with nothing shown, which is worse than blending an
+// error into routine status text. Genuine failures now surface with
+// the same distinct error-toast treatment every other component uses.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let loadError = $state("");
 
 $effect(() => {
 	getActivityLogStore()
@@ -15,6 +24,9 @@ $effect(() => {
 		.then((list) => {
 			entries = list;
 			loaded = true;
+		})
+		.catch((error: unknown) => {
+			loadError = error instanceof Error ? error.message : "Failed to load the activity log.";
 		});
 });
 
@@ -31,7 +43,9 @@ const ACTION_LABEL: Record<ActivityLogEntry["action"], string> = {
 };
 </script>
 
-{#if loaded && entries.length === 0}
+{#if loadError}
+	<ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
+{:else if loaded && entries.length === 0}
 	<p class={STATUS_TEXT} role="status">
 		Nothing recorded yet — every create, edit, delete, refresh, or OMDb match this app makes
 		shows up here.

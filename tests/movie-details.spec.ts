@@ -1055,4 +1055,45 @@ test.describe("movie details page", () => {
     await page.goto("/movie");
     await expect(page.getByText(/not found/i)).toBeVisible();
   });
+
+  // #442: a genuine save failure gets a distinct, assertively announced
+  // error toast — not the same quiet role="status" line "Saved." uses.
+  test.describe("error toasts", () => {
+    test("a save failure shows a distinct error, unaffected routine status, and no auto-dismiss", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      await connect(page);
+      await page.getByRole("link", { name: "Dune (2021)" }).click();
+      await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
+
+      await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route: Route) => {
+        if (route.request().method() === "PUT") {
+          await route.fulfill({ status: 500, body: "Internal Server Error" });
+          return;
+        }
+        await route.fallback();
+      });
+
+      await page.getByRole("button", { name: "Edit" }).click();
+      await page.locator("#details-venue").fill("Regal Union Square");
+      await page.getByRole("button", { name: "Save" }).click();
+
+      const toast = page.getByRole("alert");
+      await expect(toast).toBeVisible();
+      await expect(toast).toContainText(/the CalDAV server responded 500/);
+      // "Saved." never shows for a failed save — routine status is only
+      // ever the success confirmation, not blended with the error.
+      await expect(page.getByRole("status")).not.toHaveText("Saved.");
+
+      await page.waitForTimeout(1000);
+      await expect(toast).toBeVisible();
+
+      const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(results.violations).toEqual([]);
+
+      await page.getByRole("button", { name: "Dismiss error" }).click();
+      await expect(toast).toHaveCount(0);
+    });
+  });
 });

@@ -40,6 +40,8 @@ import {
 	toDateInputValue,
 } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconLetterboxd from "./icons/IconLetterboxd.svelte";
@@ -168,6 +170,15 @@ let statusText = $state("");
 // why this used to disappear before anyone could read it.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let actionStatusText = $state("");
+// #442: a genuine reload failure (a network error, a broken CalDAV
+// server) gets the distinct error-toast treatment instead of blending
+// into statusText's own quiet "Loading…"/count line.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let loadError = $state("");
+// Same split for the per-row/bulk refresh, delete, and OMDb-picker
+// actions that all share actionStatusText's own display line.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let actionError = $state("");
 // #131/#146: pre-populated from `venue`/`from`/`to` query params so a
 // link from the venues page (or anywhere else) lands here already
 // filtered to the same viewings, with the values visible and editable
@@ -528,6 +539,7 @@ async function reload(options: { silent?: boolean } = {}) {
 	reloadController?.abort();
 	const controller = new AbortController();
 	reloadController = controller;
+	loadError = "";
 	if (!options.silent) statusText = "Loading…";
 	const hadNoExplicitFrom = !fromValue;
 	const hadNoExplicitTo = !toValue;
@@ -548,7 +560,8 @@ async function reload(options: { silent?: boolean } = {}) {
 		// newer call's own catch/success block is what should actually
 		// update statusText now, not this stale one.
 		if (error instanceof DOMException && error.name === "AbortError") return;
-		statusText = error instanceof Error ? error.message : "Failed to load viewings.";
+		if (!options.silent) statusText = "";
+		loadError = error instanceof Error ? error.message : "Failed to load viewings.";
 	}
 }
 
@@ -636,6 +649,7 @@ function handleClearFilter() {
 async function handleRefresh(viewing: LoggedViewing) {
 	if (!omdbActive || !omdbApiKey) return;
 	refreshingUid = viewing.uid;
+	actionError = "";
 	try {
 		// #91: re-check the calendar entry itself first — it may have
 		// been matched elsewhere (the CLI's own sync, another tab/device)
@@ -670,7 +684,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 		}
 		actionStatusText = "OMDb had no match for this title.";
 	} catch (error) {
-		actionStatusText = error instanceof Error ? error.message : "Failed to refresh metadata.";
+		actionError = error instanceof Error ? error.message : "Failed to refresh metadata.";
 	} finally {
 		refreshingUid = null;
 	}
@@ -686,12 +700,13 @@ async function handleRefresh(viewing: LoggedViewing) {
 async function handleDelete(viewing: LoggedViewing) {
 	if (!window.confirm(`Delete "${viewing.title}"? This can't be undone.`)) return;
 	deletingUid = viewing.uid;
+	actionError = "";
 	try {
 		await deleteViewing(config, viewing.uid);
 		await reload({ silent: true });
 		actionStatusText = "Deleted.";
 	} catch (error) {
-		actionStatusText = error instanceof Error ? error.message : "Failed to delete.";
+		actionError = error instanceof Error ? error.message : "Failed to delete.";
 	} finally {
 		deletingUid = null;
 	}
@@ -704,6 +719,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 			candidates,
 			async (candidate) => {
 				if (!omdbApiKey || !pickerArea) return;
+				actionError = "";
 				try {
 					const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
 					if (metadata) {
@@ -712,7 +728,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 					await reload({ silent: true });
 					actionStatusText = "Refreshed.";
 				} catch (error) {
-					actionStatusText =
+					actionError =
 						error instanceof Error ? error.message : "Failed to attach the selected match.";
 				} finally {
 					pickerArea?.replaceChildren();
@@ -741,6 +757,7 @@ async function handleRefreshAll() {
 	if (targets.length === 0) return;
 
 	refreshingAll = true;
+	actionError = "";
 	actionStatusText = `Refreshing 0 of ${targets.length}…`;
 	let refreshed = 0;
 	let misses = 0;
@@ -1042,6 +1059,12 @@ getPicklists(config).then((picklists) => {
 
   <p class={STATUS_TEXT} role="status">{statusText}</p>
   <p class={STATUS_TEXT} role="status">{actionStatusText}</p>
+  {#if loadError}
+    <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
+  {/if}
+  {#if actionError}
+    <ErrorToast message={actionError} onDismiss={() => (actionError = "")} />
+  {/if}
   <div bind:this={pickerArea}></div>
 
   {#if mapPins.length > 0}

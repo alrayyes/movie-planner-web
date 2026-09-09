@@ -27,6 +27,8 @@ import {
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatDateTime } from "../lib/ui/datetime";
 import { debounce } from "../lib/ui/debounce";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
 
 // movie-log spec: logging a viewing, via the manual form or by parsing a
 // Pathé booking email, with best-effort OMDb enrichment. See
@@ -50,6 +52,11 @@ let credentials: Credentials | null = null;
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let status = $state("");
+// #442: a genuine log/parse/attach failure gets the distinct
+// error-toast treatment instead of blending into status's own quiet
+// line.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let formError = $state("");
 let picklists = $state<Picklists>({ media: [], venues: [] });
 // #8/#203: a lightweight wide-range query (same range Venues/heatmap
 // already use) purely to back findKnownGeo's reuse lookup — this form
@@ -120,6 +127,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 			candidates,
 			async (candidate) => {
 				if (!credentials?.omdbApiKey || !pickerArea) return;
+				formError = "";
 				try {
 					const metadata = await lookupByImdbId(credentials.omdbApiKey, candidate.imdbId);
 					if (metadata) {
@@ -127,7 +135,8 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 					}
 					status = "Logged and matched.";
 				} catch (error) {
-					status = error instanceof Error ? error.message : "Failed to attach the selected match.";
+					formError =
+						error instanceof Error ? error.message : "Failed to attach the selected match.";
 				} finally {
 					pickerArea?.replaceChildren();
 				}
@@ -190,6 +199,7 @@ async function handleManualSubmit(event: SubmitEvent) {
 	if (!credentials) return;
 	const loggedMedium = medium;
 	const loggedVenue = venue || undefined;
+	formError = "";
 	try {
 		const result = await logManualViewing(credentials, {
 			title,
@@ -217,7 +227,7 @@ async function handleManualSubmit(event: SubmitEvent) {
 		await learnFromViewing(loggedMedium, loggedVenue);
 		if (result.omdbCandidates?.length) showOmdbPicker(result.viewing, result.omdbCandidates);
 	} catch (error) {
-		status = error instanceof Error ? error.message : "Failed to log viewing.";
+		formError = error instanceof Error ? error.message : "Failed to log viewing.";
 	}
 }
 
@@ -241,13 +251,14 @@ async function handlePatheFileChange() {
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleParse() {
+	formError = "";
 	try {
 		parsedBooking = await parsePatheEmail(patheEmailText);
 		confirmVisible = true;
 		status = "";
 	} catch (error) {
 		confirmVisible = false;
-		status = error instanceof Error ? error.message : "Could not parse this email.";
+		formError = error instanceof Error ? error.message : "Could not parse this email.";
 	}
 }
 
@@ -255,6 +266,7 @@ async function handleParse() {
 async function handleConfirm() {
 	if (!parsedBooking || !credentials) return;
 	const booking = parsedBooking;
+	formError = "";
 	try {
 		const result = await logPatheBooking(credentials, booking, patheKnownGeo);
 		status = result.wasUpdate ? "Updated the existing entry." : "Logged.";
@@ -265,7 +277,7 @@ async function handleConfirm() {
 		parsedBooking = undefined;
 		if (result.omdbCandidates?.length) showOmdbPicker(result.viewing, result.omdbCandidates);
 	} catch (error) {
-		status = error instanceof Error ? error.message : "Failed to log viewing.";
+		formError = error instanceof Error ? error.message : "Failed to log viewing.";
 	}
 }
 </script>
@@ -427,5 +439,8 @@ async function handleConfirm() {
   </datalist>
 
   <p class={STATUS_TEXT} role="status">{status}</p>
+  {#if formError}
+    <ErrorToast message={formError} onDismiss={() => (formError = "")} />
+  {/if}
   <div bind:this={pickerArea}></div>
 </div>

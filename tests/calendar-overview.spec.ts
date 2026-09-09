@@ -1384,4 +1384,83 @@ test.describe("calendar overview", () => {
     );
     expect(omdbCalls).toBe(0);
   });
+
+  // #442: a genuine error gets its own visually distinct, assertively
+  // announced treatment — not the same quiet role="status" text as a
+  // routine "Loading…"/count line.
+  test.describe("error toasts", () => {
+    test("a load failure shows a distinct, assertively announced error that survives a real wait, then a manual dismiss", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      await connect(page);
+      await expect(page.locator("tbody tr")).toHaveCount(1);
+
+      // Break the CalDAV server only *after* the initial successful
+      // load, then trigger a fresh reload via the filter form — proves
+      // this is the reload's own failure path, not a mount-time race.
+      await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route: Route) => {
+        if (route.request().method() === "REPORT") {
+          await route.fulfill({ status: 500, body: "Internal Server Error" });
+          return;
+        }
+        await route.fallback();
+      });
+      await openFilters(page);
+      await page.locator("#overview-title").fill("Anything");
+      await page.getByRole("button", { name: "Filter", exact: true }).click();
+
+      const toast = page.getByRole("alert");
+      await expect(toast).toBeVisible();
+      await expect(toast).toContainText(/the CalDAV server responded 500/);
+
+      // No auto-dismiss timer — still visible well after any short
+      // success-confirmation-style delay would have cleared it.
+      await page.waitForTimeout(1000);
+      await expect(toast).toBeVisible();
+
+      const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(results.violations).toEqual([]);
+
+      await page.getByRole("button", { name: "Dismiss error" }).click();
+      await expect(toast).toHaveCount(0);
+    });
+
+    // #442 DoD: routine status text (loading, counts, success) is
+    // completely unaffected by the new error treatment.
+    test("routine status text keeps its own quiet role=status treatment, unaffected", async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      await connect(page);
+
+      await expect(page.getByRole("status").first()).toContainText("1 logged viewing");
+      await expect(page.getByRole("alert")).toHaveCount(0);
+
+      page.once("dialog", (dialog) => dialog.accept());
+      await page.getByRole("button", { name: "Delete Dune" }).click();
+      await expect(page.getByText("Deleted.")).toBeVisible();
+      await expect(page.getByRole("alert")).toHaveCount(0);
+    });
+
+    test("a failed delete shows the error toast without disturbing the row", async ({ page }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      await connect(page);
+
+      await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route: Route) => {
+        if (route.request().method() === "DELETE") {
+          await route.fulfill({ status: 500, body: "Internal Server Error" });
+          return;
+        }
+        await route.fallback();
+      });
+
+      page.once("dialog", (dialog) => dialog.accept());
+      await page.getByRole("button", { name: "Delete Dune" }).click();
+
+      const toast = page.getByRole("alert");
+      await expect(toast).toContainText(/the CalDAV server responded 500/);
+      await expect(page.locator("tbody tr")).toHaveCount(1);
+    });
+  });
 });

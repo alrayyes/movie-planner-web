@@ -162,6 +162,15 @@ test.describe("sharing a single viewing", () => {
     page,
   }) => {
     await page.goto("/shared?state=not-a-real-payload");
-    await expect(page.getByRole("alert")).toContainText(/couldn't be read/);
+    const toast = page.getByRole("alert");
+    await expect(toast).toContainText(/couldn't be read/);
+
+    // #442: adopts the same shared error-toast component every other
+    // component's genuine error uses, not just the correct role.
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Dismiss error" }).click();
+    await expect(toast).toHaveCount(0);
   });
 });
