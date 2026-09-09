@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.96.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.95.1...movie-planner-web-v0.96.0) (2026-09-09)
+
+
+### Features
+
+* **venue:** trim display to name + city, drop address/country ([#496](https://github.com/alrayyes/movie-planner-web/issues/496)) ([bd04ed8](https://github.com/alrayyes/movie-planner-web/commit/bd04ed8619d4739eebb51f7973a9b3d33081de73)), closes [#440](https://github.com/alrayyes/movie-planner-web/issues/440)
+
 ## [0.95.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.95.0...movie-planner-web-v0.95.1) (2026-09-09)
 
 
