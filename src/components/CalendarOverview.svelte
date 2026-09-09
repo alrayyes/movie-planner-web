@@ -554,7 +554,12 @@ async function reload(options: { silent?: boolean } = {}) {
 				fromValue = toDateInputValue(new Date(Math.min(...starts)).toISOString());
 			if (hadNoExplicitTo) toValue = toDateInputValue(new Date(Math.max(...starts)).toISOString());
 		}
-		if (!options.silent) statusText = `${total} logged viewing${total === 1 ? "" : "s"}.`;
+		// #435: the count has its own persistent element now (near the
+		// page-size selector) rather than sharing this slot with
+		// "Loading…" — clear it instead of writing the count here, so a
+		// fresh load doesn't leave a second, redundant copy of the total
+		// sitting in statusText too.
+		if (!options.silent) statusText = "";
 	} catch (error) {
 		// Superseded by a newer reload — not a real failure, and the
 		// newer call's own catch/success block is what should actually
@@ -1382,6 +1387,14 @@ getPicklists(config).then((picklists) => {
         </tbody>
       </table>
     </div>
+
+    <!-- #435: the total's own persistent home — near the page-size
+    selector because that selector, unlike the pagination block below,
+    already renders unconditionally once there's at least one result,
+    regardless of page count. Deliberately not statusText: that slot
+    is transient ("Loading…", then cleared) and used to also carry the
+    count, which meant a reload briefly clobbered it. -->
+    <p class={STATUS_TEXT}>{total} logged viewing{total === 1 ? "" : "s"}.</p>
 
     <!-- #300: a visitor's own choice of how many rows a page holds —
     always offered once there's at least one result, not just once
