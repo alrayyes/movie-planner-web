@@ -1,9 +1,9 @@
 ## Context
 
 See proposal.md - Why. This app's OMDb client (`src/lib/omdb/client.ts`)
-already resolves an `imdbId` for most matched viewings. The CLI's own
-TMDb client (`src/movie_planner/tmdb.py`, confirmed via the
-movie-planner-cli session) chains off that same id rather than
+already resolves an IMDb ID (`imdbId`) for most matched viewings. The
+CLI's own TMDb client (`src/movie_planner/tmdb.py`, confirmed via the
+`movie-planner-cli` session) chains off that same id rather than
 searching TMDb independently: `find/{imdb_id}` to resolve TMDb's numeric
 id, then one `movie/{tmdb_id}?append_to_response=credits,videos,release_dates,keywords`
 call. `api.themoviedb.org` sends `Access-Control-Allow-Origin: *` on
@@ -16,7 +16,7 @@ runs the same as OMDb does today: straight from the browser, no proxy.
 
 - One shared enrichment step, reused by every call site that already
   attaches OMDb metadata to a viewing.
-- Byte-for-byte the same "no imdb_id, no TMDb call, no fallback search"
+- Byte-for-byte the same "no `imdb_id`, no TMDb call, no fallback search"
   rule the CLI already enforces.
 
 **Non-Goals:**
@@ -49,8 +49,9 @@ independently:
 
 Each site already has a point where it just attached OMDb metadata
 (`{ ...viewing, ...metadata }`) and knows whether the result has an
-`imdbId`; the shared helper takes a viewing and returns the TMDb fields
-to merge in, or nothing if no key/no imdb_id/no TMDb match.
+IMDb ID (`imdbId`); the shared helper takes a viewing and returns the
+TMDb fields to merge in, or nothing if no key/no `imdb_id`/no TMDb
+match.
 
 **Field overwrite rules mirror the CLI exactly**: `actors`/`website`
 overwritten only when TMDb actually has a value (never blanked);

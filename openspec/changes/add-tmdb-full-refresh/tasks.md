@@ -7,7 +7,7 @@
 
 - [x] 2.1 Create `src/lib/tmdb/client.ts`: `find/{imdb_id}?external_source=imdb_id` to resolve TMDb's numeric id, and verify a unit test covers no-match (empty `movie_results`)
 - [x] 2.2 Add `movie/{tmdb_id}?append_to_response=credits,videos,release_dates,keywords` fetch and field extraction (trailer from `videos`, cast from `credits`, certification from `release_dates` filtered to US only, keywords, budget treating `0` as `undefined`, popularity), and verify unit tests cover each field's presence/absence case
-- [x] 2.3 Write the shared enrichment helper (given a viewing with an `imdbId` and a TMDb key, returns the fields to merge or `undefined` if no key/no imdb_id/no match) and verify a unit test covers all three skip conditions
+- [x] 2.3 Write the shared enrichment helper (given a viewing with an IMDb ID (`imdbId`) and a TMDb key, returns the fields to merge or `undefined` if no key/no `imdb_id`/no match) and verify a unit test covers all three skip conditions
 
 ## 3. Credentials
 
