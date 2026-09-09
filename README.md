@@ -39,7 +39,9 @@ management (media/venue picklists) are all built — see
 for the full design. The import/export JSON shape is documented as a
 [JSON Schema](public/schemas/movie-viewings.schema.json) — movie-planner's
 own canonical field names, so a file either tool produces is readable
-by the other.
+by the other. The `/changelog` page's own data shape — parsed from
+`CHANGELOG.md`, not a separate file to maintain — has its own
+[JSON Schema](public/schemas/changelog.schema.json) too.
 
 ## Requirements
 
