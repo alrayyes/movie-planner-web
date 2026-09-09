@@ -135,8 +135,43 @@ $effect(() => {
 		// clicking elsewhere on the map still closes it, same as before.
 		marker.off("click");
 		marker.on("click", () => marker.openPopup());
-		marker.on("mouseover", () => marker.openPopup());
-		marker.on("mouseout", () => marker.closePopup());
+		// #441: the popup Leaflet renders is a separate DOM element,
+		// positioned near but not overlapping the marker's own small icon
+		// hit area. Closing on the marker's mouseout alone closed the
+		// popup the instant the cursor left that icon, including while
+		// moving toward a link inside the popup — making the link
+		// unreachable by mouse. Tracking hover across both elements and
+		// closing only once the cursor has left both fixes that without
+		// changing the click/hover open behaviour above.
+		let hoveringMarker = false;
+		let hoveringPopup = false;
+		const closeIfNeitherHovered = () => {
+			if (!hoveringMarker && !hoveringPopup) marker.closePopup();
+		};
+
+		marker.on("mouseover", () => {
+			hoveringMarker = true;
+			marker.openPopup();
+		});
+		marker.on("mouseout", () => {
+			hoveringMarker = false;
+			closeIfNeitherHovered();
+		});
+		// The popup's own container element is created once and reused on
+		// every reopen (Leaflet never tears it down), so wiring its hover
+		// listeners the first time it opens is enough to cover every
+		// later open too.
+		marker.once("popupopen", () => {
+			const popupEl = marker.getPopup()?.getElement();
+			if (!popupEl) return;
+			popupEl.addEventListener("mouseover", () => {
+				hoveringPopup = true;
+			});
+			popupEl.addEventListener("mouseout", () => {
+				hoveringPopup = false;
+				closeIfNeitherHovered();
+			});
+		});
 		return marker;
 	});
 	// #262: zooms/pans to fit the visitor's own pins instead of staying
