@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.91.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.90.2...movie-planner-web-v0.91.0) (2026-09-09)
+
+
+### Features
+
+* **venues:** remove the From/To date-range filter ([#476](https://github.com/alrayyes/movie-planner-web/issues/476)) ([2fadaf4](https://github.com/alrayyes/movie-planner-web/commit/2fadaf49e9964be8d48e84e4c34d0a0827380e2e)), closes [#446](https://github.com/alrayyes/movie-planner-web/issues/446)
+
 ## [0.90.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.90.1...movie-planner-web-v0.90.2) (2026-09-09)
 
 
