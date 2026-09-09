@@ -63,6 +63,47 @@ test.describe("Fork me on GitHub ribbon", () => {
 
     await expect(toggle).not.toHaveAttribute("aria-checked", before ?? "");
   });
+
+  // #433: the mobile breakpoint added for #66 (max-width: 640px) shrinks
+  // `.gh-ribbon` to a 130x130px clipped box and its rotated band to match,
+  // but "Fork me on GitHub" doesn't actually fit that band at real font
+  // rendering — the glyphs themselves (not just the band's own, always-
+  // larger-than-the-box unrotated footprint, which is expected to be
+  // clipped by design) spill past the box's edges, cutting off "F" at the
+  // top and "GitHub" at the right. Checked at the breakpoint boundary
+  // itself and at real device widths, not just one arbitrary size
+  // (design.md's own risk callout).
+  for (const width of [640, 393, 320]) {
+    test(`renders no glyph clipped outside the ribbon box at ${width}px wide`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+
+      const link = page.getByRole("link", { name: "Fork me on GitHub" });
+      await expect(link).toBeVisible();
+
+      // The tight bounding box of the rendered text glyphs themselves
+      // (post-rotation, via a Range rather than the anchor's own much
+      // larger unrotated box) versus the container's clipped box — any
+      // of the four comparisons failing means a real letter, not just
+      // the band's empty tail, is being cut off.
+      const textBox = await link.evaluate((el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const rect = range.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      });
+      const containerBox = await page.locator(".gh-ribbon").evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      });
+
+      // 1px slack for anti-aliasing/sub-pixel rounding, not a real margin.
+      expect(textBox.left).toBeGreaterThanOrEqual(containerBox.left - 1);
+      expect(textBox.top).toBeGreaterThanOrEqual(containerBox.top - 1);
+      expect(textBox.right).toBeLessThanOrEqual(containerBox.right + 1);
+      expect(textBox.bottom).toBeLessThanOrEqual(containerBox.bottom + 1);
+    });
+  }
 });
 
 // #127: used to only ever appear on the home page (built inside
