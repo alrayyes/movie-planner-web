@@ -19,6 +19,8 @@ import {
 	TR_BODY,
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import VenueMap from "./VenueMap.svelte";
 
 // #99: every venue the visitor has ever logged a viewing at, or added
@@ -52,6 +54,10 @@ let fromValue = $state("");
 let toValue = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
+// #442: a genuine load failure gets the distinct error-toast treatment
+// instead of blending into status's own quiet line.
+// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
+let loadError = $state("");
 
 interface VenueInfo {
 	venue: string;
@@ -194,6 +200,7 @@ async function load() {
 	loadController?.abort();
 	const controller = new AbortController();
 	loadController = controller;
+	loadError = "";
 	const credentials = await getCredentialsStore().get();
 	if (!credentials) {
 		status = "Connect first to see your venues.";
@@ -234,7 +241,8 @@ async function load() {
 		// Superseded by a newer load — the newer call's own catch/success
 		// block is what should actually update status now, not this one.
 		if (error instanceof DOMException && error.name === "AbortError") return;
-		status = error instanceof Error ? error.message : "Failed to load venues.";
+		status = "";
+		loadError = error instanceof Error ? error.message : "Failed to load venues.";
 	}
 }
 
@@ -277,6 +285,9 @@ reloadOnBfcacheRestore(() => void load());
   </form>
 
   <p class={STATUS_TEXT} role="status">{status}</p>
+  {#if loadError}
+    <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
+  {/if}
 
   {#snippet venueTable(list: VenueInfo[])}
     <div class={TABLE_WRAP}>

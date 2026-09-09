@@ -6,6 +6,8 @@ import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT } from "../lib/ui/classes";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: VenueMap is used in the template below, which Biome does not parse for .svelte files
 import VenueMap, { type MapPin } from "./VenueMap.svelte";
 
@@ -16,9 +18,14 @@ import VenueMap, { type MapPin } from "./VenueMap.svelte";
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
+// #442: a genuine load failure gets the distinct error-toast treatment
+// instead of blending into status's own quiet line.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let mapError = $state("");
 let pins = $state<MapPin[]>([]);
 
 async function load() {
+	mapError = "";
 	const credentials = await getCredentialsStore().get();
 	if (!credentials) {
 		status = "Connect first to see your map.";
@@ -45,7 +52,8 @@ async function load() {
 				? "No located viewings yet."
 				: `${pins.length} located viewing${pins.length === 1 ? "" : "s"} of ${viewings.length} logged.`;
 	} catch (error) {
-		status = error instanceof Error ? error.message : "Failed to load the map.";
+		status = "";
+		mapError = error instanceof Error ? error.message : "Failed to load the map.";
 	}
 }
 
@@ -55,5 +63,8 @@ reloadOnBfcacheRestore(() => void load());
 
 <div class="flex flex-col gap-4">
   <p class={STATUS_TEXT} role="status">{status}</p>
+  {#if mapError}
+    <ErrorToast message={mapError} onDismiss={() => (mapError = "")} />
+  {/if}
   <VenueMap {pins} />
 </div>

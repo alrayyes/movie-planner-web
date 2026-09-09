@@ -9,6 +9,8 @@ import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/class
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatPeriod } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
 
 // #335: a frozen, read-only rendering of whatever another visitor
@@ -48,7 +50,7 @@ function formatSharedAt(iso: string): string {
 </script>
 
 {#if error}
-	<p class={STATUS_TEXT} role="alert">{error}</p>
+	<ErrorToast message={error} onDismiss={() => (error = null)} />
 {:else if !state}
 	<p class={STATUS_TEXT} role="status">Loading shared viewings…</p>
 {:else}

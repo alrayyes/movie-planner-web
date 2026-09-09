@@ -34,7 +34,9 @@
       "Metacritic",
       "movie-planner-web",
       "multistatus",
+      "NetworkError",
       "nl-NL",
+      "NN",
       "Traefik",
       "OMDb",
       "OMDb-derived",
@@ -61,6 +63,7 @@
       "unscoped",
       "VEVENT",
       "VJOURNAL",
+      "WAI",
       "WebDAV",
       "wrangler"
     ]

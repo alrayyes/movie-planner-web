@@ -660,4 +660,34 @@ test.describe("venues overview", () => {
     // against — same flat table this page always showed.
     await expect(page.getByRole("heading", { name: "Other locations" })).toHaveCount(0);
   });
+
+  // #442: a genuine load failure gets a distinct, assertively announced
+  // error toast — not the same quiet role="status" line the venue count
+  // uses.
+  test("a load failure shows a distinct error toast, leaving routine status unaffected", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+
+    await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route) => {
+      if (route.request().method() === "REPORT") {
+        await route.fulfill({ status: 500, body: "Internal Server Error" });
+        return;
+      }
+      await route.fallback();
+    });
+    await page.getByRole("link", { name: "Venues" }).click();
+    await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+
+    const toast = page.getByRole("alert");
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText(/the CalDAV server responded 500/);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Dismiss error" }).click();
+    await expect(toast).toHaveCount(0);
+  });
 });

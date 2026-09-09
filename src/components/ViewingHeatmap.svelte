@@ -10,6 +10,8 @@ import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
 import { formatTime, toDateInputValue } from "../lib/ui/datetime";
 import { groupViewingsByLocalDay } from "../lib/ui/heatmap";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
 
 // #198/#204: a GitHub-contribution-style heatmap of viewing density
@@ -27,6 +29,10 @@ import PosterPlaceholder from "./PosterPlaceholder.svelte";
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
+// #442: a genuine load failure gets the distinct error-toast treatment
+// instead of blending into status's own quiet line.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let loadError = $state("");
 let viewingsByDay = $state<Map<string, LoggedViewing[]>>(new Map());
 let dialogEl = $state<HTMLDialogElement>();
 let selectedDay = $state<string | undefined>();
@@ -260,6 +266,7 @@ function closeDialog() {
 }
 
 async function load() {
+	loadError = "";
 	const credentials = await getCredentialsStore().get();
 	if (!credentials) {
 		status = "Connect first to see your viewing heatmap.";
@@ -278,7 +285,8 @@ async function load() {
 				? "No logged viewings yet."
 				: `${viewings.length} logged viewing${viewings.length === 1 ? "" : "s"}.`;
 	} catch (error) {
-		status = error instanceof Error ? error.message : "Failed to load the heatmap.";
+		status = "";
+		loadError = error instanceof Error ? error.message : "Failed to load the heatmap.";
 	}
 }
 
@@ -289,6 +297,9 @@ reloadOnBfcacheRestore(() => void load());
 
 <div class="flex flex-col gap-6">
   <p class={STATUS_TEXT} role="status">{status}</p>
+  {#if loadError}
+    <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
+  {/if}
   {#each yearGroups as yearGroup (yearGroup.year)}
     <div class="flex flex-col gap-4">
       <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">

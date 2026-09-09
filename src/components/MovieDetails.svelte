@@ -50,6 +50,8 @@ import { debounce } from "../lib/ui/debounce";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ChipList from "./ChipList.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import ErrorToast from "./ErrorToast.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconImdb from "./icons/IconImdb.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconLetterboxd from "./icons/IconLetterboxd.svelte";
@@ -101,6 +103,11 @@ let notFound = $state(false);
 let editing = $state(false);
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let statusText = $state("");
+// #442: a genuine save/refresh/search/delete/attach failure gets the
+// distinct error-toast treatment instead of blending into statusText's
+// own quiet line.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let errorMessage = $state("");
 // #389: separate from statusText — sharing doesn't touch CalDAV, so it
 // shouldn't clobber (or be clobbered by) a save/delete/refresh
 // confirmation that's mid-flight. Same three-variable shape the
@@ -109,6 +116,10 @@ let statusText = $state("");
 // script (handleCopyShareLink), unlike sharing, which only this
 // component's template ever reads.
 let shareStatusText = $state("");
+// #442: same split as errorMessage above, for handleShare's own failure
+// path.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let shareError = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let sharing = $state(false);
 // #389: the actual generated link, shown as visible/selectable text —
@@ -240,18 +251,20 @@ async function handleSave(current: LoggedViewing) {
 		venue: editValues.venue || undefined,
 		geo: editGeo,
 	};
+	errorMessage = "";
 	try {
 		await updateViewing(config, current.uid, updated);
 		await load();
 		statusText = "Saved.";
 	} catch (error) {
-		statusText = error instanceof Error ? error.message : "Failed to save.";
+		errorMessage = error instanceof Error ? error.message : "Failed to save.";
 	}
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleRefresh(current: LoggedViewing) {
 	if (!config || !omdbActive || !omdbApiKey) return;
+	errorMessage = "";
 	try {
 		// #91: re-check the calendar entry itself first — it may have been
 		// matched elsewhere (the CLI's own sync, another tab/device) since
@@ -285,7 +298,7 @@ async function handleRefresh(current: LoggedViewing) {
 		}
 		statusText = "OMDb had no match for this title.";
 	} catch (error) {
-		statusText = error instanceof Error ? error.message : "Failed to refresh metadata.";
+		errorMessage = error instanceof Error ? error.message : "Failed to refresh metadata.";
 	}
 }
 
@@ -297,6 +310,7 @@ function showOmdbPicker(current: LoggedViewing, candidates: OmdbCandidate[]) {
 			candidates,
 			async (candidate) => {
 				if (!config || !omdbApiKey) return;
+				errorMessage = "";
 				try {
 					const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
 					if (metadata) {
@@ -305,7 +319,7 @@ function showOmdbPicker(current: LoggedViewing, candidates: OmdbCandidate[]) {
 					await load();
 					statusText = "Refreshed.";
 				} catch (error) {
-					statusText =
+					errorMessage =
 						error instanceof Error ? error.message : "Failed to attach the selected match.";
 				} finally {
 					showingPicker = false;
@@ -332,6 +346,7 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 	event.preventDefault();
 	if (!omdbApiKey || !omdbSearchQuery.trim()) return;
 	searchingOmdb = false;
+	errorMessage = "";
 	try {
 		const candidates = await searchMovies(omdbApiKey, omdbSearchQuery.trim());
 		if (candidates.length > 0) {
@@ -344,7 +359,7 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 			statusText = "OMDb had no match for that search.";
 		}
 	} catch (error) {
-		statusText = error instanceof Error ? error.message : "Failed to search OMDb.";
+		errorMessage = error instanceof Error ? error.message : "Failed to search OMDb.";
 	}
 }
 
@@ -383,6 +398,7 @@ function handleExport(current: LoggedViewing) {
 async function handleShare(current: LoggedViewing) {
 	sharing = true;
 	shareStatusText = "Preparing link…";
+	shareError = "";
 	sharedUrl = "";
 	try {
 		const state: SharedState = {
@@ -413,7 +429,8 @@ async function handleShare(current: LoggedViewing) {
 		sharedUrl = url;
 		shareStatusText = "Read-only, frozen as of now.";
 	} catch (error) {
-		shareStatusText = error instanceof Error ? error.message : "Failed to prepare the link.";
+		shareStatusText = "";
+		shareError = error instanceof Error ? error.message : "Failed to prepare the link.";
 	} finally {
 		sharing = false;
 	}
@@ -439,12 +456,13 @@ async function handleCopyShareLink() {
 async function handleDelete(current: LoggedViewing) {
 	if (!config) return;
 	if (!window.confirm(`Delete "${current.title}"? This can't be undone.`)) return;
+	errorMessage = "";
 	try {
 		await deleteViewing(config, current.uid);
 		statusText = "Deleted.";
 		viewing = undefined;
 	} catch (error) {
-		statusText = error instanceof Error ? error.message : "Failed to delete.";
+		errorMessage = error instanceof Error ? error.message : "Failed to delete.";
 	}
 }
 
@@ -514,6 +532,9 @@ reloadOnBfcacheRestore(() => void load());
   </div>
   {#if shareStatusText}
     <p class={STATUS_TEXT} role="status">{shareStatusText}</p>
+  {/if}
+  {#if shareError}
+    <ErrorToast message={shareError} onDismiss={() => (shareError = "")} />
   {/if}
   {#if sharedUrl}
     <!-- #389: the always-reliable fallback — visible, selectable text,
@@ -1070,6 +1091,9 @@ reloadOnBfcacheRestore(() => void load());
   <div bind:this={pickerArea}></div>
 
   <p class={STATUS_TEXT} role="status">{statusText}</p>
+  {#if errorMessage}
+    <ErrorToast message={errorMessage} onDismiss={() => (errorMessage = "")} />
+  {/if}
   <datalist id="details-venue-choices">
     {#each venues as venue (venue)}
       <option value={venue}>{venue}</option>

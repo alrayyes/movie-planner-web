@@ -91,4 +91,68 @@ test.describe("activity log", () => {
     await connect(page);
     await expect(page.getByRole("link", { name: "Activity" })).toBeVisible();
   });
+
+  // #442: this store read had no failure path at all before — a
+  // rejected list() left the page blank forever, worse than blending an
+  // error into routine status text. It now gets the same distinct,
+  // assertively announced error toast every other component uses.
+  test("a broken activity-log store shows a distinct error toast instead of a blank page", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+
+    // Simulates IndexedDB being unavailable, scoped to just this
+    // store's own database name (private browsing, a broken profile) —
+    // indexedDB.open's request errors only for
+    // "movie-planner-web-activity-log", which indexeddb-store.ts's
+    // openDatabase() turns into a rejected promise. Credentials'
+    // own IndexedDB store (a different database name) is left alone —
+    // proxying rather than replacing `indexedDB` outright is what keeps
+    // this scoped to the one store under test.
+    await page.addInitScript(() => {
+      const real = window.indexedDB;
+      const proxy = new Proxy(real, {
+        get(target, prop, receiver) {
+          if (prop === "open") {
+            // biome-ignore lint/suspicious/noExplicitAny: matching IDBFactory#open's own loose signature
+            return (name: string, ...rest: any[]) => {
+              if (name === "movie-planner-web-activity-log") {
+                const request: {
+                  onerror: (() => void) | null;
+                  onsuccess: (() => void) | null;
+                  onupgradeneeded: (() => void) | null;
+                  error: Error;
+                } = {
+                  onerror: null,
+                  onsuccess: null,
+                  onupgradeneeded: null,
+                  error: new Error("Simulated IndexedDB failure"),
+                };
+                setTimeout(() => request.onerror?.(), 0);
+                return request;
+              }
+              return target.open(name, ...rest);
+            };
+          }
+          const value = Reflect.get(target, prop, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+      Object.defineProperty(window, "indexedDB", { configurable: true, value: proxy });
+    });
+
+    await page.goto("/activity");
+
+    const toast = page.getByRole("alert");
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText(/Simulated IndexedDB failure/);
+    await expect(page.getByText("Nothing recorded yet")).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Dismiss error" }).click();
+    await expect(toast).toHaveCount(0);
+  });
 });

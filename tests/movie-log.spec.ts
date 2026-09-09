@@ -443,3 +443,40 @@ test.describe("coordinate entry", () => {
     expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
   });
 });
+
+// #442: a genuine log failure gets a distinct, assertively announced
+// error toast — not the same quiet role="status" line "Logged." uses.
+test.describe("error toasts", () => {
+  test("a failed manual log shows a distinct error toast, unaffected routine status, no auto-dismiss", async ({
+    page,
+  }) => {
+    await connect(page);
+
+    await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route: Route) => {
+      if (route.request().method() === "PUT") {
+        await route.fulfill({ status: 500, body: "Internal Server Error" });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.locator("#log-title").fill("Paddington");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.locator("#log-medium").fill("netflix");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    const toast = page.getByRole("alert");
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText(/the CalDAV server responded 500/);
+    await expect(page.getByRole("status")).not.toHaveText("Logged.");
+
+    await page.waitForTimeout(1000);
+    await expect(toast).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Dismiss error" }).click();
+    await expect(toast).toHaveCount(0);
+  });
+});
