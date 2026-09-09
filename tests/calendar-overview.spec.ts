@@ -92,7 +92,11 @@ async function connect(page: Page) {
   // (a full page.goto, not just waiting on an element) right after
   // connect() isn't racing the write (same pattern every other spec
   // file's own connect() helper already uses).
-  await expect(page.getByRole("status").first()).toBeVisible();
+  // #435: was `getByRole("status").first()` — statusText no longer
+  // carries the count, and can go empty (zero-height, "hidden" to
+  // Playwright) the moment loading finishes, so it's no longer a safe
+  // signal that the connect actually landed.
+  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #221: the filter fields sit inside a <details>, closed by default —
@@ -1169,7 +1173,9 @@ test.describe("calendar overview", () => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
 
-    await expect(page.getByRole("status").first()).toHaveText("0 logged viewings.");
+    // #435: the count no longer lives in statusText — it clears once
+    // loading finishes, rather than showing a "0 logged viewings." line.
+    await expect(page.getByRole("status").first()).toHaveText("");
     await expect(page.locator("#overview-from")).toHaveValue("");
     await expect(page.locator("#overview-to")).toHaveValue("");
   });
@@ -1258,6 +1264,27 @@ test.describe("calendar overview", () => {
     await connect(page);
 
     await expect(page.getByRole("button", { name: "Next page" })).toHaveCount(0);
+    // #435: the total isn't hostage to the pagination chrome it sits
+    // next to — it's still shown even though that chrome is hidden here.
+    await expect(page.getByText("2 logged viewings.")).toBeVisible();
+  });
+
+  // #435: the total used to live in statusText, the same shared slot a
+  // delete's own "Deleted." confirmation writes to — so the count was
+  // clobbered by whatever the last action said, rather than staying put.
+  test("the total stays visible, unclobbered, after a delete updates the action status", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await expect(page.getByText("2 logged viewings.")).toBeVisible();
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: `Delete ${DUNE.title}` }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Deleted.");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
   });
 
   test("changing the filter resets pagination to the first page", async ({ page }) => {
@@ -1488,7 +1515,10 @@ test.describe("calendar overview", () => {
       mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
       await connect(page);
 
-      await expect(page.getByRole("status").first()).toContainText("1 logged viewing");
+      // #435: the count moved out of statusText into its own persistent
+      // element — still plain text, not an alert, just no longer under
+      // role="status" itself.
+      await expect(page.getByText("1 logged viewing.")).toBeVisible();
       await expect(page.getByRole("alert")).toHaveCount(0);
 
       page.once("dialog", (dialog) => dialog.accept());
