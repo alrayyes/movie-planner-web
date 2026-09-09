@@ -28,3 +28,7 @@ CHANGELOG.md
 # Vale's style packages, downloaded by `vale sync`.
 /styles/Google/
 /styles/proselint/
+
+# bun test --coverage's own report, uploaded to Codecov in CI rather than
+# committed.
+coverage/
