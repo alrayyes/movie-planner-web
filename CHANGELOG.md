@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.94.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.93.0...movie-planner-web-v0.94.0) (2026-09-09)
+
+
+### Features
+
+* **tmdb:** fetch full TMDb data set wherever imdb_id is resolved ([#481](https://github.com/alrayyes/movie-planner-web/issues/481)) ([04cc421](https://github.com/alrayyes/movie-planner-web/commit/04cc421a0c4f64753c7db42fe0d1c298ca579108))
+
 ## [0.93.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.92.0...movie-planner-web-v0.93.0) (2026-09-09)
 
 
