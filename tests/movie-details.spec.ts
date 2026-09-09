@@ -730,18 +730,17 @@ test.describe("movie details page", () => {
     );
   });
 
-  // #373
-  test("links each piece of Released (day, month, year) to the overview filtered to that granularity", async ({
+  // #373/#437: the day itself stayed shown but stopped being a link once
+  // the overview's own exact-day Released Date filter was removed
+  // outright — month and year remain clickable.
+  test("links the month and year pieces of Released to the overview filtered to that granularity, day shown as plain text", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, released: "22 Oct 2021" }]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
-    await expect(page.getByRole("link", { name: "22" })).toHaveAttribute(
-      "href",
-      "/?releasedDate=2021-10-22",
-    );
+    await expect(page.getByRole("link", { name: "22" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Oct" })).toHaveAttribute(
       "href",
       "/?releasedMonth=2021-10",

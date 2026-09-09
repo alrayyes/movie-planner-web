@@ -599,10 +599,12 @@ test.describe("venues overview", () => {
     expect(results.violations).toEqual([]);
   });
 
-  // #372: clicking a country/city heading goes to the overview
-  // filtered to every viewing in that country/city — a different
-  // filter from clicking a single venue's own name (#131).
-  test("clicking a country or city heading goes to the overview, filtered to that country/city", async ({
+  // #372/#437: clicking a city heading goes to the overview filtered to
+  // every viewing in that city — a different filter from clicking a
+  // single venue's own name (#131). The country heading lost its own
+  // link when the overview's standalone Country filter was removed
+  // outright — the country grouping itself stays, just as plain text.
+  test("clicking a city heading goes to the overview filtered to that city; the country heading is plain text, not a link", async ({
     page,
   }) => {
     mockCaldavServer(
@@ -643,12 +645,10 @@ test.describe("venues overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
 
     await page.getByRole("link", { name: "Venues" }).click();
-    await page.getByRole("heading", { name: "Netherlands" }).getByRole("link").click();
-
-    await expect(page).toHaveURL(/\/\?country=Netherlands/);
-    await expect(page.locator("#overview-country")).toHaveValue("Netherlands");
-    await expect(page.locator("tbody tr")).toHaveCount(1);
-    await expect(page.locator("tbody tr")).toContainText("Dune");
+    await expect(page.getByRole("heading", { name: "Netherlands" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Netherlands" }).getByRole("link")).toHaveCount(
+      0,
+    );
   });
 
   test("shows the old flat, ungrouped view when no venue has a known city/country", async ({

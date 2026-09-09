@@ -8,33 +8,49 @@ watched first by default.
 
 ## Filtering
 
+Filters and the "Refresh all metadata" action sit inside their own
+bordered card, set apart from the results below. Expanding Filters
+shows the everyday fields right away: From, To, Title, Medium, and
+Venue. Everything else — Director, Actor, Genre, City, Movie country,
+Movie language, Rated, Released year, and Released month — sits behind
+a nested "More filters" toggle, so the common case doesn't mean scanning
+past a dozen fields you rarely touch. A chip link that carries one of
+those advanced filters (from a details page, Venues, or elsewhere)
+expands "More filters" automatically, so the active value is never
+hidden.
+
 From and To date fields default to your own actual first and last logged
 viewing, so they always show what's actually being applied rather than
-looking blank while a narrower default silently filters underneath. You
-can also filter by medium, venue, director, actor, genre, city, country,
-movie country, movie language, or rated — every text field offers
-autocomplete drawn from your own logged viewings (and, for medium and
-venue, from your saved [venue list](/docs/import-export/) too). City and
-country are the venue's own location, when known; movie country and
-movie language are the film's own OMDb-derived fields, a different thing
-from where you watched it. Director, actor, genre, city, country, movie
-country, movie language, and rated all match one exact value, not a
+looking blank while a narrower default silently filters underneath.
+Medium, City, Movie country, Movie language, Rated, and Released year
+are dropdowns listing only the values actually present in your own
+history (plus an "Any" option) — there's nothing to type that could ever
+match otherwise. Title, Venue, Director, Actor, and Genre stay free text
+with autocomplete, since they're open-ended. City is the venue's own
+location, when known; movie country and movie language are the film's
+own OMDb-derived fields, a different thing from where you watched it —
+there's no separate Country field for the venue's own location, since
+two distinct cities sharing a name in different countries is a
+negligible risk for a personal log. Director, actor, genre, movie
+country, and movie language all match one exact value, not a
 substring — a genre filter for "Action" won't also catch "Live Action
-Adaptation".
+Adaptation", and a movie country filter for "United States" still
+catches a co-production credited as "Australia, United States, China".
 
-You can also filter by release date, at whichever precision you pick —
-exact date, month, or year — each matched independently of the others.
+You can also filter by release year or month, matched independently of
+each other — there's no exact-release-day filter; that's too granular
+to be worth its own field.
 
-Clicking a director, actor, or genre chip, a Rated/Language/Country row,
-or any piece of the Released date (day, month, or year), on a viewing's
-own details page takes you straight to the overview pre-filtered to
-that exact value/granularity. Clicking a country or city heading on the
-[Venues page](/docs/venues/) does the same for every viewing at a venue
-in that country/city. When exactly one such filter is active, the
-browser tab's title reflects it — for example "Christopher Nolan
-(director) — Movie Planner" — so several filtered tabs stay easy to
-tell apart. A long cast on a details page shows only the first
-several actor chips, with a "+N more" toggle to reveal the rest.
+Clicking a director, actor, or genre chip, a Rated/Language row, or the
+month/year of the Released date, on a viewing's own details page takes
+you straight to the overview pre-filtered to that exact value/
+granularity. Clicking a city heading on the [Venues page](/docs/venues/)
+does the same for every viewing at a venue in that city. When exactly
+one such filter is active, the browser tab's title reflects it — for
+example "Christopher Nolan (director) — Movie Planner" — so several
+filtered tabs stay easy to tell apart. A long cast on a details page
+shows only the first several actor chips, with a "+N more" toggle to
+reveal the rest.
 
 ## Sorting and pagination
 
@@ -55,11 +71,14 @@ already open, Delete asks for confirmation first.
 
 ## Map
 
-The overview also shows a map of whatever's currently filtered, one pin
-per viewing with a known location — the same map [the map
-page](/docs/map/) and [Venues](/docs/venues/) use, just scoped to the
-current filter instead of your whole history. No filter, or nothing
-located yet, means no map shows at all rather than an empty one.
+Below the results table and pagination, the overview also shows a map
+of whatever's currently filtered, one pin per viewing with a known
+location — the same map [the map page](/docs/map/) and
+[Venues](/docs/venues/) use, just scoped to the current filter instead
+of your whole history. It sits after the table rather than before it,
+so the primary list is reachable without scrolling (or tabbing) past a
+secondary visualization. No filter, or nothing located yet, means no
+map shows at all rather than an empty one.
 
 ## Sharing a single viewing
 

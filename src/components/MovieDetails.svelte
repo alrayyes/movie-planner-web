@@ -850,24 +850,22 @@ reloadOnBfcacheRestore(() => void load());
                 </dd>
               {/if}
               {#if viewing.released}
-                <!-- #373: three independently clickable pieces — day,
-                month, year — since OMDb's own "DD MMM YYYY" shape splits
-                cleanly into exactly the three granularities the
-                overview's own releasedDate/releasedMonth/releasedYear
-                filters support. Falls back to plain text for a shape
-                parseReleasedDate doesn't recognize, rather than guessing
-                at filter values that wouldn't actually match anything. -->
+                <!-- #373/#437: two independently clickable pieces —
+                month and year — since OMDb's own "DD MMM YYYY" shape
+                splits cleanly into the granularities the overview's own
+                releasedMonth/releasedYear filters support. The day
+                itself is shown but no longer clickable — the overview's
+                own exact-day Released Date filter was removed outright
+                (too granular to justify the field). Falls back to plain
+                text for a shape parseReleasedDate doesn't recognize,
+                rather than guessing at filter values that wouldn't
+                actually match anything. -->
                 {@const releasedParts = viewing.released.split(" ")}
                 {@const releasedFilters = parseReleasedDate(viewing.released)}
                 <dt class={DT}>Released</dt>
                 <dd class={DD}>
                   {#if releasedFilters && releasedParts.length === 3}
-                    <a
-                      href={`/?releasedDate=${releasedFilters.date}`}
-                      class="text-indigo-600 hover:underline dark:text-indigo-400"
-                    >
-                      {releasedParts[0]}
-                    </a>
+                    {releasedParts[0]}
                     <a
                       href={`/?releasedMonth=${releasedFilters.month}`}
                       class="text-indigo-600 hover:underline dark:text-indigo-400"

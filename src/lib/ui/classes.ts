@@ -61,6 +61,14 @@ export const BREADCRUMB_SEPARATOR = "text-slate-400 dark:text-slate-600";
 
 export const SECTION_HEADING = "text-base font-semibold text-slate-900 dark:text-slate-100";
 
+// #437: the Filters disclosure + "Refresh all metadata" action's own
+// visually distinct region, separate from the results table/pagination/
+// map below — common-region/proximity, not just default flex spacing.
+// A plain Tailwind utility card rather than a new component, same as
+// TABLE_WRAP below.
+export const FILTER_CARD =
+  "flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40";
+
 export const TABLE_WRAP =
   "overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700";
 export const TABLE = "min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700";

@@ -87,17 +87,13 @@ function venueHref(venue: string): string {
 	return `/?venue=${encodeURIComponent(venue)}${range}`;
 }
 
-// #372: same date-range-carrying pattern as venueHref above — a
-// country/city heading links to the overview filtered to every viewing
-// at a venue in that country/city, not just the one venue venueHref
-// covers.
-// biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
-function countryHref(country: string): string {
-	const range = loadedRange
-		? `&from=${toDateInputValue(loadedRange.from)}&to=${toDateInputValue(loadedRange.to)}`
-		: "";
-	return `/?country=${encodeURIComponent(country)}${range}`;
-}
+// #372: same date-range-carrying pattern as venueHref above — a city
+// heading links to the overview filtered to every viewing at a venue in
+// that city, not just the one venue venueHref covers. #437: the
+// matching country heading lost its own link when the overview's
+// standalone Country filter was removed outright — the country grouping
+// itself stays (still a useful way to organize venues), just as plain
+// text now, nothing left to link it to.
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 function cityHref(city: string): string {
 	const range = loadedRange
@@ -282,7 +278,7 @@ reloadOnBfcacheRestore(() => void load());
       {#each countryGroups as group (group.country)}
         <section class="flex flex-col gap-6">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            <a href={countryHref(group.country)} class="hover:underline">{group.country}</a>
+            {group.country}
           </h2>
           {#each group.cities as cityGroup (cityGroup.city)}
             <div class="flex flex-col gap-3">

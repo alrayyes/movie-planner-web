@@ -87,7 +87,7 @@ test.describe("Export viewings", () => {
     // at all, which is itself the proof export covers the visitor's
     // whole history rather than whatever the overview last showed.
     await openFilters(page);
-    await page.locator("#overview-medium").fill("netflix");
+    await page.locator("#overview-title").fill("nothing matches this");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(0);
 

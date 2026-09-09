@@ -11,17 +11,16 @@ export interface ActiveFilterValues {
   actor?: string;
   genre?: string;
   city?: string;
-  country?: string;
   movieCountry?: string;
   movieLanguage?: string;
   rated?: string;
   releasedYear?: string;
   releasedMonth?: string;
-  releasedDate?: string;
 }
 
-// null means "reads fine on its own" — a country name doesn't need
-// "(country)" tacked on the way a bare person's name or venue name does.
+// #437: the venue's own Country filter (previously the one qualifier-
+// less key here) was removed outright — City now matches on city name
+// alone, so every remaining key gets its own qualifier.
 const FILTER_QUALIFIERS: Record<keyof ActiveFilterValues, string | null> = {
   medium: "medium",
   venue: "venue",
@@ -29,13 +28,11 @@ const FILTER_QUALIFIERS: Record<keyof ActiveFilterValues, string | null> = {
   actor: "actor",
   genre: "genre",
   city: "city",
-  country: null,
   movieCountry: "movie country",
   movieLanguage: "movie language",
   rated: "rated",
   releasedYear: "release year",
   releasedMonth: "release month",
-  releasedDate: "release date",
 };
 
 // Exported so a caller building `values` from something other than

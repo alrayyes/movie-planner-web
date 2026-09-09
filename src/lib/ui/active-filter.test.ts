@@ -12,10 +12,9 @@ describe("activeFilterLabel", () => {
     expect(activeFilterLabel({ venue: "Grand Vista Cinema" })).toBe("Grand Vista Cinema (venue)");
   });
 
-  test("labels a country filter with no qualifier, since a country name already reads unambiguously", () => {
-    expect(activeFilterLabel({ country: "Netherlands" })).toBe("Netherlands");
-  });
-
+  // #437: the venue's own Country filter (the previous qualifier-less
+  // case) was removed outright — every remaining recognized filter now
+  // gets its own qualifier.
   test("labels every other recognized single filter with its own qualifier", () => {
     expect(activeFilterLabel({ medium: "cinema" })).toBe("cinema (medium)");
     expect(activeFilterLabel({ actor: "Zendaya" })).toBe("Zendaya (actor)");
@@ -26,7 +25,6 @@ describe("activeFilterLabel", () => {
     expect(activeFilterLabel({ rated: "PG-13" })).toBe("PG-13 (rated)");
     expect(activeFilterLabel({ releasedYear: "2021" })).toBe("2021 (release year)");
     expect(activeFilterLabel({ releasedMonth: "2021-10" })).toBe("2021-10 (release month)");
-    expect(activeFilterLabel({ releasedDate: "2021-10-22" })).toBe("2021-10-22 (release date)");
   });
 
   test("returns null when nothing is active", () => {
