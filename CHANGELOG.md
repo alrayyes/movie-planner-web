@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.97.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.96.0...movie-planner-web-v0.97.0) (2026-09-09)
+
+
+### Features
+
+* **venue:** trim the venue filter/picker suggestions to name+city ([#499](https://github.com/alrayyes/movie-planner-web/issues/499)) ([d42efe6](https://github.com/alrayyes/movie-planner-web/commit/d42efe631066f40d499d8cb41854caeb6b99a13f)), closes [#498](https://github.com/alrayyes/movie-planner-web/issues/498)
+
 ## [0.96.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.95.1...movie-planner-web-v0.96.0) (2026-09-09)
 
 
