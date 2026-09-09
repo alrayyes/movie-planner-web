@@ -55,15 +55,8 @@ jobs:
         run: bun install --frozen-lockfile
       # A red run can be a transient registry failure, not a real finding
       # (rules/ci.md) — retry once before treating it as one.
-      #
-      # GHSA-rgj7-g3m4-5g8c (sharp, via wrangler > miniflare) is ignored:
-      # tracked at #469, blocked upstream until miniflare bumps its own
-      # sharp pin — not something this repo's lockfile can fix. Any other
-      # advisory still fails this job.
       - name: bun audit
-        run: |
-          bun audit --ignore GHSA-rgj7-g3m4-5g8c ||
-            (sleep 5 && bun audit --ignore GHSA-rgj7-g3m4-5g8c)
+        run: bun audit || (sleep 5 && bun audit)
 
   # Biome's pattern-based rules (lint, above) can't do cross-file taint
   # tracking; this is the separate security pass that can — the free
