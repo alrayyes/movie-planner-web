@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.102.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.101.0...movie-planner-web-v0.102.0) (2026-09-10)
+
+
+### Features
+
+* **venue:** add a dedicated per-venue page ([#515](https://github.com/alrayyes/movie-planner-web/issues/515)) ([fa00dc4](https://github.com/alrayyes/movie-planner-web/commit/fa00dc49eb8176128d5fe644c35130b26849c796)), closes [#448](https://github.com/alrayyes/movie-planner-web/issues/448)
+
+
+### Bug Fixes
+
+* **lint:** stop biome flagging computeBlockedTimeBar/formatPeriod/STATUS_TEXT-etc as unused ([#516](https://github.com/alrayyes/movie-planner-web/issues/516)) ([badc361](https://github.com/alrayyes/movie-planner-web/commit/badc3613892864bb50a05396af7da63879116d84)), closes [#513](https://github.com/alrayyes/movie-planner-web/issues/513)
+
 ## [0.101.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.100.0...movie-planner-web-v0.101.0) (2026-09-10)
 
 
