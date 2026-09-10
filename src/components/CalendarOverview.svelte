@@ -575,6 +575,15 @@ function currentRange() {
 // visitor's own CalDAV server sees a wasted duplicate request for no
 // reason.
 let reloadController: AbortController | undefined;
+// #533: syncActivityLogUntilNavigatedAway (below) always wants the same
+// full, unfiltered history reload() itself fetches whenever no explicit
+// From/To narrows it — this is what lets it reuse reload()'s own
+// in-flight request instead of firing its own identical, fully
+// redundant one. Left unset (or stale from an earlier, narrower reload)
+// whenever a filter is active, so the sync falls back to its own fetch
+// in that case — it always needs the *whole* history to diff correctly,
+// never just whatever range the visible table happens to be scoped to.
+let latestUnfilteredFetch: Promise<LoggedViewing[]> | undefined;
 
 async function reload(options: { silent?: boolean } = {}) {
 	reloadController?.abort();
@@ -585,7 +594,9 @@ async function reload(options: { silent?: boolean } = {}) {
 	const hadNoExplicitFrom = !fromValue;
 	const hadNoExplicitTo = !toValue;
 	try {
-		allViewings = await listViewings(config, currentRange(), { signal: controller.signal });
+		const fetchPromise = listViewings(config, currentRange(), { signal: controller.signal });
+		if (hadNoExplicitFrom && hadNoExplicitTo) latestUnfilteredFetch = fetchPromise;
+		allViewings = await fetchPromise;
 		// #188: only when no explicit range was chosen — never overwrite a
 		// visitor's own typed-in From/To, including on a silent
 		// refresh-triggered reload that runs long after they set one.
@@ -875,7 +886,16 @@ async function handleRefreshAll() {
 function syncActivityLogUntilNavigatedAway() {
 	const controller = new AbortController();
 	document.addEventListener("astro:before-swap", () => controller.abort(), { once: true });
-	void syncCaldavActivityLog(config, { signal: controller.signal });
+	// #533: reload() (called just below, before this) has already set
+	// latestUnfilteredFetch synchronously if this mount is unfiltered —
+	// reusing it here means an unfiltered overview load fires one
+	// full-history REPORT, not two concurrent, identical ones.
+	void syncCaldavActivityLog(config, {
+		signal: controller.signal,
+		fetchAllViewings: latestUnfilteredFetch
+			? () => latestUnfilteredFetch as Promise<LoggedViewing[]>
+			: undefined,
+	});
 }
 
 reload();

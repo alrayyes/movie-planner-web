@@ -116,6 +116,31 @@ async function openMoreFilters(page: Page) {
 }
 
 test.describe("calendar overview", () => {
+  // #533: an unfiltered mount previously fired two concurrent,
+  // identical full-history REPORT requests — reload()'s own table fetch
+  // and #432's background activity-log sync, both defaulting to the
+  // same wide range when no From/To narrows either. The sync now reuses
+  // reload()'s own in-flight fetch instead of issuing a second one.
+  test("an unfiltered mount fires exactly one full-history CalDAV request, not two", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+
+    // Give the background activity-log sync (fire-and-forget, #432) a
+    // moment to have started too — if it were still issuing its own
+    // separate request, it doesn't wait on anything visible in the DOM.
+    await page.waitForTimeout(200);
+
+    const fifteenYearsAgo = new Date();
+    fifteenYearsAgo.setFullYear(fifteenYearsAgo.getFullYear() - 15);
+    const fullHistoryRequests = server.listRequests.filter(
+      (r) => Math.abs(r.from.getTime() - fifteenYearsAgo.getTime()) < 24 * 60 * 60 * 1000,
+    );
+    expect(fullHistoryRequests).toHaveLength(1);
+  });
+
   test("defaults to most-recently-watched first", async ({ page }) => {
     // PADDINGTON (2 months back) is older than DUNE (1 month back) —
     // seeded in that order so the assertion actually proves sorting
@@ -624,10 +649,11 @@ test.describe("calendar overview", () => {
     // auto-populated to the real first/last viewing dates, #188),
     // confirming the medium filter itself is applied to the response
     // rather than sent to the server. #432's own background diff-sync
-    // pass also issues a REPORT at mount — a separate, always-wide
-    // importCheckRange request, distinct from this narrow one — so the
-    // request this filter click produced is matched by its actual date
-    // range rather than a fixed array position.
+    // pass also issues a REPORT at mount — #533 dedupes it against
+    // reload()'s own identical unfiltered mount-time request rather than
+    // firing a second, separate one, but this filter click's own later,
+    // narrower request is still distinct from either — so it's matched
+    // by its actual date range rather than a fixed array position.
     const filterRequest = server.listRequests.find(
       (r) => r.from.toDateString() === TWO_MONTHS_AGO.toDateString(),
     );
@@ -748,8 +774,7 @@ test.describe("calendar overview", () => {
     // Venue isn't part of the CalDAV query either, same as medium — the
     // filter-triggered request just carries the auto-populated real
     // date range. Matched by its actual dates rather than a fixed array
-    // position — see the medium filter test above for why (#432's own
-    // background diff-sync pass also issues a REPORT at mount).
+    // position — see the medium filter test above for why.
     const filterRequest = server.listRequests.find(
       (r) => r.from.toDateString() === TWO_MONTHS_AGO.toDateString(),
     );
