@@ -293,11 +293,23 @@ reloadOnBfcacheRestore(() => void load());
 
 <!-- Same native <dialog> pattern as <keyboard-nav>'s own help overlay —
 closable by clicking outside its content, since the padding belongs to
-the dialog element itself, not the inner content div. -->
+the dialog element itself, not the inner content div.
+
+#565: `fixed left-0 top-0 m-0` — a non-modal <dialog>'s UA-default position
+is `position: absolute; inset-block-start: 0; margin: auto` — pinned to
+the very top of the page. Some browsers (confirmed: WebKit/Safari, not
+reproducible under Chromium or Firefox) scroll a freshly shown dialog
+into view as part of opening it, before positionNear() below gets a
+chance to move it next to the actual hovered cell — so hovering a cell
+far down the page jumped the whole page up to that top-pinned default.
+Pinning it here instead keeps it inside the viewport (top-left corner)
+from the instant it opens, so there's nothing left for that
+scroll-into-view step to do; showModal()'s own default (viewport-centered,
+fixed) never had this problem for the same reason. -->
 <dialog
   bind:this={dialogEl}
   aria-label={selectedDay ? `Viewings on ${selectedDay}` : "Viewings"}
-  class="max-w-sm rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg backdrop:bg-slate-900/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+  class="fixed left-0 top-0 m-0 max-w-sm rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg backdrop:bg-slate-900/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
   onclick={(event) => {
     if (event.target === dialogEl) closeDialog();
   }}

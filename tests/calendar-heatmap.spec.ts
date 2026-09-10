@@ -272,6 +272,48 @@ test.describe("viewing heatmap", () => {
     await expect(dialog).toBeHidden();
   });
 
+  // #565: hovering used to jump the whole page to the top: a non-modal
+  // <dialog>'s UA-default position is `position: absolute;
+  // inset-block-start: 0` — pinned to the very top of the page. Some
+  // browsers (confirmed: WebKit/Safari) scroll a freshly shown dialog
+  // into view as part of opening it, before this component's own
+  // positionNear() gets a chance to move it next to the hovered cell —
+  // so hovering a cell far down the page jumped the whole page up to
+  // that top-pinned position. Pinning the dialog to `position: fixed`
+  // at the viewport's own top-left corner keeps it inside the viewport
+  // from the instant it opens, so there's nothing for that
+  // scroll-into-view behavior to do. This can't be asserted by
+  // reproducing the jump itself — it isn't reproducible via Chromium or
+  // Firefox under Playwright, only WebKit, which isn't available in
+  // this suite's single-browser project — so it asserts the concrete
+  // invariant that prevents it instead.
+  test("the popup dialog stays fixed within the viewport, not the browser's own top-of-page position", async ({
+    page,
+  }) => {
+    const day = daysAgo(7);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: day.toISOString(),
+        end: new Date(day.getTime() + 3600000).toISOString(),
+        medium: "cinema",
+        year: "2021",
+      },
+    ]);
+    await connect(page);
+    await page.goto("/calendar");
+    await expect(page.getByText("1 logged viewing.")).toBeVisible();
+
+    const dayValue = toDateInputValue(day);
+    const cell = page.getByRole("button", { name: `${dayValue}: 1 viewing` });
+    await cell.hover();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveCSS("position", "fixed");
+  });
+
   test("clicking a day cell pins the popup open even after the pointer leaves", async ({
     page,
   }) => {
