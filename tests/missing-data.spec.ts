@@ -240,4 +240,21 @@ test.describe("missing-data overview", () => {
     await page.getByRole("link", { name: "Missing data" }).click();
     await expect(page).toHaveURL(/\/missing-data/);
   });
+
+  // #580: this page's own link into a viewing used to carry no memory of
+  // where it came from, so the movie page's "Back to overview" always
+  // landed on "/" (the calendar overview) instead of back here.
+  test("opening a viewing from here, Back to overview returns to this page, not the calendar overview", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [MISSING_GENRE]);
+    await connect(page);
+    await page.goto("/missing-data");
+
+    await page.getByRole("link", { name: "Missing Genre", exact: true }).click();
+    await expect(page).toHaveURL(/\/movie\/?\?uid=missing-genre-uid/);
+
+    await page.getByRole("link", { name: "Back to overview" }).click();
+    await expect(page).toHaveURL(/\/missing-data\/?$/);
+  });
 });

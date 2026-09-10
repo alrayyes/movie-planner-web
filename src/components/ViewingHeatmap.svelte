@@ -2,6 +2,8 @@
 import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -333,7 +335,7 @@ fixed) never had this problem for the same reason. -->
           {/if}
           <div class="flex flex-col gap-0.5">
             <a
-              href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
+              href={movieHref(viewing.uid, { from: location.pathname + location.search })}
               class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
             >
               {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}

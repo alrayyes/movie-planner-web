@@ -2,6 +2,7 @@
 import { syncCaldavActivityLog } from "../lib/activity-log/sync";
 import { deleteViewing, getPicklists, listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import type { OmdbCandidate } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -524,7 +525,7 @@ const mapPins = $derived.by((): MapPin[] =>
 			lat: v.geo.lat,
 			lon: v.geo.lon,
 			label: v.year ? `${v.title} (${v.year})` : v.title,
-			href: `/movie?uid=${encodeURIComponent(v.uid)}`,
+			href: movieHref(v.uid, { from: location.pathname + location.search }),
 			posterUrl: v.posterUrl,
 		})),
 );
@@ -1212,7 +1213,7 @@ getPicklists(config).then((picklists) => {
                   the image's own alt text ("<title> poster") gives this
                   link a distinct accessible name from the title link
                   right next to it. -->
-                  <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
+                  <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
@@ -1223,7 +1224,7 @@ getPicklists(config).then((picklists) => {
                 {:else}
                   <!-- #236: same slot/size a real poster would occupy,
                   so a movie OMDb had no poster for doesn't leave a gap. -->
-                  <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
+                  <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
                     <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-40 sm:w-24" />
                   </a>
                 {/if}
@@ -1234,7 +1235,7 @@ getPicklists(config).then((picklists) => {
                 static (no getStaticPaths could ever know a visitor's
                 own private CalDAV UIDs at build time). -->
                 <a
-                  href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
+                  href={movieHref(viewing.uid, { from: location.pathname + location.search })}
                   class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
                 >
                   {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
@@ -1322,7 +1323,10 @@ getPicklists(config).then((picklists) => {
               <td class={TD}>
                 <div class="flex gap-1">
                   <a
-                    href={`/movie?uid=${encodeURIComponent(viewing.uid)}&edit=1`}
+                    href={movieHref(viewing.uid, {
+                      edit: true,
+                      from: location.pathname + location.search,
+                    })}
                     class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     title="Edit"
                     aria-label={`Edit ${viewing.title}`}

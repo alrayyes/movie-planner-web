@@ -209,7 +209,7 @@ test.describe("calendar overview", () => {
     // icon-only controls, each with a real accessible name.
     await expect(row.getByRole("link", { name: "Edit Dune" })).toHaveAttribute(
       "href",
-      "/movie?uid=dune-uid&edit=1",
+      "/movie?uid=dune-uid&edit=1&from=%2F",
     );
     await expect(row.getByRole("button", { name: "Delete Dune" })).toBeVisible();
 

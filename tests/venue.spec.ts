@@ -248,4 +248,33 @@ test.describe("per-venue page", () => {
 
     await expect(page.getByText("Connect first to see this venue.")).toBeVisible();
   });
+
+  // #580: same gap as missing-data.spec.ts's own test — this page's own
+  // link into a viewing used to carry no memory of where it came from,
+  // so "Back to overview" always landed on "/" instead of back here.
+  // Also checks the venue's own query string survives the round trip.
+  test("opening a viewing from here, Back to overview returns here with the venue filter intact", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        venue: "Grand Vista Cinema",
+      },
+    ]);
+    await connect(page);
+    await page.goto(`/venue?venue=${encodeURIComponent("Grand Vista Cinema")}`);
+
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
+
+    await page.getByRole("link", { name: "Back to overview" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/venue\\/?\\?venue=${encodeURIComponent("Grand Vista Cinema")}$`),
+    );
+  });
 });
