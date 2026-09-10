@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.109.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.108.0...movie-planner-web-v0.109.0) (2026-09-10)
+
+
+### Features
+
+* **attribute-pages:** add per-value pages for rated/keyword/released year/month ([#558](https://github.com/alrayyes/movie-planner-web/issues/558)) ([94d0a53](https://github.com/alrayyes/movie-planner-web/commit/94d0a530d4889354ca0a2b790a38d3291330d527))
+
+
+### Bug Fixes
+
+* **ui:** give a very short blocked-time bar a minimum visible width ([#561](https://github.com/alrayyes/movie-planner-web/issues/561)) ([1db5abe](https://github.com/alrayyes/movie-planner-web/commit/1db5abe8fd26d8ca5abe41292ec6561b93dbb47b)), closes [#546](https://github.com/alrayyes/movie-planner-web/issues/546)
+
 ## [0.108.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.107.0...movie-planner-web-v0.108.0) (2026-09-10)
 
 
