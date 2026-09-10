@@ -21,3 +21,13 @@ export function venueDisplay(venue: string | undefined, city?: string): string {
   const name = venue.split(",")[0].trim();
   return city ? `${name}, ${city}` : name;
 }
+
+// #529: every place a viewing's own venue links out (the details page,
+// same as every venue link on the Venues overview and per-venue page
+// itself) goes to the dedicated /venue page — results, pagination, and
+// that venue's own map, no filter controls — rather than the main
+// overview pre-filtered to it, so a visitor gets the same destination no
+// matter which venue link they clicked.
+export function venueHref(venue: string): string {
+  return `/venue?venue=${encodeURIComponent(venue)}`;
+}
