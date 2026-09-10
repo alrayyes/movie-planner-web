@@ -70,11 +70,12 @@ actual release.
 ### Requirement: Refresh all metadata on screen
 
 The system SHALL let a visitor re-run the Refresh OMDb metadata action
-across every logged viewing currently displayed on the overview (the
-filtered, sorted set — not the visitor's whole calendar), in one action,
-and SHALL report how many succeeded and how many had no match or
-failed. The system SHALL only offer this when the visitor has an OMDb
-key set.
+across every logged viewing currently displayed on the overview they're
+using — the calendar overview's filtered, sorted set, or the
+missing-data overview's currently-filtered set — not the visitor's
+whole calendar, in one action, and SHALL report how many succeeded and
+how many had no match or failed. The system SHALL only offer this when
+the visitor has an OMDb key set.
 
 #### Scenario: Bulk refresh over a filtered set
 
