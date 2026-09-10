@@ -385,8 +385,13 @@ for (const {
 
       const nav = page.getByRole("navigation", { name: "Breadcrumb" });
       await expect(nav).toBeVisible();
-      await expect(nav).toContainText(`${plural} / ${valueA}`);
       await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+      // #534: the middle crumb is a real link back to the listing page,
+      // not just text baked into a single flat label — and the tab
+      // title reflects the specific value.
+      await expect(nav.getByRole("link", { name: plural })).toHaveAttribute("href", listingPath);
+      await expect(nav.getByText(valueA)).toBeVisible();
+      await expect(page).toHaveTitle(`${valueA} — ${plural} — Movie Planner`);
 
       const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
       expect(results.violations).toEqual([]);
