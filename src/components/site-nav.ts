@@ -34,8 +34,23 @@ const LINKS: [string, string][] = [
 // every other page (log/import/venues/settings/movie/privacy/
 // disclaimer) had no way to reach any other page except by editing the
 // URL or using the browser's own back button.
+// #375: the static build serves each page as its own directory
+// (/venues/index.html), so the resolved pathname carries a trailing
+// slash ("/venues/") even though every link here is written without
+// one — same normalization site-breadcrumb.ts already needs for the
+// same reason.
+function normalizePath(pathname: string): string {
+  return pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
 export class SiteNav extends HTMLElement {
   private readonly handleConnected = () => void this.render();
+  // #555: Astro's View Transitions keep this custom element's instance
+  // alive across a soft, in-app navigation rather than remounting it
+  // (confirmed live by site-breadcrumb.ts's own identical need) — so
+  // which link is "current" has to be re-evaluated on every navigation,
+  // not just the initial connect-triggered render.
+  private readonly handleNavigate = () => void this.render();
 
   connectedCallback() {
     void this.render();
@@ -45,10 +60,12 @@ export class SiteNav extends HTMLElement {
     // so the nav appears immediately rather than only after the next
     // full page load.
     window.addEventListener(CREDENTIALS_CONNECTED_EVENT, this.handleConnected);
+    document.addEventListener("astro:page-load", this.handleNavigate);
   }
 
   disconnectedCallback() {
     window.removeEventListener(CREDENTIALS_CONNECTED_EVENT, this.handleConnected);
+    document.removeEventListener("astro:page-load", this.handleNavigate);
   }
 
   private async render() {
@@ -62,13 +79,16 @@ export class SiteNav extends HTMLElement {
       return;
     }
 
+    const currentPath = normalizePath(window.location.pathname);
     const nav = document.createElement("nav");
     nav.className = NAV;
     for (const [href, text] of LINKS) {
       const a = document.createElement("a");
-      a.className = NAV_LINK;
+      const isCurrent = href === currentPath;
+      a.className = isCurrent ? `${NAV_LINK} underline underline-offset-4` : NAV_LINK;
       a.href = href;
       a.textContent = text;
+      if (isCurrent) a.setAttribute("aria-current", "page");
       nav.appendChild(a);
     }
     this.replaceChildren(nav);

@@ -245,6 +245,36 @@ test.describe("site nav", () => {
     await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
   });
 
+  // #555: the current page's own nav item is marked aria-current="page"
+  // and visually distinguished (underlined), so a visitor always knows
+  // where they are — both on a hard load and after a soft, in-app
+  // navigation (Astro's View Transitions keep this custom element's
+  // instance alive across those rather than remounting it).
+  test("marks the current page's own link as current, updating after a soft navigation", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await page.goto("/venues");
+    const venuesLink = page.locator("site-nav").getByRole("link", { name: "Venues" });
+    const viewingsLink = page.locator("site-nav").getByRole("link", { name: "Viewings" });
+    await expect(venuesLink).toHaveAttribute("aria-current", "page");
+    await expect(venuesLink).toHaveClass(/underline/);
+    await expect(viewingsLink).not.toHaveAttribute("aria-current");
+    await expect(viewingsLink).not.toHaveClass(/underline/);
+
+    // A soft, in-app navigation — not a fresh page.goto — since that's
+    // exactly the case the custom element surviving without a remount
+    // needs to be re-evaluated for.
+    await viewingsLink.click();
+    await expect(page).toHaveURL("/");
+    await expect(viewingsLink).toHaveAttribute("aria-current", "page");
+    await expect(viewingsLink).toHaveClass(/underline/);
+    await expect(venuesLink).not.toHaveAttribute("aria-current");
+    await expect(venuesLink).not.toHaveClass(/underline/);
+  });
+
   // #436/#449: the nav previously wrapped to two rows at real mobile
   // widths (8 entries) — shrinking it to 5 destinations (#436), then to
   // 4 once Map was removed as redundant (#449), is the whole point of
