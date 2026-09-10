@@ -108,6 +108,12 @@ jobs:
         # `playwright test` invocation actually exits — playwright.config.ts's
         # `globalTimeout` is what makes that happen quickly instead of
         # grinding through this job's whole 15-minute timeout first.
+        # #574: CODECOV_TOKEN here (not just on the upload actions below)
+        # is what astro.config.mjs's own codecovAstroPlugin reads —
+        # playwright's webServer spawns `astro build` as this step's own
+        # child process, so it inherits whatever's in this step's env.
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           bun run test:unit
           bun run test:e2e || (echo "retrying e2e after a possible webServer crash" && bun run test:e2e)
