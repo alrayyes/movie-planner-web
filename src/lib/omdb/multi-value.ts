@@ -6,8 +6,16 @@
 // showed.
 export function splitMultiValue(value: string | undefined): string[] {
   if (!value) return [];
-  return value
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
+  // #528: OMDb data can genuinely repeat a value (a co-production
+  // crediting the same country twice, say) — a chip list keyed by its
+  // own value (ChipList.svelte) throws Svelte's each_key_duplicate on a
+  // repeat, so this is deduped once here rather than by every caller.
+  return [
+    ...new Set(
+      value
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean),
+    ),
+  ];
 }

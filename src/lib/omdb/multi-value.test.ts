@@ -30,4 +30,17 @@ describe("splitMultiValue", () => {
   test("drops empty values from stray double commas", () => {
     expect(splitMultiValue("Action,, Drama")).toEqual(["Action", "Drama"]);
   });
+
+  // #528: a chip list keyed by its own value (ChipList.svelte) throws
+  // Svelte's each_key_duplicate on a repeated value — OMDb data can
+  // genuinely repeat one, e.g. a co-production crediting the same
+  // country twice. Deduping here is the one shared place that protects
+  // every caller (details-page chips and the overview's filter) at once.
+  test("dedupes a value that appears more than once", () => {
+    expect(splitMultiValue("USA, USA")).toEqual(["USA"]);
+  });
+
+  test("dedupes while preserving first-seen order", () => {
+    expect(splitMultiValue("Drama, Action, Drama")).toEqual(["Drama", "Action"]);
+  });
 });
