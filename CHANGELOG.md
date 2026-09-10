@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.105.4](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.3...movie-planner-web-v0.105.4) (2026-09-10)
+
+
+### Bug Fixes
+
+* **nav:** link a detail page's breadcrumb crumb, and reflect its value in the title ([#541](https://github.com/alrayyes/movie-planner-web/issues/541)) ([036ccea](https://github.com/alrayyes/movie-planner-web/commit/036ccea9d158ad8db4392be1eaf6e0a55d9f58a0)), closes [#534](https://github.com/alrayyes/movie-planner-web/issues/534)
+
 ## [0.105.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.2...movie-planner-web-v0.105.3) (2026-09-10)
 
 
