@@ -41,6 +41,11 @@ you'll see a picker with OMDb's own search candidates (poster and year
 included) to choose the right one from, or you can continue without
 metadata and try again later.
 
+Settings' "More" list links to a [Missing data](/missing-data) page —
+every logged viewing missing an IMDb match, poster, director, actors,
+genre, or synopsis, filterable by which of those is missing. A gap
+there is usually the fastest way to spot a viewing worth refreshing.
+
 ## Fixing a wrong match
 
 "Refresh" only runs when a viewing has no metadata yet. If OMDb matched

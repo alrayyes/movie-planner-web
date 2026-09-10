@@ -18,5 +18,5 @@
 ## 4. End-to-end coverage and docs
 
 - [x] 4.1 Write `tests/missing-data.spec.ts` (Playwright) covering: a viewing missing one field shows the right badge, unchecking all but one checkbox narrows the list, all-checkboxes-checked is the default, the empty state when nothing's missing, per-row refresh (including the disambiguation picker), bulk refresh scoped to the current filter, pagination, reachability from Settings, and an axe-core scan (`WCAG_TAGS`, matching every other journey test) — verify `bun run test tests/missing-data.spec.ts` passes
-- [ ] 4.2 Add a short mention of the missing-data page to `src/content/docs/docs/logging.md`'s "Refreshing metadata" section, and verify `bun run format:check` (prose/mechanics lint) passes
-- [ ] 4.3 Run the full suite — `bun run check`, `bun run lint`, `bun run test`, `bun run format:check` — and fix anything that fails
+- [x] 4.2 Add a short mention of the missing-data page to `src/content/docs/docs/logging.md`'s "Refreshing metadata" section, and verify `bun run format:check` (prose/mechanics lint) passes
+- [x] 4.3 Run the full suite — `bun run check`, `bun run lint`, `bun run test`, `bun run format:check` — and fix anything that fails
