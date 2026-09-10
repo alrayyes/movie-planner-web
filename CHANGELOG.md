@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.111.0...movie-planner-web-v1.0.0) (2026-09-10)
+
+
+### Miscellaneous Chores
+
+* **release:** mark movie-planner-web stable at 1.0.0 ([#571](https://github.com/alrayyes/movie-planner-web/issues/571)) ([b2b717d](https://github.com/alrayyes/movie-planner-web/commit/b2b717dd1a75cd2e4aaca6bdec67f9e99cef21fd))
+
 ## [0.111.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.110.1...movie-planner-web-v0.111.0) (2026-09-10)
 
 
