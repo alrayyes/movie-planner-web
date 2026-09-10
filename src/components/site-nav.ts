@@ -15,12 +15,16 @@ import { NAV, NAV_LINK } from "../lib/ui/classes";
 // their own doc pages) and are reached from the Settings hub instead.
 // This keeps the nav to 5 entries, fitting one row at real mobile
 // widths instead of wrapping to two.
+//
+// #449: Map removed entirely — its one-pin-per-viewing whole-history
+// view added no insight once the Venues page's own maps (one pin per
+// venue, deduped, grouped by city) and the per-venue page's map exist,
+// on top of the movie details page's own per-venue map. Down to 4
+// entries.
 const LINKS: [string, string][] = [
   ["/", "Viewings"],
   ["/venues", "Venues"],
   ["/calendar", "Calendar"],
-  // #8/#203: placed with the other read-only views.
-  ["/map", "Map"],
   ["/settings", "Settings"],
 ];
 

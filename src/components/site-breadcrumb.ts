@@ -24,7 +24,6 @@ import {
 const PAGE_NAMES: Record<string, string> = {
   "/venues": "Venues",
   "/calendar": "Calendar",
-  "/map": "Map",
   "/log": "Log a viewing",
   "/import": "Import",
   "/activity": "Activity",

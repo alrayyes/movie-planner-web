@@ -69,7 +69,7 @@ function manyViewings(count: number, medium = "cinema") {
 
 // #262/#351: a real, live tile provider — OSM's own usage policy asks
 // for no automated bulk requests, so a test suite never hits it for
-// real. Same 1x1 blank-PNG stand-in venues.spec.ts/map.spec.ts already use.
+// real. Same 1x1 blank-PNG stand-in venues.spec.ts already uses.
 const BLANK_TILE_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
   "base64",
@@ -796,7 +796,7 @@ test.describe("calendar overview", () => {
   });
 
   // #374: "cleared — only the clicked filter applies" — a chip link
-  // (from a movie details page, Venues, the heatmap, /map) carrying a
+  // (from a movie details page, Venues, the heatmap) carrying a
   // single filter param must not silently merge with whatever this
   // visitor had filtered by earlier in the same session, even though
   // that earlier state is still sitting in sessionStorage.

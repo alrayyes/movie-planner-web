@@ -34,5 +34,24 @@ existed.
 ## The map
 
 Any venue with known coordinates gets a pin on the map above its
-table — see [the map page](/docs/map/) for where those coordinates
-come from and the same privacy note about third-party tile requests.
+table. Click a pin for its name and an "Open in Maps" link to the
+exact location on OpenStreetMap's own site, for more precision than
+the map itself gives.
+
+Venue coordinates aren't typed in here — they come from
+[movie-planner](https://github.com/alrayyes/movie-planner) (the CLI),
+which is the source of truth for everything on your calendar, this
+field included. When you log or edit a viewing at a venue with no
+coordinates on record yet, both forms offer an optional address-search
+field (powered by [Nominatim](https://nominatim.org/), OpenStreetMap's
+free geocoder) to attach them right there — skippable, and never run
+automatically. Logging again at a venue that already has coordinates
+reuses them without asking.
+
+Loading any of this page's maps loads real map tiles from
+OpenStreetMap, which does mean an automatic request to a third party
+whenever a map with pins is on screen — see the [privacy
+page](/privacy) for the full picture, including what OpenStreetMap and
+Nominatim do and don't see. Your CalDAV and OMDb credentials are never
+part of either request. A viewing's own details page shows the same
+kind of map too, already centred on that one venue.

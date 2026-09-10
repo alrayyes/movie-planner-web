@@ -293,7 +293,7 @@ const storedFilters = readStoredFilters();
 
 // #374: a URL carrying any recognized filter param is the deliberate,
 // single-filter case every chip link (Venues, movie details,
-// heatmap, /map) already produces — "cleared, only the clicked filter
+// heatmap) already produces — "cleared, only the clicked filter
 // applies" was the confirmed design decision. Centralized here, in the
 // one place every one of those entry points already funnels through
 // (initialFilterValue, called once per field below), rather than each
@@ -515,7 +515,7 @@ const currentPageItems = $derived.by(() => {
 // mirrors the table exactly, rather than the whole filtered set (#351's
 // original scope), so the map never shows a pin for a viewing that
 // isn't in the rows below it. The "see everything at once, across
-// pages" view already has a home at /map and Venues.
+// pages" view already has a home at Venues.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const mapPins = $derived.by((): MapPin[] =>
 	currentPageItems
@@ -1316,10 +1316,9 @@ getPicklists(config).then((picklists) => {
                   {#if viewing.geo}
                     <!-- #268: a lightweight location cue right on the
                     row, rather than a full map per row (heavy on a
-                    dense, paginated table) or one map per page (already
-                    covered by the dedicated /map page) — links to this
-                    viewing's own details page, which already has the
-                    real map (#8/#203). -->
+                    dense, paginated table) — links to this viewing's
+                    own details page, which already has the real map
+                    (#8/#203). -->
                     <a
                       href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
                       class="inline-flex text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400"

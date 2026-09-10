@@ -213,26 +213,27 @@ test.describe("site nav", () => {
     await expect(page.getByRole("link", { name: "Viewings" })).toHaveAttribute("href", "/");
     await expect(page.getByRole("link", { name: "Venues" })).toHaveAttribute("href", "/venues");
     await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/calendar");
-    await expect(page.getByRole("link", { name: "Map", exact: true })).toHaveAttribute(
-      "href",
-      "/map",
-    );
     await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
 
-    // #436: Viewings, Venues, Calendar, Map, Settings, in that order —
+    // #436/#449: Viewings, Venues, Calendar, Settings, in that order —
     // "Log a viewing" is a header button (checked separately below, not
-    // part of this list), and Import/Activity moved to the Settings hub.
+    // part of this list), Import/Activity moved to the Settings hub, and
+    // Map was removed entirely (#449) — redundant with the Venues page's
+    // own maps.
     await expect(page.locator("site-nav a")).toHaveText([
       "Viewings",
       "Venues",
       "Calendar",
-      "Map",
       "Settings",
     ]);
 
     // #436: no longer a nav-list item at all.
     await expect(page.locator("site-nav").getByRole("link", { name: "Import" })).toHaveCount(0);
     await expect(page.locator("site-nav").getByRole("link", { name: "Activity" })).toHaveCount(0);
+
+    // #449: the standalone /map page is gone, redundant with the Venues
+    // page's own maps.
+    await expect(page.locator("site-nav").getByRole("link", { name: "Map" })).toHaveCount(0);
 
     await page.getByRole("link", { name: "Venues" }).click();
     await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
@@ -244,8 +245,9 @@ test.describe("site nav", () => {
     await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
   });
 
-  // #436: the nav previously wrapped to two rows at real mobile widths
-  // (8 entries) — shrinking it to 5 destinations is the whole point of
+  // #436/#449: the nav previously wrapped to two rows at real mobile
+  // widths (8 entries) — shrinking it to 5 destinations (#436), then to
+  // 4 once Map was removed as redundant (#449), is the whole point of
   // the restructure, so this pins the fit rather than just trusting it.
   for (const width of [375, 390, 393]) {
     test(`fits on a single row at ${width}px wide`, async ({ page }) => {
@@ -256,7 +258,7 @@ test.describe("site nav", () => {
       const tops = await page
         .locator("site-nav a")
         .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().top));
-      expect(tops.length).toBe(5);
+      expect(tops.length).toBe(4);
       for (const top of tops) {
         expect(top).toBeCloseTo(tops[0], 0);
       }
@@ -280,7 +282,7 @@ test.describe("log a viewing header button", () => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"]);
     await connect(page);
 
-    for (const path of ["/", "/venues", "/calendar", "/map", "/settings"]) {
+    for (const path of ["/", "/venues", "/calendar", "/settings"]) {
       await page.goto(path);
       const button = page.getByRole("link", { name: "Log a viewing" });
       await expect(button).toBeVisible();
@@ -358,6 +360,29 @@ test.describe("Import and Activity direct URLs", () => {
   });
 });
 
+// #449: the standalone /map page is gone entirely — redundant with the
+// Venues page's own maps (one pin per venue, deduped) and the per-venue
+// map on a viewing's own details page. Unlike Import/Activity above,
+// there's no direct-URL fallback to preserve: the page itself is removed,
+// not just its nav entry.
+test.describe("removed /map page", () => {
+  test("no longer exists at all — a direct visit 404s", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    const response = await page.goto("/map");
+
+    expect(response?.status()).toBe(404);
+  });
+
+  test("has no nav entry", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+
+    await expect(page.getByRole("link", { name: "Map" })).toHaveCount(0);
+  });
+});
+
 // #375
 test.describe("breadcrumb", () => {
   const ONE_MONTH_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -419,7 +444,6 @@ test.describe("breadcrumb", () => {
       ["/import", "Import"],
       ["/log", "Log a viewing"],
       ["/settings", "Settings"],
-      ["/map", "Map"],
       ["/activity", "Activity"],
     ] as const) {
       await page.goto(href);

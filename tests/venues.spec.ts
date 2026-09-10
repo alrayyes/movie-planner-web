@@ -15,7 +15,8 @@ const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
 // #262/#277: a real, live tile provider — OSM's own usage policy asks
 // for no automated bulk requests, so a test suite never hits it for
-// real. Same 1x1 blank-PNG stand-in tests/map.spec.ts already uses.
+// real. Same 1x1 blank-PNG stand-in tests/calendar-overview.spec.ts
+// already uses.
 const BLANK_TILE_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
   "base64",

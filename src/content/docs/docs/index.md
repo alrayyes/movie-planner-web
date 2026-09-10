@@ -24,8 +24,7 @@ optional OMDb key) and the developer setup.
 - **[The viewing heatmap](/docs/heatmap/)** — a GitHub-contribution-style
   view of your own viewing density.
 - **[Venues](/docs/venues/)** — every venue you've logged a viewing at,
-  with a count.
-- **[The map](/docs/map/)** — every located viewing pinned on one map.
+  with a count and a map grouped by city.
 - **[Import and export](/docs/import-export/)** — moving your watch
   history in and out as CSV or JSON.
 - **[The activity log](/docs/activity/)** — a local record of what this

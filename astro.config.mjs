@@ -40,7 +40,7 @@ export default defineConfig({
     starlight({
       title: "Movie Planner docs",
       description:
-        "How to use movie-planner-web: connecting your own CalDAV server, logging viewings, the calendar overview, venues, the map, CSV/JSON import/export, and keyboard shortcuts.",
+        "How to use movie-planner-web: connecting your own CalDAV server, logging viewings, the calendar overview, venues and their maps, CSV/JSON import/export, and keyboard shortcuts.",
       social: [
         {
           icon: "github",
@@ -94,7 +94,6 @@ export default defineConfig({
         { label: "The calendar overview", link: "/docs/overview/" },
         { label: "The viewing heatmap", link: "/docs/heatmap/" },
         { label: "Venues", link: "/docs/venues/" },
-        { label: "The map", link: "/docs/map/" },
         { label: "Import and export", link: "/docs/import-export/" },
         { label: "The activity log", link: "/docs/activity/" },
         { label: "Keyboard shortcuts", link: "/docs/keyboard-shortcuts/" },
