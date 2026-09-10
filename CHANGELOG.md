@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.110.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.110.0...movie-planner-web-v0.110.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **calendar:** stop heatmap hover popup from scrolling the page to the top ([#566](https://github.com/alrayyes/movie-planner-web/issues/566)) ([d3e827f](https://github.com/alrayyes/movie-planner-web/commit/d3e827f3ae0f57f673610cc25a95c1dc2d3c4b0f)), closes [#565](https://github.com/alrayyes/movie-planner-web/issues/565)
+
 ## [0.110.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.109.0...movie-planner-web-v0.110.0) (2026-09-10)
 
 
