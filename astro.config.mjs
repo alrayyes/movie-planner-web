@@ -1,6 +1,12 @@
 // @ts-check
 import starlight from "@astrojs/starlight";
 import svelte from "@astrojs/svelte";
+// The published package's README shows a named `codecovAstroPlugin`
+// export; the actual 2.0.1 build only exports it as `default` (confirmed
+// by reading node_modules/@codecov/astro-plugin/dist/index.mjs directly
+// — the named import fails at config-load time with "does not provide an
+// export named 'codecovAstroPlugin'").
+import codecovAstroPlugin from "@codecov/astro-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
@@ -99,6 +105,25 @@ export default defineConfig({
         { label: "Keyboard shortcuts", link: "/docs/keyboard-shortcuts/" },
       ],
     }),
+    // #574: bundle-size trends per PR — a size-delta comment from Codecov,
+    // free on the Developer plan for a public repo, reusing the
+    // CODECOV_TOKEN secret the coverage/test-results uploads already use
+    // (ci.yml's "test" job sets it as an env var so this, spawned as a
+    // child of that job's own `bun run build`, can read it). Only added
+    // when that token is actually set — Cloudflare's own Workers Build
+    // runs `astro build` too, for the real deploy, with no Codecov token
+    // configured there, and neither does a local `astro dev`/`astro
+    // build` — this must never be the thing that breaks either.
+    ...(process.env.CODECOV_TOKEN
+      ? [
+          codecovAstroPlugin({
+            enableBundleAnalysis: true,
+            bundleName: "movie-planner-web",
+            uploadToken: process.env.CODECOV_TOKEN,
+            gitService: "github",
+          }),
+        ]
+      : []),
   ],
   vite: {
     plugins: [tailwindcss()],
