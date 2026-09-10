@@ -128,10 +128,20 @@ never an override: any `X-*` property already present always wins.
 
 ## The picklist sidecar (VJOURNAL)
 
-The media/venue picklists (autocomplete suggestions on the log form and
-filter) live in a single fixed-`UID` `VJOURNAL`
+The media/venue picklists live in a single fixed-`UID` `VJOURNAL`
 (`SIDECAR_UID = "movie-planner-web-config"`), with the picklist data as
 a JSON blob in its own `DESCRIPTION`. Missing or unparsable — a
 CalDAV collection that's never had this app write to it before — falls
 back to empty picklists rather than throwing; nothing about this app's
 core function depends on the sidecar existing.
+
+`media` is a plain `string[]`, offered as autocomplete suggestions on
+the log form's Medium field. `venues` is an array of structured
+entries — `{name, streetAddress?, postalCode?, city?, country?, geo?}`
+— populating the log and edit forms' Venue `<select>` (never free
+text) and read directly for a selected venue's city/country/geo/
+address, rather than this app scanning prior viewings for a match.
+`parsePicklistsFromVJournal` still accepts a bare string in place of an
+entry, read as `{name: value}` — the shape every venue held before this
+schema grew structured fields, and still written by nothing but read
+forever for backward compatibility.

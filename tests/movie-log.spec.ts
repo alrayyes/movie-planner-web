@@ -350,99 +350,13 @@ test.describe("OMDb enrichment", () => {
   });
 });
 
-// #8/#203
-test.describe("coordinate entry", () => {
-  test("offers an address-search lookup for a venue with no known coordinates, and attaches the chosen result", async ({
-    page,
-  }) => {
-    const server = await connect(page);
-    await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
-      const url = new URL(route.request().url());
-      expect(url.searchParams.get("q")).toBe("Tuschinski");
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([
-          {
-            display_name: "Tuschinski, Amsterdam, Netherlands",
-            lat: "52.3665062",
-            lon: "4.8947073",
-          },
-        ]),
-      });
-    });
-
-    await page.locator("#log-title").fill("Dune");
-    await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
-    await page.locator("#log-venue").fill("Tuschinski");
-    await page.locator("#log-geo-search").fill("Tuschinski");
-    const candidate = page.getByRole("button", { name: "Tuschinski, Amsterdam, Netherlands" });
-    await expect(candidate).toBeVisible();
-
-    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-
-    await candidate.click();
-    await expect(page.getByText("Location set: Tuschinski, Amsterdam, Netherlands")).toBeVisible();
-
-    await page.getByRole("button", { name: "Log viewing" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Logged.");
-    expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
-  });
-
-  test("logs successfully with no coordinates when the address-search lookup is skipped", async ({
-    page,
-  }) => {
-    const server = await connect(page);
-
-    await page.locator("#log-title").fill("Dune");
-    await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
-    await page.locator("#log-venue").fill("Tuschinski");
-    await expect(page.locator("#log-geo-search")).toBeVisible();
-    await page.getByRole("button", { name: "Log viewing" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Logged.");
-    expect(server.creates[0]?.geo).toBeUndefined();
-  });
-
-  test("attaches a venue's known coordinates automatically, without showing a search field", async ({
-    page,
-  }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      {
-        uid: "existing-uid",
-        title: "Paddington",
-        start: "2025-12-01T18:00:00.000Z",
-        end: "2025-12-01T19:40:00.000Z",
-        medium: "cinema",
-        venue: "Tuschinski",
-        geo: { lat: 52.3665062, lon: 4.8947073 },
-      },
-    ]);
-    await page.goto("/");
-    await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
-    await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
-    await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-    await page.getByRole("button", { name: "Connect" }).click();
-    await page.getByRole("link", { name: "Log a viewing" }).click();
-
-    await page.locator("#log-title").fill("Dune");
-    await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
-    await page.locator("#log-venue").fill("Tuschinski");
-
-    await expect(page.getByText("Using Tuschinski's known location.")).toBeVisible();
-    await expect(page.locator("#log-geo-search")).toHaveCount(0);
-
-    await page.getByRole("button", { name: "Log viewing" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Logged.");
-    expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
-  });
-});
+// #8/#203/#452: a venue's own coordinates now live on its picklist
+// entry, attached automatically when it's selected, or captured via an
+// address-search lookup while adding a genuinely new venue — this
+// form's venue field is a closed <select> (structured-venue-picklist),
+// not free text, so that coverage now lives in
+// location-management.spec.ts's "structured venue picklist" describe,
+// alongside the rest of the picklist behaviour it exercises.
 
 // #442: a genuine log failure gets a distinct, assertively announced
 // error toast — not the same quiet role="status" line "Logged." uses.

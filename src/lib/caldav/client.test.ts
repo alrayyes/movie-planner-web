@@ -301,7 +301,7 @@ describe("sidecar picklists", () => {
   test("getPicklists parses an existing sidecar", async () => {
     const ical = serializePicklistsToVJournal({
       media: ["cinema"],
-      venues: ["Grand Vista Cinema"],
+      venues: [{ name: "Grand Vista Cinema" }],
     });
     globalThis.fetch = mock(
       async () => new Response(ical, { status: 200 }),
@@ -309,7 +309,7 @@ describe("sidecar picklists", () => {
 
     expect(await getPicklists(CONFIG)).toEqual({
       media: ["cinema"],
-      venues: ["Grand Vista Cinema"],
+      venues: [{ name: "Grand Vista Cinema" }],
     });
   });
 

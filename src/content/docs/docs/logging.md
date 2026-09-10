@@ -8,9 +8,12 @@ The "Log a viewing" page offers two ways in.
 ## Manually
 
 Fill in the title, when you watched it, the medium (cinema, Netflix,
-Blu-ray — whatever you want to call it), and optionally the venue. With
-an OMDb key set, the app looks up the title on save and fills in the
-poster, director, actors, genre, and ratings automatically.
+Blu-ray — whatever you want to call it), and optionally a venue —
+picked from the ones you've already added or logged at, or entered
+right there via "Add venue" (see the [Venues](/docs/venues) page for
+what that captures). With an OMDb key set, the app looks up the title
+on save and fills in the poster, director, actors, genre, and ratings
+automatically.
 
 ## From a Pathé booking email
 

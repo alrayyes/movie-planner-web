@@ -1,4 +1,4 @@
-import type { LoggedViewing, NewViewing, Picklists } from "./types";
+import type { LoggedViewing, NewViewing, Picklists, VenueEntry } from "./types";
 
 const PROD_ID = "-//movie-planner-web//EN";
 export const SIDECAR_UID = "movie-planner-web-config";
@@ -485,6 +485,26 @@ export function serializePicklistsToVJournal(picklists: Picklists): string {
 
 const EMPTY_PICKLISTS: Picklists = { media: [], venues: [] };
 
+// #452: a sidecar written before this app's Picklists.venues grew from
+// `string[]` to structured VenueEntry objects still parses — a bare
+// string is treated as `{name: value}` (no other fields), same as
+// design.md's own "no rigid format to migrate" call. An entry that's
+// neither a string nor an object with a string `name` (hand-edited
+// corruption, most likely) is dropped rather than surfacing a broken
+// half-entry.
+export function normalizeVenueEntry(entry: unknown): VenueEntry | undefined {
+  if (typeof entry === "string") return entry ? { name: entry } : undefined;
+  if (
+    typeof entry === "object" &&
+    entry !== null &&
+    typeof (entry as { name?: unknown }).name === "string" &&
+    (entry as { name: string }).name
+  ) {
+    return entry as VenueEntry;
+  }
+  return undefined;
+}
+
 // location-management spec, "Missing or unparsable sidecar degrades
 // gracefully": never throws, falls back to empty picklists.
 export function parsePicklistsFromVJournal(raw: string | null): Picklists {
@@ -495,10 +515,16 @@ export function parsePicklistsFromVJournal(raw: string | null): Picklists {
     if (
       typeof parsed === "object" &&
       parsed !== null &&
-      Array.isArray((parsed as Picklists).media) &&
-      Array.isArray((parsed as Picklists).venues)
+      Array.isArray((parsed as { media?: unknown }).media) &&
+      Array.isArray((parsed as { venues?: unknown }).venues)
     ) {
-      return parsed as Picklists;
+      const media = (parsed as { media: unknown[] }).media.filter(
+        (value): value is string => typeof value === "string",
+      );
+      const venues = (parsed as { venues: unknown[] }).venues
+        .map(normalizeVenueEntry)
+        .filter((entry): entry is VenueEntry => entry !== undefined);
+      return { media, venues };
     }
     return EMPTY_PICKLISTS;
   } catch {

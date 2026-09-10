@@ -184,8 +184,23 @@ async function load() {
 			getPicklists(config),
 			listViewings(config, range, { signal: controller.signal }),
 		]);
+		// #452: a picklist entry now carries its own city/country/geo
+		// directly — seeded here so a venue with zero viewings (still
+		// worth showing, #99's own scenario) can be grouped/pinned from
+		// its own structured data alone, same as one only known from a
+		// viewing already was.
 		const infoByVenue = new Map<string, VenueInfo>(
-			venues.map((venue) => [venue, { venue, count: 0 }]),
+			venues.map((entry) => [
+				entry.name,
+				{
+					venue: entry.name,
+					count: 0,
+					city: entry.city,
+					country: entry.country,
+					lat: entry.geo?.lat,
+					lon: entry.geo?.lon,
+				},
+			]),
 		);
 		for (const viewing of viewings) {
 			if (!viewing.venue) continue;

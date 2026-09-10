@@ -207,7 +207,10 @@ test.describe("movie details page", () => {
   });
 
   test("edit and delete are reachable from the details page", async ({ page }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE], {
+      media: [],
+      venues: [{ name: "Grand Vista Cinema" }, { name: "Regal Union Square" }],
+    });
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
     // #249: the overview row's own "Edit {title}"/"Delete {title}"
@@ -218,7 +221,7 @@ test.describe("movie details page", () => {
     await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
 
     await page.getByRole("button", { name: "Edit" }).click();
-    await page.locator("#details-venue").fill("Regal Union Square");
+    await page.locator("#details-venue").selectOption("Regal Union Square");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.locator("#movie-status")).toHaveText("Saved.");
     expect(server.updates[0]?.venue).toBe("Regal Union Square");
@@ -255,80 +258,12 @@ test.describe("movie details page", () => {
     expect(rows[0].title).toBe("Dune");
   });
 
-  // #8/#203
-  test("offers an address-search lookup when editing to a venue with no known coordinates", async ({
-    page,
-  }) => {
-    await mockTiles(page);
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
-    await connect(page);
-    await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([
-          {
-            display_name: "Tuschinski, Amsterdam, Netherlands",
-            lat: "52.3665062",
-            lon: "4.8947073",
-          },
-        ]),
-      });
-    });
-    await page.getByRole("link", { name: "Dune (2021)" }).click();
-    // #249: see "edit and delete are reachable..." above for why.
-    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
-
-    await page.getByRole("button", { name: "Edit" }).click();
-    await page.locator("#details-venue").fill("Tuschinski");
-    await page.locator("#details-geo-search").fill("Tuschinski");
-    const candidate = page.getByRole("button", { name: "Tuschinski, Amsterdam, Netherlands" });
-    await expect(candidate).toBeVisible();
-
-    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-
-    await candidate.click();
-    await expect(page.getByText("Location set: Tuschinski, Amsterdam, Netherlands")).toBeVisible();
-
-    await page.getByRole("button", { name: "Save" }).click();
-
-    await expect(page.locator("#movie-status")).toHaveText("Saved.");
-    expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
-  });
-
-  test("attaches a venue's known coordinates automatically when editing, without showing a search field", async ({
-    page,
-  }) => {
-    await mockTiles(page);
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      DUNE,
-      {
-        uid: "paddington-uid",
-        title: "Paddington",
-        start: "2025-12-01T18:00:00.000Z",
-        end: "2025-12-01T19:40:00.000Z",
-        medium: "cinema",
-        venue: "Tuschinski",
-        geo: { lat: 52.3665062, lon: 4.8947073 },
-      },
-    ]);
-    await connect(page);
-    await page.getByRole("link", { name: "Dune (2021)" }).click();
-    // #249: see "edit and delete are reachable..." above for why.
-    await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
-
-    await page.getByRole("button", { name: "Edit" }).click();
-    await page.locator("#details-venue").fill("Tuschinski");
-
-    await expect(page.getByText("Using Tuschinski's known location.")).toBeVisible();
-    await expect(page.locator("#details-geo-search")).toHaveCount(0);
-
-    await page.getByRole("button", { name: "Save" }).click();
-
-    await expect(page.locator("#movie-status")).toHaveText("Saved.");
-    expect(server.updates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
-  });
+  // #8/#203/#452: the edit form's venue field is a closed <select> now
+  // (structured-venue-picklist), not free text — adding a genuinely new
+  // venue (with its own optional Nominatim address-search lookup) and
+  // selecting a known venue's stored coordinates are both covered by
+  // location-management.spec.ts's "structured venue picklist" describe
+  // instead.
 
   // #8/#203
   test("shows a per-venue map with an Open in Maps link when the viewing has known coordinates", async ({
@@ -1169,7 +1104,10 @@ test.describe("movie details page", () => {
     test("a save failure shows a distinct error, unaffected routine status, and no auto-dismiss", async ({
       page,
     }) => {
-      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE], {
+        media: [],
+        venues: [{ name: "Grand Vista Cinema" }, { name: "Regal Union Square" }],
+      });
       await connect(page);
       await page.getByRole("link", { name: "Dune (2021)" }).click();
       await expect(page).toHaveURL(/\/movie\/?\?uid=dune-uid/);
@@ -1183,7 +1121,7 @@ test.describe("movie details page", () => {
       });
 
       await page.getByRole("button", { name: "Edit" }).click();
-      await page.locator("#details-venue").fill("Regal Union Square");
+      await page.locator("#details-venue").selectOption("Regal Union Square");
       await page.getByRole("button", { name: "Save" }).click();
 
       const toast = page.getByRole("alert");

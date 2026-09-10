@@ -890,7 +890,10 @@ reloadOnBfcacheRestore(() => {
 });
 getPicklists(config).then((picklists) => {
 	mediumPicklist = picklists.media;
-	venuePicklist = picklists.venues;
+	// #452: this filter field stays free text, matched against the raw
+	// `venue` value on each viewing — only the venue's own name is
+	// relevant here, not its now-structured address/geo data.
+	venuePicklist = picklists.venues.map((entry) => entry.name);
 });
 </script>
 
