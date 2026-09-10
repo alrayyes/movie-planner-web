@@ -6,6 +6,7 @@ import {
   formatPeriod,
   formatTime,
   localDayBoundary,
+  MIN_BLOCKED_TIME_BAR_WIDTH_PERCENT,
   toDateInputValue,
 } from "./datetime";
 
@@ -141,15 +142,32 @@ describe("computeBlockedTimeBar", () => {
     expect(widthPercent).toBeCloseTo((150 * 100) / (24 * 60), 5);
   });
 
-  test("a very short viewing still gets a real, non-zero width", () => {
+  // #546: strictly proportional sizing made a short viewing (a 5-minute
+  // short, say) render at ~0.35% of the track — real but effectively
+  // imperceptible. A minimum floor keeps it visible without disturbing
+  // normal-length viewings, matching standard timeline/Gantt-chart
+  // practice for a short event within a bounded track.
+  test("a very short viewing gets a minimum visible width, not its true tiny proportion", () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
     const end = new Date(start.getTime() + 5 * 60 * 1000); // 5 minutes
 
     const { widthPercent } = computeBlockedTimeBar(start.toISOString(), end.toISOString());
+    const trueProportionalWidth = (5 * 100) / (24 * 60);
 
-    expect(widthPercent).toBeGreaterThan(0);
-    expect(widthPercent).toBeCloseTo((5 * 100) / (24 * 60), 5);
+    expect(widthPercent).toBeGreaterThan(trueProportionalWidth);
+    expect(widthPercent).toBe(MIN_BLOCKED_TIME_BAR_WIDTH_PERCENT);
+  });
+
+  test("a normal-length viewing is unaffected by the minimum-width floor", () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0);
+    const end = new Date(start.getTime() + 150 * 60 * 1000); // 2.5 hours
+
+    const { widthPercent } = computeBlockedTimeBar(start.toISOString(), end.toISOString());
+
+    expect(widthPercent).toBeCloseTo((150 * 100) / (24 * 60), 5);
+    expect(widthPercent).toBeGreaterThan(MIN_BLOCKED_TIME_BAR_WIDTH_PERCENT);
   });
 
   test("clips a midnight-crossing viewing at the track's edge, not wrapped or split", () => {
