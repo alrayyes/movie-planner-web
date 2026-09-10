@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.106.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.4...movie-planner-web-v0.106.0) (2026-09-10)
+
+
+### Features
+
+* **overview:** remove the pointless "View on map" pin from the venue column ([#552](https://github.com/alrayyes/movie-planner-web/issues/552)) ([a53c84b](https://github.com/alrayyes/movie-planner-web/commit/a53c84b88df248c6c71f08c2c922d0c4d653b7a7)), closes [#544](https://github.com/alrayyes/movie-planner-web/issues/544)
+
+
+### Bug Fixes
+
+* **footer:** add the missing space between "Licensed" and the GPL link ([#550](https://github.com/alrayyes/movie-planner-web/issues/550)) ([438c9f9](https://github.com/alrayyes/movie-planner-web/commit/438c9f9a965b96aa2b5caef8ae9670fe4eb01c38))
+* **nav:** render a detail page's breadcrumb value synchronously, from the URL ([#551](https://github.com/alrayyes/movie-planner-web/issues/551)) ([b277aa6](https://github.com/alrayyes/movie-planner-web/commit/b277aa68c025cd45bd2c31f8c68459490ad65843)), closes [#549](https://github.com/alrayyes/movie-planner-web/issues/549)
+
 ## [0.105.4](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.3...movie-planner-web-v0.105.4) (2026-09-10)
 
 
