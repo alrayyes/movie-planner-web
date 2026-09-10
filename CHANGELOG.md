@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.107.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.106.0...movie-planner-web-v0.107.0) (2026-09-10)
+
+
+### Features
+
+* **overview:** show a spinner and dim the row during Delete/Refresh ([#554](https://github.com/alrayyes/movie-planner-web/issues/554)) ([35b8aca](https://github.com/alrayyes/movie-planner-web/commit/35b8aca317e0476442b80bd1253b18ae03059aad)), closes [#553](https://github.com/alrayyes/movie-planner-web/issues/553)
+
 ## [0.106.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.4...movie-planner-web-v0.106.0) (2026-09-10)
 
 
