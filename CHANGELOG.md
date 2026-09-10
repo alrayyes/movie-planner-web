@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.108.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.107.0...movie-planner-web-v0.108.0) (2026-09-10)
+
+
+### Features
+
+* **nav:** underline and mark aria-current the page a visitor is on ([#557](https://github.com/alrayyes/movie-planner-web/issues/557)) ([6525561](https://github.com/alrayyes/movie-planner-web/commit/6525561a3707023f7f4566b241514bb19c968f3e)), closes [#555](https://github.com/alrayyes/movie-planner-web/issues/555)
+
 ## [0.107.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.106.0...movie-planner-web-v0.107.0) (2026-09-10)
 
 
