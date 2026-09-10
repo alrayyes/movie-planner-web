@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.0.0...movie-planner-web-v1.1.0) (2026-09-10)
+
+
+### Features
+
+* **missing-data:** add a missing-data overview page ([#576](https://github.com/alrayyes/movie-planner-web/issues/576)) ([999d940](https://github.com/alrayyes/movie-planner-web/commit/999d940ca4b52cf282a32b40ae3831dad4a916b6))
+
 ## [1.0.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.111.0...movie-planner-web-v1.0.0) (2026-09-10)
 
 
