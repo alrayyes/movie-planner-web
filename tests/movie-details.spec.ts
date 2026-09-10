@@ -641,15 +641,16 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("heading", { name: "Trailer" })).toHaveCount(0);
   });
 
-  // #372
-  test("links Rated to the overview filtered to its exact value", async ({ page }) => {
+  // #372/#535: repointed from the overview pre-filtered to its exact
+  // value, to Rated's own dedicated, filter-free per-value page.
+  test("links Rated to its own dedicated per-value page", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, rated: "PG-13" }]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
     await expect(page.getByRole("link", { name: "PG-13" })).toHaveAttribute(
       "href",
-      "/?rated=PG-13",
+      "/rating?rated=PG-13",
     );
   });
 
@@ -709,10 +710,12 @@ test.describe("movie details page", () => {
     expect(errors).toEqual([]);
   });
 
-  // #373/#437: the day itself stayed shown but stopped being a link once
-  // the overview's own exact-day Released Date filter was removed
-  // outright — month and year remain clickable.
-  test("links the month and year pieces of Released to the overview filtered to that granularity, day shown as plain text", async ({
+  // #373/#437/#535: the day itself stayed shown but stopped being a link
+  // once the overview's own exact-day Released Date filter was removed
+  // outright — month and year remain clickable, now to their own
+  // dedicated per-value pages rather than the overview pre-filtered to
+  // that granularity.
+  test("links the month and year pieces of Released to their own dedicated per-value pages, day shown as plain text", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, released: "22 Oct 2021" }]);
@@ -722,11 +725,11 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("link", { name: "22" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Oct" })).toHaveAttribute(
       "href",
-      "/?releasedMonth=2021-10",
+      "/released-month?releasedMonth=2021-10",
     );
     await expect(page.getByRole("link", { name: "2021" })).toHaveAttribute(
       "href",
-      "/?releasedYear=2021",
+      "/released-year?releasedYear=2021",
     );
   });
 
@@ -967,12 +970,13 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Keywords")).toHaveCount(0);
   });
 
-  // #400: collection/certification/budget/popularity join the existing
-  // plain key-value fields list (same tier as Runtime/Metascore/Box
-  // Office/Production above); keywords get their own non-clickable
-  // badges — deliberately not the clickable-chip treatment director/
-  // actors/genre get, since there's no keyword filter on the overview
-  // for a chip to link to.
+  // #400/#535: collection/certification/budget/popularity join the
+  // existing plain key-value fields list (same tier as Runtime/
+  // Metascore/Box Office/Production above); keywords now get the same
+  // clickable-chip treatment director/actors/genre already have, each
+  // linking to its own dedicated Keyword page (#535) — no longer the
+  // plain, non-interactive badges #400 shipped when no such page
+  // existed for a chip to link to.
   test("shows collection, certification, budget, popularity and keywords when present", async ({
     page,
   }) => {
@@ -997,14 +1001,16 @@ test.describe("movie details page", () => {
     // "Certification" label rather than the (ambiguous) "PG-13" value.
     await expect(page.getByText("Certification")).toBeVisible();
 
-    const keywordBadges = ["desert", "prophecy", "revenge"];
-    for (const keyword of keywordBadges) {
-      const badge = page.getByText(keyword, { exact: true });
-      await expect(badge).toBeVisible();
-      // Plain badges, not the clickable-chip treatment director/actors/
-      // genre get elsewhere on this page — no link to an overview
-      // filter that doesn't exist for keywords.
-      await expect(page.getByRole("link", { name: keyword })).toHaveCount(0);
+    const keywordChips: [string, string][] = [
+      ["desert", "/keyword?keyword=desert"],
+      ["prophecy", "/keyword?keyword=prophecy"],
+      ["revenge", "/keyword?keyword=revenge"],
+    ];
+    for (const [keyword, href] of keywordChips) {
+      await expect(page.getByRole("link", { name: keyword, exact: true })).toHaveAttribute(
+        "href",
+        href,
+      );
     }
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();

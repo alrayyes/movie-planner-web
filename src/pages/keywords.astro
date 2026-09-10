@@ -1,0 +1,21 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import AttributeOverview from "../components/AttributeOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Keywords — Movie Planner">
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Keywords
+  </h1>
+  <div class="mt-6 flex flex-col gap-4">
+    {
+      /* #535: client:only, not client:load — see directors.astro's own
+    comment for why. */
+    }
+    <AttributeOverview client:only="svelte" kind="keyword" />
+  </div>
+</Layout>
