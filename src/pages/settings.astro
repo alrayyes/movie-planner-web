@@ -55,6 +55,18 @@ import Layout from "../layouts/Layout.astro";
           — a local record of what this app itself has changed.</span
         >
       </li>
+      <!-- #575: same low-frequency-maintenance-tool reasoning as Import/
+      Activity above — a diagnostic view, not a page to browse to. -->
+      <li>
+        <a
+          class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          href="/missing-data">Missing data</a
+        >
+        <span class="text-slate-600 dark:text-slate-400">
+          — find logged viewings missing OMDb-sourced data, usually a sign the
+          wrong title got matched.</span
+        >
+      </li>
       <!-- #451: added alongside Import/Activity rather than the top nav —
       #436 deliberately shrank that to 5 items to fit one row on mobile,
       and a 6th item would undo it. Docs is exactly as low-frequency as

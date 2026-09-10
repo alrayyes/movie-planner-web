@@ -7,7 +7,7 @@ all metadata" action — roughly 130 lines of `handleRefresh`,
 component. Only the picker's own DOM (`buildOmdbPicker`, in
 `src/lib/omdb/picker.ts`) is already shared; the surrounding
 fetch/reload/error-handling logic isn't. The new missing-data page is a
-second consumer of that same behavior (movie-editing capability, this
+second consumer of that same behaviour (movie-editing capability, this
 change's Modified Capabilities), so this change is also the first time
 that logic needs to live in two places.
 
@@ -54,7 +54,7 @@ second hand-copied implementation drifting from the first.
 Alternative considered: leave the logic in `CalendarOverview.svelte`
 and have the new component duplicate it. Rejected — the movie-editing
 spec's own scenarios (already-matched skip, year-then-title fallback,
-disambiguation-picker-on-no-match, freshest-CalDAV-entry-first) would
+disambiguation-picker-on-no-match, re-fetching the freshest CalDAV entry first) would
 then need to stay in sync by hand across two files, and #450's own
 precedent (one shared component/module over N hand-duplicated pages)
 already rejected this shape for a simpler case.
@@ -98,7 +98,7 @@ view a visitor tunes once and expects to keep — matching
   already-large, heavily-specified file] → Existing
   `calendar-overview`/`movie-editing` spec scenarios and their tests
   stay the acceptance bar; the extraction changes where the code lives,
-  not its behavior, and the existing test suite is what proves that.
+  not its behaviour, and the existing test suite is what proves that.
 - [A visitor with a very large log pays a whole-history CalDAV fetch on
   every visit to this page] → Same cost `AttributeOverview.svelte`
   already pays for every attribute listing page; not a new pattern.
@@ -107,5 +107,5 @@ view a visitor tunes once and expects to keep — matching
 
 Purely additive — a new page, a new library module, one new link on
 Settings, and an internal refactor of existing refresh logic with no
-behavior change. No data migration; every already-logged viewing is
+behaviour change. No data migration; every already-logged viewing is
 picked up the first time the page loads.

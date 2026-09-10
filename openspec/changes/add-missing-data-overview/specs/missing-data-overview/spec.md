@@ -61,7 +61,7 @@ that every checked field be missing at once).
 
 The system SHALL offer the same per-row "Refresh metadata" control and
 "Refresh all metadata" bulk control, with the same disambiguation
-picker, busy states, and OMDb-key gating, that the calendar overview
+picker, busy states, and OMDb key gating, that the calendar overview
 offers — see the movie-editing capability's "Refresh OMDb metadata",
 "Refresh all metadata on screen", and "Visible busy state while a
 refresh is in flight" requirements, which this page is a second surface
