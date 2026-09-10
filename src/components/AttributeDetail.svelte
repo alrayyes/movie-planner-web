@@ -3,6 +3,8 @@ import { ATTRIBUTES, type AttributeKind, attributeValues } from "../lib/attribut
 import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { ACTIVE_FILTER_LABEL_EVENT } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
@@ -191,7 +193,7 @@ reloadOnBfcacheRestore(() => void load());
             <tr class={TR_BODY}>
               <td class={TD}>
                 {#if viewing.posterUrl}
-                  <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
+                  <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
@@ -200,14 +202,14 @@ reloadOnBfcacheRestore(() => void load());
                     />
                   </a>
                 {:else}
-                  <a href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}>
+                  <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
                     <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-40 sm:w-24" />
                   </a>
                 {/if}
               </td>
               <td class={TD}>
                 <a
-                  href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
+                  href={movieHref(viewing.uid, { from: location.pathname + location.search })}
                   class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
                 >
                   {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}

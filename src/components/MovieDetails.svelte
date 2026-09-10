@@ -22,6 +22,7 @@ import {
 	exportSingleViewingFilename,
 	exportViewingsToJson,
 } from "../lib/movie-log/export-viewings";
+import { resolveBackHref } from "../lib/movie-log/movie-link";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
@@ -102,6 +103,13 @@ let omdbPaused = $state(false);
 // #80: a key alone isn't enough — a visitor can pause lookups to stay
 // under OMDb's daily rate limit without clearing the stored key.
 const omdbActive = $derived(Boolean(omdbApiKey) && !omdbPaused);
+
+// #580: whichever listing linked here (missing-data, an attribute
+// detail page, venue, activity, the heatmap, …) carries its own path as
+// ?from= — see movie-link.ts. Read once: unlike `uid`, this never needs
+// to change while the page stays mounted.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const backHref = resolveBackHref(new URLSearchParams(location.search).get("from"));
 
 let viewing = $state<LoggedViewing | undefined>();
 // Distinct from `viewing` being unset before the first load resolves —
@@ -508,7 +516,7 @@ reloadOnBfcacheRestore(() => void load());
     small text read as an afterthought — so it's styled with the app's
     existing button look instead, a widely-used pattern (a link visually
     styled as a button, semantically still a link). -->
-    <a href="/" class={BUTTON_SECONDARY}>Back to overview</a>
+    <a href={backHref} class={BUTTON_SECONDARY}>Back to overview</a>
     {#if viewing && !showingPicker}
       <!-- #402: grouped with Back to overview rather than the
       edit/export/refresh/delete row below — those all act on this

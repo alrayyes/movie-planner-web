@@ -1,6 +1,8 @@
 <script lang="ts">
 import { type ActivityLogEntry, getActivityLogStore } from "../lib/activity-log/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { movieHref } from "../lib/movie-log/movie-link";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
@@ -87,7 +89,7 @@ function actorLabel(entry: ActivityLogEntry): string {
 						<td class={TD}>{actorLabel(entry)}</td>
 						<td class={TD}>
 							<a
-								href={`/movie?uid=${encodeURIComponent(entry.uid)}`}
+								href={movieHref(entry.uid, { from: location.pathname + location.search })}
 								class="text-indigo-600 hover:underline dark:text-indigo-400"
 							>
 								{entry.title ?? entry.uid}

@@ -181,7 +181,7 @@ test.describe("viewing heatmap", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText(dayValue);
     const link = dialog.getByRole("link", { name: "Dune (2021)" });
-    await expect(link).toHaveAttribute("href", "/movie?uid=dune-uid");
+    await expect(link).toHaveAttribute("href", "/movie?uid=dune-uid&from=%2Fcalendar%2F");
     await expect(dialog).toContainText("cinema · Grand Vista Cinema");
 
     // Anchored next to the clicked cell, not the browser's default
