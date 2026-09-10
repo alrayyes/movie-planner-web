@@ -1325,38 +1325,11 @@ getPicklists(config).then((picklists) => {
               <td class={`${TD} hidden sm:table-cell`}>
                 <!-- #440: trimmed to name + known city — the sort key
                 below and the filter/link elsewhere on this page still
-                use the full raw venue value untouched. -->
-                <span class="inline-flex items-center gap-1">
-                  {venueDisplay(viewing.venue, viewing.city)}
-                  {#if viewing.geo}
-                    <!-- #268: a lightweight location cue right on the
-                    row, rather than a full map per row (heavy on a
-                    dense, paginated table) — links to this viewing's
-                    own details page, which already has the real map
-                    (#8/#203). -->
-                    <a
-                      href={`/movie?uid=${encodeURIComponent(viewing.uid)}`}
-                      class="inline-flex text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400"
-                      title="View on map"
-                      aria-label={`View ${viewing.title} on the map`}
-                    >
-                      <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                        <path
-                          d="M12.5 8.75a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                        />
-                        <path
-                          d="M16.25 8.75c0 5.95-6.25 9.375-6.25 9.375S3.75 14.7 3.75 8.75a6.25 6.25 0 1 1 12.5 0Z"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </a>
-                  {/if}
-                </span>
+                use the full raw venue value untouched. #544: the #268
+                pin icon that used to sit here was removed — it just
+                re-linked to this same row's own details page, nothing
+                a visitor couldn't already reach via the title link. -->
+                {venueDisplay(viewing.venue, viewing.city)}
               </td>
               <!-- #298: Edit links to the details page's own edit form
               (?edit=1, read there on load) rather than duplicating that
