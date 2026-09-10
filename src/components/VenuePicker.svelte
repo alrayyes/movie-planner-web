@@ -32,13 +32,16 @@ interface Props {
 	picklists: Picklists;
 	value: string;
 	onAddVenue: (entry: VenueEntry) => void | Promise<void>;
+	onEditVenue: (entry: VenueEntry) => void | Promise<void>;
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: idPrefix/picklists are read in the template below, which Biome does not parse for .svelte files
-let { idPrefix, picklists, value = $bindable(), onAddVenue }: Props = $props();
+let { idPrefix, picklists, value = $bindable(), onAddVenue, onEditVenue }: Props = $props();
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let addingVenue = $state(false);
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let editingVenue = $state(false);
 let newName = $state("");
 let newStreet = $state("");
 let newPostal = $state("");
@@ -52,6 +55,11 @@ let geoSearching = $state(false);
 let chosenGeo = $state<{ lat: number; lon: number } | undefined>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let chosenGeoLabel = $state("");
+
+// #519: the venue currently selected in the <select>, if it matches a
+// known picklist entry — "Edit venue" only makes sense once one is
+// picked, and pre-fills the form from exactly this entry's own fields.
+const selectedEntry = $derived(picklists.venues.find((entry) => entry.name === value));
 
 const runGeoSearch = debounce(async (query: string) => {
 	if (!query.trim()) {
@@ -77,8 +85,9 @@ function chooseGeo(candidate: GeoCandidate) {
 	geoQuery = "";
 }
 
-function resetAddForm() {
+function resetForm() {
 	addingVenue = false;
+	editingVenue = false;
 	newName = "";
 	newStreet = "";
 	newPostal = "";
@@ -102,7 +111,35 @@ async function handleAddVenue() {
 	if (chosenGeo) entry.geo = chosenGeo;
 	await onAddVenue(entry);
 	value = entry.name;
-	resetAddForm();
+	resetForm();
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function startEditVenue() {
+	const entry = selectedEntry;
+	if (!entry) return;
+	newName = entry.name;
+	newStreet = entry.streetAddress ?? "";
+	newPostal = entry.postalCode ?? "";
+	newCity = entry.city ?? "";
+	newCountry = entry.country ?? "";
+	chosenGeo = entry.geo;
+	chosenGeoLabel = "";
+	editingVenue = true;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleEditVenue() {
+	// The name stays fixed — it's how past viewings' own `venue` field
+	// still matches this entry; renaming isn't part of this form.
+	const entry: VenueEntry = { name: newName };
+	if (newStreet.trim()) entry.streetAddress = newStreet.trim();
+	if (newPostal.trim()) entry.postalCode = newPostal.trim();
+	if (newCity.trim()) entry.city = newCity.trim();
+	if (newCountry.trim()) entry.country = newCountry.trim();
+	if (chosenGeo) entry.geo = chosenGeo;
+	await onEditVenue(entry);
+	resetForm();
 }
 </script>
 
@@ -116,53 +153,66 @@ async function handleAddVenue() {
   </select>
 </div>
 
-{#if !addingVenue}
-  <button
-    type="button"
-    class={`${BUTTON_SECONDARY} self-start`}
-    onclick={() => (addingVenue = true)}
-  >
-    Add venue
-  </button>
+{#if !addingVenue && !editingVenue}
+  <div class="flex gap-2">
+    <button
+      type="button"
+      class={`${BUTTON_SECONDARY} self-start`}
+      onclick={() => (addingVenue = true)}
+    >
+      Add venue
+    </button>
+    {#if selectedEntry}
+      <button
+        type="button"
+        class={`${BUTTON_SECONDARY} self-start`}
+        onclick={startEditVenue}
+      >
+        Edit venue
+      </button>
+    {/if}
+  </div>
 {:else}
+  {@const formPrefix = editingVenue ? "edit-venue" : "add-venue"}
   <div
     class="flex flex-col gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/40"
     role="group"
-    aria-label="Add a new venue"
+    aria-label={editingVenue ? "Edit this venue" : "Add a new venue"}
   >
     <div class={FIELD_WRAPPER}>
-      <label class={LABEL} for={`${idPrefix}-add-venue-name`}>Name</label>
+      <label class={LABEL} for={`${idPrefix}-${formPrefix}-name`}>Name</label>
       <input
         class={INPUT}
-        id={`${idPrefix}-add-venue-name`}
+        id={`${idPrefix}-${formPrefix}-name`}
         type="text"
         required
+        disabled={editingVenue}
         bind:value={newName}
       />
     </div>
     <div class={FIELD_WRAPPER}>
-      <label class={LABEL} for={`${idPrefix}-add-venue-street`}>Street address (optional)</label>
-      <input class={INPUT} id={`${idPrefix}-add-venue-street`} type="text" bind:value={newStreet} />
+      <label class={LABEL} for={`${idPrefix}-${formPrefix}-street`}>Street address (optional)</label>
+      <input class={INPUT} id={`${idPrefix}-${formPrefix}-street`} type="text" bind:value={newStreet} />
     </div>
     <div class={FIELD_WRAPPER}>
-      <label class={LABEL} for={`${idPrefix}-add-venue-postal`}>Postal code (optional)</label>
-      <input class={INPUT} id={`${idPrefix}-add-venue-postal`} type="text" bind:value={newPostal} />
+      <label class={LABEL} for={`${idPrefix}-${formPrefix}-postal`}>Postal code (optional)</label>
+      <input class={INPUT} id={`${idPrefix}-${formPrefix}-postal`} type="text" bind:value={newPostal} />
     </div>
     <div class={FIELD_WRAPPER}>
-      <label class={LABEL} for={`${idPrefix}-add-venue-city`}>City (optional)</label>
-      <input class={INPUT} id={`${idPrefix}-add-venue-city`} type="text" bind:value={newCity} />
+      <label class={LABEL} for={`${idPrefix}-${formPrefix}-city`}>City (optional)</label>
+      <input class={INPUT} id={`${idPrefix}-${formPrefix}-city`} type="text" bind:value={newCity} />
     </div>
     <div class={FIELD_WRAPPER}>
-      <label class={LABEL} for={`${idPrefix}-add-venue-country`}>Country (optional)</label>
-      <input class={INPUT} id={`${idPrefix}-add-venue-country`} type="text" bind:value={newCountry} />
+      <label class={LABEL} for={`${idPrefix}-${formPrefix}-country`}>Country (optional)</label>
+      <input class={INPUT} id={`${idPrefix}-${formPrefix}-country`} type="text" bind:value={newCountry} />
     </div>
     <div class={FIELD_WRAPPER}>
-      <label class={LABEL} for={`${idPrefix}-add-venue-geo-search`}>
+      <label class={LABEL} for={`${idPrefix}-${formPrefix}-geo-search`}>
         Search for its address (optional)
       </label>
       <input
         class={INPUT}
-        id={`${idPrefix}-add-venue-geo-search`}
+        id={`${idPrefix}-${formPrefix}-geo-search`}
         type="text"
         placeholder="Address or venue name"
         bind:value={geoQuery}
@@ -191,10 +241,16 @@ async function handleAddVenue() {
       {/if}
     </div>
     <div class="flex gap-2">
-      <button type="button" class={`${BUTTON_PRIMARY} self-start`} onclick={handleAddVenue}>
-        Add
-      </button>
-      <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={resetAddForm}>
+      {#if editingVenue}
+        <button type="button" class={`${BUTTON_PRIMARY} self-start`} onclick={handleEditVenue}>
+          Save venue
+        </button>
+      {:else}
+        <button type="button" class={`${BUTTON_PRIMARY} self-start`} onclick={handleAddVenue}>
+          Add
+        </button>
+      {/if}
+      <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={resetForm}>
         Cancel
       </button>
     </div>

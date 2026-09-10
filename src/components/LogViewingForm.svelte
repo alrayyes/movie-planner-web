@@ -130,6 +130,25 @@ async function handleAddVenue(entry: VenueEntry) {
 	}
 }
 
+// #519: VenuePicker's own "Edit venue" submission — replaces the
+// matching entry by name, in place, rather than appending. Past
+// viewings already keep their own copy of city/country/geo/address
+// from whenever they were logged (see the city/country/geo lines
+// below), so this never rewrites them retroactively.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleEditVenue(entry: VenueEntry) {
+	const next = {
+		...picklists,
+		venues: picklists.venues.map((existing) => (existing.name === entry.name ? entry : existing)),
+	};
+	picklists = next;
+	try {
+		await updatePicklists(caldavConfig(), picklists);
+	} catch {
+		// The next attempt just re-saves it; not worth failing the log on.
+	}
+}
+
 // #49: shown after logging (either flow) finds no confident OMDb match
 // but OMDb's search has candidates — selecting one fetches its full
 // details and attaches them to the just-created/updated viewing, same
@@ -308,7 +327,13 @@ async function handleConfirm() {
           bind:value={medium}
         />
       </div>
-      <VenuePicker idPrefix="log" {picklists} bind:value={venue} onAddVenue={handleAddVenue} />
+      <VenuePicker
+        idPrefix="log"
+        {picklists}
+        bind:value={venue}
+        onAddVenue={handleAddVenue}
+        onEditVenue={handleEditVenue}
+      />
 
       {#if venue && selectedVenueEntry?.geo}
         <p class={STATUS_TEXT}>Using {venue}'s known location.</p>
