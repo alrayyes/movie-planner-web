@@ -1215,7 +1215,10 @@ getPicklists(config).then((picklists) => {
             {@const isRefreshing = refreshingUid === viewing.uid}
             {@const isDeleting = deletingUid === viewing.uid}
             {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
-            <tr class={TR_BODY} aria-busy={isRefreshing}>
+            <tr
+              class={`${TR_BODY} ${isRefreshing || isDeleting ? "opacity-50 transition-opacity" : ""}`}
+              aria-busy={isRefreshing || isDeleting}
+            >
               <td class={TD}>
                 {#if viewing.posterUrl}
                   <!-- #64: a UX audit flagged the previous h-16 (64px)
@@ -1368,15 +1371,32 @@ getPicklists(config).then((picklists) => {
                     aria-busy={isDeleting}
                     onclick={() => handleDelete(viewing)}
                   >
-                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path
-                        d="M4.5 5.5h11m-9 0V4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5m-6.5 0 .6 9.4a1 1 0 0 0 1 .6h5.8a1 1 0 0 0 1-.6l.6-9.4"
+                    {#if isDeleting}
+                      <svg
+                        class="h-4 w-4 animate-spin"
+                        viewBox="0 0 20 20"
+                        fill="none"
                         stroke="currentColor"
                         stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 4v2m0 8v2m8-6h-2M6 10H4m11.3-5.3-1.4 1.4M8.1 13.9l-1.4 1.4m9.6 0-1.4-1.4M8.1 6.1 6.7 4.7"
+                        />
+                      </svg>
+                    {:else}
+                      <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path
+                          d="M4.5 5.5h11m-9 0V4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5m-6.5 0 .6 9.4a1 1 0 0 0 1 .6h5.8a1 1 0 0 0 1-.6l.6-9.4"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    {/if}
                   </button>
                 </div>
                 {#if omdbActive}
