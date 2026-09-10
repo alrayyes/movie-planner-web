@@ -102,3 +102,41 @@ body {
     margin-right: 84px;
   }
 }
+
+/* #451: Starlight's own PageFrame pins its Header slot as a full-width,
+   fixed-height bar (`--sl-nav-height`, a single Starlight-sized row) and
+   reserves that same height as top padding on the content column below
+   it. This app's own header (astro.config.mjs's `components.Header`,
+   src/components/starlight/Header.astro) is taller — a title row plus
+   the nav row below it — and, like every other page, just flows in the
+   normal document instead of staying pinned to the viewport top. These
+   selectors (`[data-has-sidebar]`, `.header`, `.main-frame`,
+   `.sidebar-pane`) are Starlight's own, used only under /docs/ — this
+   app's own markup uses none of them, so nothing outside docs pages is
+   affected. Unlayered custom CSS (loaded via `customCss`) already wins
+   the cascade over Starlight's own `@layer starlight.core` rules with no
+   `!important` needed — Starlight's documented override mechanism for
+   exactly this. */
+[data-has-sidebar] .header {
+  position: static;
+  height: auto;
+  padding-inline-end: var(--sl-nav-pad-x);
+}
+
+[data-has-sidebar] .main-frame {
+  padding-top: 0;
+}
+
+/* The mobile sidebar popover no longer needs to reserve space for a
+   fixed header above it — it can cover the full viewport height like
+   any other full-screen mobile nav overlay. */
+[data-has-sidebar] .sidebar-pane {
+  inset-block-start: 0;
+}
+
+/* No "Fork me on GitHub" ribbon on docs pages (Layout.astro's own body
+   markup, not part of the header/footer #451 shares onto /docs/) —
+   nothing to reserve this clearance for there. */
+[data-has-sidebar] .header-actions {
+  margin-right: 0;
+}

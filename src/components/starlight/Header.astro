@@ -1,0 +1,21 @@
+---
+// #451: Starlight's own Header slot, replaced with this app's own chrome
+// via astro.config.mjs's `starlight({ components: { Header: ... } })` —
+// Starlight's documented override mechanism — so a docs page shows the
+// same header every other page has instead of Starlight's own
+// title/search/theme-select bar. Starlight's own sidebar (a sibling of
+// this slot in PageFrame.astro, not part of it) is untouched.
+//
+// Wrapped in the same centered, padded container Layout.astro's own
+// #page-container uses (mx-auto/max-w-3xl/px-4) — Starlight's PageFrame
+// otherwise renders this slot inside a full-width bar, and global.css's
+// docs-scoped overrides turn that bar back into a normal-flow block so
+// this wrapper's width, not Starlight's own nav-height math, decides how
+// tall the header actually is.
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import SiteHeader from "../SiteHeader.astro";
+---
+
+<div class="mx-auto max-w-3xl px-4 py-4 sm:px-6 lg:px-8">
+  <SiteHeader />
+</div>

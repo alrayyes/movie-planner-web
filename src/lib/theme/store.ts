@@ -36,4 +36,24 @@ export function setTheme(theme: Theme): void {
     // beyond that if storage is unavailable (private browsing, quota).
   }
   applyTheme(theme);
+  syncStarlightTheme(theme);
+}
+
+// #451: astro.config.mjs's `head` script keeps Starlight's own,
+// independent theme ("starlight-theme" in localStorage, a `data-theme`
+// attribute on <html> — see astro.config.mjs's own comment) in sync with
+// this one on a docs page's first load. That only runs once, before
+// paint — a later in-page toggle (this function) needs to keep pushing
+// the same update itself, or the two would drift the moment a visitor
+// actually uses the toggle on a docs page. `window.StarlightThemeProvider`
+// is only ever defined by Starlight's own ThemeProvider.astro, so this
+// is a no-op on every non-docs page.
+function syncStarlightTheme(theme: Theme): void {
+  if (typeof document === "undefined" || !("StarlightThemeProvider" in window)) return;
+  try {
+    localStorage.setItem("starlight-theme", theme);
+  } catch {
+    // Same fallback as setTheme's own localStorage write above.
+  }
+  document.documentElement.dataset.theme = theme;
 }
