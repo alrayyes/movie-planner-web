@@ -23,7 +23,13 @@ export default defineConfig({
   // the first invocation actually returns — so it needs a hard ceiling
   // well under the job's own timeout, not the job timeout itself.
   globalTimeout: process.env.CI ? 5 * 60 * 1000 : undefined,
-  reporter: "list",
+  // #573: a second, machine-readable reporter alongside the human-readable
+  // one — Codecov Test Analytics needs JUnit XML to show per-test
+  // failure/flake detail on a PR, not just a coverage delta. CI-only: a
+  // local run has no Codecov upload step to feed it.
+  reporter: process.env.CI
+    ? [["list"], ["junit", { outputFile: "playwright-report/junit.xml" }]]
+    : "list",
   use: {
     baseURL: "http://localhost:4321",
     trace: "on-first-retry",

@@ -119,6 +119,22 @@ jobs:
           files: coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+      # #573: Test Analytics — per-test failure/flake history and a
+      # shortest-path-to-green on a red PR, not just the coverage delta
+      # above. `!cancelled()` (not the default `success()`) is what makes
+      # this run on a red "playwright test" step too — the whole point is
+      # showing which test failed, so it has to upload from a failed run,
+      # not skip it. Same action, `report_type: test_results` instead of
+      # a second dedicated action — codecov/test-results-action is
+      # deprecated in favor of this.
+      - name: upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          report_type: test_results
+          files: coverage/junit-unit.xml,playwright-report/junit.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
       # #195: tests/screenshots.spec.ts overwrites docs/screenshots/*.png
       # on every run — uploaded here so a reviewer can eyeball whether the
       # README's own checked-in copies (committed separately, since CI

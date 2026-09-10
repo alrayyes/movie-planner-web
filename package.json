@@ -24,7 +24,7 @@
     "test:integration": "bun test test/integration",
     "test:integration:down": "docker compose -f test/integration/compose.yaml down",
     "test:integration:up": "docker compose -f test/integration/compose.yaml up -d --wait && ./test/integration/provision-baikal.sh",
-    "test:unit": "bun test src"
+    "test:unit": "bun test src --reporter=junit --reporter-outfile=coverage/junit-unit.xml"
   },
   "overrides": {
     "js-yaml": "4.3.2",
