@@ -284,8 +284,10 @@ test.describe("calendar overview", () => {
     await expect(option).toHaveText("De Munt, Amsterdam");
   });
 
-  // #268
-  test("shows a location pin next to the venue when it has known coordinates, linking to the details page", async ({
+  // #544: the #268 pin icon (a redundant re-link to the same row's own
+  // details page) was removed outright — the venue cell is just the
+  // trimmed venue text now, coordinates or not.
+  test("shows no location pin next to the venue, even when it has known coordinates", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -293,21 +295,12 @@ test.describe("calendar overview", () => {
     ]);
     await connect(page);
 
-    const row = page.locator("tbody tr");
-    const pin = row.getByRole("link", { name: "View Dune on the map" });
-    await expect(pin).toHaveAttribute("href", "/movie?uid=dune-uid");
-
-    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-  });
-
-  test("shows no location pin when the venue has no known coordinates", async ({ page }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
-    await connect(page);
-
     await expect(
       page.locator("tbody tr").getByRole("link", { name: "View Dune on the map" }),
     ).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 
   // #358 (originally #351, scope narrowed after conversation): the map
