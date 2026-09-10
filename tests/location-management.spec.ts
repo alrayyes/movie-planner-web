@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
-import type { LoggedViewing, Picklists } from "../src/lib/caldav/types";
-import { mockCaldavServer } from "./support/mock-caldav";
+import { expect, type Page, type Route, test } from "@playwright/test";
+import type { LoggedViewing } from "../src/lib/caldav/types";
+import { mockCaldavServer, type PicklistsInput } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -13,7 +13,7 @@ const CREDENTIALS = {
 
 async function connect(
   page: Page,
-  initialPicklists?: Picklists,
+  initialPicklists?: PicklistsInput,
   initialViewings: LoggedViewing[] = [],
 ) {
   const server = mockCaldavServer(
@@ -31,34 +31,39 @@ async function connect(
   return server;
 }
 
-test.describe("location-management", () => {
-  test("offers a previously-added venue as a choice on the log form", async ({ page }) => {
-    await connect(page, { media: ["cinema"], venues: ["Grand Vista Cinema"] });
+// #452: Picklists.venues grew from `string[]` to structured
+// {name, streetAddress?, postalCode?, city?, country?, geo?} entries — a
+// native <select> on the log form and the edit form (never free text),
+// plus a shared "Add venue" form (VenuePicker.svelte) reachable from
+// both. See movie-planner-web#452.
+test.describe("structured venue picklist", () => {
+  test("offers a previously-added venue as a select choice on the log form", async ({ page }) => {
+    await connect(page, { media: ["cinema"], venues: [{ name: "Grand Vista Cinema" }] });
     await page.getByRole("link", { name: "Log a viewing" }).click();
 
-    const venueInput = page.locator("#log-venue");
-    const listId = await venueInput.getAttribute("list");
-    expect(listId).toBeTruthy();
-    const options = page.locator(`#${listId} option`);
-    await expect(options).toContainText(["Grand Vista Cinema"]);
+    const venueSelect = page.locator("#log-venue");
+    await expect(venueSelect).toHaveRole("combobox");
+    await expect(venueSelect.locator("option")).toContainText(["Grand Vista Cinema"]);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
   });
 
-  // #498: the log form's venue picker trims a comma-laden raw picklist
-  // entry to its name for display, while the option's value (what
-  // actually gets logged if selected) stays the raw, untrimmed string.
-  test("trims a venue with a full address baked into it, in the log form's own picker", async ({
+  // #498: the log form's venue select trims a comma-laden raw picklist
+  // entry name to just what precedes the comma for display, while the
+  // option's value (what actually gets logged if selected) stays the
+  // raw, untrimmed name — same rule pre-dating structured entries,
+  // still applied via venueDisplay's own trim.
+  test("trims a venue with a full address baked into its name, in the log form's own select", async ({
     page,
   }) => {
     await connect(page, {
       media: [],
-      venues: ["De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands"],
+      venues: [{ name: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands" }],
     });
     await page.getByRole("link", { name: "Log a viewing" }).click();
 
-    const option = page.locator("#log-venue-choices option");
+    const option = page.locator("#log-venue option").last();
     await expect(option).toHaveAttribute(
       "value",
       "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
@@ -66,29 +71,156 @@ test.describe("location-management", () => {
     await expect(option).toHaveText("De Munt");
   });
 
-  test("logging with a new venue adds it to the sidecar picklist", async ({ page }) => {
-    const server = await connect(page, { media: [], venues: [] });
+  test("selecting a known venue logs the viewing with its stored city/country/geo/address attached", async ({
+    page,
+  }) => {
+    const server = await connect(page, {
+      media: ["cinema"],
+      venues: [
+        {
+          name: "Grand Vista Cinema",
+          streetAddress: "123 Main St",
+          postalCode: "12345",
+          city: "Anytown",
+          country: "USA",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+      ],
+    });
     await page.getByRole("link", { name: "Log a viewing" }).click();
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-start-time").fill("19:00");
-    await page.locator("#log-end-time").fill("21:30");
     await page.locator("#log-medium").fill("cinema");
-    await page.locator("#log-venue").fill("Grand Vista Cinema");
+    await page.locator("#log-venue").selectOption("Grand Vista Cinema");
+
+    // Selecting a venue with known coordinates attaches them
+    // automatically — no address-search field for it on this form; that
+    // lookup only exists inside "Add venue" now.
+    await expect(page.getByText("Using Grand Vista Cinema's known location.")).toBeVisible();
+    await expect(page.locator("#log-add-venue-geo-search")).toHaveCount(0);
+
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
-    await expect.poll(() => server.picklists.venues).toContain("Grand Vista Cinema");
-    expect(server.picklists.media).toContain("cinema");
+    expect(server.creates[0]?.venue).toBe("Grand Vista Cinema");
+    expect(server.creates[0]?.city).toBe("Anytown");
+    expect(server.creates[0]?.country).toBe("USA");
+    expect(server.creates[0]?.streetAddress).toBe("123 Main St");
+    expect(server.creates[0]?.postalCode).toBe("12345");
+    expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
+  });
 
-    // The new venue is now offered as a choice without a reload.
-    const listId = await page.locator("#log-venue").getAttribute("list");
-    await expect(page.locator(`#${listId} option`)).toContainText(["Grand Vista Cinema"]);
+  test("adding a new venue via the Add venue form makes it selectable and attaches its data when logging", async ({
+    page,
+  }) => {
+    const server = await connect(page, { media: [], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      expect(url.searchParams.get("q")).toBe("Grand Vista Cinema");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            display_name: "Grand Vista Cinema, Anytown, USA",
+            lat: "52.3665062",
+            lon: "4.8947073",
+          },
+        ]),
+      });
+    });
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-name").fill("Grand Vista Cinema");
+    await page.locator("#log-add-venue-street").fill("123 Main St");
+    await page.locator("#log-add-venue-postal").fill("12345");
+    await page.locator("#log-add-venue-city").fill("Anytown");
+    await page.locator("#log-add-venue-country").fill("USA");
+    await page.locator("#log-add-venue-geo-search").fill("Grand Vista Cinema");
+    const candidate = page.getByRole("button", { name: "Grand Vista Cinema, Anytown, USA" });
+    await expect(candidate).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await candidate.click();
+    await expect(page.getByText("Location set: Grand Vista Cinema, Anytown, USA")).toBeVisible();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+
+    // Immediately selectable — no reload, no separate confirmation step.
+    await expect(page.locator("#log-venue")).toHaveValue("Grand Vista Cinema");
+    await expect(page.locator("#log-venue option")).toContainText(["Grand Vista Cinema"]);
+    await expect
+      .poll(() => server.picklists.venues)
+      .toEqual([
+        {
+          name: "Grand Vista Cinema",
+          streetAddress: "123 Main St",
+          postalCode: "12345",
+          city: "Anytown",
+          country: "USA",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+      ]);
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates[0]?.venue).toBe("Grand Vista Cinema");
+    expect(server.creates[0]?.city).toBe("Anytown");
+    expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
+  });
+
+  test("adding a new venue with just a name works — every other field, including the address search, is optional", async ({
+    page,
+  }) => {
+    const server = await connect(page, { media: [], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-name").fill("Home");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+
+    await expect(page.locator("#log-venue")).toHaveValue("Home");
+    await expect.poll(() => server.picklists.venues).toEqual([{ name: "Home" }]);
+  });
+
+  // #452: an existing sidecar written before this change held plain
+  // venue name strings — parsePicklistsFromVJournal keeps reading those
+  // (as `{name: value}`) rather than dropping or breaking on them.
+  test("a venue from an old plain-string sidecar entry is still selectable and logs successfully", async ({
+    page,
+  }) => {
+    const server = await connect(page, {
+      media: ["cinema"],
+      venues: ["Grand Vista Cinema"],
+    });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const venueSelect = page.locator("#log-venue");
+    await expect(venueSelect.locator("option")).toContainText(["Grand Vista Cinema"]);
+    await venueSelect.selectOption("Grand Vista Cinema");
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates[0]?.venue).toBe("Grand Vista Cinema");
+    // The legacy entry never had structured data beyond its name.
+    expect(server.creates[0]?.city).toBeUndefined();
+    expect(server.creates[0]?.geo).toBeUndefined();
   });
 
   // #98
-  test("offers a previously-added venue as a choice when editing on the details page", async ({
+  test("offers a previously-added venue as a select choice when editing on the details page", async ({
     page,
   }) => {
     const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -102,25 +234,29 @@ test.describe("location-management", () => {
     };
     await connect(
       page,
-      { media: ["cinema"], venues: ["Grand Vista Cinema", "Regal Union Square"] },
+      {
+        media: ["cinema"],
+        venues: [{ name: "Grand Vista Cinema" }, { name: "Regal Union Square" }],
+      },
       [dune],
     );
     await page.getByRole("link", { name: "Dune", exact: true }).click();
     await page.getByRole("button", { name: "Edit" }).click();
 
-    const venueInput = page.locator("#details-venue");
-    const listId = await venueInput.getAttribute("list");
-    expect(listId).toBeTruthy();
-    const options = page.locator(`#${listId} option`);
-    await expect(options).toContainText(["Grand Vista Cinema", "Regal Union Square"]);
+    const venueSelect = page.locator("#details-venue");
+    await expect(venueSelect).toHaveRole("combobox");
+    await expect(venueSelect.locator("option")).toContainText([
+      "Grand Vista Cinema",
+      "Regal Union Square",
+    ]);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
   });
 
-  // #498: same trim as the log form's own picker, applied to the details
-  // page's edit-form venue picker.
-  test("trims a venue with a full address baked into it, in the details page's own edit picker", async ({
+  // #498: same trim as the log form's own select, applied to the
+  // details page's edit-form venue select.
+  test("trims a venue with a full address baked into its name, in the details page's own edit select", async ({
     page,
   }) => {
     const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -134,17 +270,95 @@ test.describe("location-management", () => {
     };
     await connect(
       page,
-      { media: ["cinema"], venues: ["De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands"] },
+      {
+        media: ["cinema"],
+        venues: [{ name: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands" }],
+      },
       [dune],
     );
     await page.getByRole("link", { name: "Dune", exact: true }).click();
     await page.getByRole("button", { name: "Edit" }).click();
 
-    const option = page.locator("#details-venue-choices option");
+    const option = page.locator("#details-venue option").last();
     await expect(option).toHaveAttribute(
       "value",
       "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands",
     );
     await expect(option).toHaveText("De Munt");
+  });
+
+  test("selecting a different venue while editing re-attaches that venue's own stored data", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      venue: "Grand Vista Cinema",
+      city: "Anytown",
+      country: "USA",
+      geo: { lat: 52.3665062, lon: 4.8947073 },
+    };
+    const server = await connect(
+      page,
+      {
+        media: ["cinema"],
+        venues: [
+          {
+            name: "Grand Vista Cinema",
+            city: "Anytown",
+            country: "USA",
+            geo: { lat: 52.3665062, lon: 4.8947073 },
+          },
+          { name: "Regal Union Square", city: "Metropolis", country: "USA" },
+        ],
+      },
+      [dune],
+    );
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+
+    await page.locator("#details-venue").selectOption("Regal Union Square");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    const updated = server.viewings.get("dune-uid");
+    expect(updated?.venue).toBe("Regal Union Square");
+    expect(updated?.city).toBe("Metropolis");
+    expect(updated?.geo).toBeUndefined();
+  });
+
+  test("adding a new venue from the details page's edit form makes it selectable", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+    };
+    const server = await connect(page, { media: [], venues: [] }, [dune]);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#details-add-venue-name").fill("Regal Union Square");
+    await page.locator("#details-add-venue-city").fill("Metropolis");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+
+    await expect(page.locator("#details-venue")).toHaveValue("Regal Union Square");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    expect(server.viewings.get("dune-uid")?.venue).toBe("Regal Union Square");
+    expect(server.viewings.get("dune-uid")?.city).toBe("Metropolis");
+    await expect
+      .poll(() => server.picklists.venues)
+      .toEqual([{ name: "Regal Union Square", city: "Metropolis" }]);
   });
 });

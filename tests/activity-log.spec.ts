@@ -65,12 +65,15 @@ test.describe("activity log", () => {
   test("records an edit with the field-level before/after values, and a delete", async ({
     page,
   }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE], {
+      media: [],
+      venues: [{ name: "Grand Vista Cinema" }],
+    });
     await connect(page);
     await page.getByRole("link", { name: "Dune", exact: true }).click();
 
     await page.getByRole("button", { name: "Edit" }).click();
-    await page.locator("#details-venue").fill("Grand Vista Cinema");
+    await page.locator("#details-venue").selectOption("Grand Vista Cinema");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("status")).toHaveText("Saved.");
 
@@ -236,13 +239,16 @@ test.describe("diff-derived activity from CalDAV (#432)", () => {
   test("a self-made edit is logged exactly once, not doubled by the next sync's diff pass", async ({
     page,
   }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE], {
+      media: [],
+      venues: [{ name: "Grand Vista Cinema" }],
+    });
     await connect(page);
     await page.waitForLoadState("networkidle"); // bootstrap
 
     await page.getByRole("link", { name: "Dune", exact: true }).click();
     await page.getByRole("button", { name: "Edit" }).click();
-    await page.locator("#details-venue").fill("Grand Vista Cinema");
+    await page.locator("#details-venue").selectOption("Grand Vista Cinema");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("status")).toHaveText("Saved.");
 

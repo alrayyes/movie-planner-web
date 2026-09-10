@@ -480,7 +480,20 @@ END:VCALENDAR</C:calendar-data>
 });
 
 describe("VJOURNAL sidecar round trip", () => {
-  const picklists: Picklists = { media: ["cinema", "netflix"], venues: ["Grand Vista Cinema"] };
+  const picklists: Picklists = {
+    media: ["cinema", "netflix"],
+    venues: [
+      {
+        name: "Grand Vista Cinema",
+        streetAddress: "123 Main St",
+        postalCode: "12345",
+        city: "Anytown",
+        country: "USA",
+        geo: { lat: 52.3665062, lon: 4.8947073 },
+      },
+      { name: "Home" },
+    ],
+  };
 
   test("serializes and parses picklists", () => {
     const ical = serializePicklistsToVJournal(picklists);
@@ -501,6 +514,39 @@ describe("VJOURNAL sidecar round trip", () => {
       "END:VCALENDAR",
     ].join("\r\n");
     expect(parsePicklistsFromVJournal(corrupted)).toEqual({ media: [], venues: [] });
+  });
+
+  // #452: a sidecar written before Picklists.venues grew structured
+  // fields held plain strings — parsing has to keep accepting those
+  // rather than breaking or silently dropping every venue a visitor
+  // already had. Built by actually serializing the old `string[]`
+  // shape (not hand-written iCal text) so this exercises the real
+  // escaping/folding a genuine legacy sidecar went through.
+  test("treats an old plain-string venue entry as a bare name, for backward compatibility", () => {
+    const legacyPicklists = {
+      media: ["cinema"],
+      venues: ["Grand Vista Cinema", "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands"],
+    } as unknown as Picklists;
+    const raw = serializePicklistsToVJournal(legacyPicklists);
+    expect(parsePicklistsFromVJournal(raw)).toEqual({
+      media: ["cinema"],
+      venues: [
+        { name: "Grand Vista Cinema" },
+        { name: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands" },
+      ],
+    });
+  });
+
+  test("drops a corrupt venue entry (neither a string nor a named object) rather than throwing", () => {
+    const raw = serializePicklistsToVJournal({
+      media: [],
+      // biome-ignore lint/suspicious/noExplicitAny: deliberately malformed input for this test
+      venues: [42, { noNameField: true }, { name: "Real Venue" }] as any,
+    });
+    expect(parsePicklistsFromVJournal(raw)).toEqual({
+      media: [],
+      venues: [{ name: "Real Venue" }],
+    });
   });
 });
 

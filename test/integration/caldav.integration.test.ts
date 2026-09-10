@@ -81,11 +81,14 @@ describe("caldav client against a real Baikal instance", () => {
   test("round-trips the location-management sidecar picklists", async () => {
     expect(await getPicklists(CONFIG)).toEqual({ media: [], venues: [] });
 
-    await updatePicklists(CONFIG, { media: ["cinema", "netflix"], venues: ["Grand Vista Cinema"] });
+    await updatePicklists(CONFIG, {
+      media: ["cinema", "netflix"],
+      venues: [{ name: "Grand Vista Cinema" }],
+    });
 
     expect(await getPicklists(CONFIG)).toEqual({
       media: ["cinema", "netflix"],
-      venues: ["Grand Vista Cinema"],
+      venues: [{ name: "Grand Vista Cinema" }],
     });
   }, 20_000);
 });

@@ -37,15 +37,20 @@ async function connectAndOpenDetails(page: Page) {
   await page.getByRole("link", { name: "Dune", exact: true }).click();
 }
 
+const VENUES = {
+  media: [],
+  venues: [{ name: "Grand Vista Cinema" }, { name: "Regal Union Square" }],
+};
+
 test.describe("updating a logged viewing", () => {
   test("edits the viewing's own fields and writes the change", async ({ page }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE], VENUES);
     await connectAndOpenDetails(page);
 
     await page.getByRole("button", { name: "Edit" }).click();
     const venueInput = page.locator("#details-venue");
     await expect(venueInput).toHaveValue("Grand Vista Cinema");
-    await venueInput.fill("Regal Union Square");
+    await venueInput.selectOption("Regal Union Square");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
@@ -65,7 +70,7 @@ test.describe("updating a logged viewing", () => {
   test("doesn't offer OMDb-sourced fields (ratings, director, actors) as editable", async ({
     page,
   }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE], VENUES);
     await connectAndOpenDetails(page);
 
     await page.getByRole("button", { name: "Edit" }).click();
@@ -77,13 +82,16 @@ test.describe("updating a logged viewing", () => {
   test("editing preserves the viewing's existing OMDb-sourced fields untouched", async ({
     page,
   }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      { ...DUNE, director: "Denis Villeneuve", ratingImdb: "8.0" },
-    ]);
+    const server = mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [{ ...DUNE, director: "Denis Villeneuve", ratingImdb: "8.0" }],
+      VENUES,
+    );
     await connectAndOpenDetails(page);
 
     await page.getByRole("button", { name: "Edit" }).click();
-    await page.locator("#details-venue").fill("Regal Union Square");
+    await page.locator("#details-venue").selectOption("Regal Union Square");
     await page.getByRole("button", { name: "Save" }).click();
 
     await expect(page.locator("#movie-status")).toHaveText("Saved.");

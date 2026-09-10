@@ -3,20 +3,23 @@ import {
 	deleteViewing,
 	getPicklists,
 	getViewing,
-	listViewings,
+	updatePicklists,
 	updateViewing,
 } from "../lib/caldav/client";
-import type { CaldavConfig, LoggedViewing, NewViewing } from "../lib/caldav/types";
+import type {
+	CaldavConfig,
+	LoggedViewing,
+	NewViewing,
+	Picklists,
+	VenueEntry,
+} from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { openStreetMapUrl } from "../lib/geo/links";
-import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
-import { findKnownGeo } from "../lib/geo/reuse";
 import {
 	exportSingleViewingFilename,
 	exportViewingsToJson,
 } from "../lib/movie-log/export-viewings";
-import { importCheckRange } from "../lib/movie-log/run-import";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
@@ -46,7 +49,6 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { computeBlockedTimeBar, formatDate, formatDateTime } from "../lib/ui/datetime";
-import { debounce } from "../lib/ui/debounce";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay } from "../lib/venue/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -63,6 +65,8 @@ import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import VenueMap from "./VenueMap.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import VenuePicker from "./VenuePicker.svelte";
 
 // #38: a dedicated page per logged viewing, reached from the overview's
 // title link — see CalendarOverview.svelte's own comment for why this is
@@ -74,12 +78,14 @@ import VenueMap from "./VenueMap.svelte";
 // project's "touch it for real work, convert it" rule — see
 // CalendarOverview.svelte's own note on why.
 
+// #452: venue isn't in this generic loop — a native <select> (populated
+// from the picklist's own known venues) rather than a free-text field
+// needs its own markup, rendered separately via VenuePicker below.
 const EDITABLE_FIELDS: { key: keyof NewViewing; label: string; type: string }[] = [
 	{ key: "title", label: "Title", type: "text" },
 	{ key: "start", label: "Start", type: "datetime-local" },
 	{ key: "end", label: "End", type: "datetime-local" },
 	{ key: "medium", label: "Medium", type: "text" },
-	{ key: "venue", label: "Venue", type: "text" },
 ];
 
 function toDatetimeLocal(iso: string): string {
@@ -130,11 +136,11 @@ let sharing = $state(false);
 // handleShare's own comment) — the link itself, not an invisible side
 // effect, is the one thing this always falls back to.
 let sharedUrl = $state("");
-// #98: the same venue suggestions the log form already offers
-// (location-management's own picklist), so editing a viewing doesn't
-// mean retyping an exact venue name used before.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let venues = $state<string[]>([]);
+// #98/#452: the same venue picklist the log form uses — a native
+// <select> (VenuePicker.svelte) populated from it, so editing a viewing
+// doesn't mean retyping an exact venue name used before, and picking one
+// attaches its own stored city/country/geo/address automatically.
+let picklists = $state<Picklists>({ media: [], venues: [] });
 let pickerArea = $state<HTMLDivElement | undefined>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let showingPicker = $state(false);
@@ -147,52 +153,13 @@ let searchingOmdb = $state(false);
 let omdbSearchQuery = $state("");
 let editValues = $state<Record<string, string>>({});
 
-// #8/#203: same reuse-vs-search coordinate entry as the log form
-// (LogViewingForm.svelte's own identical shape) — a lightweight
-// wide-range query purely to back findKnownGeo's reuse lookup, same
-// range Venues/heatmap/the log form already use.
-let allViewings = $state<LoggedViewing[]>([]);
-let editGeoQuery = $state("");
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let editGeoCandidates = $state<GeoCandidate[]>([]);
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let editGeoSearching = $state(false);
-let chosenEditGeo = $state<{ lat: number; lon: number } | undefined>();
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let chosenEditGeoLabel = $state("");
-let chosenEditGeoFor = $state("");
-
-const editKnownGeo = $derived(
-	editValues.venue ? findKnownGeo(editValues.venue, allViewings) : undefined,
+// #452: the selected venue's own picklist entry is the canonical
+// source for its city/country/geo/address — read directly here, not
+// searched or reused by scanning prior viewings (the now-superseded
+// findKnownGeo/#339 model this replaces).
+const selectedVenueEntry = $derived(
+	editValues.venue ? picklists.venues.find((entry) => entry.name === editValues.venue) : undefined,
 );
-const editGeo = $derived(
-	editKnownGeo ?? (chosenEditGeoFor === editValues.venue ? chosenEditGeo : undefined),
-);
-
-const runEditGeoSearch = debounce(async (query: string) => {
-	if (!query.trim()) {
-		editGeoCandidates = [];
-		editGeoSearching = false;
-		return;
-	}
-	editGeoSearching = true;
-	editGeoCandidates = await searchAddress(query);
-	editGeoSearching = false;
-}, 400);
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function onEditGeoQueryInput() {
-	runEditGeoSearch(editGeoQuery);
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function chooseEditGeo(candidate: GeoCandidate) {
-	chosenEditGeo = { lat: candidate.lat, lon: candidate.lon };
-	chosenEditGeoLabel = candidate.label;
-	chosenEditGeoFor = editValues.venue ?? "";
-	editGeoCandidates = [];
-	editGeoQuery = "";
-}
 
 function startEdit(current: LoggedViewing) {
 	editValues = Object.fromEntries(
@@ -204,10 +171,7 @@ function startEdit(current: LoggedViewing) {
 			];
 		}),
 	);
-	chosenEditGeo = undefined;
-	chosenEditGeoFor = "";
-	editGeoQuery = "";
-	editGeoCandidates = [];
+	editValues.venue = current.venue ?? "";
 	editing = true;
 }
 
@@ -231,19 +195,33 @@ async function load() {
 // #98: best-effort — a picklist fetch failure shouldn't block viewing or
 // editing the page, same spirit as OMDb enrichment failing soft
 // elsewhere in this app.
-async function loadVenueSuggestions() {
+async function loadPicklists() {
 	if (!config) return;
 	try {
-		const { venues: fetched } = await getPicklists(config);
-		venues = fetched;
+		picklists = await getPicklists(config);
 	} catch {
-		// Suggestions just stay empty; free-text entry still works.
+		// The select just shows "No venue"; adding a new one still works.
+	}
+}
+
+// #452: VenuePicker's own "Add venue" submission — same shape as
+// LogViewingForm.svelte's identical handler.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleAddVenue(entry: VenueEntry) {
+	if (!config) return;
+	const next = { ...picklists, venues: [...picklists.venues, entry] };
+	picklists = next;
+	try {
+		await updatePicklists(config, next);
+	} catch {
+		// The next attempt just re-adds it; not worth failing the edit on.
 	}
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleSave(current: LoggedViewing) {
 	if (!config) return;
+	const venueEntry = selectedVenueEntry;
 	const updated: NewViewing = {
 		...current,
 		title: editValues.title ?? "",
@@ -251,7 +229,11 @@ async function handleSave(current: LoggedViewing) {
 		end: new Date(editValues.end ?? "").toISOString(),
 		medium: editValues.medium ?? "",
 		venue: editValues.venue || undefined,
-		geo: editGeo,
+		geo: venueEntry?.geo,
+		city: venueEntry?.city,
+		country: venueEntry?.country,
+		streetAddress: venueEntry?.streetAddress,
+		postalCode: venueEntry?.postalCode,
 	};
 	errorMessage = "";
 	try {
@@ -487,13 +469,7 @@ async function init() {
 	if (viewing && new URLSearchParams(location.search).get("edit")) {
 		startEdit(viewing);
 	}
-	await loadVenueSuggestions();
-	try {
-		allViewings = await listViewings(config, importCheckRange());
-	} catch {
-		// The geo reuse lookup just finds nothing; the address-search
-		// field still works.
-	}
+	await loadPicklists();
 }
 
 init();
@@ -569,55 +545,16 @@ reloadOnBfcacheRestore(() => void load());
                 class={INPUT}
                 id={`details-${field.key}`}
                 type={field.type}
-                list={field.key === "venue" ? "details-venue-choices" : undefined}
                 bind:value={editValues[field.key]}
               />
             </label>
-            {#if field.key === "venue"}
-              {#if editValues.venue && editKnownGeo}
-                <p class={`${STATUS_TEXT} sm:col-span-2`}>
-                  Using {editValues.venue}'s known location.
-                </p>
-              {:else if editValues.venue}
-                <div
-                  class="flex flex-col gap-2 rounded-lg bg-slate-50 p-3 sm:col-span-2 dark:bg-slate-900/40"
-                >
-                  <label class={LABEL} for="details-geo-search">
-                    Search for "{editValues.venue}"'s address (optional)
-                  </label>
-                  <input
-                    class={INPUT}
-                    id="details-geo-search"
-                    type="text"
-                    placeholder="Address or venue name"
-                    bind:value={editGeoQuery}
-                    oninput={onEditGeoQueryInput}
-                  />
-                  {#if editGeoSearching}
-                    <p class={STATUS_TEXT}>Searching…</p>
-                  {/if}
-                  {#if editGeoCandidates.length > 0}
-                    <ul class="flex flex-col gap-1">
-                      {#each editGeoCandidates as candidate (candidate.label)}
-                        <li>
-                          <button
-                            type="button"
-                            class="text-left text-sm text-indigo-600 hover:underline dark:text-indigo-400"
-                            onclick={() => chooseEditGeo(candidate)}
-                          >
-                            {candidate.label}
-                          </button>
-                        </li>
-                      {/each}
-                    </ul>
-                  {/if}
-                  {#if chosenEditGeoFor === editValues.venue && chosenEditGeo}
-                    <p class={STATUS_TEXT}>Location set: {chosenEditGeoLabel}</p>
-                  {/if}
-                </div>
-              {/if}
-            {/if}
           {/each}
+          <div class="sm:col-span-2">
+            <VenuePicker idPrefix="details" {picklists} bind:value={editValues.venue} onAddVenue={handleAddVenue} />
+            {#if editValues.venue && selectedVenueEntry?.geo}
+              <p class={STATUS_TEXT}>Using {editValues.venue}'s known location.</p>
+            {/if}
+          </div>
         </div>
         <div class="flex gap-2">
           <button type="button" class={BUTTON_PRIMARY} onclick={() => handleSave(viewing)}>
@@ -1111,9 +1048,4 @@ reloadOnBfcacheRestore(() => void load());
   {#if errorMessage}
     <ErrorToast message={errorMessage} onDismiss={() => (errorMessage = "")} />
   {/if}
-  <datalist id="details-venue-choices">
-    {#each venues as venue (venue)}
-      <option value={venue}>{venueDisplay(venue)}</option>
-    {/each}
-  </datalist>
 </div>

@@ -1,13 +1,11 @@
 <script lang="ts">
-import { getPicklists, listViewings, updatePicklists, updateViewing } from "../lib/caldav/client";
-import type { CaldavConfig, LoggedViewing, Picklists } from "../lib/caldav/types";
+import { getPicklists, updatePicklists, updateViewing } from "../lib/caldav/client";
+import type { CaldavConfig, LoggedViewing, Picklists, VenueEntry } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
-import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
-import { findKnownGeo } from "../lib/geo/reuse";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
-import { importCheckRange, toIsoDateTime } from "../lib/movie-log/run-import";
+import { toIsoDateTime } from "../lib/movie-log/run-import";
 import { lookupByImdbId, type OmdbCandidate } from "../lib/omdb/client";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import { enrichWithTmdb } from "../lib/tmdb/client";
@@ -27,29 +25,35 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatDateTime } from "../lib/ui/datetime";
-import { debounce } from "../lib/ui/debounce";
-// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { venueDisplay } from "../lib/venue/display";
+import { findVenueEntry } from "../lib/venue/lookup";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import VenuePicker from "./VenuePicker.svelte";
 
 // movie-log spec: logging a viewing, via the manual form or by parsing a
 // Pathé booking email, with best-effort OMDb enrichment. See
 // log-viewing.ts for the shared write path both entry points use.
 //
-// location-management spec: the medium/venue picklists (a sidecar CalDAV
-// object) are offered as <datalist> suggestions rather than a closed
-// dropdown, so logging with a new medium/venue still works — it's just
-// not offered as a choice until this same form's own submission adds it.
+// location-management spec: the medium picklist (a sidecar CalDAV
+// object) is offered as a <datalist> suggestion rather than a closed
+// dropdown, so logging with a new medium still works — it's just not
+// offered as a choice until this same form's own submission adds it.
 //
-// #8/#203: a venue with no known coordinates gets an optional,
-// skippable Nominatim address-search lookup on the manual form; a venue
-// that already has coordinates (from an earlier logged viewing) has
-// them attached automatically instead, no field shown. The Pathé flow
-// only gets the automatic-reuse half — its confirm step is a fixed
-// read-only summary, not an editable form, and a Pathé booking's cinema
-// rarely lacks known coordinates in practice (movie-planner's own
-// hardcoded venue fixtures cover the actual Pathé locations).
+// #452 (structured-venue-picklist): venue is different — a native
+// <select> populated only from the picklist's own known venues, never
+// free text, with a separate "Add venue" form (VenuePicker.svelte,
+// shared with MovieDetails.svelte's edit form) for a genuinely new one.
+// A venue's own city/country/geo/address now live directly on its
+// picklist entry — the canonical source, read straight off the
+// selected entry below — rather than this form scanning `allViewings`
+// for a matching prior entry (the now-superseded findKnownGeo/#339
+// model, alongside the address-search lookup that used to run inline
+// here for whatever venue name was currently typed; that lookup now
+// lives inside VenuePicker's own "Add venue" form instead). The Pathé
+// flow keeps its own automatic-reuse behaviour, now reading the same
+// picklist entries by name instead of scanning viewings — its confirm
+// step stays a fixed read-only summary, not an editable form.
 
 let credentials: Credentials | null = null;
 
@@ -61,10 +65,6 @@ let status = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let formError = $state("");
 let picklists = $state<Picklists>({ media: [], venues: [] });
-// #8/#203: a lightweight wide-range query (same range Venues/heatmap
-// already use) purely to back findKnownGeo's reuse lookup — this form
-// had no reason to load any viewings before.
-let allViewings = $state<LoggedViewing[]>([]);
 let pickerArea = $state<HTMLDivElement>();
 
 function caldavConfig(): CaldavConfig {
@@ -79,25 +79,22 @@ function caldavConfig(): CaldavConfig {
 async function init() {
 	credentials = await getCredentialsStore().get();
 	if (!credentials) return;
-	// Best-effort — neither fetch failing should block logging, same
+	// Best-effort — a fetch failure here shouldn't block logging, same
 	// spirit as OMDb enrichment failing soft elsewhere in this form.
 	try {
 		picklists = await getPicklists(caldavConfig());
 	} catch {
-		// Suggestions just stay empty; free-text entry still works.
-	}
-	try {
-		allViewings = await listViewings(caldavConfig(), importCheckRange());
-	} catch {
-		// The geo reuse lookup just finds nothing; the address-search
-		// field still works.
+		// Suggestions just stay empty; medium free-text entry still works,
+		// and no venue is selectable until the next successful load.
 	}
 }
 init();
 
-// location-management spec, "First venue added": logging with a
-// medium/venue not already in the picklist adds it — auto-learned from
-// what visitors actually type, no separate management screen needed.
+// location-management spec, "First venue added" (medium only, now —
+// venue can no longer be freely typed into this form; #452's own "Add
+// venue" form is what adds a new venue, via handleAddVenue below). The
+// Pathé flow still calls this with its own parsed cinema name, which
+// isn't selected from the picklist and so still needs auto-learning.
 async function learnFromViewing(medium: string, venue: string | undefined) {
 	let changed = false;
 	let next = picklists;
@@ -105,8 +102,8 @@ async function learnFromViewing(medium: string, venue: string | undefined) {
 		next = { ...next, media: [...next.media, medium] };
 		changed = true;
 	}
-	if (venue && !next.venues.includes(venue)) {
-		next = { ...next, venues: [...next.venues, venue] };
+	if (venue && !next.venues.some((entry) => entry.name === venue)) {
+		next = { ...next, venues: [...next.venues, { name: venue }] };
 		changed = true;
 	}
 	if (!changed) return;
@@ -115,6 +112,21 @@ async function learnFromViewing(medium: string, venue: string | undefined) {
 		await updatePicklists(caldavConfig(), picklists);
 	} catch {
 		// The next log attempt just re-learns it; not worth failing on.
+	}
+}
+
+// #452: VenuePicker's own "Add venue" submission — persisted here (not
+// inside VenuePicker itself) since the write path differs slightly by
+// caller (this form's caldavConfig() vs. MovieDetails.svelte's own
+// `config` state), same as learnFromViewing above.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleAddVenue(entry: VenueEntry) {
+	const next = { ...picklists, venues: [...picklists.venues, entry] };
+	picklists = next;
+	try {
+		await updatePicklists(caldavConfig(), picklists);
+	} catch {
+		// The next attempt just re-adds it; not worth failing the log on.
 	}
 }
 
@@ -165,43 +177,10 @@ let endTime = $state("");
 let medium = $state("");
 let venue = $state("");
 
-let geoQuery = $state("");
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let geoCandidates = $state<GeoCandidate[]>([]);
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let geoSearching = $state(false);
-let chosenGeo = $state<{ lat: number; lon: number } | undefined>();
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let chosenGeoLabel = $state("");
-let chosenGeoFor = $state("");
-
-const knownGeo = $derived(venue ? findKnownGeo(venue, allViewings) : undefined);
-const manualGeo = $derived(knownGeo ?? (chosenGeoFor === venue ? chosenGeo : undefined));
-
-const runGeoSearch = debounce(async (query: string) => {
-	if (!query.trim()) {
-		geoCandidates = [];
-		geoSearching = false;
-		return;
-	}
-	geoSearching = true;
-	geoCandidates = await searchAddress(query);
-	geoSearching = false;
-}, 400);
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function onGeoQueryInput() {
-	runGeoSearch(geoQuery);
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-function chooseGeo(candidate: GeoCandidate) {
-	chosenGeo = { lat: candidate.lat, lon: candidate.lon };
-	chosenGeoLabel = candidate.label;
-	chosenGeoFor = venue;
-	geoCandidates = [];
-	geoQuery = "";
-}
+// #452: the selected venue's own picklist entry is the canonical
+// source for its city/country/geo/address — attached automatically
+// below, not searched or reused from prior viewings.
+const selectedVenueEntry = $derived(venue ? findVenueEntry(venue, picklists.venues) : undefined);
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleManualSubmit(event: SubmitEvent) {
@@ -209,6 +188,7 @@ async function handleManualSubmit(event: SubmitEvent) {
 	if (!credentials) return;
 	const loggedMedium = medium;
 	const loggedVenue = venue || undefined;
+	const venueEntry = selectedVenueEntry;
 	formError = "";
 	try {
 		const result = await logManualViewing(credentials, {
@@ -220,20 +200,19 @@ async function handleManualSubmit(event: SubmitEvent) {
 			end: toIsoDateTime(date, endTime || startTime || undefined),
 			medium,
 			venue: loggedVenue,
-			geo: manualGeo,
+			geo: venueEntry?.geo,
+			city: venueEntry?.city,
+			country: venueEntry?.country,
+			streetAddress: venueEntry?.streetAddress,
+			postalCode: venueEntry?.postalCode,
 		});
 		status = "Logged.";
-		allViewings = [...allViewings, result.viewing];
 		title = "";
 		date = "";
 		startTime = "";
 		endTime = "";
 		medium = "";
 		venue = "";
-		chosenGeo = undefined;
-		chosenGeoFor = "";
-		geoQuery = "";
-		geoCandidates = [];
 		await learnFromViewing(loggedMedium, loggedVenue);
 		if (result.omdbCandidates?.length) showOmdbPicker(result.viewing, result.omdbCandidates);
 	} catch (error) {
@@ -250,7 +229,7 @@ let parsedBooking = $state<PatheBooking | undefined>();
 let confirmVisible = $state(false);
 
 const patheKnownGeo = $derived(
-	parsedBooking ? findKnownGeo(parsedBooking.cinema, allViewings) : undefined,
+	parsedBooking ? findVenueEntry(parsedBooking.cinema, picklists.venues)?.geo : undefined,
 );
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -281,7 +260,6 @@ async function handleConfirm() {
 		const result = await logPatheBooking(credentials, booking, patheKnownGeo);
 		status = result.wasUpdate ? "Updated the existing entry." : "Logged.";
 		confirmVisible = false;
-		allViewings = [...allViewings, result.viewing];
 		await learnFromViewing("cinema", booking.cinema);
 		patheEmailText = "";
 		parsedBooking = undefined;
@@ -330,55 +308,10 @@ async function handleConfirm() {
           bind:value={medium}
         />
       </div>
-      <div class={FIELD_WRAPPER}>
-        <label class={LABEL} for="log-venue">Venue</label>
-        <input
-          class={INPUT}
-          id="log-venue"
-          name="log-venue"
-          type="text"
-          list="log-venue-choices"
-          bind:value={venue}
-        />
-      </div>
+      <VenuePicker idPrefix="log" {picklists} bind:value={venue} onAddVenue={handleAddVenue} />
 
-      {#if venue && knownGeo}
+      {#if venue && selectedVenueEntry?.geo}
         <p class={STATUS_TEXT}>Using {venue}'s known location.</p>
-      {:else if venue}
-        <div class="flex flex-col gap-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/40">
-          <label class={LABEL} for="log-geo-search">
-            Search for "{venue}"'s address (optional)
-          </label>
-          <input
-            class={INPUT}
-            id="log-geo-search"
-            type="text"
-            placeholder="Address or venue name"
-            bind:value={geoQuery}
-            oninput={onGeoQueryInput}
-          />
-          {#if geoSearching}
-            <p class={STATUS_TEXT}>Searching…</p>
-          {/if}
-          {#if geoCandidates.length > 0}
-            <ul class="flex flex-col gap-1">
-              {#each geoCandidates as candidate (candidate.label)}
-                <li>
-                  <button
-                    type="button"
-                    class="text-left text-sm text-indigo-600 hover:underline dark:text-indigo-400"
-                    onclick={() => chooseGeo(candidate)}
-                  >
-                    {candidate.label}
-                  </button>
-                </li>
-              {/each}
-            </ul>
-          {/if}
-          {#if chosenGeoFor === venue && chosenGeo}
-            <p class={STATUS_TEXT}>Location set: {chosenGeoLabel}</p>
-          {/if}
-        </div>
       {/if}
 
       <button type="submit" class={`${BUTTON_PRIMARY} self-start`}>Log viewing</button>
@@ -440,11 +373,6 @@ async function handleConfirm() {
   <datalist id="log-medium-choices">
     {#each picklists.media as option (option)}
       <option value={option}>{option}</option>
-    {/each}
-  </datalist>
-  <datalist id="log-venue-choices">
-    {#each picklists.venues as option (option)}
-      <option value={option}>{venueDisplay(option)}</option>
     {/each}
   </datalist>
 

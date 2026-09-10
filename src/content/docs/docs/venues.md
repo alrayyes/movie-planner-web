@@ -15,11 +15,15 @@ goes back to your whole history.
 ## Where the list comes from
 
 A venue shows up here two ways: from a calendar entry that has it as
-its venue, or from typing a new venue into the log or edit form's Venue
-field (autocomplete offers venues you've used before, but a new one
-still works — it's just not offered as a suggestion until this list
-picks it up). The two are merged, so a venue you've saved but haven't
-watched anything at yet still shows here with a count of zero.
+its venue, or from adding it through the log or edit form's "Add
+venue" button — a small form of its own (name, street address, postal
+code, city, country) rather than free text, so a venue's data is
+structured from the moment it's created. The venue field itself is
+always a select, offering only venues you've already added or logged
+at; a genuinely new one always goes through "Add venue" first, and
+becomes selectable immediately after. The two sources are merged, so a
+venue you've saved but haven't watched anything at yet still shows
+here with a count of zero.
 
 ## Grouped by country and city
 
@@ -39,15 +43,16 @@ table. Click a pin for its name and an "Open in Maps" link to the
 exact location on OpenStreetMap's own site, for more precision than
 the map itself gives.
 
-Venue coordinates aren't typed in here — they come from
+Venue coordinates aren't typed in here — a venue's saved entry is the
+source of truth for its own location. They can come from
 [movie-planner](https://github.com/alrayyes/movie-planner) (the CLI),
-which is the source of truth for everything on your calendar, this
-field included. When you log or edit a viewing at a venue with no
-coordinates on record yet, both forms offer an optional address-search
-field (powered by [Nominatim](https://nominatim.org/), OpenStreetMap's
-free geocoder) to attach them right there — skippable, and never run
-automatically. Logging again at a venue that already has coordinates
-reuses them without asking.
+or from this app's own "Add venue" form, which offers an optional
+address-search field (powered by [Nominatim](https://nominatim.org/),
+OpenStreetMap's free geocoder) to attach them right there when you add
+a new venue — skippable, and never run automatically. Once a venue has
+coordinates (and city/country/street address), selecting it on the log
+or edit form attaches all of it to that viewing automatically, no
+re-entry needed.
 
 Loading any of this page's maps loads real map tiles from
 OpenStreetMap, which does mean an automatic request to a third party

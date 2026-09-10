@@ -144,9 +144,29 @@ export interface DateRange {
   to: string; // ISO 8601
 }
 
+// #452: a venue's own structured data, captured once via the "Add venue"
+// form — name is the only required field; everything else is only ever
+// present once a visitor actually entered it (street address/postal
+// code/city/country) or the Nominatim lookup resolved coordinates for
+// it. The picklist entry is the canonical source for a venue's location
+// from here on — selecting one attaches these fields directly, rather
+// than this app scanning `allViewings` for a matching prior entry (the
+// now-superseded findKnownGeo/#339 model). A bare string is still a
+// real shape a sidecar can hold (parsePicklistsFromVJournal's own
+// backward-compatible parsing) — never written by this app anymore, but
+// still read as `{name: value}`.
+export interface VenueEntry {
+  name: string;
+  streetAddress?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  geo?: { lat: number; lon: number };
+}
+
 // The location-management capability's picklists, held in one sidecar
 // VJOURNAL rather than per-field CalDAV resources.
 export interface Picklists {
   media: string[];
-  venues: string[];
+  venues: VenueEntry[];
 }

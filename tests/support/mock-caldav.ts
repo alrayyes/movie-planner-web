@@ -1,12 +1,25 @@
 import type { Page, Route } from "@playwright/test";
 import {
+  normalizeVenueEntry,
   parsePicklistsFromVJournal,
   parseVEventToViewing,
   SIDECAR_UID,
   serializePicklistsToVJournal,
   serializeViewingToVEvent,
 } from "../../src/lib/caldav/ical";
-import type { LoggedViewing, Picklists } from "../../src/lib/caldav/types";
+import type { LoggedViewing, Picklists, VenueEntry } from "../../src/lib/caldav/types";
+
+// #452: most existing tests still seed venues as plain names (the old
+// `string[]` shape) — a real, still-supported input per
+// parsePicklistsFromVJournal's own backward-compatible parsing, and not
+// worth rewriting every one of those fixtures into full VenueEntry
+// objects just to satisfy this mock's own typing. Normalized to the
+// real structured shape below, same as a genuine legacy sidecar would
+// be once this app reads it back.
+export interface PicklistsInput {
+  media: string[];
+  venues: (string | VenueEntry)[];
+}
 
 export interface MockCaldavServer {
   creates: LoggedViewing[];
@@ -67,7 +80,7 @@ export function mockCaldavServer(
   page: Page,
   baseUrl: string,
   initialViewings: LoggedViewing[] = [],
-  initialPicklists: Picklists = { media: [], venues: [] },
+  initialPicklists: PicklistsInput = { media: [], venues: [] },
 ): MockCaldavServer {
   const viewings = new Map(initialViewings.map((v) => [v.uid, v]));
   const state: MockCaldavServer = {
@@ -76,7 +89,12 @@ export function mockCaldavServer(
     deletes: [],
     listRequests: [],
     authHeaders: [],
-    picklists: { media: [...initialPicklists.media], venues: [...initialPicklists.venues] },
+    picklists: {
+      media: [...initialPicklists.media],
+      venues: initialPicklists.venues
+        .map(normalizeVenueEntry)
+        .filter((entry): entry is VenueEntry => entry !== undefined),
+    },
     viewings,
   };
 
