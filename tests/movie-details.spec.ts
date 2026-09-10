@@ -560,8 +560,8 @@ test.describe("movie details page", () => {
     await expect(gapIndicator.locator("svg")).toHaveCount(0);
   });
 
-  // #163
-  test("shows each rating source as its own badge, and each actor/genre as its own clickable chip", async ({
+  // #163/#450
+  test("shows each rating source as its own badge, and each actor/genre as its own clickable chip linking to its own dedicated page", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
@@ -573,19 +573,19 @@ test.describe("movie details page", () => {
 
     await expect(page.getByRole("link", { name: "Denis Villeneuve" })).toHaveAttribute(
       "href",
-      "/?director=Denis%20Villeneuve",
+      "/director?director=Denis%20Villeneuve",
     );
     await expect(page.getByRole("link", { name: "Timothée Chalamet" })).toHaveAttribute(
       "href",
-      "/?actor=Timoth%C3%A9e%20Chalamet",
+      "/actor?actor=Timoth%C3%A9e%20Chalamet",
     );
     await expect(page.getByRole("link", { name: "Zendaya" })).toHaveAttribute(
       "href",
-      "/?actor=Zendaya",
+      "/actor?actor=Zendaya",
     );
     await expect(page.getByRole("link", { name: "Action", exact: true })).toHaveAttribute(
       "href",
-      "/?genre=Action",
+      "/genre?genre=Action",
     );
   });
 
@@ -642,12 +642,8 @@ test.describe("movie details page", () => {
   });
 
   // #372
-  test("links Rated, Language and Country to the overview filtered to each exact value", async ({
-    page,
-  }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      { ...DUNE, rated: "PG-13", movieLanguage: "English", movieCountry: "United States" },
-    ]);
+  test("links Rated to the overview filtered to its exact value", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, rated: "PG-13" }]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
@@ -655,14 +651,42 @@ test.describe("movie details page", () => {
       "href",
       "/?rated=PG-13",
     );
+  });
+
+  // #450: a real bug fixed along the way — Movie Country/Language used to
+  // link as one whole unsplit comma-joined string ("United Kingdom,
+  // France" as a single link). splitMultiValue now applies to them, same
+  // as director/actor/genre already had (#163), so each value is its own
+  // separately clickable chip linking to its own dedicated per-value
+  // page.
+  test("shows each movie country/language value as its own clickable chip, not one link for the whole string", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, movieLanguage: "English, French", movieCountry: "United Kingdom, France" },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
     await expect(page.getByRole("link", { name: "English" })).toHaveAttribute(
       "href",
-      "/?movieLanguage=English",
+      "/movie-language?movieLanguage=English",
     );
-    await expect(page.getByRole("link", { name: "United States" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "French" })).toHaveAttribute(
       "href",
-      "/?movieCountry=United%20States",
+      "/movie-language?movieLanguage=French",
     );
+    await expect(page.getByRole("link", { name: "United Kingdom" })).toHaveAttribute(
+      "href",
+      "/movie-country?movieCountry=United%20Kingdom",
+    );
+    await expect(page.getByRole("link", { name: "France" })).toHaveAttribute(
+      "href",
+      "/movie-country?movieCountry=France",
+    );
+    // Never one link for the whole joined string.
+    await expect(page.getByRole("link", { name: "English, French" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "United Kingdom, France" })).toHaveCount(0);
   });
 
   // #373/#437: the day itself stayed shown but stopped being a link once
@@ -784,8 +808,11 @@ test.describe("movie details page", () => {
     await expect(page.getByText("PG-13")).toBeVisible();
     await expect(page.getByText("155 min")).toBeVisible();
     await expect(page.getByText("22 Oct 2021")).toBeVisible();
-    await expect(page.getByText("English")).toBeVisible();
-    await expect(page.getByText("USA, Canada")).toBeVisible();
+    // #450: shown as two individually clickable chips, not one "USA,
+    // Canada" string — see the dedicated split-links test above.
+    await expect(page.getByRole("link", { name: "English" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "USA" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Canada" })).toBeVisible();
     await expect(page.getByText("74", { exact: true })).toBeVisible();
     await expect(page.getByText("789,012")).toBeVisible();
     await expect(page.getByText("N/A")).toBeVisible();
@@ -1003,7 +1030,10 @@ test.describe("movie details page", () => {
     expect(left + width).toBeCloseTo(100, 1);
   });
 
-  test("clicking a genre chip filters the overview to viewings with exactly that genre value", async ({
+  // #450: clicking a genre chip used to land on the main overview,
+  // pre-filtered. It now goes to the dedicated /genre page instead — see
+  // tests/attribute-pages.spec.ts for that page's own coverage.
+  test("clicking a genre chip goes to its own dedicated page, showing only viewings with exactly that genre value", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -1025,13 +1055,14 @@ test.describe("movie details page", () => {
 
     await page.getByRole("link", { name: "Action", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/\?genre=Action/);
+    await expect(page).toHaveURL(/\/genre\/?\?genre=Action/);
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
-  // #183
-  test("clicking the director chip filters the overview to viewings with exactly that director", async ({
+  // #183/#450: clicking the director chip used to land on the main
+  // overview, pre-filtered. It now goes to the dedicated /director page.
+  test("clicking the director chip goes to its own dedicated page, showing only viewings with exactly that director", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -1050,7 +1081,7 @@ test.describe("movie details page", () => {
 
     await page.getByRole("link", { name: "Denis Villeneuve" }).click();
 
-    await expect(page).toHaveURL(/\/\?director=Denis/);
+    await expect(page).toHaveURL(/\/director\/?\?director=Denis/);
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });

@@ -1,3 +1,4 @@
+import { ATTRIBUTES } from "../lib/attribute/attributes";
 import {
   ACTIVE_FILTER_LABEL_EVENT,
   type ActiveFilterValues,
@@ -40,6 +41,17 @@ const PAGE_NAMES: Record<string, string> = {
   "/about": "About",
   "/shared": "Shared viewing",
 };
+
+// #450: director/actor/genre/movie-country/movie-language each get the
+// same "listing and detail page share one label" shape "/venue" already
+// has with "/venues" above — filled in from lib/attribute/attributes.ts's
+// own config table rather than five more hand-typed pairs here, so a
+// sixth attribute (were one ever added) wouldn't need a matching edit in
+// two places.
+for (const config of Object.values(ATTRIBUTES)) {
+  PAGE_NAMES[config.listingPath] = config.plural;
+  PAGE_NAMES[config.detailPath] = config.plural;
+}
 
 function normalizePath(pathname: string): string {
   return pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;

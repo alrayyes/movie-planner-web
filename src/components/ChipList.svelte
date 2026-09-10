@@ -1,15 +1,24 @@
 <script lang="ts">
-// #414: a details-page chip list (director/actor/genre) — extracted since
-// all three rendered the identical markup, and a title with dozens of
-// actors made that list dominate the whole page. Caps what's shown until
-// a visitor asks for the rest, rather than always rendering every chip.
+import {
+	type AttributeKind,
+	// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+	attributeHref,
+} from "../lib/attribute/attributes";
+
+// #414: a details-page chip list (director/actor/genre, and — #450 —
+// movie country/language) — extracted since all five render identical
+// markup, and a title with dozens of actors made that list dominate the
+// whole page. Caps what's shown until a visitor asks for the rest,
+// rather than always rendering every chip.
+// #450: each chip now links to its own dedicated, filter-free per-value
+// page (attributeHref) instead of the main overview pre-filtered to it.
 interface Props {
 	items: string[];
-	paramName: string;
+	kind: AttributeKind;
 	limit?: number;
 }
-// biome-ignore lint/correctness/noUnusedVariables: paramName is used in the template below, which Biome does not parse for .svelte files
-const { items, paramName, limit = 8 }: Props = $props();
+// biome-ignore lint/correctness/noUnusedVariables: kind is used in the template below, which Biome does not parse for .svelte files
+const { items, kind, limit = 8 }: Props = $props();
 
 let expanded = $state(false);
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
@@ -21,7 +30,7 @@ const hiddenCount = $derived(items.length - limit);
 <div class="flex flex-wrap items-center gap-1">
   {#each visibleItems as item (item)}
     <a
-      href={`/?${paramName}=${encodeURIComponent(item)}`}
+      href={attributeHref(kind, item)}
       class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-indigo-600 hover:underline dark:bg-slate-700 dark:text-indigo-400"
     >
       {item}
