@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.105.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.104.0...movie-planner-web-v0.105.0) (2026-09-10)
+
+
+### Features
+
+* **attribute-pages:** add per-value pages for director/actor/genre/country/language chips ([#523](https://github.com/alrayyes/movie-planner-web/issues/523)) ([1b92e4c](https://github.com/alrayyes/movie-planner-web/commit/1b92e4c6fab8ade57e16888d7ff84e2f574702de)), closes [#450](https://github.com/alrayyes/movie-planner-web/issues/450)
+
 ## [0.104.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.103.0...movie-planner-web-v0.104.0) (2026-09-10)
 
 
