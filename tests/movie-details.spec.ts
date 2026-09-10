@@ -689,6 +689,26 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("link", { name: "United Kingdom, France" })).toHaveCount(0);
   });
 
+  // #528: a chip list keyed by its own value (ChipList.svelte) threw
+  // Svelte's each_key_duplicate — and failed to render the whole page —
+  // when OMDb data genuinely repeated a value, as a real production
+  // viewing did. splitMultiValue now dedupes, so a repeat renders once
+  // instead of crashing.
+  test("renders successfully when a chip field has a literal duplicate value", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      { ...DUNE, movieCountry: "USA, USA", director: "Denis Villeneuve, Denis Villeneuve" },
+    ]);
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByRole("link", { name: "USA", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("link", { name: "Denis Villeneuve" })).toHaveCount(1);
+    expect(errors).toEqual([]);
+  });
+
   // #373/#437: the day itself stayed shown but stopped being a link once
   // the overview's own exact-day Released Date filter was removed
   // outright — month and year remain clickable.
