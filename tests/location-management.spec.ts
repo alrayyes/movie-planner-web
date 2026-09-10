@@ -362,3 +362,103 @@ test.describe("structured venue picklist", () => {
       .toEqual([{ name: "Regal Union Square", city: "Metropolis" }]);
   });
 });
+
+// #519: #452 shipped an "Add venue" form but no way back into an
+// already-known entry to fill in what's missing or fix what's wrong —
+// deleting and re-adding under the same name was the only workaround.
+// "Edit venue" reuses the same fields (plus the Nominatim lookup) on
+// whichever entry is currently selected, without touching its name.
+test.describe("editing an existing venue's structured data", () => {
+  test("editing a venue's fields updates the picklist entry, pre-filled with what's already set", async ({
+    page,
+  }) => {
+    const server = await connect(page, {
+      media: ["cinema"],
+      venues: [{ name: "Grand Vista Cinema", city: "Anytown" }],
+    });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.locator("#log-venue").selectOption("Grand Vista Cinema");
+
+    await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            display_name: "Grand Vista Cinema, Anytown, USA",
+            lat: "52.3665062",
+            lon: "4.8947073",
+          },
+        ]),
+      });
+    });
+
+    await page.getByRole("button", { name: "Edit venue" }).click();
+    // Already-set fields are pre-filled, not blanked.
+    await expect(page.locator("#log-edit-venue-name")).toHaveValue("Grand Vista Cinema");
+    await expect(page.locator("#log-edit-venue-city")).toHaveValue("Anytown");
+    await expect(page.locator("#log-edit-venue-street")).toHaveValue("");
+
+    await page.locator("#log-edit-venue-street").fill("123 Main St");
+    await page.locator("#log-edit-venue-postal").fill("12345");
+    await page.locator("#log-edit-venue-country").fill("USA");
+    await page.locator("#log-edit-venue-geo-search").fill("Grand Vista Cinema");
+    await page.getByRole("button", { name: "Grand Vista Cinema, Anytown, USA" }).click();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Save venue" }).click();
+
+    await expect
+      .poll(() => server.picklists.venues)
+      .toEqual([
+        {
+          name: "Grand Vista Cinema",
+          streetAddress: "123 Main St",
+          postalCode: "12345",
+          city: "Anytown",
+          country: "USA",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+      ]);
+  });
+
+  test("editing a venue's data doesn't retroactively change what's already logged at it", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      venue: "Grand Vista Cinema",
+      city: "Anytown",
+      country: "USA",
+    };
+    const server = await connect(
+      page,
+      {
+        media: ["cinema"],
+        venues: [{ name: "Grand Vista Cinema", city: "Anytown", country: "USA" }],
+      },
+      [dune],
+    );
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.locator("#log-venue").selectOption("Grand Vista Cinema");
+
+    await page.getByRole("button", { name: "Edit venue" }).click();
+    await page.locator("#log-edit-venue-city").fill("Newtown");
+    await page.getByRole("button", { name: "Save venue" }).click();
+
+    await expect
+      .poll(() => server.picklists.venues)
+      .toEqual([{ name: "Grand Vista Cinema", city: "Newtown", country: "USA" }]);
+
+    // The viewing logged before the edit keeps its own stored city as of
+    // when it was logged — only the picklist entry itself changed.
+    expect(server.viewings.get("dune-uid")?.city).toBe("Anytown");
+  });
+});

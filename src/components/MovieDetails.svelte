@@ -218,6 +218,23 @@ async function handleAddVenue(entry: VenueEntry) {
 	}
 }
 
+// #519: VenuePicker's own "Edit venue" submission — same shape as
+// LogViewingForm.svelte's identical handler.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleEditVenue(entry: VenueEntry) {
+	if (!config) return;
+	const next = {
+		...picklists,
+		venues: picklists.venues.map((existing) => (existing.name === entry.name ? entry : existing)),
+	};
+	picklists = next;
+	try {
+		await updatePicklists(config, next);
+	} catch {
+		// The next attempt just re-saves it; not worth failing the edit on.
+	}
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleSave(current: LoggedViewing) {
 	if (!config) return;
@@ -550,7 +567,13 @@ reloadOnBfcacheRestore(() => void load());
             </label>
           {/each}
           <div class="sm:col-span-2">
-            <VenuePicker idPrefix="details" {picklists} bind:value={editValues.venue} onAddVenue={handleAddVenue} />
+            <VenuePicker
+              idPrefix="details"
+              {picklists}
+              bind:value={editValues.venue}
+              onAddVenue={handleAddVenue}
+              onEditVenue={handleEditVenue}
+            />
             {#if editValues.venue && selectedVenueEntry?.geo}
               <p class={STATUS_TEXT}>Using {editValues.venue}'s known location.</p>
             {/if}
