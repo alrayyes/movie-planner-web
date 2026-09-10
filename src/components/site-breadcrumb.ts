@@ -53,6 +53,16 @@ for (const config of Object.values(ATTRIBUTES)) {
   PAGE_NAMES[config.detailPath] = config.plural;
 }
 
+// #534: a detail page's own middle crumb is a real link back to its
+// listing page ("Home / Venues / De Munt", "Venues" clickable), keyed
+// by the *detail* path only — a listing page itself never has a live
+// filter label to combine with, so it never reaches the branch below
+// that reads this map.
+const LISTING_HREFS: Record<string, string> = { "/venue": "/venues" };
+for (const config of Object.values(ATTRIBUTES)) {
+  LISTING_HREFS[config.detailPath] = config.listingPath;
+}
+
 function normalizePath(pathname: string): string {
   return pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 }
@@ -111,11 +121,15 @@ export class SiteBreadcrumb extends HTMLElement {
   private render(liveFilterLabel: string | null) {
     const path = normalizePath(window.location.pathname);
     const pageLabel = PAGE_NAMES[path];
-    const label =
-      pageLabel && liveFilterLabel
-        ? `${pageLabel} / ${liveFilterLabel}`
-        : (liveFilterLabel ?? pageLabel);
-    if (!label) {
+    const listingHref = LISTING_HREFS[path];
+    // #534: a detail page (pageLabel + liveFilterLabel both present, and
+    // this path has a listing page distinct from itself) gets a real
+    // three-level trail — "/" filtered by a chip-driven query param has
+    // liveFilterLabel with no pageLabel at all, so it never reaches this
+    // branch and keeps its own plain two-item "Home / <label>" shape.
+    const middleLabel = pageLabel && liveFilterLabel ? pageLabel : null;
+    const currentLabel = middleLabel ? liveFilterLabel : (liveFilterLabel ?? pageLabel);
+    if (!currentLabel) {
       this.replaceChildren();
       return;
     }
@@ -125,6 +139,14 @@ export class SiteBreadcrumb extends HTMLElement {
     const ol = document.createElement("ol");
     ol.className = BREADCRUMB_LIST;
 
+    const appendSeparator = () => {
+      const separator = document.createElement("li");
+      separator.setAttribute("aria-hidden", "true");
+      separator.className = BREADCRUMB_SEPARATOR;
+      separator.textContent = "/";
+      ol.appendChild(separator);
+    };
+
     const homeItem = document.createElement("li");
     const homeLink = document.createElement("a");
     homeLink.href = "/";
@@ -132,17 +154,27 @@ export class SiteBreadcrumb extends HTMLElement {
     homeLink.textContent = "Home";
     homeItem.appendChild(homeLink);
     ol.appendChild(homeItem);
+    appendSeparator();
 
-    const separator = document.createElement("li");
-    separator.setAttribute("aria-hidden", "true");
-    separator.className = BREADCRUMB_SEPARATOR;
-    separator.textContent = "/";
-    ol.appendChild(separator);
+    if (middleLabel) {
+      const middleItem = document.createElement("li");
+      if (listingHref) {
+        const middleLink = document.createElement("a");
+        middleLink.href = listingHref;
+        middleLink.className = BREADCRUMB_LINK;
+        middleLink.textContent = middleLabel;
+        middleItem.appendChild(middleLink);
+      } else {
+        middleItem.textContent = middleLabel;
+      }
+      ol.appendChild(middleItem);
+      appendSeparator();
+    }
 
     const currentItem = document.createElement("li");
     currentItem.setAttribute("aria-current", "page");
     currentItem.className = BREADCRUMB_CURRENT;
-    currentItem.textContent = label;
+    currentItem.textContent = currentLabel;
     ol.appendChild(currentItem);
 
     nav.appendChild(ol);

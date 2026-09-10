@@ -75,6 +75,12 @@ const total = $derived(viewings.length);
 // VenuesOverview.svelte's own per-venue city already uses, not the
 // raw venue string itself.
 const trimmedVenue = $derived(venueDisplay(venue || undefined, viewings.find((v) => v.city)?.city));
+// #534: the page <title> is set at build time (venue.astro's Layout
+// prop, "Movie Planner") — this is the client-side update on top of
+// that default, same pattern CalendarOverview.svelte's own
+// DEFAULT_TITLE/$effect already uses for its filter label.
+const DEFAULT_TITLE = document.title;
+
 // #375: broadcasts the venue's trimmed display name the same way
 // CalendarOverview.svelte's own chip-driven filter label already does
 // (#375/#376), so site-breadcrumb.ts's existing dynamic-segment
@@ -85,6 +91,9 @@ const trimmedVenue = $derived(venueDisplay(venue || undefined, viewings.find((v)
 $effect(() => {
 	if (trimmedVenue) {
 		window.dispatchEvent(new CustomEvent(ACTIVE_FILTER_LABEL_EVENT, { detail: trimmedVenue }));
+		document.title = `${trimmedVenue} — Venues — Movie Planner`;
+	} else {
+		document.title = DEFAULT_TITLE;
 	}
 });
 const pages = $derived(Math.max(1, Math.ceil(total / pageSize)));

@@ -87,6 +87,40 @@ test.describe("per-venue page", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #534: the breadcrumb's middle crumb is a real link back to /venues,
+  // not just flat text baked into the current item — and the page
+  // title reflects the specific venue, not the generic app name.
+  test("breadcrumb's middle crumb links to /venues, and the page title reflects the venue", async ({
+    page,
+  }) => {
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          venue: "Grand Vista Cinema",
+        },
+      ],
+      { media: ["cinema"], venues: ["Grand Vista Cinema"] },
+    );
+    await connect(page);
+
+    await page.goto(`/venue?venue=${encodeURIComponent("Grand Vista Cinema")}`);
+
+    const nav = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    await expect(nav.getByRole("link", { name: "Venues" })).toHaveAttribute("href", "/venues");
+    await expect(nav.getByText("Grand Vista Cinema")).toBeVisible();
+
+    await expect(page).toHaveTitle("Grand Vista Cinema — Venues — Movie Planner");
+  });
+
   test("shows an empty-results state for a venue matching nothing, not an error", async ({
     page,
   }) => {
