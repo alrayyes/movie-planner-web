@@ -32,7 +32,7 @@ import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { parseReleasedDate } from "../lib/omdb/released-date";
+import { releasedDayOfWeek } from "../lib/omdb/released-date";
 import { encodeSharedState, type SharedState, toSharedViewing } from "../lib/share/encode";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -825,39 +825,17 @@ reloadOnBfcacheRestore(() => void load());
                 <dd class={DD}><ChipList items={movieCountryChips} kind="movieCountry" /></dd>
               {/if}
               {#if viewing.released}
-                <!-- #373/#437/#535: two independently clickable pieces —
-                month and year — since OMDb's own "DD MMM YYYY" shape
-                splits cleanly into the two granularities Released Year/
-                Month pages support. The day itself is shown but no
-                longer clickable — there's no per-day page, same as the
-                overview's own exact-day Released Date filter having been
-                removed outright (too granular to justify the field).
-                Each links to its own dedicated, filter-free per-value
-                page (attributeHref) rather than the main overview
-                pre-filtered to it. Falls back to plain text for a shape
-                parseReleasedDate doesn't recognize, rather than guessing
-                at values that wouldn't actually match anything. -->
-                {@const releasedParts = viewing.released.split(" ")}
-                {@const releasedFilters = parseReleasedDate(viewing.released)}
+                <!-- #545: plain text now, deliberately — Released
+                previously linked its month/year pieces to their own
+                per-value pages (#373/#437/#535), but that's not what a
+                visitor wants out of a movie's own release date, just
+                information. Day of week (releasedDayOfWeek) prepended
+                when the date is parseable; falls back to the raw OMDb
+                string unchanged when it isn't. -->
+                {@const dayOfWeek = releasedDayOfWeek(viewing.released)}
                 <dt class={DT}>Released</dt>
                 <dd class={DD}>
-                  {#if releasedFilters && releasedParts.length === 3}
-                    {releasedParts[0]}
-                    <a
-                      href={attributeHref("releasedMonth", releasedFilters.month)}
-                      class="text-indigo-600 hover:underline dark:text-indigo-400"
-                    >
-                      {releasedParts[1]}
-                    </a>
-                    <a
-                      href={attributeHref("releasedYear", releasedFilters.year)}
-                      class="text-indigo-600 hover:underline dark:text-indigo-400"
-                    >
-                      {releasedParts[2]}
-                    </a>
-                  {:else}
-                    {viewing.released}
-                  {/if}
+                  {dayOfWeek ? `${dayOfWeek} ${viewing.released}` : viewing.released}
                 </dd>
               {/if}
               {#if viewing.row || viewing.seat}

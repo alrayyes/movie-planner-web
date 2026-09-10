@@ -710,37 +710,32 @@ test.describe("movie details page", () => {
     expect(errors).toEqual([]);
   });
 
-  // #373/#437/#535: the day itself stayed shown but stopped being a link
-  // once the overview's own exact-day Released Date filter was removed
-  // outright — month and year remain clickable, now to their own
-  // dedicated per-value pages rather than the overview pre-filtered to
-  // that granularity.
-  test("links the month and year pieces of Released to their own dedicated per-value pages, day shown as plain text", async ({
+  // #545: Released is plain text now, deliberately — previously linked
+  // its month/year pieces to their own dedicated per-value pages
+  // (#373/#437/#535), but that's not what a visitor wants out of a
+  // movie's own release date. Day of week prepended when the date
+  // parses.
+  test("shows Released as plain text with the day of week prepended, no links", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, released: "22 Oct 2021" }]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
+    await expect(page.getByText("Fri 22 Oct 2021")).toBeVisible();
     await expect(page.getByRole("link", { name: "22" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Oct" })).toHaveAttribute(
-      "href",
-      "/released-month?releasedMonth=2021-10",
-    );
-    await expect(page.getByRole("link", { name: "2021" })).toHaveAttribute(
-      "href",
-      "/released-year?releasedYear=2021",
-    );
+    await expect(page.getByRole("link", { name: "Oct" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "2021" })).toHaveCount(0);
   });
 
-  test("falls back to plain text for a Released value parseReleasedDate doesn't recognize", async ({
+  test("falls back to the raw value, with no day of week, for a Released value parseReleasedDate doesn't recognize", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, released: "Coming soon" }]);
     await connect(page);
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
-    await expect(page.getByText("Coming soon")).toBeVisible();
+    await expect(page.getByText("Coming soon", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Coming soon" })).toHaveCount(0);
   });
 
