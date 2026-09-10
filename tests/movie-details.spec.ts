@@ -498,6 +498,51 @@ test.describe("movie details page", () => {
     expect(server.updates).toHaveLength(0);
   });
 
+  // #579: the picker's own dismiss button, shared with "Refresh metadata",
+  // read "Continue without metadata" — accurate for Refresh, but for a
+  // manual search that's the only way back to the viewing's own details,
+  // and nothing about that label reads as "back" or "cancel".
+  test("cancelling out of the OMDb search picker leaves the existing metadata untouched", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      expect(url.searchParams.get("s")).toBe("Dune 1984");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Search: [
+            {
+              Title: "Dune",
+              Year: "1984",
+              imdbID: "tt0087182",
+              Poster: "https://example.com/dune-1984.jpg",
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Dune 1984");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await picker.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(picker).toHaveCount(0);
+    await expect(page.locator("#movie-status")).toHaveText("Search canceled.");
+    expect(server.updates).toHaveLength(0);
+    await expect(page.getByRole("button", { name: "Search OMDb" })).toBeVisible();
+  });
+
   // #153: a constructed search link (the only kind ever offered for RT,
   // and the fallback for Letterboxd without a real URL) looks identical
   // to a confirmed match unless it says otherwise — a visitor has no way

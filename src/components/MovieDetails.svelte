@@ -296,7 +296,7 @@ async function handleRefresh(current: LoggedViewing) {
 		// outright.
 		const candidates = await searchMovies(omdbApiKey, fresh.title);
 		if (candidates.length > 0) {
-			showOmdbPicker(fresh, candidates);
+			showOmdbPicker(fresh, candidates, "refresh");
 			return;
 		}
 		statusText = "OMDb had no match for this title.";
@@ -305,7 +305,17 @@ async function handleRefresh(current: LoggedViewing) {
 	}
 }
 
-function showOmdbPicker(current: LoggedViewing, candidates: OmdbCandidate[]) {
+// #579: "refresh" keeps the picker's original "Continue without metadata"
+// wording (accurate there — nothing was attached either way); "search"
+// is a visitor manually looking for a better match, where that same
+// picker is the only way back to the viewing's own details, so it gets
+// a plain "Cancel" instead and a status line that doesn't claim OMDb
+// found nothing when candidates were shown and simply not picked.
+function showOmdbPicker(
+	current: LoggedViewing,
+	candidates: OmdbCandidate[],
+	origin: "refresh" | "search",
+) {
 	if (!pickerArea || !config || !omdbApiKey) return;
 	showingPicker = true;
 	pickerArea.replaceChildren(
@@ -332,8 +342,9 @@ function showOmdbPicker(current: LoggedViewing, candidates: OmdbCandidate[]) {
 			() => {
 				showingPicker = false;
 				pickerArea?.replaceChildren();
-				statusText = "OMDb had no match for this title.";
+				statusText = origin === "search" ? "Search canceled." : "OMDb had no match for this title.";
 			},
+			origin === "search" ? "Cancel" : undefined,
 		),
 	);
 }
@@ -357,7 +368,7 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 			// already uses — picking a result overwrites every OMDb-derived
 			// field (poster included) via lookupByImdbId, regardless of
 			// whether this viewing already had a (possibly wrong) match.
-			showOmdbPicker(current, candidates);
+			showOmdbPicker(current, candidates, "search");
 		} else {
 			statusText = "OMDb had no match for that search.";
 		}

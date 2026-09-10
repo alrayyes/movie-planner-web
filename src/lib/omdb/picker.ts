@@ -12,6 +12,10 @@ export function buildOmdbPicker(
   candidates: OmdbCandidate[],
   onSelect: (candidate: OmdbCandidate) => void,
   onDismiss: () => void,
+  // #579: "Continue without metadata" is accurate for the Refresh flow
+  // (the default every other caller keeps), but reads as a forward action
+  // rather than the only way back out of a manual search.
+  dismissLabel = "Continue without metadata",
 ): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className =
@@ -51,7 +55,7 @@ export function buildOmdbPicker(
   const dismiss = document.createElement("button");
   dismiss.type = "button";
   dismiss.className = BUTTON_SECONDARY;
-  dismiss.textContent = "Continue without metadata";
+  dismiss.textContent = dismissLabel;
   dismiss.addEventListener("click", onDismiss);
   wrap.appendChild(dismiss);
 
