@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.100.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.99.0...movie-planner-web-v0.100.0) (2026-09-10)
+
+
+### Features
+
+* **overview:** tier filters, wrap them in a card, and move map below results ([#507](https://github.com/alrayyes/movie-planner-web/issues/507)) ([9f56fa7](https://github.com/alrayyes/movie-planner-web/commit/9f56fa7d796d76b2603a89e2d3ae2efd75ea528d)), closes [#437](https://github.com/alrayyes/movie-planner-web/issues/437)
+
 ## [0.99.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.98.0...movie-planner-web-v0.99.0) (2026-09-10)
 
 
