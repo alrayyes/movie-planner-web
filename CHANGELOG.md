@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.111.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.110.1...movie-planner-web-v0.111.0) (2026-09-10)
+
+
+### Features
+
+* **calendar:** order the heatmap's year grids newest first ([#569](https://github.com/alrayyes/movie-planner-web/issues/569)) ([0789e6c](https://github.com/alrayyes/movie-planner-web/commit/0789e6cb7220c0d98bc246c3a209b840f8afa973))
+
 ## [0.110.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.110.0...movie-planner-web-v0.110.1) (2026-09-10)
 
 
