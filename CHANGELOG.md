@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.99.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.98.0...movie-planner-web-v0.99.0) (2026-09-10)
+
+
+### Features
+
+* **details:** surface TMDb-derived collection, certification, budget, popularity and keywords ([#508](https://github.com/alrayyes/movie-planner-web/issues/508)) ([eea4eb1](https://github.com/alrayyes/movie-planner-web/commit/eea4eb180ef3f5134bd950f299ded6026a8e18d1)), closes [#400](https://github.com/alrayyes/movie-planner-web/issues/400)
+
 ## [0.98.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.97.1...movie-planner-web-v0.98.0) (2026-09-10)
 
 
