@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.1.0...movie-planner-web-v1.1.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **movie-details:** give the OMDb search picker a real Cancel button ([#581](https://github.com/alrayyes/movie-planner-web/issues/581)) ([8ec4dbe](https://github.com/alrayyes/movie-planner-web/commit/8ec4dbeb785bf793327b55af711123ad8ff2177f)), closes [#579](https://github.com/alrayyes/movie-planner-web/issues/579)
+* **movie-details:** make Back to overview return to the referring page ([#582](https://github.com/alrayyes/movie-planner-web/issues/582)) ([7a21f21](https://github.com/alrayyes/movie-planner-web/commit/7a21f21471703ba12af0f15f5a4f97cdf0121ccc)), closes [#580](https://github.com/alrayyes/movie-planner-web/issues/580)
+
 ## [1.1.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.0.0...movie-planner-web-v1.1.0) (2026-09-10)
 
 
