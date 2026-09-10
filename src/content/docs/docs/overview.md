@@ -73,12 +73,12 @@ already open, Delete asks for confirmation first.
 
 Below the results table and pagination, the overview also shows a map
 of whatever's currently filtered, one pin per viewing with a known
-location — the same map [the map page](/docs/map/) and
-[Venues](/docs/venues/) use, just scoped to the current filter instead
-of your whole history. It sits after the table rather than before it,
-so the primary list is reachable without scrolling (or tabbing) past a
-secondary visualization. No filter, or nothing located yet, means no
-map shows at all rather than an empty one.
+location — the same map [Venues](/docs/venues/) uses, just scoped to
+the current filter instead of your whole history. It sits after the
+table rather than before it, so the primary list is reachable without
+scrolling (or tabbing) past a secondary visualization. No filter, or
+nothing located yet, means no map shows at all rather than an empty
+one.
 
 ## Sharing a single viewing
 

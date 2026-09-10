@@ -37,9 +37,10 @@ export interface MapPin {
 	lat: number;
 	lon: number;
 	label: string;
-	// #8/#203: the global /map page links a pin back to that viewing's
-	// own details page; the per-venue map on that same details page has
-	// nowhere further to link to, so this stays optional.
+	// #8/#203: the Venues and Viewings overview maps link a pin back to
+	// that viewing's own details page; the per-venue map on that same
+	// details page has nowhere further to link to, so this stays
+	// optional.
 	href?: string;
 	// A viewing with no OMDb match (or OMDb lookups paused/no key set)
 	// has no poster — the popup just omits the image in that case,
@@ -117,9 +118,9 @@ $effect(() => {
 });
 
 // #8/#203: re-synced whenever `pins` changes, not set up once at
-// mount — the global /map page's own pins arrive asynchronously
-// (after its own CalDAV fetch resolves), later than this component
-// itself mounts.
+// mount — a caller's own pins (Venues, the overview) arrive
+// asynchronously (after its own CalDAV fetch resolves), later than
+// this component itself mounts.
 $effect(() => {
 	if (!map) return;
 	for (const marker of markers) marker.remove();

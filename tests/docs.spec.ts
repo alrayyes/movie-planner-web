@@ -110,7 +110,6 @@ test.describe("docs", () => {
         "Viewings",
         "Venues",
         "Calendar",
-        "Map",
         "Settings",
       ]);
     });
