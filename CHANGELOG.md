@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.104.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.103.0...movie-planner-web-v0.104.0) (2026-09-10)
+
+
+### Features
+
+* **venue:** edit an already-known venue's structured data ([#521](https://github.com/alrayyes/movie-planner-web/issues/521)) ([70bfd38](https://github.com/alrayyes/movie-planner-web/commit/70bfd38dd3376c28d838d67ac8f4a26694c8b361)), closes [#519](https://github.com/alrayyes/movie-planner-web/issues/519)
+
 ## [0.103.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.102.0...movie-planner-web-v0.103.0) (2026-09-10)
 
 
