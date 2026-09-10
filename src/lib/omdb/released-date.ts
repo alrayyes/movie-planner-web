@@ -1,4 +1,11 @@
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// #142's own split: the weekday abbreviation stays English regardless
+// of whatever locale the rest of a date is rendered in elsewhere in
+// this app (src/lib/ui/datetime.ts's own WEEKDAY_LOCALE) — kept as its
+// own constant here rather than importing that one, since this module
+// has no other dependency on datetime.ts and the two are allowed to
+// drift independently if that ever needs to change.
+const WEEKDAY_LOCALE = "en-US";
 
 export interface ReleasedDateFilters {
   year: string;
@@ -25,4 +32,17 @@ export function parseReleasedDate(released: string): ReleasedDateFilters | null 
     month: `${year}-${month}`,
     date: `${year}-${month}-${pad(Number(day))}`,
   };
+}
+
+// #545: the movie details page's own Released field shows the day of
+// week alongside the raw date. Built from parseReleasedDate's own
+// parsed components via the local Date constructor (matching
+// datetime.ts's localDayBoundary — never `new Date("22 Oct 1994")`
+// string parsing, which some engines read as UTC and can land on the
+// wrong local day) — not a second, independent parser.
+export function releasedDayOfWeek(released: string): string | null {
+  const parsed = parseReleasedDate(released);
+  if (!parsed) return null;
+  const [year, month, day] = parsed.date.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(WEEKDAY_LOCALE, { weekday: "short" });
 }
