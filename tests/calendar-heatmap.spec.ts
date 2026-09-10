@@ -55,10 +55,15 @@ test.describe("viewing heatmap", () => {
     await expect(page.getByText("1 logged viewing.")).toBeVisible();
   });
 
-  // #275: a year heading above its own months, both clickable — a day
-  // cell opens a popup instead (too small a span to navigate away for),
-  // but a month or a year is too much to preview there.
-  test("clicking the year or month heading navigates to the overview filtered to that span", async ({
+  // #275/#536: a year heading above its own grid, still clickable — a
+  // day cell opens a popup instead (too small a span to navigate away
+  // for), but a month or a year is too much to preview there. The
+  // redesign (#536) replaced the old per-month heading with a compact
+  // month label positioned above that month's own columns — still a
+  // real link, just no longer wrapped in its own <h3> sub-heading,
+  // since a month is now a label inside one continuous year grid, not
+  // a document section of its own.
+  test("clicking the year heading or a month label navigates to the overview filtered to that span", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -80,13 +85,10 @@ test.describe("viewing heatmap", () => {
       "/?from=2026-01-01&to=2026-12-31",
     );
 
-    const monthHeading = page.getByRole("heading", { level: 3, name: "March" });
-    await expect(monthHeading.getByRole("link", { name: "March" })).toHaveAttribute(
-      "href",
-      "/?from=2026-03-01&to=2026-03-31",
-    );
+    const marchLabel = page.getByRole("link", { name: "Mar", exact: true });
+    await expect(marchLabel).toHaveAttribute("href", "/?from=2026-03-01&to=2026-03-31");
 
-    await monthHeading.getByRole("link", { name: "March" }).click();
+    await marchLabel.click();
     await expect(page).toHaveURL(/\/\?from=2026-03-01&to=2026-03-31/);
     await expect(page.locator("tbody tr")).toHaveCount(1);
   });
@@ -393,10 +395,11 @@ test.describe("viewing heatmap", () => {
   });
 
   test("an empty day cell has no button and does nothing when activated", async ({ page }) => {
-    // Two viewings a few days apart, so the rendered range (earliest to
-    // latest viewing day) actually spans an empty day in between — a
-    // single viewing alone renders a one-cell grid with nothing empty
-    // to test.
+    // Two viewings a few days apart, so there's a specific known-empty
+    // day in between to assert against — the year grid itself (#536)
+    // always renders every day of the year regardless of activity, so
+    // even a single viewing already has plenty of empty cells around
+    // it; this just picks one with a predictable date.
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       {
         uid: "dune-uid",
@@ -424,11 +427,19 @@ test.describe("viewing heatmap", () => {
   });
 
   // #259 first collapsed a fully-empty month to a single "No viewings."
-  // line instead of a full ~30-cell empty grid; #286 goes further and
-  // skips it entirely — a real excerpt from an actual import showed 20
-  // consecutive empty months each still rendering their own line, one
-  // after another.
-  test("a month with no viewings at all is skipped entirely, not shown as a compact line", async ({
+  // line instead of a full ~30-cell empty grid; #286 went further and
+  // skipped it entirely — a real excerpt from an actual import showed
+  // 20 consecutive empty months each still rendering their own line,
+  // one after another. #536's continuous week-column grid makes that
+  // hack unnecessary: a quiet stretch of months is now just some
+  // unshaded columns inside the same compact year grid, not a
+  // document section of its own with its own dead space to collapse —
+  // so this replacement asserts the equivalent guarantee (a long gap
+  // doesn't read as a wall of anything) the new way: no per-month
+  // sub-headings at all, both active months' own labels still present,
+  // and a day squarely inside the gap still renders as a real,
+  // zero-count cell rather than being culled.
+  test("a long gap between active months renders as quiet cells within one continuous year grid, not skipped or split into sections", async ({
     page,
   }) => {
     const recent = daysAgo(3);
@@ -453,13 +464,27 @@ test.describe("viewing heatmap", () => {
     await page.goto("/calendar");
     await expect(page.getByText("2 logged viewings.")).toBeVisible();
 
-    // ~200 days spans several whole calendar months with nothing logged
-    // in them at all — none of them render anything, not even a line.
-    await expect(page.getByText("No viewings.")).toHaveCount(0);
+    // No more per-month sub-heading — a month is a label above its own
+    // columns in the one continuous grid, not its own section.
+    await expect(page.getByRole("heading", { level: 3 })).toHaveCount(0);
 
-    // Only the two genuinely active months' headings render.
-    await expect(page.getByRole("heading", { level: 3 })).toHaveCount(2);
-    await expect(page.getByLabel(/: 1 viewing$/).first()).toBeVisible();
+    // Both active months' own labels still render, proving the months
+    // between them (with nothing logged) aren't skipped — they're
+    // still part of the same grid, just quiet columns.
+    const oldMonthLabel = old.toLocaleDateString("en-US", { month: "short" });
+    const recentMonthLabel = recent.toLocaleDateString("en-US", { month: "short" });
+    await expect(
+      page.getByRole("link", { name: oldMonthLabel, exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: recentMonthLabel, exact: true }).first(),
+    ).toBeVisible();
+
+    // A day squarely inside the gap still renders as a real, zero-count
+    // cell — not omitted — since the grid can't skip a stretch of
+    // weeks without breaking column continuity.
+    const gapDay = toDateInputValue(daysAgo(100));
+    await expect(page.getByLabel(`${gapDay}: 0 viewings`, { exact: true })).toBeVisible();
   });
 
   // #241: used to fall back to rendering a 12-month grid of nothing but

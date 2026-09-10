@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { LoggedViewing } from "../caldav/types";
-import { bucketViewingsByLocalDay, groupViewingsByLocalDay } from "./heatmap";
+import { bucketViewingsByLocalDay, buildYearGrids, groupViewingsByLocalDay } from "./heatmap";
 
 function viewing(uid: string, start: string): LoggedViewing {
   return { uid, title: uid, start, end: start, medium: "cinema" };
@@ -68,5 +68,93 @@ describe("groupViewingsByLocalDay", () => {
     expect(
       groups.get(keyFor(new Date(dayA.getTime() + 24 * 60 * 60 * 1000)))?.map((v) => v.uid),
     ).toEqual(["b1"]);
+  });
+});
+
+// #536: the GitHub-contribution-graph-style redesign — weeks as
+// columns, Sunday-to-Saturday as rows, month labels above the columns
+// they span, grouped by real calendar-year boundaries.
+describe("buildYearGrids", () => {
+  test("no counts at all produces no year grids", () => {
+    expect(buildYearGrids(new Map())).toEqual([]);
+  });
+
+  test("only years with at least one logged day render, sorted ascending", () => {
+    const counts = new Map([
+      ["2024-06-15", 1],
+      ["2026-01-02", 2],
+    ]);
+    const grids = buildYearGrids(counts, new Date(2026, 5, 1));
+
+    expect(grids.map((g) => g.year)).toEqual(["2024", "2026"]);
+    // A year with zero logged days in between (2025) never appears —
+    // same "don't render a wall of nothing" reasoning #286 applied at
+    // year grain.
+  });
+
+  test("a year's grid runs Sunday-to-Saturday, Sunday first, from the Sunday on/before January 1st", () => {
+    // 2026-01-01 is a Thursday, so the grid's first week starts on
+    // 2025-12-28 (the Sunday before) with four padding cells (row
+    // indices 0-3: Sun/Mon/Tue/Wed) ahead of it.
+    const counts = new Map([["2026-01-01", 1]]);
+    const [grid] = buildYearGrids(counts, new Date(2026, 11, 31));
+
+    expect(grid).toBeDefined();
+    const firstWeek = grid?.weeks[0];
+    expect(firstWeek?.days[0]).toBeNull();
+    expect(firstWeek?.days[1]).toBeNull();
+    expect(firstWeek?.days[2]).toBeNull();
+    expect(firstWeek?.days[3]).toBeNull();
+    expect(firstWeek?.days[4]).toEqual({ date: "2026-01-01", count: 1 });
+  });
+
+  test("a day cell's count comes straight from the counts map, defaulting to 0", () => {
+    const counts = new Map([["2026-03-15", 4]]);
+    const [grid] = buildYearGrids(counts, new Date(2026, 11, 31));
+
+    const allDays = grid?.weeks.flatMap((w) => w.days).filter((d) => d !== null) ?? [];
+    const match = allDays.find((d) => d?.date === "2026-03-15");
+    expect(match?.count).toBe(4);
+    // Some other logged-year day with nothing that specific day is
+    // still a real (non-padding) cell, at count 0 — not skipped, since
+    // the grid's whole point is showing the full year continuously.
+    const otherDay = allDays.find((d) => d?.date === "2026-01-05");
+    expect(otherDay).toEqual({ date: "2026-01-05", count: 0 });
+  });
+
+  test("the current year's grid stops at today, not a wall of future cells", () => {
+    const counts = new Map([["2026-09-10", 1]]);
+    const today = new Date(2026, 8, 10); // 2026-09-10
+    const [grid] = buildYearGrids(counts, today);
+
+    const allDays = grid?.weeks.flatMap((w) => w.days).filter((d) => d !== null) ?? [];
+    expect(allDays.some((d) => d?.date === "2026-09-10")).toBe(true);
+    expect(allDays.some((d) => d?.date === "2026-09-11")).toBe(false);
+    expect(allDays.some((d) => d?.date === "2026-12-31")).toBe(false);
+  });
+
+  test("a past year's grid runs the whole calendar year, December 31st included", () => {
+    const counts = new Map([["2025-01-01", 1]]);
+    const [grid] = buildYearGrids(counts, new Date(2026, 8, 10));
+
+    const allDays = grid?.weeks.flatMap((w) => w.days).filter((d) => d !== null) ?? [];
+    expect(allDays.some((d) => d?.date === "2025-12-31")).toBe(true);
+  });
+
+  test("one month label per month, positioned on the week column containing that month's 1st", () => {
+    const counts = new Map([["2026-01-01", 1]]);
+    const [grid] = buildYearGrids(counts, new Date(2026, 2, 31)); // through March
+
+    expect(grid?.monthLabels).toEqual([
+      { weekIndex: 0, monthKey: "2026-01", label: "Jan" },
+      expect.objectContaining({ monthKey: "2026-02", label: "Feb" }),
+      expect.objectContaining({ monthKey: "2026-03", label: "Mar" }),
+    ]);
+    // Each label's own week column really does contain that month's
+    // 1st, not just an approximate column.
+    for (const m of grid?.monthLabels ?? []) {
+      const week = grid?.weeks[m.weekIndex];
+      expect(week?.days.some((d) => d?.date === `${m.monthKey}-01`)).toBe(true);
+    }
   });
 });

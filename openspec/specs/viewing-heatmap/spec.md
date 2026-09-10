@@ -7,12 +7,15 @@ overview's own filterable table can't show.
 
 ## Requirements
 
-### Requirement: Heatmap shows viewing density across the visitor's whole history
+### Requirement: Heatmap shows viewing density as a GitHub-style grid, grouped by year
 
-The system SHALL offer a `/calendar` page rendering a day-by-day heatmap
-covering the visitor's whole logged history, shading each day by how
-many viewings were logged on it. A day with no logged viewings SHALL
-render as the lightest/empty shade, not an error or a gap in the grid.
+The system SHALL offer a `/calendar` page rendering a GitHub-contribution-graph-style
+heatmap of the visitor's whole logged history: one grid per calendar
+year, weeks as columns running left to right, Sunday-to-Saturday as
+rows, month labels positioned above the columns they span, and one
+cell per day shaded by how many viewings were logged on it. A day with
+no logged viewings SHALL render as the lightest/empty shade, not an
+error or a gap in the grid.
 
 #### Scenario: Heatmap with varying density
 
@@ -22,12 +25,17 @@ render as the lightest/empty shade, not an error or a gap in the grid.
 #### Scenario: No logged viewings at all
 
 - **WHEN** a visitor opens `/calendar` with no logged viewings
-- **THEN** the system SHALL show the "no logged viewings" status text alone, rendering no month headings or grid cells — not a wall of empty-shaded cells across an arbitrary fallback range
+- **THEN** the system SHALL show the "no logged viewings" status text alone, rendering no year headings or grid cells — not a wall of empty-shaded cells across an arbitrary fallback range
 
-#### Scenario: A month with no logged viewings, inside an otherwise-active history
+#### Scenario: A year's grid runs its whole calendar year
 
-- **WHEN** a visitor opens `/calendar` with logged viewings months apart, so that a month between them has none at all
-- **THEN** the system SHALL show that month's own heading with a compact single line stating it has no viewings, rather than a full day-by-day grid of empty cells
+- **WHEN** a visitor opens `/calendar` and a given year has at least one logged viewing anywhere in it
+- **THEN** the system SHALL render that year's grid from its own January 1st through its December 31st (or through today, for the year still in progress), including days with no logged viewings, rather than skipping quiet stretches
+
+#### Scenario: A year with no logged viewings at all is dropped
+
+- **WHEN** a visitor opens `/calendar` with logged viewings from more than one calendar year, with at least one calendar year in between carrying no logged viewings at all
+- **THEN** the system SHALL render no grid at all for that empty year, rather than a heading with an empty grid under it
 
 ### Requirement: A day cell opens a popup listing that day's own viewings
 
