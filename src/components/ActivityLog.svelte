@@ -1,5 +1,6 @@
 <script lang="ts">
 import { type ActivityLogEntry, getActivityLogStore } from "../lib/activity-log/store";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
@@ -44,7 +45,6 @@ const ACTION_LABEL: Record<ActivityLogEntry["action"], string> = {
 
 // #432: an entry logged before this shipped has no `actor` at all —
 // shown as "This app", the only thing it could have been at the time.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const ACTOR_LABEL: Record<string, string> = {
 	web: "This app",
 	cli: "CLI",
