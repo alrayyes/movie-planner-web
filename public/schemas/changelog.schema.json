@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/alrayyes/movie-planner-web/main/public/schemas/changelog.schema.json",
+  "title": "movie-planner-web changelog release",
+  "description": "One user-relevant release, as the `changelog` content collection exposes it to /changelog (src/lib/changelog/loader.ts, content.config.ts). Derived from CHANGELOG.md, which release-please maintains — see src/lib/changelog/parse.ts for the parsing and the internal-scope filtering (a release with nothing user-relevant left never produces one of these). This documents the existing shape independently of the internal Zod schema; it doesn't change the parsing pipeline.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "date", "entries"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "release-please's own semver, without a leading 'v' (e.g. \"0.90.2\")."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "YYYY-MM-DD, taken from the release heading release-please writes."
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "scope", "description", "prNumber", "prUrl"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["feature", "fix"],
+          "description": "\"feature\" for a Conventional Commits `feat`, \"fix\" for a `fix` — release-please's own \"Features\"/\"Bug Fixes\" section headings."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The commit's Conventional Commits scope (e.g. \"caldav\", \"overview\"). Never an internal scope like \"ci\" or \"deps\" — parse.ts filters those out before an entry reaches this shape."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prNumber": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "prUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        }
+      }
+    }
+  }
+}
