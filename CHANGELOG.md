@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.101.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.100.0...movie-planner-web-v0.101.0) (2026-09-10)
+
+
+### Features
+
+* **nav:** remove the standalone /map page ([#512](https://github.com/alrayyes/movie-planner-web/issues/512)) ([e21d126](https://github.com/alrayyes/movie-planner-web/commit/e21d126ed5b44f8bcd81ddf7c2b9d8817f4a77e1))
+
 ## [0.100.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.99.0...movie-planner-web-v0.100.0) (2026-09-10)
 
 
