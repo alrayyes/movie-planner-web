@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.97.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.97.0...movie-planner-web-v0.97.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **test:** wait for connection before navigating in bulk-import.spec.ts ([#492](https://github.com/alrayyes/movie-planner-web/issues/492)) ([c47fc32](https://github.com/alrayyes/movie-planner-web/commit/c47fc329684cb4f7d0ed22e1d4e249d681a0c7eb)), closes [#491](https://github.com/alrayyes/movie-planner-web/issues/491)
+
 ## [0.97.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.96.0...movie-planner-web-v0.97.0) (2026-09-09)
 
 
