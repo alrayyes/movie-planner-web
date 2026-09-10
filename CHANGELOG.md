@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.105.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.2...movie-planner-web-v0.105.3) (2026-09-10)
+
+
+### Bug Fixes
+
+* **overview:** dedupe the two full-history CalDAV requests an unfiltered load fires ([#538](https://github.com/alrayyes/movie-planner-web/issues/538)) ([b9f9dc8](https://github.com/alrayyes/movie-planner-web/commit/b9f9dc8586f0cf6bcf0cd81de5e78b4eb695b293)), closes [#533](https://github.com/alrayyes/movie-planner-web/issues/533)
+
 ## [0.105.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.1...movie-planner-web-v0.105.2) (2026-09-10)
 
 

@@ -74,6 +74,12 @@ const viewings = $derived.by(() => {
 	return [...matched].sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
 });
 const total = $derived(viewings.length);
+// #534: the page <title> is set at build time (director.astro/etc's
+// Layout prop, "Movie Planner") — this is the client-side update on top
+// of that default, same pattern CalendarOverview.svelte's own
+// DEFAULT_TITLE/$effect already uses for its filter label.
+const DEFAULT_TITLE = document.title;
+
 // #375: broadcasts this value the same way CalendarOverview.svelte's own
 // chip-driven filter label (and VenueOverview.svelte's own trimmed venue
 // name) already do, so site-breadcrumb.ts's existing dynamic-segment
@@ -82,6 +88,9 @@ const total = $derived(viewings.length);
 $effect(() => {
 	if (value) {
 		window.dispatchEvent(new CustomEvent(ACTIVE_FILTER_LABEL_EVENT, { detail: value }));
+		document.title = `${value} — ${config.plural} — Movie Planner`;
+	} else {
+		document.title = DEFAULT_TITLE;
 	}
 });
 const pages = $derived(Math.max(1, Math.ceil(total / pageSize)));
