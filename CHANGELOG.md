@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.110.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.109.0...movie-planner-web-v0.110.0) (2026-09-10)
+
+
+### Features
+
+* **overview:** group Released Year/Month under one shared fieldset ([#564](https://github.com/alrayyes/movie-planner-web/issues/564)) ([b4e8752](https://github.com/alrayyes/movie-planner-web/commit/b4e8752a0feb85cfab5dd10dd3b0478b152c7a34)), closes [#547](https://github.com/alrayyes/movie-planner-web/issues/547)
+
+
+### Bug Fixes
+
+* **details:** make Released plain text, with the day of week added ([#562](https://github.com/alrayyes/movie-planner-web/issues/562)) ([21f6dbc](https://github.com/alrayyes/movie-planner-web/commit/21f6dbca45714fb1143faba326a818e5fc378bed)), closes [#545](https://github.com/alrayyes/movie-planner-web/issues/545)
+
 ## [0.109.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.108.0...movie-planner-web-v0.109.0) (2026-09-10)
 
 
