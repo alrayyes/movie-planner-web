@@ -79,14 +79,17 @@ describe("buildYearGrids", () => {
     expect(buildYearGrids(new Map())).toEqual([]);
   });
 
-  test("only years with at least one logged day render, sorted ascending", () => {
+  // #568: newest first — the year a visitor is most likely checking on
+  // (their most recent activity) shouldn't need scrolling past every
+  // older year to reach.
+  test("only years with at least one logged day render, sorted newest first", () => {
     const counts = new Map([
       ["2024-06-15", 1],
       ["2026-01-02", 2],
     ]);
     const grids = buildYearGrids(counts, new Date(2026, 5, 1));
 
-    expect(grids.map((g) => g.year)).toEqual(["2024", "2026"]);
+    expect(grids.map((g) => g.year)).toEqual(["2026", "2024"]);
     // A year with zero logged days in between (2025) never appears —
     // same "don't render a wall of nothing" reasoning #286 applied at
     // year grain.

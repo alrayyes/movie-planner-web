@@ -11,11 +11,11 @@ overview's own filterable table can't show.
 
 The system SHALL offer a `/calendar` page rendering a GitHub-contribution-graph-style
 heatmap of the visitor's whole logged history: one grid per calendar
-year, weeks as columns running left to right, Sunday-to-Saturday as
-rows, month labels positioned above the columns they span, and one
-cell per day shaded by how many viewings were logged on it. A day with
-no logged viewings SHALL render as the lightest/empty shade, not an
-error or a gap in the grid.
+year, newest year first, weeks as columns running left to right,
+Sunday-to-Saturday as rows, month labels positioned above the columns
+they span, and one cell per day shaded by how many viewings were
+logged on it. A day with no logged viewings SHALL render as the
+lightest/empty shade, not an error or a gap in the grid.
 
 #### Scenario: Heatmap with varying density
 
@@ -36,6 +36,11 @@ error or a gap in the grid.
 
 - **WHEN** a visitor opens `/calendar` with logged viewings from more than one calendar year, with at least one calendar year in between carrying no logged viewings at all
 - **THEN** the system SHALL render no grid at all for that empty year, rather than a heading with an empty grid under it
+
+#### Scenario: Multiple years render newest first
+
+- **WHEN** a visitor opens `/calendar` with logged viewings spanning more than one calendar year
+- **THEN** the system SHALL render each year's grid in descending order, the most recent year first
 
 ### Requirement: A day cell opens a popup listing that day's own viewings
 
