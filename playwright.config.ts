@@ -14,6 +14,15 @@ export default defineConfig({
   workers: 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // #526: a dead webServer (workerd/wrangler crashing mid-suite) doesn't
+  // fail fast — every queued test just fails its own retries against a
+  // server that's never coming back, and that can burn through CI's
+  // entire 15-minute job timeout before this whole `playwright test`
+  // process ever exits. The job's own `|| retry` wrapper (#502) restarts
+  // the server on a second invocation, but only gets a chance to run once
+  // the first invocation actually returns — so it needs a hard ceiling
+  // well under the job's own timeout, not the job timeout itself.
+  globalTimeout: process.env.CI ? 5 * 60 * 1000 : undefined,
   reporter: "list",
   use: {
     baseURL: "http://localhost:4321",
