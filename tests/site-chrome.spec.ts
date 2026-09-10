@@ -497,7 +497,11 @@ test.describe("footer", () => {
       "/disclaimer",
     );
     await expect(footer.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
-    await expect(footer).toContainText("GPL-3.0-or-later");
+    // #542: "Licensed" and the GPL link ran together with no space
+    // between them ("LicensedGPL-3.0-or-later") — asserted as real
+    // rendered text, not just toContainText's own looser substring
+    // match, so a regression here fails loudly again.
+    await expect(footer).toContainText("Licensed GPL-3.0-or-later.");
   });
 
   // #369: the deployed package.json version, linked to the changelog.
