@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.98.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.97.1...movie-planner-web-v0.98.0) (2026-09-10)
+
+
+### Features
+
+* **docs:** share this app's own header/footer with docs pages ([#505](https://github.com/alrayyes/movie-planner-web/issues/505)) ([05b72eb](https://github.com/alrayyes/movie-planner-web/commit/05b72eb66393f4514ca6674c95c91bd3354235e0)), closes [#451](https://github.com/alrayyes/movie-planner-web/issues/451)
+
 ## [0.97.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.97.0...movie-planner-web-v0.97.1) (2026-09-10)
 
 
