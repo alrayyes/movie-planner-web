@@ -977,6 +977,57 @@ test.describe("movie details page", () => {
     await expect(page.getByText("Website")).toHaveCount(0);
     await expect(page.getByText("Watch trailer")).toHaveCount(0);
     await expect(page.locator("iframe")).toHaveCount(0);
+    // #400: TMDb's own derived fields — same "omit, never guess" rule
+    // as everything else on this page.
+    await expect(page.getByText("Collection")).toHaveCount(0);
+    await expect(page.getByText("Certification")).toHaveCount(0);
+    await expect(page.getByText("Budget")).toHaveCount(0);
+    await expect(page.getByText("Popularity")).toHaveCount(0);
+    await expect(page.getByText("Keywords")).toHaveCount(0);
+  });
+
+  // #400: collection/certification/budget/popularity join the existing
+  // plain key-value fields list (same tier as Runtime/Metascore/Box
+  // Office/Production above); keywords get their own non-clickable
+  // badges — deliberately not the clickable-chip treatment director/
+  // actors/genre get, since there's no keyword filter on the overview
+  // for a chip to link to.
+  test("shows collection, certification, budget, popularity and keywords when present", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        ...DUNE,
+        collection: "Dune Collection",
+        certification: "PG-13",
+        budget: "165000000",
+        popularity: "123.456",
+        keywords: "desert, prophecy, revenge",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await expect(page.getByText("Dune Collection")).toBeVisible();
+    await expect(page.getByText("165000000")).toBeVisible();
+    await expect(page.getByText("123.456")).toBeVisible();
+    // #400: certification is TMDb's own rating, distinct from OMDb's
+    // Rated — both can appear at once, so this asserts on the specific
+    // "Certification" label rather than the (ambiguous) "PG-13" value.
+    await expect(page.getByText("Certification")).toBeVisible();
+
+    const keywordBadges = ["desert", "prophecy", "revenge"];
+    for (const keyword of keywordBadges) {
+      const badge = page.getByText(keyword, { exact: true });
+      await expect(badge).toBeVisible();
+      // Plain badges, not the clickable-chip treatment director/actors/
+      // genre get elsewhere on this page — no link to an overview
+      // filter that doesn't exist for keywords.
+      await expect(page.getByRole("link", { name: keyword })).toHaveCount(0);
+    }
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 
   test("positions and sizes the blocked-time bar from the viewing's own start/duration", async ({
