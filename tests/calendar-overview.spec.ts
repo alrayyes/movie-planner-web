@@ -480,6 +480,39 @@ test.describe("calendar overview", () => {
     await expect(page).toHaveURL("/");
   });
 
+  // #553: a spinner on the busy button and a dimmed row, so a visitor
+  // can tell an in-flight action is actually happening rather than
+  // wondering if their click registered.
+  test("shows a spinner on Delete and dims the row while a delete is in flight", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    let releaseDelete: (() => void) | undefined;
+    const deleteReleased = new Promise<void>((resolve) => {
+      releaseDelete = resolve;
+    });
+    await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route) => {
+      if (route.request().method() === "DELETE") await deleteReleased;
+      await route.fallback();
+    });
+    await connect(page);
+
+    const row = page.locator("tbody tr");
+    const deleteButton = page.getByRole("button", { name: "Delete Dune" });
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await deleteButton.click();
+
+    await expect(deleteButton).toBeDisabled();
+    await expect(deleteButton).toHaveAttribute("aria-busy", "true");
+    await expect(deleteButton.locator("svg.animate-spin")).toBeVisible();
+    await expect(row).toHaveAttribute("aria-busy", "true");
+    await expect(row).toHaveClass(/opacity-/);
+
+    releaseDelete?.();
+    await expect(page.getByText("Deleted.")).toBeVisible();
+  });
+
   // #236
   test("shows a placeholder graphic instead of an empty gap when a viewing has no poster", async ({
     page,
