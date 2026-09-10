@@ -11,7 +11,7 @@ overview's own filterable table can't show.
 
 The system SHALL offer a `/calendar` page rendering a GitHub-contribution-graph-style
 heatmap of the visitor's whole logged history: one grid per calendar
-year, newest year first, weeks as columns running left to right,
+year, the newest year first, weeks as columns running left to right,
 Sunday-to-Saturday as rows, month labels positioned above the columns
 they span, and one cell per day shaded by how many viewings were
 logged on it. A day with no logged viewings SHALL render as the

@@ -5,7 +5,7 @@ description: A GitHub-contribution-style calendar of your own viewing density.
 
 The "Calendar" page (in the nav) shows your whole logged history as a
 GitHub-contribution-graph-style heatmap: one grid per calendar year,
-newest first, weeks running left to right as columns, Sunday-to-Saturday
+the newest first, weeks running left to right as columns, Sunday-to-Saturday
 as rows, and one small square per day shaded by how many viewings
 happened that day.
 
