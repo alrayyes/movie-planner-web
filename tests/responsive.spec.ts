@@ -180,8 +180,10 @@ for (const viewport of VIEWPORTS) {
       await assertInputFontSizeAtLeast16px(page);
     });
 
-    // #198/#204: the heatmap grid's own auto-fill columns are the part
-    // most at risk of overflowing a narrow viewport.
+    // #198/#204/#536: a year's worth of week columns is far wider than
+    // any phone viewport — same overflow-x-auto wrapper pattern the
+    // table uses (TABLE_WRAP), so the grid itself scrolls instead of
+    // the page.
     test("calendar heatmap has no horizontal overflow", async ({ page }) => {
       await connect(page);
       await page.goto("/calendar");

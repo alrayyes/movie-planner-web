@@ -5,10 +5,10 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
-// biome-ignore lint/correctness/noUnusedImports: formatTime is used in the template below, which Biome does not parse for .svelte files
-import { formatTime, toDateInputValue } from "../lib/ui/datetime";
-import { groupViewingsByLocalDay } from "../lib/ui/heatmap";
+import { BUTTON_SECONDARY, STATUS_TEXT, TABLE_WRAP } from "../lib/ui/classes";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { formatTime } from "../lib/ui/datetime";
+import { buildYearGrids, groupViewingsByLocalDay } from "../lib/ui/heatmap";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay } from "../lib/venue/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -48,106 +48,30 @@ let hoverCloseTimer: ReturnType<typeof setTimeout> | undefined;
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const selectedViewings = $derived(selectedDay ? (viewingsByDay.get(selectedDay) ?? []) : []);
 
-// The full contiguous day range to render — from the earliest to the
-// latest local day with a logged viewing, inclusive, so the grid shows
-// exactly the ground the visitor's own history actually covers.
-// #241: a genuinely empty account (nothing logged at all) renders no
-// grid at all — not a 12-month wall of empty cells with nothing under
-// it (the old #199 fallback range). A real device screenshot showed
-// how noisy that read: "No logged viewings yet." followed by six-plus
-// months of uniform grey boxes.
-const days = $derived.by(() => {
-	if (viewingsByDay.size === 0) return [];
-	const keys = [...viewingsByDay.keys()].sort();
-	const first = keys[0] as string;
-	const last = keys[keys.length - 1] as string;
-	const [fy, fm, fd] = first.split("-").map(Number) as [number, number, number];
-	const [ly, lm, ld] = last.split("-").map(Number) as [number, number, number];
-	const start = new Date(fy, fm - 1, fd);
-	const end = new Date(ly, lm - 1, ld);
-	const result: string[] = [];
-	for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-		result.push(toDateInputValue(d.toISOString()));
-	}
-	return result;
-});
-
-// A visible month/year label per group of cells — a visitor could
-// already get an exact date from a cell's own accessible name/title,
-// but that means hovering or navigating to each one in turn; a heading
-// every time the month changes gives a reference point at a glance
-// instead, the same role GitHub's own heatmap gives its month labels.
-interface MonthGroup {
-	key: string;
-	label: string;
-	days: string[];
-	// #259: a month with zero logged viewings across every one of its
-	// days renders as a single compact line instead of a full ~30-cell
-	// empty grid — a real device screenshot showed how much dead space
-	// several such months in a row add up to for a genuinely sparse but
-	// real history (a visitor a few viewings apart doesn't mean this
-	// app has nothing for that whole stretch). A month with at least
-	// one active day still renders its full grid, empty days and all —
-	// that's real, useful density information, not noise.
-	hasActivity: boolean;
-}
-
-const monthGroups = $derived.by(() => {
-	const groups: MonthGroup[] = [];
-	let current: MonthGroup | undefined;
-	for (const day of days) {
-		const [y, m] = day.split("-") as [string, string];
-		const key = `${y}-${m}`;
-		if (!current || current.key !== key) {
-			// Just the month name, not the year — nested under its own year
-			// heading below, so repeating the year on every month would be
-			// redundant.
-			const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-US", {
-				month: "long",
-			});
-			current = { key, label, days: [], hasActivity: false };
-			groups.push(current);
-		}
-		current.days.push(day);
-		if (viewingsByDay.has(day)) current.hasActivity = true;
-	}
-	return groups;
-});
-
-interface YearGroup {
-	year: string;
-	months: MonthGroup[];
-}
-
-// #275: a year heading above its own months, both clickable — unlike a
-// day cell (which opens a popup so glancing at one day doesn't leave
-// the heatmap), a month or a whole year is too much to preview in a
-// popup, so these navigate to the overview instead, filtered to that
-// exact span.
+// #536: redesigned into a GitHub-contribution-graph-style grid — weeks
+// as columns, Sunday-to-Saturday as rows, month labels above the
+// columns they span — grouped by real calendar-year boundaries. The
+// grid-computation itself (padding cells, month-label placement, the
+// current-year-stops-at-today rule) lives in heatmap.ts's
+// buildYearGrids, unit-tested there; this component just renders it
+// and keeps the click-to-navigate/popup behavior.
 //
-// #286: a month with zero viewings across every one of its days is
-// skipped entirely — not rendered at all, not even a compact line — so
-// a real gap of many empty months in a row doesn't read as a wall of
-// "No viewings." lines, one after another. A year left with no active
-// months at all (the visitor's date range spans it, but nothing was
-// ever logged in it) is dropped too, rather than showing a heading
-// with nothing under it.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const yearGroups = $derived.by(() => {
-	const groups: YearGroup[] = [];
-	let current: YearGroup | undefined;
-	for (const month of monthGroups) {
-		if (!month.hasActivity) continue;
-		const year = month.key.slice(0, 4);
-		if (!current || current.year !== year) {
-			current = { year, months: [] };
-			groups.push(current);
-		}
-		current.months.push(month);
-	}
-	return groups;
+// #241: a genuinely empty account (nothing logged at all) renders no
+// grid at all — buildYearGrids already returns [] for empty counts, so
+// this still needs no special-casing here.
+const dayCounts = $derived.by(() => {
+	const counts = new Map<string, number>();
+	for (const [day, dayViewings] of viewingsByDay) counts.set(day, dayViewings.length);
+	return counts;
 });
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const yearGrids = $derived.by(() => buildYearGrids(dayCounts));
 
+// #275: a year heading and each month label are both clickable —
+// unlike a day cell (which opens a popup so glancing at one day
+// doesn't leave the heatmap), a month or a whole year is too much to
+// preview in a popup, so these navigate to the overview instead,
+// filtered to that exact span.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 function yearHref(year: string): string {
 	return `/?from=${year}-01-01&to=${year}-12-31`;
@@ -302,46 +226,67 @@ reloadOnBfcacheRestore(() => void load());
   {#if loadError}
     <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
   {/if}
-  {#each yearGroups as yearGroup (yearGroup.year)}
-    <div class="flex flex-col gap-4">
+  {#each yearGrids as yearGrid (yearGrid.year)}
+    <div class="flex flex-col gap-2">
       <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
-        <a href={yearHref(yearGroup.year)} class="hover:underline">{yearGroup.year}</a>
+        <a href={yearHref(yearGrid.year)} class="hover:underline">{yearGrid.year}</a>
       </h2>
-      {#each yearGroup.months as group (group.key)}
-        <div class="flex flex-col gap-2">
-          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            <a href={monthHref(group.key)} class="hover:underline">{group.label}</a>
-          </h3>
-          <div
-            class="grid gap-1"
-            style="grid-template-columns: repeat(auto-fill, minmax(0.85rem, 1fr));"
-          >
-            {#each group.days as day (day)}
-              {@const count = viewingsByDay.get(day)?.length ?? 0}
-              {#if count > 0}
+      <!-- #536: one continuous grid per year — weeks as columns
+      (`grid-template-columns`, one track per week), Sunday-to-Saturday
+      as rows (row 1 reserved for month labels, rows 2-8 for the days),
+      each cell placed by explicit grid-column/grid-row rather than
+      document order, so month labels and their columns share exactly
+      the same track sizing GitHub's own graph relies on. -->
+      <div class={TABLE_WRAP}>
+        <div
+          class="grid w-max auto-rows-min gap-1 p-2"
+          style={`grid-template-columns: repeat(${yearGrid.weeks.length}, 0.75rem); grid-template-rows: 1rem repeat(7, 0.75rem);`}
+        >
+          {#each yearGrid.monthLabels as monthLabel (monthLabel.monthKey)}
+            <a
+              href={monthHref(monthLabel.monthKey)}
+              class="text-xs text-slate-500 hover:underline dark:text-slate-400"
+              style={`grid-column: ${monthLabel.weekIndex + 1}; grid-row: 1;`}
+            >
+              {monthLabel.label}
+            </a>
+          {/each}
+          {#each yearGrid.weeks as week, weekIndex (weekIndex)}
+            {#each week.days as day, dayOfWeek (dayOfWeek)}
+              {#if day === null}
+                <!-- A padding cell outside the year (before its January
+                1st, or after its own end date) — decorative filler to
+                keep the grid rectangular, not a real day. -->
+                <span
+                  aria-hidden="true"
+                  style={`grid-column: ${weekIndex + 1}; grid-row: ${dayOfWeek + 2};`}
+                ></span>
+              {:else if day.count > 0}
                 <button
                   type="button"
-                  class={`aspect-square rounded-sm ${shadeClass(count)} hover:ring-2 hover:ring-indigo-500`}
-                  aria-label={cellLabel(day, count)}
-                  title={cellLabel(day, count)}
-                  onclick={(event) => openDay(day, event)}
-                  onmouseenter={(event) => openDayOnHover(day, event)}
+                  class={`h-3 w-3 rounded-sm ${shadeClass(day.count)} hover:ring-2 hover:ring-indigo-500`}
+                  style={`grid-column: ${weekIndex + 1}; grid-row: ${dayOfWeek + 2};`}
+                  aria-label={cellLabel(day.date, day.count)}
+                  title={cellLabel(day.date, day.count)}
+                  onclick={(event) => openDay(day.date, event)}
+                  onmouseenter={(event) => openDayOnHover(day.date, event)}
                   onmouseleave={scheduleHoverClose}
-                  onfocus={(event) => openDayOnHover(day, event)}
+                  onfocus={(event) => openDayOnHover(day.date, event)}
                   onblur={scheduleHoverClose}
                 ></button>
               {:else}
                 <span
                   role="img"
-                  class={`aspect-square rounded-sm ${shadeClass(count)}`}
-                  aria-label={cellLabel(day, count)}
-                  title={cellLabel(day, count)}
+                  class={`h-3 w-3 rounded-sm ${shadeClass(day.count)}`}
+                  style={`grid-column: ${weekIndex + 1}; grid-row: ${dayOfWeek + 2};`}
+                  aria-label={cellLabel(day.date, day.count)}
+                  title={cellLabel(day.date, day.count)}
                 ></span>
               {/if}
             {/each}
-          </div>
+          {/each}
         </div>
-      {/each}
+      </div>
     </div>
   {/each}
 </div>
