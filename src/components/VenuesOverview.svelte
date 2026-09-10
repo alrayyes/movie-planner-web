@@ -6,6 +6,7 @@ import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
+import { venueHref } from "../lib/venue/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -73,15 +74,9 @@ function toDateInputValue(iso: string): string {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// #448: the dedicated per-venue page — no filter chrome to carry a
-// date range into, since that page always shows the venue's whole
-// history regardless of any range. Shared by the table's own venue
-// link and the map pin's popup link below, so the two can't drift.
-function venueHref(venue: string): string {
-	return `/venue?venue=${encodeURIComponent(venue)}`;
-}
-
-// #372: same date-range-carrying pattern as venueHref above — a city
+// #372: same date-range-carrying pattern as venueHref (imported from
+// ../lib/venue/display — #529 shares it with MovieDetails.svelte's own
+// venue link, so both go to the same dedicated page) — a city
 // heading links to the overview filtered to every viewing at a venue in
 // that city, not just the one venue venueHref covers. #437: the
 // matching country heading lost its own link when the overview's

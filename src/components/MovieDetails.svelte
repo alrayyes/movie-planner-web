@@ -50,7 +50,7 @@ import {
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { computeBlockedTimeBar, formatDate, formatDateTime } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { venueDisplay } from "../lib/venue/display";
+import { venueDisplay, venueHref } from "../lib/venue/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ChipList from "./ChipList.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -773,19 +773,19 @@ reloadOnBfcacheRestore(() => void load());
                 {/if}
               {/each}
               {#if viewing.venue}
-                <!-- #303: same overview-filter link the Venues page's own
-                venue link and director/actor/genre chips already use —
-                a single link, not a chip, since a viewing has exactly
-                one venue. The link's href/filter target is still the
-                full raw venue value (venue identity is unaffected); only
-                the displayed text is trimmed. #440: trimmed to name +
-                known city, absorbing what used to be a separate Address
-                row — a raw venue value with a full street address baked
-                into it (movie-planner#331) no longer shows one. -->
+                <!-- #529: the same dedicated per-venue page (#448) the
+                Venues page's own venue links go to — a single link, not
+                a chip, since a viewing has exactly one venue. The link's
+                href/filter target is still the full raw venue value
+                (venue identity is unaffected); only the displayed text
+                is trimmed. #440: trimmed to name + known city, absorbing
+                what used to be a separate Address row — a raw venue
+                value with a full street address baked into it
+                (movie-planner#331) no longer shows one. -->
                 <dt class={DT}>Venue</dt>
                 <dd class={DD}>
                   <a
-                    href={`/?venue=${encodeURIComponent(viewing.venue)}`}
+                    href={venueHref(viewing.venue)}
                     class="text-indigo-600 hover:underline dark:text-indigo-400"
                   >
                     {venueDisplay(viewing.venue, viewing.city)}

@@ -886,7 +886,7 @@ test.describe("movie details page", () => {
     // venue value, unaffected by the trimmed display text.
     await expect(venueLink).toHaveAttribute(
       "href",
-      "/?venue=De%20Munt%2C%20Vijzelstraat%2015%2C%201017%20HD%20Amsterdam%2C%20Netherlands",
+      "/venue?venue=De%20Munt%2C%20Vijzelstraat%2015%2C%201017%20HD%20Amsterdam%2C%20Netherlands",
     );
   });
 
@@ -1106,8 +1106,10 @@ test.describe("movie details page", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
-  // #303
-  test("clicking the venue links to the overview filtered to exactly that venue", async ({
+  // #303/#529: goes to the dedicated per-venue page (#448) — the same
+  // destination a venue link on the Venues overview goes to — not the
+  // main overview pre-filtered to it.
+  test("clicking the venue links to its own dedicated page, not the overview filtered by venue", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -1126,8 +1128,8 @@ test.describe("movie details page", () => {
 
     await page.getByRole("link", { name: "Grand Vista Cinema" }).click();
 
-    await expect(page).toHaveURL(/\/\?venue=Grand(\+|%20)Vista(\+|%20)Cinema/);
-    await expect(page.locator("#overview-venue")).toHaveValue("Grand Vista Cinema");
+    await expect(page).toHaveURL(/\/venue\/?\?venue=Grand(\+|%20)Vista(\+|%20)Cinema/);
+    await expect(page.locator("#overview-venue")).toHaveCount(0);
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
