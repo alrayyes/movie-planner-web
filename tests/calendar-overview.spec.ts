@@ -106,6 +106,15 @@ async function openFilters(page: Page) {
   await page.getByText("Filters", { exact: true }).click();
 }
 
+// #437: Director/Actor/Genre/City/Movie Country/Movie Language/Rated/
+// Released Year/Month sit behind a nested "More filters" disclosure
+// inside the already-open Filters section — every test that fills or
+// submits one of those needs this open too, same reasoning as
+// openFilters above.
+async function openMoreFilters(page: Page) {
+  await page.getByText("More filters", { exact: true }).click();
+}
+
 test.describe("calendar overview", () => {
   test("defaults to most-recently-watched first", async ({ page }) => {
     // PADDINGTON (2 months back) is older than DUNE (1 month back) —
@@ -353,6 +362,27 @@ test.describe("calendar overview", () => {
       const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
       expect(results.violations).toEqual([]);
     });
+
+    // #437: the map moved after the results table in source order (not
+    // just visually) — a keyboard-only tab-through, or a screen reader
+    // reading straight through, reaches the primary list before the
+    // secondary map visualization.
+    test("renders after the results table in source order, not before", async ({ page }) => {
+      await mockTiles(page);
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        { ...DUNE, geo: { lat: 52.3665062, lon: 4.8947073 } },
+      ]);
+      await connect(page);
+      await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+
+      const tableBeforeMap = await page.evaluate(() => {
+        const table = document.querySelector("table");
+        const map = document.querySelector('[role="region"][aria-label^="Map showing"]');
+        if (!table || !map) return false;
+        return Boolean(table.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING);
+      });
+      expect(tableBeforeMap).toBe(true);
+    });
   });
 
   // #305: same purely-decorative bar the details page already shows
@@ -584,7 +614,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     await openFilters(page);
-    await page.locator("#overview-medium").fill("cinema");
+    await page.selectOption("#overview-medium", "cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
@@ -604,11 +634,13 @@ test.describe("calendar overview", () => {
     expect(filterRequest?.to.toDateString()).toBe(ONE_MONTH_AGO.toDateString());
   });
 
-  // #140: sourced from the union of the location-management picklist and
-  // whatever medium values are actually on the loaded viewings — a
-  // CLI-logged medium never typed into this app's log form is still real
-  // data worth suggesting, same reasoning as #116's venue-count fix.
-  test("offers medium autocomplete from the picklist and from loaded viewings", async ({
+  // #140/#437: sourced from the union of the location-management
+  // picklist and whatever medium values are actually on the loaded
+  // viewings — a CLI-logged medium never typed into this app's log form
+  // is still real data worth suggesting, same reasoning as #116's
+  // venue-count fix. A native <select> (not free-text + datalist) since
+  // Medium's value set is fully closed at render time.
+  test("lists every distinct medium plus an unset/any option in the Medium select", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON], {
@@ -616,15 +648,12 @@ test.describe("calendar overview", () => {
       venues: [],
     });
     await connect(page);
+    await openFilters(page);
 
     const options = await page
-      .locator("#overview-medium-choices option")
+      .locator("#overview-medium option")
       .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
-    expect(options.sort()).toEqual(["blu-ray", "cinema", "netflix"]);
-    await expect(page.locator("#overview-medium")).toHaveAttribute(
-      "list",
-      "overview-medium-choices",
-    );
+    expect(options.sort()).toEqual(["", "blu-ray", "cinema", "netflix"]);
   });
 
   // #179
@@ -817,6 +846,53 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-venue")).toBeVisible();
   });
 
+  // #437: the everyday tier (From, To, Title, Medium, Venue) is visible
+  // immediately once Filters is expanded — everything else sits behind
+  // a further, nested "More filters" toggle, per the progressive-
+  // disclosure research cited on the issue.
+  test("everyday filters are visible immediately on expanding Filters; advanced filters stay behind a nested More filters toggle", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await openFilters(page);
+    await expect(page.locator("#overview-from")).toBeVisible();
+    await expect(page.locator("#overview-to")).toBeVisible();
+    await expect(page.locator("#overview-title")).toBeVisible();
+    await expect(page.locator("#overview-medium")).toBeVisible();
+    await expect(page.locator("#overview-venue")).toBeVisible();
+
+    // Advanced-tier fields exist in the DOM (so a query param can still
+    // pre-populate one) but aren't visible until "More filters" itself
+    // is expanded.
+    await expect(page.locator("#overview-director")).toBeHidden();
+    await expect(page.locator("#overview-released-year")).toBeHidden();
+
+    await openMoreFilters(page);
+    await expect(page.locator("#overview-director")).toBeVisible();
+    await expect(page.locator("#overview-released-year")).toBeVisible();
+  });
+
+  // #437: Filters + "Refresh all metadata" read as one visually
+  // distinct region (a bordered/background card), separate from the
+  // results table below — common-region/proximity, not just default
+  // flex spacing between flat siblings.
+  test("Filters sits inside a visually distinct bordered card, separate from the results table", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    const filtersDetails = page.locator("details", { hasText: "Filters" }).first();
+    const card = filtersDetails.locator("xpath=..");
+    await expect(card).toHaveClass(/border/);
+    await expect(card).toHaveClass(/rounded/);
+    // The results table is a sibling of the card, not nested inside it.
+    await expect(card.locator("table")).toHaveCount(0);
+    await expect(page.locator("table")).toBeVisible();
+  });
+
   // #221: a real regression — submitting the form (any filter, any
   // reload) used to silently re-close the section a visitor had just
   // opened themselves, right after they used it.
@@ -825,7 +901,7 @@ test.describe("calendar overview", () => {
     await connect(page);
 
     await openFilters(page);
-    await page.locator("#overview-medium").fill("cinema");
+    await page.selectOption("#overview-medium", "cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
@@ -934,6 +1010,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(3);
 
     await openFilters(page);
+    await openMoreFilters(page);
     await page.locator("#overview-genre").fill("Action");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
@@ -968,6 +1045,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(3);
 
     await openFilters(page);
+    await openMoreFilters(page);
     await page.locator("#overview-director").fill("Denis Villeneuve");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
@@ -1012,20 +1090,13 @@ test.describe("calendar overview", () => {
     await expect(page).toHaveTitle("Movie Planner");
   });
 
-  test("the page title shows no qualifier for a country filter, since the name reads fine alone", async ({
+  // #372/#437: the venue's own geocoded city (#267) — a different
+  // concept from the movie's own country/language below. Country
+  // (the venue's own) was removed outright — City now matches on city
+  // name alone, and is a native select, not free-text.
+  test("filters by the venue's own city alone; there's no standalone Country field", async ({
     page,
   }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, country: "Netherlands" }]);
-    await connect(page);
-
-    await page.goto("/?country=Netherlands");
-    await expect(page).toHaveTitle("Netherlands — Movie Planner");
-  });
-
-  // #372: the venue's own geocoded city/country (#267) — a different
-  // concept from the movie's own country/language below, so both need
-  // their own filter and their own query param.
-  test("filters by the venue's own city and country", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       { ...DUNE, city: "Amsterdam", country: "Netherlands" },
       { ...PADDINGTON, city: "Rotterdam", country: "Netherlands" },
@@ -1034,21 +1105,19 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     await openFilters(page);
-    await page.locator("#overview-city").fill("Amsterdam");
+    await openMoreFilters(page);
+    await expect(page.locator("#overview-country")).toHaveCount(0);
+
+    await page.selectOption("#overview-city", "Amsterdam");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
-
-    await page.locator("#overview-city").fill("");
-    await page.locator("#overview-country").fill("Netherlands");
-    await page.getByRole("button", { name: "Filter", exact: true }).click();
-
-    await expect(page.locator("tbody tr")).toHaveCount(2);
   });
 
   // #372: the movie's own OMDb-derived country/language/rated fields —
-  // not the venue's own city/country above.
+  // not the venue's own city above. #437: all three are native selects
+  // now, not free-text + datalist.
   test("filters by the movie's own country, language and rated fields", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       { ...DUNE, movieCountry: "United States", movieLanguage: "English", rated: "PG-13" },
@@ -1058,28 +1127,58 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     await openFilters(page);
-    await page.locator("#overview-movie-country").fill("United States");
+    await openMoreFilters(page);
+    await page.selectOption("#overview-movie-country", "United States");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
 
-    await page.locator("#overview-movie-country").fill("");
-    await page.locator("#overview-rated").fill("PG");
+    await page.selectOption("#overview-movie-country", "");
+    await page.selectOption("#overview-rated", "PG");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Paddington");
 
-    await page.locator("#overview-rated").fill("");
-    await page.locator("#overview-movie-language").fill("English");
+    await page.selectOption("#overview-rated", "");
+    await page.selectOption("#overview-movie-language", "English");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(2);
   });
 
-  // #373: OMDb's own "DD MMM YYYY" Released field, at three independent
-  // granularities.
-  test("filters by the movie's own released date, at day/month/year granularity", async ({
+  // #163/#437: movieCountry/movieLanguage are comma-separated
+  // multi-value OMDb fields, same as director/actor/genre — a
+  // co-production must list and match each country/language
+  // individually, not the whole unsplit string.
+  test("lists and matches co-production movie country/language values individually, not as one whole string", async ({
     page,
   }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        ...DUNE,
+        movieCountry: "Australia, United States, China",
+        movieLanguage: "English, French",
+      },
+      PADDINGTON,
+    ]);
+    await connect(page);
+    await openFilters(page);
+    await openMoreFilters(page);
+
+    const countryOptions = await page
+      .locator("#overview-movie-country option")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("value")));
+    expect(countryOptions.sort()).toEqual(["", "Australia", "China", "United States"]);
+
+    await page.selectOption("#overview-movie-country", "United States");
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  // #373/#437: OMDb's own "DD MMM YYYY" Released field, at year/month
+  // granularity — the exact-day granularity (Released Date) was removed
+  // outright. Released Year is a native select now, not free-text.
+  test("filters by the movie's own released year and month", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       { ...DUNE, released: "22 Oct 2021" },
       { ...PADDINGTON, released: "08 Nov 2024" },
@@ -1088,25 +1187,22 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
     await openFilters(page);
-    await page.locator("#overview-released-year").fill("2021");
+    await openMoreFilters(page);
+    await expect(page.locator("#overview-released-date")).toHaveCount(0);
+
+    await page.selectOption("#overview-released-year", "2021");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
 
-    await page.locator("#overview-released-year").fill("");
+    await page.selectOption("#overview-released-year", "");
     await page.locator("#overview-released-month").fill("2024-11");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Paddington");
-
-    await page.locator("#overview-released-month").fill("");
-    await page.locator("#overview-released-date").fill("2021-10-22");
-    await page.getByRole("button", { name: "Filter", exact: true }).click();
-    await expect(page.locator("tbody tr")).toHaveCount(1);
-    await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
-  test("?releasedYear=, ?releasedMonth= and ?releasedDate= query params pre-populate their filter fields on load", async ({
+  test("?releasedYear= and ?releasedMonth= query params pre-populate their filter fields on load", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -1123,17 +1219,20 @@ test.describe("calendar overview", () => {
     await page.goto("/?releasedMonth=2021-10");
     await expect(page.locator("#overview-released-month")).toHaveValue("2021-10");
     await expect(page.locator("tbody tr")).toHaveCount(1);
-
-    await page.goto("/?releasedDate=2021-10-22");
-    await expect(page.locator("#overview-released-date")).toHaveValue("2021-10-22");
-    await expect(page.locator("tbody tr")).toHaveCount(1);
   });
 
-  test("?city=, ?country=, ?movieCountry=, ?movieLanguage= and ?rated= query params pre-populate their filter fields on load", async ({
+  test("?city=, ?movieCountry=, ?movieLanguage= and ?rated= query params pre-populate their filter fields on load", async ({
     page,
   }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      { ...DUNE, city: "Amsterdam", country: "Netherlands", movieCountry: "United States" },
+      {
+        ...DUNE,
+        city: "Amsterdam",
+        country: "Netherlands",
+        movieCountry: "United States",
+        movieLanguage: "English",
+        rated: "PG-13",
+      },
       PADDINGTON,
     ]);
     await connect(page);
@@ -1142,10 +1241,6 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-city")).toHaveValue("Amsterdam");
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
-
-    await page.goto("/?country=Netherlands");
-    await expect(page.locator("#overview-country")).toHaveValue("Netherlands");
-    await expect(page.locator("tbody tr")).toHaveCount(1);
 
     await page.goto("/?movieCountry=United%20States");
     await expect(page.locator("#overview-movie-country")).toHaveValue("United States");
@@ -1156,6 +1251,22 @@ test.describe("calendar overview", () => {
 
     await page.goto("/?rated=PG-13");
     await expect(page.locator("#overview-rated")).toHaveValue("PG-13");
+  });
+
+  // #437: a chip link carrying an advanced-tier filter (director, actor,
+  // genre, city, movieCountry, movieLanguage, rated, releasedYear,
+  // releasedMonth) must not leave the value applied but hidden behind a
+  // closed "More filters" toggle.
+  test("a URL-carried advanced-tier filter auto-expands the More filters tier", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE, PADDINGTON]);
+    await connect(page);
+
+    await page.goto("/?actor=Zendaya");
+
+    await expect(page.locator("#overview-director")).toBeVisible();
+    await expect(page.locator("#overview-actor")).toHaveValue("Zendaya");
   });
 
   // #146: a link carrying only `venue` used to still fall back to this
@@ -1236,7 +1347,7 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-to")).toHaveValue("");
   });
 
-  test("clear filter resets the date range, title, medium, venue, director, actor, genre, city, country, movie country/language and rated, and reloads", async ({
+  test("clear filter resets the date range, title, medium, venue, director, actor, genre, city, movie country/language, rated and released year, and reloads", async ({
     page,
   }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
@@ -1258,17 +1369,17 @@ test.describe("calendar overview", () => {
     await page.locator("#overview-from").fill(toDateInputValue(CUTOFF));
     await page.locator("#overview-to").fill(toDateInputValue(new Date()));
     await page.locator("#overview-title").fill("Dune");
-    await page.locator("#overview-medium").fill("cinema");
+    await page.selectOption("#overview-medium", "cinema");
     await page.locator("#overview-venue").fill("Grand Vista Cinema");
+    await openMoreFilters(page);
     await page.locator("#overview-director").fill("Denis Villeneuve");
     await page.locator("#overview-actor").fill("Zendaya");
     await page.locator("#overview-genre").fill("Drama");
-    await page.locator("#overview-city").fill("Amsterdam");
-    await page.locator("#overview-country").fill("Netherlands");
-    await page.locator("#overview-movie-country").fill("United States");
-    await page.locator("#overview-movie-language").fill("English");
-    await page.locator("#overview-rated").fill("PG-13");
-    await page.locator("#overview-released-year").fill("2021");
+    await page.selectOption("#overview-city", "Amsterdam");
+    await page.selectOption("#overview-movie-country", "United States");
+    await page.selectOption("#overview-movie-language", "English");
+    await page.selectOption("#overview-rated", "PG-13");
+    await page.selectOption("#overview-released-year", "2021");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
 
@@ -1286,7 +1397,6 @@ test.describe("calendar overview", () => {
     await expect(page.locator("#overview-actor")).toHaveValue("");
     await expect(page.locator("#overview-genre")).toHaveValue("");
     await expect(page.locator("#overview-city")).toHaveValue("");
-    await expect(page.locator("#overview-country")).toHaveValue("");
     await expect(page.locator("#overview-movie-country")).toHaveValue("");
     await expect(page.locator("#overview-movie-language")).toHaveValue("");
     await expect(page.locator("#overview-rated")).toHaveValue("");
@@ -1351,7 +1461,7 @@ test.describe("calendar overview", () => {
     await expect(page.getByText("Page 2 of 2")).toBeVisible();
 
     await openFilters(page);
-    await page.locator("#overview-medium").fill("cinema");
+    await page.selectOption("#overview-medium", "cinema");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
     await expect(page.getByText("Page 1 of 2")).toBeVisible();

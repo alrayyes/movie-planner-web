@@ -25,6 +25,7 @@ import {
 	BUTTON_SECONDARY,
 	BUTTON_SM,
 	FIELD_WRAPPER,
+	FILTER_CARD,
 	INPUT,
 	LABEL,
 	STATUS_TEXT,
@@ -152,32 +153,42 @@ const actorOptions = $derived.by(() => {
 const genreOptions = $derived.by(() => {
 	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.genre)))].sort();
 });
+// #437: City no longer combines with Country (removed entirely, see
+// below) — matches on city name alone.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const cityOptions = $derived.by(() => {
 	return [...new Set(allViewings.map((v) => v.city).filter((v): v is string => Boolean(v)))].sort();
 });
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const countryOptions = $derived.by(() => {
-	return [
-		...new Set(allViewings.map((v) => v.country).filter((v): v is string => Boolean(v))),
-	].sort();
-});
+// #437: movieCountry/movieLanguage are comma-separated multi-value OMDb
+// fields, same as director/actor/genre — splitMultiValue is what turns a
+// co-production's "Australia, United States, China" into three separate,
+// individually filterable options instead of one whole-string option.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const movieCountryOptions = $derived.by(() => {
-	return [
-		...new Set(allViewings.map((v) => v.movieCountry).filter((v): v is string => Boolean(v))),
-	].sort();
+	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.movieCountry)))].sort();
 });
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const movieLanguageOptions = $derived.by(() => {
-	return [
-		...new Set(allViewings.map((v) => v.movieLanguage).filter((v): v is string => Boolean(v))),
-	].sort();
+	return [...new Set(allViewings.flatMap((v) => splitMultiValue(v.movieLanguage)))].sort();
 });
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const ratedOptions = $derived.by(() => {
 	return [
 		...new Set(allViewings.map((v) => v.rated).filter((v): v is string => Boolean(v))),
+	].sort();
+});
+// #437: Released Year becomes a native <select> — its own known-value
+// set is exactly the distinct years parseReleasedDate already extracts
+// from loaded viewings, same bounded-set reasoning as Medium/Rated/City/
+// Movie Country/Movie Language.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const releasedYearOptions = $derived.by(() => {
+	return [
+		...new Set(
+			allViewings
+				.map((v) => (v.released ? parseReleasedDate(v.released)?.year : undefined))
+				.filter((v): v is string => Boolean(v)),
+		),
 	].sort();
 });
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
@@ -229,13 +240,11 @@ type StoredFilterKey =
 	| "actor"
 	| "genre"
 	| "city"
-	| "country"
 	| "movieCountry"
 	| "movieLanguage"
 	| "rated"
 	| "releasedYear"
-	| "releasedMonth"
-	| "releasedDate";
+	| "releasedMonth";
 type StoredFilters = Partial<Record<StoredFilterKey, string>> & { open?: boolean };
 
 const ALL_FILTER_KEYS: StoredFilterKey[] = [
@@ -248,13 +257,28 @@ const ALL_FILTER_KEYS: StoredFilterKey[] = [
 	"actor",
 	"genre",
 	"city",
-	"country",
 	"movieCountry",
 	"movieLanguage",
 	"rated",
 	"releasedYear",
 	"releasedMonth",
-	"releasedDate",
+];
+
+// #437: the everyday tier (From, To, Title, Medium, Venue) is always
+// visible once Filters is expanded — everything else sits behind a
+// nested "More filters" disclosure. Kept as its own list (rather than
+// deriving "advanced" as ALL_FILTER_KEYS minus everyday) so the tier a
+// key belongs to is legible at a glance here, not implied by exclusion.
+const ADVANCED_FILTER_KEYS: StoredFilterKey[] = [
+	"director",
+	"actor",
+	"genre",
+	"city",
+	"movieCountry",
+	"movieLanguage",
+	"rated",
+	"releasedYear",
+	"releasedMonth",
 ];
 
 function readStoredFilters(): StoredFilters {
@@ -295,6 +319,13 @@ function initialFilterValue(key: StoredFilterKey): string {
 // silently closing a visitor's own manually-opened filters right after
 // they submitted one.
 let filtersOpen = $state(hasAnyUrlFilter || Boolean(storedFilters.open));
+// #437: the nested "More filters" tier starts open whenever an
+// advanced-tier field already carries a value — a URL-carried chip
+// filter (director, genre, ...) per the spec's own "still expands its
+// own tier" scenario, or a restored stored filter, same reasoning as
+// filtersOpen itself above.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+let moreFiltersOpen = $state(ADVANCED_FILTER_KEYS.some((key) => initialFilterValue(key)));
 let fromValue = $state(initialFilterValue("from"));
 let toValue = $state(initialFilterValue("to"));
 // #289: unlike medium/venue (exact match against a short, categorical
@@ -316,19 +347,15 @@ let genreValue = $state(initialFilterValue("genre"));
 // OMDb-derived fields. All five are exact-match, single-value, same as
 // venue/medium above.
 let cityValue = $state(initialFilterValue("city"));
-let countryValue = $state(initialFilterValue("country"));
 let movieCountryValue = $state(initialFilterValue("movieCountry"));
 let movieLanguageValue = $state(initialFilterValue("movieLanguage"));
 let ratedValue = $state(initialFilterValue("rated"));
-// #373: the movie's own release date (parseReleasedDate, from OMDb's
-// "DD MMM YYYY" Released field), at three granularities — only one is
-// ever meaningfully active at a time from a chip click (#374 already
-// clears the other two, same as every other filter), but nothing here
-// enforces that for a visitor typing directly into more than one of
-// these three fields by hand.
+// #373/#437: the movie's own release date (parseReleasedDate, from
+// OMDb's "DD MMM YYYY" Released field) — year and month, at their own
+// independent granularities (releasedDate, the exact-day granularity,
+// was removed outright: too granular a filter to justify the field).
 let releasedYearValue = $state(initialFilterValue("releasedYear"));
 let releasedMonthValue = $state(initialFilterValue("releasedMonth"));
-let releasedDateValue = $state(initialFilterValue("releasedDate"));
 
 // #376: a human-readable label for whichever single chip-driven filter
 // (per #374) is active, shared with #375's breadcrumb — see
@@ -341,13 +368,11 @@ const activeFilterLabelValue = $derived(
 		actor: actorValue,
 		genre: genreValue,
 		city: cityValue,
-		country: countryValue,
 		movieCountry: movieCountryValue,
 		movieLanguage: movieLanguageValue,
 		rated: ratedValue,
 		releasedYear: releasedYearValue,
 		releasedMonth: releasedMonthValue,
-		releasedDate: releasedDateValue,
 	}),
 );
 
@@ -416,13 +441,11 @@ const currentlyDisplayed = $derived.by(() => {
 	const actorFilter = actorValue.trim().toLowerCase();
 	const genreFilter = genreValue.trim().toLowerCase();
 	const cityFilter = cityValue.trim().toLowerCase();
-	const countryFilter = countryValue.trim().toLowerCase();
 	const movieCountryFilter = movieCountryValue.trim().toLowerCase();
 	const movieLanguageFilter = movieLanguageValue.trim().toLowerCase();
 	const ratedFilter = ratedValue.trim().toLowerCase();
 	const releasedYearFilter = releasedYearValue.trim();
 	const releasedMonthFilter = releasedMonthValue.trim();
-	const releasedDateFilter = releasedDateValue.trim();
 	const filtered = allViewings.filter((v) => {
 		if (titleFilter && !v.title.toLowerCase().includes(titleFilter)) return false;
 		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
@@ -443,18 +466,26 @@ const currentlyDisplayed = $derived.by(() => {
 		)
 			return false;
 		if (cityFilter && (v.city ?? "").toLowerCase() !== cityFilter) return false;
-		if (countryFilter && (v.country ?? "").toLowerCase() !== countryFilter) return false;
-		if (movieCountryFilter && (v.movieCountry ?? "").toLowerCase() !== movieCountryFilter)
+		if (
+			movieCountryFilter &&
+			!splitMultiValue(v.movieCountry).some(
+				(country) => country.toLowerCase() === movieCountryFilter,
+			)
+		)
 			return false;
-		if (movieLanguageFilter && (v.movieLanguage ?? "").toLowerCase() !== movieLanguageFilter)
+		if (
+			movieLanguageFilter &&
+			!splitMultiValue(v.movieLanguage).some(
+				(language) => language.toLowerCase() === movieLanguageFilter,
+			)
+		)
 			return false;
 		if (ratedFilter && (v.rated ?? "").toLowerCase() !== ratedFilter) return false;
-		if (releasedYearFilter || releasedMonthFilter || releasedDateFilter) {
+		if (releasedYearFilter || releasedMonthFilter) {
 			const released = v.released ? parseReleasedDate(v.released) : null;
 			if (!released) return false;
 			if (releasedYearFilter && released.year !== releasedYearFilter) return false;
 			if (releasedMonthFilter && released.month !== releasedMonthFilter) return false;
-			if (releasedDateFilter && released.date !== releasedDateFilter) return false;
 		}
 		return true;
 	});
@@ -604,13 +635,11 @@ function syncFilterState() {
 		["actor", actorValue],
 		["genre", genreValue],
 		["city", cityValue],
-		["country", countryValue],
 		["movieCountry", movieCountryValue],
 		["movieLanguage", movieLanguageValue],
 		["rated", ratedValue],
 		["releasedYear", releasedYearValue],
 		["releasedMonth", releasedMonthValue],
-		["releasedDate", releasedDateValue],
 	];
 	for (const [key, value] of entries) {
 		if (value) stored[key] = value;
@@ -666,13 +695,11 @@ function handleClearFilter() {
 	actorValue = "";
 	genreValue = "";
 	cityValue = "";
-	countryValue = "";
 	movieCountryValue = "";
 	movieLanguageValue = "";
 	ratedValue = "";
 	releasedYearValue = "";
 	releasedMonthValue = "";
-	releasedDateValue = "";
 	currentPage = 0;
 	syncFilterState();
 	void reload();
@@ -876,263 +903,246 @@ getPicklists(config).then((picklists) => {
 </script>
 
 <div class="flex flex-col gap-4">
-  <details bind:open={filtersOpen}>
-    <summary
-      class="cursor-pointer text-sm font-medium text-slate-700 select-none dark:text-slate-300"
-    >
-      Filters
-    </summary>
-    <form
-      class="mt-3 flex flex-wrap items-end gap-3"
-      aria-label="Filter logged viewings"
-      onsubmit={handleFilterSubmit}
-    >
-      <label class={FIELD_WRAPPER} for="overview-from">
-        <span class={LABEL}>From</span>
-        <input class={INPUT} type="date" id="overview-from" bind:value={fromValue} />
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-to">
-        <span class={LABEL}>To</span>
-        <input class={INPUT} type="date" id="overview-to" bind:value={toValue} />
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-title">
-        <span class={LABEL}>Title</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-title"
-          placeholder="e.g. Dune"
-          list="overview-title-choices"
-          bind:value={titleValue}
-          onfocus={handleFilterFieldFocus}
-        />
-        <datalist id="overview-title-choices">
-          {#each titleOptions as title (title)}
-            <option value={title}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-medium">
-        <span class={LABEL}>Medium</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-medium"
-          placeholder="e.g. cinema"
-          list="overview-medium-choices"
-          bind:value={mediumValue}
-        />
-        <datalist id="overview-medium-choices">
-          {#each mediumOptions as medium (medium)}
-            <option value={medium}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-venue">
-        <span class={LABEL}>Venue</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-venue"
-          placeholder="e.g. Grand Vista Cinema"
-          list="overview-venue-choices"
-          bind:value={venueValue}
-          onfocus={handleFilterFieldFocus}
-        />
-        <datalist id="overview-venue-choices">
-          {#each venueOptions as venue (venue)}
-            <option value={venue}>{venueDisplay(venue, venueCities.get(venue))}</option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-director">
-        <span class={LABEL}>Director</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-director"
-          placeholder="e.g. Denis Villeneuve"
-          list="overview-director-choices"
-          bind:value={directorValue}
-          onfocus={handleFilterFieldFocus}
-        />
-        <datalist id="overview-director-choices">
-          {#each directorOptions as director (director)}
-            <option value={director}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-actor">
-        <span class={LABEL}>Actor</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-actor"
-          placeholder="e.g. Zendaya"
-          list="overview-actor-choices"
-          bind:value={actorValue}
-          onfocus={handleFilterFieldFocus}
-        />
-        <datalist id="overview-actor-choices">
-          {#each actorOptions as actor (actor)}
-            <option value={actor}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-genre">
-        <span class={LABEL}>Genre</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-genre"
-          placeholder="e.g. Drama"
-          list="overview-genre-choices"
-          bind:value={genreValue}
-          onfocus={handleFilterFieldFocus}
-        />
-        <datalist id="overview-genre-choices">
-          {#each genreOptions as genre (genre)}
-            <option value={genre}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-city">
-        <span class={LABEL}>City</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-city"
-          placeholder="e.g. Amsterdam"
-          list="overview-city-choices"
-          bind:value={cityValue}
-        />
-        <datalist id="overview-city-choices">
-          {#each cityOptions as city (city)}
-            <option value={city}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-country">
-        <span class={LABEL}>Country</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-country"
-          placeholder="e.g. Netherlands"
-          list="overview-country-choices"
-          bind:value={countryValue}
-        />
-        <datalist id="overview-country-choices">
-          {#each countryOptions as country (country)}
-            <option value={country}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-movie-country">
-        <span class={LABEL}>Movie country</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-movie-country"
-          placeholder="e.g. United States"
-          list="overview-movie-country-choices"
-          bind:value={movieCountryValue}
-        />
-        <datalist id="overview-movie-country-choices">
-          {#each movieCountryOptions as movieCountry (movieCountry)}
-            <option value={movieCountry}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-movie-language">
-        <span class={LABEL}>Movie language</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-movie-language"
-          placeholder="e.g. English"
-          list="overview-movie-language-choices"
-          bind:value={movieLanguageValue}
-        />
-        <datalist id="overview-movie-language-choices">
-          {#each movieLanguageOptions as movieLanguage (movieLanguage)}
-            <option value={movieLanguage}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-rated">
-        <span class={LABEL}>Rated</span>
-        <input
-          class={INPUT}
-          type="text"
-          id="overview-rated"
-          placeholder="e.g. PG-13"
-          list="overview-rated-choices"
-          bind:value={ratedValue}
-        />
-        <datalist id="overview-rated-choices">
-          {#each ratedOptions as rated (rated)}
-            <option value={rated}></option>
-          {/each}
-        </datalist>
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-released-year">
-        <span class={LABEL}>Released year</span>
-        <input
-          class={INPUT}
-          type="text"
-          inputmode="numeric"
-          id="overview-released-year"
-          placeholder="e.g. 1994"
-          bind:value={releasedYearValue}
-        />
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-released-month">
-        <span class={LABEL}>Released month</span>
-        <input class={INPUT} type="month" id="overview-released-month" bind:value={releasedMonthValue} />
-      </label>
-      <label class={FIELD_WRAPPER} for="overview-released-date">
-        <span class={LABEL}>Released date</span>
-        <input class={INPUT} type="date" id="overview-released-date" bind:value={releasedDateValue} />
-      </label>
-      <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
-      <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>
-        Clear filter
-      </button>
-    </form>
-  </details>
-
-  {#if showRefreshAll}
-    <button
-      type="button"
-      class={BUTTON_SECONDARY}
-      disabled={refreshingAll}
-      aria-busy={refreshingAll}
-      onclick={handleRefreshAll}
-    >
-      {#if refreshingAll}
-        <svg
-          class="mr-2 h-4 w-4 animate-spin"
-          viewBox="0 0 20 20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15.5 4.5A7 7 0 1 0 17 10M17 10V5M17 10h-5"
+  <!-- #437: Filters + "Refresh all metadata" read as one visually
+  distinct region (common-region/proximity), separate from the results
+  table/pagination/map below. -->
+  <div class={FILTER_CARD}>
+    <details bind:open={filtersOpen}>
+      <summary
+        class="cursor-pointer text-sm font-medium text-slate-700 select-none dark:text-slate-300"
+      >
+        Filters
+      </summary>
+      <form
+        class="mt-3 flex flex-wrap items-end gap-3"
+        aria-label="Filter logged viewings"
+        onsubmit={handleFilterSubmit}
+      >
+        <!-- #437: the everyday tier — From, To, Title, Medium, Venue —
+        stays visible immediately once Filters is expanded. Everything
+        else sits behind the nested "More filters" disclosure below,
+        per the progressive-disclosure/filter-category-priority
+        research cited on the issue. -->
+        <label class={FIELD_WRAPPER} for="overview-from">
+          <span class={LABEL}>From</span>
+          <input class={INPUT} type="date" id="overview-from" bind:value={fromValue} />
+        </label>
+        <label class={FIELD_WRAPPER} for="overview-to">
+          <span class={LABEL}>To</span>
+          <input class={INPUT} type="date" id="overview-to" bind:value={toValue} />
+        </label>
+        <label class={FIELD_WRAPPER} for="overview-title">
+          <span class={LABEL}>Title</span>
+          <input
+            class={INPUT}
+            type="text"
+            id="overview-title"
+            placeholder="e.g. Dune"
+            list="overview-title-choices"
+            bind:value={titleValue}
+            onfocus={handleFilterFieldFocus}
           />
-        </svg>
-      {/if}
-      Refresh all metadata
-    </button>
-    <p class={STATUS_TEXT}>
-      Only touches titles missing metadata — the calendar entry is the source of truth once a
-      title's matched.
-    </p>
-  {/if}
+          <datalist id="overview-title-choices">
+            {#each titleOptions as title (title)}
+              <option value={title}></option>
+            {/each}
+          </datalist>
+        </label>
+        <label class={FIELD_WRAPPER} for="overview-medium">
+          <span class={LABEL}>Medium</span>
+          <!-- #437: a closed set fully known at render time (the
+          location-management picklist union loaded viewings) — a
+          native select rather than free-text + datalist, which has a
+          real reselect-without-clearing bug (#438) a select doesn't. -->
+          <select class={INPUT} id="overview-medium" bind:value={mediumValue}>
+            <option value="">Any</option>
+            {#each mediumOptions as medium (medium)}
+              <option value={medium}>{medium}</option>
+            {/each}
+          </select>
+        </label>
+        <label class={FIELD_WRAPPER} for="overview-venue">
+          <span class={LABEL}>Venue</span>
+          <input
+            class={INPUT}
+            type="text"
+            id="overview-venue"
+            placeholder="e.g. Grand Vista Cinema"
+            list="overview-venue-choices"
+            bind:value={venueValue}
+            onfocus={handleFilterFieldFocus}
+          />
+          <datalist id="overview-venue-choices">
+            {#each venueOptions as venue (venue)}
+              <option value={venue}>{venueDisplay(venue, venueCities.get(venue))}</option>
+            {/each}
+          </datalist>
+        </label>
+
+        <details bind:open={moreFiltersOpen} class="w-full">
+          <summary
+            class="cursor-pointer text-sm font-medium text-slate-700 select-none dark:text-slate-300"
+          >
+            More filters
+          </summary>
+          <div class="mt-3 flex flex-wrap items-end gap-3">
+            <label class={FIELD_WRAPPER} for="overview-director">
+              <span class={LABEL}>Director</span>
+              <input
+                class={INPUT}
+                type="text"
+                id="overview-director"
+                placeholder="e.g. Denis Villeneuve"
+                list="overview-director-choices"
+                bind:value={directorValue}
+                onfocus={handleFilterFieldFocus}
+              />
+              <datalist id="overview-director-choices">
+                {#each directorOptions as director (director)}
+                  <option value={director}></option>
+                {/each}
+              </datalist>
+            </label>
+            <label class={FIELD_WRAPPER} for="overview-actor">
+              <span class={LABEL}>Actor</span>
+              <input
+                class={INPUT}
+                type="text"
+                id="overview-actor"
+                placeholder="e.g. Zendaya"
+                list="overview-actor-choices"
+                bind:value={actorValue}
+                onfocus={handleFilterFieldFocus}
+              />
+              <datalist id="overview-actor-choices">
+                {#each actorOptions as actor (actor)}
+                  <option value={actor}></option>
+                {/each}
+              </datalist>
+            </label>
+            <label class={FIELD_WRAPPER} for="overview-genre">
+              <span class={LABEL}>Genre</span>
+              <input
+                class={INPUT}
+                type="text"
+                id="overview-genre"
+                placeholder="e.g. Drama"
+                list="overview-genre-choices"
+                bind:value={genreValue}
+                onfocus={handleFilterFieldFocus}
+              />
+              <datalist id="overview-genre-choices">
+                {#each genreOptions as genre (genre)}
+                  <option value={genre}></option>
+                {/each}
+              </datalist>
+            </label>
+            <!-- #437: Country (the venue's own geocoded field, distinct
+            from Movie Country below) removed entirely — two distinct
+            real-world cities sharing a name in different countries is a
+            negligible risk for a personal viewing log, so City now
+            matches on city name alone. -->
+            <label class={FIELD_WRAPPER} for="overview-city">
+              <span class={LABEL}>City</span>
+              <select class={INPUT} id="overview-city" bind:value={cityValue}>
+                <option value="">Any</option>
+                {#each cityOptions as city (city)}
+                  <option value={city}>{city}</option>
+                {/each}
+              </select>
+            </label>
+            <label class={FIELD_WRAPPER} for="overview-movie-country">
+              <span class={LABEL}>Movie country</span>
+              <select class={INPUT} id="overview-movie-country" bind:value={movieCountryValue}>
+                <option value="">Any</option>
+                {#each movieCountryOptions as movieCountry (movieCountry)}
+                  <option value={movieCountry}>{movieCountry}</option>
+                {/each}
+              </select>
+            </label>
+            <label class={FIELD_WRAPPER} for="overview-movie-language">
+              <span class={LABEL}>Movie language</span>
+              <select class={INPUT} id="overview-movie-language" bind:value={movieLanguageValue}>
+                <option value="">Any</option>
+                {#each movieLanguageOptions as movieLanguage (movieLanguage)}
+                  <option value={movieLanguage}>{movieLanguage}</option>
+                {/each}
+              </select>
+            </label>
+            <label class={FIELD_WRAPPER} for="overview-rated">
+              <span class={LABEL}>Rated</span>
+              <select class={INPUT} id="overview-rated" bind:value={ratedValue}>
+                <option value="">Any</option>
+                {#each ratedOptions as rated (rated)}
+                  <option value={rated}>{rated}</option>
+                {/each}
+              </select>
+            </label>
+            <!-- #437: Released Date (exact-day granularity) removed
+            outright — too granular a filter to justify the field.
+            Released Month keeps its native month picker; Released Year
+            becomes a select, same bounded-set reasoning as the fields
+            above. -->
+            <label class={FIELD_WRAPPER} for="overview-released-year">
+              <span class={LABEL}>Released year</span>
+              <select class={INPUT} id="overview-released-year" bind:value={releasedYearValue}>
+                <option value="">Any</option>
+                {#each releasedYearOptions as year (year)}
+                  <option value={year}>{year}</option>
+                {/each}
+              </select>
+            </label>
+            <label class={FIELD_WRAPPER} for="overview-released-month">
+              <span class={LABEL}>Released month</span>
+              <input
+                class={INPUT}
+                type="month"
+                id="overview-released-month"
+                bind:value={releasedMonthValue}
+              />
+            </label>
+          </div>
+        </details>
+
+        <button type="submit" class={BUTTON_PRIMARY}>Filter</button>
+        <button type="button" class={BUTTON_SECONDARY} onclick={handleClearFilter}>
+          Clear filter
+        </button>
+      </form>
+    </details>
+
+    {#if showRefreshAll}
+      <button
+        type="button"
+        class={BUTTON_SECONDARY}
+        disabled={refreshingAll}
+        aria-busy={refreshingAll}
+        onclick={handleRefreshAll}
+      >
+        {#if refreshingAll}
+          <svg
+            class="mr-2 h-4 w-4 animate-spin"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.5 4.5A7 7 0 1 0 17 10M17 10V5M17 10h-5"
+            />
+          </svg>
+        {/if}
+        Refresh all metadata
+      </button>
+      <p class={STATUS_TEXT}>
+        Only touches titles missing metadata — the calendar entry is the source of truth once a
+        title's matched.
+      </p>
+    {/if}
+  </div>
 
   <p class={STATUS_TEXT} role="status">{statusText}</p>
   <p class={STATUS_TEXT} role="status">{actionStatusText}</p>
@@ -1143,18 +1153,6 @@ getPicklists(config).then((picklists) => {
     <ErrorToast message={actionError} onDismiss={() => (actionError = "")} />
   {/if}
   <div bind:this={pickerArea}></div>
-
-  {#if mapPins.length > 0}
-    <!-- #351: every currently-filtered viewing with known coordinates —
-    same "no map, not a broken one" rule /map and Venues already follow
-    for a filter that matches nothing located. Reuses VenueMap directly
-    rather than re-querying CalDAV the way the standalone /map page
-    does, so this always matches whatever's actually filtered here. -->
-    <div class="mb-4">
-      <h2 class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">Map</h2>
-      <VenueMap pins={mapPins} />
-    </div>
-  {/if}
 
   {#if total > 0}
     <div class={TABLE_WRAP}>
@@ -1533,5 +1531,21 @@ getPicklists(config).then((picklists) => {
         <span class={STATUS_TEXT}>Page {currentPage + 1} of {pages}</span>
       </div>
     {/if}
+  {/if}
+
+  {#if mapPins.length > 0}
+    <!-- #351/#437: every currently-filtered viewing with known
+    coordinates — same "no map, not a broken one" rule /map and Venues
+    already follow for a filter that matches nothing located. Reuses
+    VenueMap directly rather than re-querying CalDAV the way the
+    standalone /map page does, so this always matches whatever's
+    actually filtered here. Rendered after the table/pagination (in
+    source order, not just visually) so the primary list is reachable
+    without scrolling past — or tabbing past, for a keyboard-only
+    visitor — a secondary visualization. -->
+    <div class="mb-4">
+      <h2 class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">Map</h2>
+      <VenueMap pins={mapPins} />
+    </div>
   {/if}
 </div>

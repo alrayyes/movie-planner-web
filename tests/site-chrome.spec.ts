@@ -401,6 +401,7 @@ test.describe("breadcrumb", () => {
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toHaveCount(0);
 
     await page.getByText("Filters", { exact: true }).click();
+    await page.getByText("More filters", { exact: true }).click();
     await page.locator("#overview-director").fill("Denis Villeneuve");
     await page.getByRole("button", { name: "Filter", exact: true }).click();
 
