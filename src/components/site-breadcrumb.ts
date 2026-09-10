@@ -21,8 +21,13 @@ import {
 // trailing slash ("/venues/") even though every internal link in this
 // app is written without one — normalizePath (below) is what makes
 // this table match either form.
+// #448: "/venue" deliberately shares the "Venues" label with "/venues"
+// itself — see render() below, which appends a live label (broadcast
+// over ACTIVE_FILTER_LABEL_EVENT) onto this base label rather than
+// this table growing a second, per-venue-specific entry of its own.
 const PAGE_NAMES: Record<string, string> = {
   "/venues": "Venues",
+  "/venue": "Venues",
   "/calendar": "Calendar",
   "/log": "Log a viewing",
   "/import": "Import",
@@ -83,9 +88,21 @@ export class SiteBreadcrumb extends HTMLElement {
     window.removeEventListener(ACTIVE_FILTER_LABEL_EVENT, this.handleFilterLabel);
   }
 
+  // #448: a live label (broadcast over ACTIVE_FILTER_LABEL_EVENT) is
+  // appended onto this page's own static PAGE_NAMES label when both
+  // exist — "/venue" reads "Venues / <trimmed venue name>" this way,
+  // without this table or this method growing any per-venue awareness
+  // of its own. "/" has no PAGE_NAMES entry at all, so there the live
+  // label stands alone (or is absent entirely, same as before this
+  // existed) — unchanged from the original chip-driven-filter
+  // behaviour (#374/#375/#376).
   private render(liveFilterLabel: string | null) {
     const path = normalizePath(window.location.pathname);
-    const label = path === "/" ? liveFilterLabel : PAGE_NAMES[path];
+    const pageLabel = PAGE_NAMES[path];
+    const label =
+      pageLabel && liveFilterLabel
+        ? `${pageLabel} / ${liveFilterLabel}`
+        : (liveFilterLabel ?? pageLabel);
     if (!label) {
       this.replaceChildren();
       return;

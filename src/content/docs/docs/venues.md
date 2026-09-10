@@ -6,7 +6,8 @@ description: Every venue you've logged a viewing at, or added to your saved list
 The "Venues" page lists every venue you've ever logged a viewing at,
 along with any venue you've saved but not watched anything at yet, each
 with a count of logged viewings there. Clicking a venue name takes you
-to the calendar overview, filtered to that exact venue.
+to a dedicated page for that venue alone — its own results, pagination,
+and map, with no filter controls.
 
 A From/To date range narrows the counts to that window; clearing it
 goes back to your whole history.
