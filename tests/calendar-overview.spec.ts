@@ -1253,6 +1253,27 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Paddington");
   });
 
+  // #547: Released Year and Released Month present as one grouped
+  // control (a <fieldset> with a shared "Released" legend) rather than
+  // two visually unrelated dropdowns — while keeping each field's own
+  // independent year-only/month-only filtering capability (#373/#437's
+  // own reasoning for why they're separate fields at all), not
+  // replaced by a single combined <input type="month"> that can't
+  // express either alone.
+  test("groups Released Year and Released Month under one shared 'Released' label", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    await openFilters(page);
+    await openMoreFilters(page);
+
+    const group = page.getByRole("group", { name: "Released" });
+    await expect(group).toBeVisible();
+    await expect(group.locator("#overview-released-year")).toBeVisible();
+    await expect(group.locator("#overview-released-month")).toBeVisible();
+  });
+
   test("?releasedYear= and ?releasedMonth= query params pre-populate their filter fields on load", async ({
     page,
   }) => {

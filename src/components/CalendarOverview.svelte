@@ -1097,25 +1097,35 @@ getPicklists(config).then((picklists) => {
             outright — too granular a filter to justify the field.
             Released Month keeps its native month picker; Released Year
             becomes a select, same bounded-set reasoning as the fields
-            above. -->
-            <label class={FIELD_WRAPPER} for="overview-released-year">
-              <span class={LABEL}>Released year</span>
-              <select class={INPUT} id="overview-released-year" bind:value={releasedYearValue}>
-                <option value="">Any</option>
-                {#each releasedYearOptions as year (year)}
-                  <option value={year}>{year}</option>
-                {/each}
-              </select>
-            </label>
-            <label class={FIELD_WRAPPER} for="overview-released-month">
-              <span class={LABEL}>Released month</span>
-              <input
-                class={INPUT}
-                type="month"
-                id="overview-released-month"
-                bind:value={releasedMonthValue}
-              />
-            </label>
+            above. #547: grouped under one shared "Released" fieldset —
+            reads as one coherent control rather than two unrelated
+            dropdowns — while each field keeps its own independent
+            year-only/month-only filtering (#373's own reasoning for why
+            they're two fields, not a single <input type="month"> that
+            can't express either alone). -->
+            <fieldset class="flex min-w-0 flex-col gap-1">
+              <legend class={LABEL}>Released</legend>
+              <div class="flex gap-2">
+                <label class="flex min-w-0 flex-1 flex-col gap-1" for="overview-released-year">
+                  <span class="text-xs text-slate-500 dark:text-slate-400">Year</span>
+                  <select class={INPUT} id="overview-released-year" bind:value={releasedYearValue}>
+                    <option value="">Any</option>
+                    {#each releasedYearOptions as year (year)}
+                      <option value={year}>{year}</option>
+                    {/each}
+                  </select>
+                </label>
+                <label class="flex min-w-0 flex-1 flex-col gap-1" for="overview-released-month">
+                  <span class="text-xs text-slate-500 dark:text-slate-400">Month</span>
+                  <input
+                    class={INPUT}
+                    type="month"
+                    id="overview-released-month"
+                    bind:value={releasedMonthValue}
+                  />
+                </label>
+              </div>
+            </fieldset>
           </div>
         </details>
 
