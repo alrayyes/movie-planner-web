@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.105.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.0...movie-planner-web-v0.105.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **details:** dedupe splitMultiValue so a repeated chip value doesn't crash the page ([#530](https://github.com/alrayyes/movie-planner-web/issues/530)) ([06e9856](https://github.com/alrayyes/movie-planner-web/commit/06e9856e5050f5ff095aa6494a81eb48119f6aaa)), closes [#528](https://github.com/alrayyes/movie-planner-web/issues/528)
+
 ## [0.105.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.104.0...movie-planner-web-v0.105.0) (2026-09-10)
 
 
