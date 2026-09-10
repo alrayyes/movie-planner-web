@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.105.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.1...movie-planner-web-v0.105.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* **details:** link a viewing's venue to its dedicated page, not the overview ([#532](https://github.com/alrayyes/movie-planner-web/issues/532)) ([de1b8d9](https://github.com/alrayyes/movie-planner-web/commit/de1b8d93d6a02d5a98285d133d0e6015e2c4dbd6)), closes [#529](https://github.com/alrayyes/movie-planner-web/issues/529)
+
 ## [0.105.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.105.0...movie-planner-web-v0.105.1) (2026-09-10)
 
 
