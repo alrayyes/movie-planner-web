@@ -145,5 +145,8 @@ export function buildYearGrids(
   const years = new Set<string>();
   for (const key of counts.keys()) years.add(key.slice(0, 4));
 
-  return [...years].sort().map((year) => buildYearGrid(year, counts, today));
+  return [...years]
+    .sort()
+    .reverse()
+    .map((year) => buildYearGrid(year, counts, today));
 }
