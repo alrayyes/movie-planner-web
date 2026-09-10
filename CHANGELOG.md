@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.103.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.102.0...movie-planner-web-v0.103.0) (2026-09-10)
+
+
+### Features
+
+* **venue:** structured venue picklist with select + Add venue form ([#518](https://github.com/alrayyes/movie-planner-web/issues/518)) ([d475083](https://github.com/alrayyes/movie-planner-web/commit/d47508366d07eeaffa84a03d7559e8e5b73628f0)), closes [#452](https://github.com/alrayyes/movie-planner-web/issues/452)
+
 ## [0.102.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v0.101.0...movie-planner-web-v0.102.0) (2026-09-10)
 
 
