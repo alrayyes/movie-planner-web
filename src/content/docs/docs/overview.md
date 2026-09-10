@@ -41,16 +41,23 @@ You can also filter by release year or month, matched independently of
 each other — there's no exact-release-day filter; that's too granular
 to be worth its own field.
 
-Clicking a director, actor, or genre chip, a Rated/Language row, or the
-month/year of the Released date, on a viewing's own details page takes
-you straight to the overview pre-filtered to that exact value/
-granularity. Clicking a city heading on the [Venues page](/docs/venues/)
-does the same for every viewing at a venue in that city. When exactly
-one such filter is active, the browser tab's title reflects it — for
-example "Christopher Nolan (director) — Movie Planner" — so several
-filtered tabs stay easy to tell apart. A long cast on a details page
-shows only the first several actor chips, with a "+N more" toggle to
-reveal the rest.
+Clicking a director, actor, genre, movie country, or movie language
+chip on a viewing's own details page takes you to a dedicated page for
+that exact value instead — its own results and pagination, with no
+filter controls — the same pattern the [Venues page](/docs/venues/)
+uses for a single venue (a "Directors", "Actors", "Genres", "Movie
+countries", or "Movie languages" listing page, each reachable at
+`/directors`, `/actors`, `/genres`, `/movie-countries`, and
+`/movie-languages`, lists every distinct value with a count). Clicking
+a Rated badge, or the month/year of the Released date, still takes you
+straight to the overview pre-filtered to that exact value/granularity —
+there's no dedicated page for those. Clicking a city heading on the
+Venues page filters the overview to every viewing at a venue in that
+city, the same way. When exactly one such overview filter is active,
+the browser tab's title reflects it — for example "PG-13 (rated) —
+Movie Planner" — so several filtered tabs stay easy to tell apart. A
+long cast on a details page shows only the first several actor chips,
+with a "+N more" toggle to reveal the rest.
 
 ## Sorting and pagination
 

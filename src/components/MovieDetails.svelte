@@ -622,6 +622,12 @@ reloadOnBfcacheRestore(() => void load());
       {@const directorChips = splitMultiValue(viewing.director)}
       {@const actorChips = splitMultiValue(viewing.actors)}
       {@const genreChips = splitMultiValue(viewing.genre)}
+      <!-- #450: movie country/language get the same split-first treatment
+      director/actors/genre already had — "United Kingdom, France" used to
+      link as one whole unsplit string instead of two individually
+      clickable values. -->
+      {@const movieCountryChips = splitMultiValue(viewing.movieCountry)}
+      {@const movieLanguageChips = splitMultiValue(viewing.movieLanguage)}
       <!-- #400: TMDb-derived collection/certification/budget/popularity
       join the existing scalar fields array — same tier as Runtime/
       Metascore/Box Office/Production, no bespoke UI. Keywords stays
@@ -802,27 +808,17 @@ reloadOnBfcacheRestore(() => void load());
                   </a>
                 </dd>
               {/if}
-              {#if viewing.movieLanguage}
+              {#if movieLanguageChips.length > 0}
+                <!-- #450: individually clickable chips, split first — same
+                fix as director/actors/genre already had (#163), each
+                linking to its own dedicated per-value page rather than one
+                link for the whole comma-joined string. -->
                 <dt class={DT}>Language</dt>
-                <dd class={DD}>
-                  <a
-                    href={`/?movieLanguage=${encodeURIComponent(viewing.movieLanguage)}`}
-                    class="text-indigo-600 hover:underline dark:text-indigo-400"
-                  >
-                    {viewing.movieLanguage}
-                  </a>
-                </dd>
+                <dd class={DD}><ChipList items={movieLanguageChips} kind="movieLanguage" /></dd>
               {/if}
-              {#if viewing.movieCountry}
+              {#if movieCountryChips.length > 0}
                 <dt class={DT}>Country</dt>
-                <dd class={DD}>
-                  <a
-                    href={`/?movieCountry=${encodeURIComponent(viewing.movieCountry)}`}
-                    class="text-indigo-600 hover:underline dark:text-indigo-400"
-                  >
-                    {viewing.movieCountry}
-                  </a>
-                </dd>
+                <dd class={DD}><ChipList items={movieCountryChips} kind="movieCountry" /></dd>
               {/if}
               {#if viewing.released}
                 <!-- #373/#437: two independently clickable pieces —
@@ -893,15 +889,15 @@ reloadOnBfcacheRestore(() => void load());
             <dl class={DL_RESPONSIVE}>
               {#if directorChips.length > 0}
                 <dt class={DT}>Director</dt>
-                <dd class={DD}><ChipList items={directorChips} paramName="director" /></dd>
+                <dd class={DD}><ChipList items={directorChips} kind="director" /></dd>
               {/if}
               {#if actorChips.length > 0}
                 <dt class={DT}>Actors</dt>
-                <dd class={DD}><ChipList items={actorChips} paramName="actor" /></dd>
+                <dd class={DD}><ChipList items={actorChips} kind="actor" /></dd>
               {/if}
               {#if genreChips.length > 0}
                 <dt class={DT}>Genre</dt>
-                <dd class={DD}><ChipList items={genreChips} paramName="genre" /></dd>
+                <dd class={DD}><ChipList items={genreChips} kind="genre" /></dd>
               {/if}
             </dl>
           {/if}
