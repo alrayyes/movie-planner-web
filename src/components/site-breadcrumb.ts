@@ -63,6 +63,32 @@ for (const config of Object.values(ATTRIBUTES)) {
   LISTING_HREFS[config.detailPath] = config.listingPath;
 }
 
+// #534/#543: a detail page's own value lives right in its URL (the same
+// query param VenueOverview.svelte/AttributeDetail.svelte themselves
+// read on mount) — this is what lets handleNavigate render the correct
+// middle+current crumb *synchronously*, on first paint, rather than
+// starting from nothing and waiting on that island's own
+// ACTIVE_FILTER_LABEL_EVENT broadcast. Without this, a detail page's
+// breadcrumb depended entirely on winning a race against
+// astro:page-load's own render — genuinely non-deterministic (confirmed
+// live: reproducibly missing the middle link on some runs, present on
+// others, same test, same data, no code path difference except timing)
+// since nothing orders "the island's effect has broadcast" ahead of
+// "the next astro:page-load fires" the other way. The broadcast event
+// still exists and still matters for venue specifically — this URL
+// value is the *raw* venue string, whereas the trimmed name + city the
+// breadcrumb ultimately wants only exists once CalDAV data has loaded.
+const DETAIL_PARAM_NAMES: Record<string, string> = { "/venue": "venue" };
+for (const config of Object.values(ATTRIBUTES)) {
+  DETAIL_PARAM_NAMES[config.detailPath] = config.paramName;
+}
+
+function detailPageValueFromUrl(path: string): string | null {
+  const paramName = DETAIL_PARAM_NAMES[path];
+  if (!paramName) return null;
+  return new URLSearchParams(window.location.search).get(paramName);
+}
+
 function normalizePath(pathname: string): string {
   return pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 }
@@ -97,7 +123,11 @@ export class SiteBreadcrumb extends HTMLElement {
   // no separate connectedCallback-time render needed.
   private readonly handleNavigate = () => {
     const path = normalizePath(window.location.pathname);
-    this.render(path === "/" ? activeFilterLabelFromUrl() : null);
+    if (path === "/") {
+      this.render(activeFilterLabelFromUrl());
+      return;
+    }
+    this.render(detailPageValueFromUrl(path));
   };
 
   connectedCallback() {
