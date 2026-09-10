@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.2.0...movie-planner-web-v1.3.0) (2026-09-10)
+
+
+### Features
+
+* **build:** add Codecov Bundle Analysis ([#586](https://github.com/alrayyes/movie-planner-web/issues/586)) ([5066edb](https://github.com/alrayyes/movie-planner-web/commit/5066edba4a70edc626513c1f86815ec8d3a2ef8e)), closes [#574](https://github.com/alrayyes/movie-planner-web/issues/574)
+
 ## [1.2.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.1.1...movie-planner-web-v1.2.0) (2026-09-10)
 
 
