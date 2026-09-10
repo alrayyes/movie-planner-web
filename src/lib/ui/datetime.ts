@@ -97,6 +97,15 @@ const MINUTES_PER_DAY = 24 * 60;
 // midnight-crossing viewing is clipped at the track's right edge
 // (position + width capped at 100) rather than wrapped or split into a
 // second segment — see design.md's own reasoning.
+// #546: a strictly proportional width leaves a short viewing (a 5-minute
+// short, say) an imperceptible sliver — this floor keeps it visible,
+// same reasoning standard timeline/Gantt-chart UIs already use for a
+// short event within a bounded track. Applied after the midnight-edge
+// clamp below, never past it — a viewing clipped to less remaining
+// track than this floor stays clipped, exactly representing "this ran
+// past midnight," rather than growing past the track's own edge.
+export const MIN_BLOCKED_TIME_BAR_WIDTH_PERCENT = 2;
+
 export function computeBlockedTimeBar(startIso: string, endIso: string): BlockedTimeBar {
   const start = new Date(startIso);
   const end = new Date(endIso);
@@ -104,6 +113,15 @@ export function computeBlockedTimeBar(startIso: string, endIso: string): Blocked
   const positionPercent = (startMinutes / MINUTES_PER_DAY) * 100;
   const durationMinutes = (end.getTime() - start.getTime()) / 60_000;
   const rawWidthPercent = (durationMinutes / MINUTES_PER_DAY) * 100;
-  const widthPercent = Math.min(rawWidthPercent, 100 - positionPercent);
+  const remainingTrackPercent = 100 - positionPercent;
+  // #444: a zero or negative duration means no bar at all (gated by the
+  // caller on widthPercent > 0) — the floor only ever lifts a
+  // genuinely-positive-but-tiny width, never manufactures one from
+  // nothing.
+  const flooredWidthPercent =
+    rawWidthPercent > 0
+      ? Math.max(rawWidthPercent, MIN_BLOCKED_TIME_BAR_WIDTH_PERCENT)
+      : rawWidthPercent;
+  const widthPercent = Math.min(flooredWidthPercent, remainingTrackPercent);
   return { positionPercent, widthPercent };
 }
