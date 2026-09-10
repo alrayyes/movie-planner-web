@@ -35,8 +35,8 @@ import {
 	TH,
 	TR_BODY,
 } from "../lib/ui/classes";
-// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
+	// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 	computeBlockedTimeBar,
 	formatPeriod,
 	localDayBoundary,
