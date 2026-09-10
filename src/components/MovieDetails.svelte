@@ -662,6 +662,11 @@ reloadOnBfcacheRestore(() => void load());
       {@const directorChips = splitMultiValue(viewing.director)}
       {@const actorChips = splitMultiValue(viewing.actors)}
       {@const genreChips = splitMultiValue(viewing.genre)}
+      <!-- #400: TMDb-derived collection/certification/budget/popularity
+      join the existing scalar fields array — same tier as Runtime/
+      Metascore/Box Office/Production, no bespoke UI. Keywords stays
+      separate (keywordChips below) since it renders as badges, not a
+      plain value. -->
       {@const fields = [
         ['Medium', viewing.medium],
         ['Runtime', viewing.runtime],
@@ -671,7 +676,16 @@ reloadOnBfcacheRestore(() => void load());
         ['Production', viewing.production],
         ['DVD Release', viewing.dvd],
         ['Awards', viewing.awards],
+        ['Collection', viewing.collection],
+        ['Certification', viewing.certification],
+        ['Budget', viewing.budget],
+        ['Popularity', viewing.popularity],
       ]}
+      <!-- #400: comma-split for readability, same helper director/
+      actors/genre use for their chips — but rendered as plain,
+      non-clickable badges below (no overview keyword filter exists
+      for a chip to link to). -->
+      {@const keywordChips = splitMultiValue(viewing.keywords)}
       {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
       <!-- #414: whether each grouped section below has anything to show
       — {@const} has to sit at this top level (immediate child of the
@@ -685,7 +699,8 @@ reloadOnBfcacheRestore(() => void load());
         viewing.movieCountry ||
         viewing.released ||
         viewing.row ||
-        viewing.seat}
+        viewing.seat ||
+        keywordChips.length > 0}
       {@const hasCastCrew =
         directorChips.length > 0 || actorChips.length > 0 || genreChips.length > 0}
       {@const hasExtras = viewing.synopsis || viewing.website || viewing.notes}
@@ -894,6 +909,23 @@ reloadOnBfcacheRestore(() => void load());
                   {[viewing.row && `Row ${viewing.row}`, viewing.seat && `Seat ${viewing.seat}`]
                     .filter(Boolean)
                     .join(", ")}
+                </dd>
+              {/if}
+              {#if keywordChips.length > 0}
+                <!-- #400: plain badges, not the clickable-chip treatment
+                director/actors/genre get above — there's no overview
+                keyword filter for a chip to link to, so this styles as
+                purely informational (no hover/link affordance) rather
+                than a chip that would misleadingly look interactive. -->
+                <dt class={DT}>Keywords</dt>
+                <dd class={DD}>
+                  <div class="flex flex-wrap gap-1">
+                    {#each keywordChips as keyword (keyword)}
+                      <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-700">
+                        {keyword}
+                      </span>
+                    {/each}
+                  </div>
                 </dd>
               {/if}
             </dl>
