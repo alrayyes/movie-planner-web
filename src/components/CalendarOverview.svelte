@@ -1,22 +1,20 @@
 <script lang="ts">
 import { syncCaldavActivityLog } from "../lib/activity-log/sync";
-import {
-	deleteViewing,
-	getPicklists,
-	getViewing,
-	listViewings,
-	updateViewing,
-} from "../lib/caldav/client";
+import { deleteViewing, getPicklists, listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { importCheckRange } from "../lib/movie-log/run-import";
-import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
+import type { OmdbCandidate } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import {
+	applyOmdbCandidate,
+	refreshAllMetadata,
+	refreshMetadata,
+} from "../lib/omdb/refresh-actions";
 import { parseReleasedDate } from "../lib/omdb/released-date";
-import { enrichWithTmdb } from "../lib/tmdb/client";
 import { ACTIVE_FILTER_LABEL_EVENT, activeFilterLabel } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -719,41 +717,26 @@ async function handleRefresh(viewing: LoggedViewing) {
 	refreshingUid = viewing.uid;
 	actionError = "";
 	try {
-		// #91: re-check the calendar entry itself first — it may have
-		// been matched elsewhere (the CLI's own sync, another tab/device)
-		// since this list was loaded, and only what's still actually
-		// missing from it should ever reach OMDb. Everything below reads
-		// and writes on top of this fresh copy, not the possibly-stale
-		// `viewing` argument.
-		const current = (await getViewing(config, viewing.uid)) ?? viewing;
-		if (hasOmdbMetadata(current)) {
-			await reload({ silent: true });
-			actionStatusText = "Already up to date.";
-			return;
+		// #575: the re-fetch-first/skip-if-matched/lookup/picker decision
+		// tree lives in lib/omdb/refresh-actions.ts now, shared with the
+		// missing-data overview — see its own comment for why.
+		const result = await refreshMetadata({ config, omdbApiKey, tmdbApiKey, viewing });
+		switch (result.kind) {
+			case "already-up-to-date":
+				await reload({ silent: true });
+				actionStatusText = "Already up to date.";
+				break;
+			case "refreshed":
+				await reload({ silent: true });
+				actionStatusText = "Refreshed.";
+				break;
+			case "needs-picker":
+				showOmdbPicker(result.current, result.candidates);
+				break;
+			case "no-match":
+				actionStatusText = "OMDb had no match for this title.";
+				break;
 		}
-		const metadata = await lookupMovie(
-			omdbApiKey,
-			current.title,
-			new Date(current.start).getFullYear().toString(),
-		);
-		if (metadata) {
-			// #360/#400: TMDb only ever runs off an IMDb ID OMDb has just
-			// resolved — never a title/year search of its own.
-			const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
-			await updateViewing(config, current.uid, { ...current, ...metadata, ...tmdbFields });
-			await reload({ silent: true });
-			actionStatusText = "Refreshed.";
-			return;
-		}
-		// #49: no single confident match — offer a disambiguation picker
-		// if OMDb's search has candidates, rather than reporting no match
-		// outright.
-		const candidates = await searchMovies(omdbApiKey, current.title);
-		if (candidates.length > 0) {
-			showOmdbPicker(current, candidates);
-			return;
-		}
-		actionStatusText = "OMDb had no match for this title.";
 	} catch (error) {
 		actionError = error instanceof Error ? error.message : "Failed to refresh metadata.";
 	} finally {
@@ -792,13 +775,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 				if (!omdbApiKey || !pickerArea) return;
 				actionError = "";
 				try {
-					const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
-					if (metadata) {
-						// #360/#400: same TMDb enrichment step as the confident-match
-						// branch above, since this is the same refresh action.
-						const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
-						await updateViewing(config, viewing.uid, { ...viewing, ...metadata, ...tmdbFields });
-					}
+					await applyOmdbCandidate({ config, omdbApiKey, tmdbApiKey, current: viewing, candidate });
 					await reload({ silent: true });
 					actionStatusText = "Refreshed.";
 				} catch (error) {
@@ -833,31 +810,19 @@ async function handleRefreshAll() {
 	refreshingAll = true;
 	actionError = "";
 	actionStatusText = `Refreshing 0 of ${targets.length}…`;
-	let refreshed = 0;
-	let misses = 0;
 	try {
-		for (const viewing of targets) {
-			try {
-				const metadata = await lookupMovie(
-					omdbApiKey,
-					viewing.title,
-					new Date(viewing.start).getFullYear().toString(),
-				);
-				if (metadata) {
-					// #360/#400: added to the same per-viewing sequential loop,
-					// not parallelized — same rate-limit posture as the existing
-					// OMDb bulk refresh.
-					const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
-					await updateViewing(config, viewing.uid, { ...viewing, ...metadata, ...tmdbFields });
-					refreshed++;
-				} else {
-					misses++;
-				}
-			} catch {
-				misses++;
-			}
-			actionStatusText = `Refreshing ${refreshed + misses} of ${targets.length}…`;
-		}
+		// #575: the per-viewing lookup/update loop lives in
+		// lib/omdb/refresh-actions.ts now, shared with the missing-data
+		// overview's own bulk refresh.
+		const { refreshed, misses } = await refreshAllMetadata({
+			config,
+			omdbApiKey,
+			tmdbApiKey,
+			targets,
+			onProgress: (currentRefreshed, currentMisses, total) => {
+				actionStatusText = `Refreshing ${currentRefreshed + currentMisses} of ${total}…`;
+			},
+		});
 
 		await reload({ silent: true });
 		actionStatusText =

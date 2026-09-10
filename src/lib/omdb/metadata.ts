@@ -23,3 +23,35 @@ import type { LoggedViewing } from "../caldav/types";
 export function hasOmdbMetadata(viewing: Pick<LoggedViewing, "imdbId" | "posterUrl">): boolean {
   return Boolean(viewing.imdbId && viewing.posterUrl);
 }
+
+// #575: the missing-data overview's per-field diagnostic — which of the
+// fields a correctly-matched viewing should almost always have are
+// actually absent. "imdbMatch" is its own entry, independent of
+// hasOmdbMetadata's poster-inclusive definition above: "no match at all"
+// and "matched but missing a poster" are two different signals the
+// overview's own checkboxes name separately.
+export type MissingOmdbField =
+  | "imdbMatch"
+  | "poster"
+  | "director"
+  | "actors"
+  | "genre"
+  | "synopsis";
+
+type CheckedViewing = Pick<
+  LoggedViewing,
+  "imdbId" | "posterUrl" | "director" | "actors" | "genre" | "synopsis"
+>;
+
+const MISSING_OMDB_FIELD_CHECKS: [MissingOmdbField, keyof CheckedViewing][] = [
+  ["imdbMatch", "imdbId"],
+  ["poster", "posterUrl"],
+  ["director", "director"],
+  ["actors", "actors"],
+  ["genre", "genre"],
+  ["synopsis", "synopsis"],
+];
+
+export function missingOmdbFields(viewing: CheckedViewing): MissingOmdbField[] {
+  return MISSING_OMDB_FIELD_CHECKS.filter(([, field]) => !viewing[field]).map(([kind]) => kind);
+}

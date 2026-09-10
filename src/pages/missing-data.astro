@@ -1,0 +1,26 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import MissingDataOverview from "../components/MissingDataOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Missing data — Movie Planner" wide>
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Missing data
+  </h1>
+  <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+    Logged viewings missing OMDb-sourced data — usually the first sign the wrong
+    title got matched.
+  </p>
+  <div class="mt-6">
+    {
+      /* client:only, not client:load — reads stored credentials on
+      mount, which doesn't exist during the static build (see
+      VenuesOverview's own identical note). */
+    }
+    <MissingDataOverview client:only="svelte" />
+  </div>
+</Layout>

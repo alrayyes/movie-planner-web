@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { hasOmdbMetadata } from "./metadata";
+import { hasOmdbMetadata, missingOmdbFields } from "./metadata";
 
 describe("hasOmdbMetadata", () => {
   // #113: a CLI-logged entry gets imdbId for free by parsing its own
@@ -47,5 +47,48 @@ describe("hasOmdbMetadata", () => {
         posterUrl: "https://example.com/dune.jpg",
       }),
     ).toBe(true);
+  });
+});
+
+describe("missingOmdbFields", () => {
+  // #575/missing-data-overview: the per-field version of hasOmdbMetadata's
+  // binary check — "imdbMatch" is its own field, independent of the
+  // poster-inclusive definition hasOmdbMetadata uses, since "no match at
+  // all" and "matched but missing a poster" are two different diagnostic
+  // signals the missing-data overview's own checkboxes name separately.
+  test("no imdbId means every tracked field is missing", () => {
+    expect(missingOmdbFields({})).toEqual([
+      "imdbMatch",
+      "poster",
+      "director",
+      "actors",
+      "genre",
+      "synopsis",
+    ]);
+  });
+
+  test("matched with a poster but no genre reports only genre missing", () => {
+    expect(
+      missingOmdbFields({
+        imdbId: "tt1160419",
+        posterUrl: "https://example.com/dune.jpg",
+        director: "Denis Villeneuve",
+        actors: "Timothée Chalamet",
+        synopsis: "A boy's destiny.",
+      }),
+    ).toEqual(["genre"]);
+  });
+
+  test("a fully matched viewing reports nothing missing", () => {
+    expect(
+      missingOmdbFields({
+        imdbId: "tt1160419",
+        posterUrl: "https://example.com/dune.jpg",
+        director: "Denis Villeneuve",
+        actors: "Timothée Chalamet",
+        genre: "Sci-Fi",
+        synopsis: "A boy's destiny.",
+      }),
+    ).toEqual([]);
   });
 });
