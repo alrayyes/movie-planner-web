@@ -104,6 +104,10 @@ jobs:
         # killing every test still queued behind it in that worker. A
         # fresh run starts a fresh server. Unit tests never touch a
         # server, so they run once, unretried; only the e2e half restarts.
+        # #526: this retry only gets a chance to run once the first
+        # `playwright test` invocation actually exits — playwright.config.ts's
+        # `globalTimeout` is what makes that happen quickly instead of
+        # grinding through this job's whole 15-minute timeout first.
         run: |
           bun run test:unit
           bun run test:e2e || (echo "retrying e2e after a possible webServer crash" && bun run test:e2e)
