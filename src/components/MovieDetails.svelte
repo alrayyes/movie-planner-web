@@ -1,4 +1,6 @@
 <script lang="ts">
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { attributeHref } from "../lib/attribute/attributes";
 import {
 	deleteViewing,
 	getPicklists,
@@ -631,7 +633,7 @@ reloadOnBfcacheRestore(() => void load());
       <!-- #400: TMDb-derived collection/certification/budget/popularity
       join the existing scalar fields array — same tier as Runtime/
       Metascore/Box Office/Production, no bespoke UI. Keywords stays
-      separate (keywordChips below) since it renders as badges, not a
+      separate (keywordChips below) since it renders as chips, not a
       plain value. -->
       {@const fields = [
         ['Medium', viewing.medium],
@@ -647,10 +649,10 @@ reloadOnBfcacheRestore(() => void load());
         ['Budget', viewing.budget],
         ['Popularity', viewing.popularity],
       ]}
-      <!-- #400: comma-split for readability, same helper director/
-      actors/genre use for their chips — but rendered as plain,
-      non-clickable badges below (no overview keyword filter exists
-      for a chip to link to). -->
+      <!-- #400/#535: comma-split for readability, same helper director/
+      actors/genre use for their chips — and, since #535, rendered as
+      the same clickable ChipList as those, each linking to its own
+      dedicated Keyword page. -->
       {@const keywordChips = splitMultiValue(viewing.keywords)}
       {@const blockedTimeBar = computeBlockedTimeBar(viewing.start, viewing.end)}
       <!-- #414: whether each grouped section below has anything to show
@@ -793,15 +795,17 @@ reloadOnBfcacheRestore(() => void load());
                 </dd>
               {/if}
               {#if viewing.rated}
-                <!-- #372: the movie's own OMDb-derived Rated/Language/
-                Country fields, same single-link pattern as Venue above —
-                a different concept from the venue's own city/country,
-                which is clickable from the Venues page's own grouping
-                instead. -->
+                <!-- #372/#535: the movie's own OMDb-derived Rated field,
+                same single-link pattern as Venue above — a different
+                concept from the venue's own city/country, which is
+                clickable from the Venues page's own grouping instead.
+                Links to Rated's own dedicated, filter-free per-value page
+                (attributeHref) rather than the main overview pre-filtered
+                to it, same as every other attribute chip on this page. -->
                 <dt class={DT}>Rated</dt>
                 <dd class={DD}>
                   <a
-                    href={`/?rated=${encodeURIComponent(viewing.rated)}`}
+                    href={attributeHref("rated", viewing.rated)}
                     class="text-indigo-600 hover:underline dark:text-indigo-400"
                   >
                     {viewing.rated}
@@ -821,16 +825,18 @@ reloadOnBfcacheRestore(() => void load());
                 <dd class={DD}><ChipList items={movieCountryChips} kind="movieCountry" /></dd>
               {/if}
               {#if viewing.released}
-                <!-- #373/#437: two independently clickable pieces —
+                <!-- #373/#437/#535: two independently clickable pieces —
                 month and year — since OMDb's own "DD MMM YYYY" shape
-                splits cleanly into the granularities the overview's own
-                releasedMonth/releasedYear filters support. The day
-                itself is shown but no longer clickable — the overview's
-                own exact-day Released Date filter was removed outright
-                (too granular to justify the field). Falls back to plain
-                text for a shape parseReleasedDate doesn't recognize,
-                rather than guessing at filter values that wouldn't
-                actually match anything. -->
+                splits cleanly into the two granularities Released Year/
+                Month pages support. The day itself is shown but no
+                longer clickable — there's no per-day page, same as the
+                overview's own exact-day Released Date filter having been
+                removed outright (too granular to justify the field).
+                Each links to its own dedicated, filter-free per-value
+                page (attributeHref) rather than the main overview
+                pre-filtered to it. Falls back to plain text for a shape
+                parseReleasedDate doesn't recognize, rather than guessing
+                at values that wouldn't actually match anything. -->
                 {@const releasedParts = viewing.released.split(" ")}
                 {@const releasedFilters = parseReleasedDate(viewing.released)}
                 <dt class={DT}>Released</dt>
@@ -838,13 +844,13 @@ reloadOnBfcacheRestore(() => void load());
                   {#if releasedFilters && releasedParts.length === 3}
                     {releasedParts[0]}
                     <a
-                      href={`/?releasedMonth=${releasedFilters.month}`}
+                      href={attributeHref("releasedMonth", releasedFilters.month)}
                       class="text-indigo-600 hover:underline dark:text-indigo-400"
                     >
                       {releasedParts[1]}
                     </a>
                     <a
-                      href={`/?releasedYear=${releasedFilters.year}`}
+                      href={attributeHref("releasedYear", releasedFilters.year)}
                       class="text-indigo-600 hover:underline dark:text-indigo-400"
                     >
                       {releasedParts[2]}
@@ -866,21 +872,13 @@ reloadOnBfcacheRestore(() => void load());
                 </dd>
               {/if}
               {#if keywordChips.length > 0}
-                <!-- #400: plain badges, not the clickable-chip treatment
-                director/actors/genre get above — there's no overview
-                keyword filter for a chip to link to, so this styles as
-                purely informational (no hover/link affordance) rather
-                than a chip that would misleadingly look interactive. -->
+                <!-- #400/#535: now the same clickable-chip treatment
+                director/actors/genre get above — a dedicated Keywords
+                page (#535) exists for a chip to link to now, so this is
+                no longer the plain, non-interactive badge #400 shipped
+                when nothing existed to link to. -->
                 <dt class={DT}>Keywords</dt>
-                <dd class={DD}>
-                  <div class="flex flex-wrap gap-1">
-                    {#each keywordChips as keyword (keyword)}
-                      <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-700">
-                        {keyword}
-                      </span>
-                    {/each}
-                  </div>
-                </dd>
+                <dd class={DD}><ChipList items={keywordChips} kind="keyword" /></dd>
               {/if}
             </dl>
           {/if}

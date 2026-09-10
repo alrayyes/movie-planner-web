@@ -1,0 +1,14 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import AttributeDetail from "../components/AttributeDetail.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Movie Planner" wide>
+  {
+    /* #535: client:only, not client:load — see director.astro's own
+    comment for why. */
+  }
+  <AttributeDetail client:only="svelte" kind="releasedMonth" />
+</Layout>

@@ -22,14 +22,18 @@ async function connect(page: Page) {
   await expect(page.getByRole("link", { name: "Viewings" })).toBeVisible();
 }
 
-// #450: director/actor/genre/movie-country/movie-language all share the
-// exact same listing+detail page shape (AttributeOverview.svelte /
-// AttributeDetail.svelte), so their own coverage is one parametrized
-// loop over this config — matching the source's own "one generalized
-// pattern, not five near-duplicate implementations" design — rather
-// than five near-identical spec files. `field` is the raw LoggedViewing
-// property a fixture sets (`actors`, not `actor`); `paramName` is the
-// query-string key both a chip link and this page's own URL agree on.
+// #450/#535: director/actor/genre/movie-country/movie-language/rated/
+// keyword all share the exact same listing+detail page shape
+// (AttributeOverview.svelte/AttributeDetail.svelte), so their own
+// coverage is one parametrized loop over this config — matching the
+// source's own "one generalized pattern, not near-duplicate
+// implementations" design — rather than seven near-identical spec
+// files. `field` is the raw LoggedViewing property a fixture sets
+// (`actors`, not `actor`); `paramName` is the query-string key both a
+// chip link and this page's own URL agree on. Released year/month are
+// NOT in this loop — see the "Released year/month pages" describe below
+// — since neither is a raw LoggedViewing field a fixture can just set
+// directly; both are computed from `released` via parseReleasedDate.
 const ATTRIBUTE_KINDS = [
   {
     field: "director",
@@ -65,6 +69,27 @@ const ATTRIBUTE_KINDS = [
     listingPath: "/movie-languages",
     detailPath: "/movie-language",
     plural: "Movie languages",
+  },
+  // #535: single-valued (never comma-separated), but splitMultiValue
+  // already returns a comma-free string as its own single-element
+  // array, so this fits the loop with no special-casing — the listing
+  // path deliberately isn't "/ratings" (it's the field's own name,
+  // matching MovieDetails.svelte's "Rated" label), and the detail path
+  // ("/rating") deliberately differs from it — see attributes.ts's own
+  // comment on the `rated` config entry.
+  {
+    field: "rated",
+    paramName: "rated",
+    listingPath: "/rated",
+    detailPath: "/rating",
+    plural: "Ratings",
+  },
+  {
+    field: "keywords",
+    paramName: "keyword",
+    listingPath: "/keywords",
+    detailPath: "/keyword",
+    plural: "Keywords",
   },
 ] as const;
 
@@ -192,6 +217,207 @@ for (const { field, paramName, listingPath, detailPath, plural } of ATTRIBUTE_KI
       page,
     }) => {
       await page.goto(`${detailPath}?${paramName}=${encodeURIComponent("Alpha Value")}`);
+
+      await expect(page.getByText(/^Connect first to see this/)).toBeVisible();
+    });
+  });
+}
+
+// #535: rated and keyword reuse the exact same components as the
+// original five #450 kinds, but get their own explicit a11y coverage
+// per this repo's a11y convention rather than leaning on the shared
+// behaviour block's director-only scan below to stand in for every kind.
+test.describe("rated and keyword pages accessibility", () => {
+  test("introduces no accessibility violations on either the listing or a per-value page", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        rated: "PG-13",
+        keywords: "desert, prophecy",
+      },
+    ]);
+    await connect(page);
+
+    await page.goto("/rated");
+    await expect(page.getByRole("heading", { name: "Ratings" })).toBeVisible();
+    let results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.goto(`/rating?rated=${encodeURIComponent("PG-13")}`);
+    await expect(page.getByRole("heading", { name: "PG-13" })).toBeVisible();
+    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.goto("/keywords");
+    await expect(page.getByRole("heading", { name: "Keywords" })).toBeVisible();
+    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.goto(`/keyword?keyword=${encodeURIComponent("desert")}`);
+    await expect(page.getByRole("heading", { name: "desert" })).toBeVisible();
+    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
+// #535: released year/month aren't raw LoggedViewing fields a fixture
+// can just set (unlike every kind in ATTRIBUTE_KINDS above) — both are
+// computed from `released` via parseReleasedDate, so a fixture sets
+// `released` and this asserts against the year/month it parses to.
+const RELEASED_KINDS = [
+  {
+    paramName: "releasedYear",
+    listingPath: "/released-years",
+    detailPath: "/released-year",
+    plural: "Released years",
+    releasedA: "22 Oct 2021",
+    valueA: "2021",
+    releasedB: "05 May 2020",
+    valueB: "2020",
+  },
+  {
+    paramName: "releasedMonth",
+    listingPath: "/released-months",
+    detailPath: "/released-month",
+    plural: "Released months",
+    releasedA: "22 Oct 2021",
+    valueA: "2021-10",
+    releasedB: "05 May 2020",
+    valueB: "2020-05",
+  },
+] as const;
+
+for (const {
+  paramName,
+  listingPath,
+  detailPath,
+  plural,
+  releasedA,
+  valueA,
+  releasedB,
+  valueB,
+} of RELEASED_KINDS) {
+  test.describe(`${plural} pages`, () => {
+    test(`${listingPath} lists every distinct value with a count of logged viewings`, async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        {
+          uid: "v1",
+          title: "Movie One",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          released: releasedA,
+        },
+        {
+          uid: "v2",
+          title: "Movie Two",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          released: releasedA,
+        },
+        {
+          uid: "v3",
+          title: "Movie Three",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          released: releasedB,
+        },
+      ]);
+      await connect(page);
+      await page.goto(listingPath);
+
+      await expect(page.getByRole("heading", { name: plural })).toBeVisible();
+      const rows = page.locator("tbody tr");
+      await expect(rows).toHaveCount(2);
+      // Sorted by count descending.
+      await expect(rows.nth(0)).toContainText(valueA);
+      await expect(rows.nth(0)).toContainText("2");
+      await expect(rows.nth(1)).toContainText(valueB);
+      await expect(rows.nth(1)).toContainText("1");
+    });
+
+    test(`clicking a value on ${listingPath} goes to its own dedicated, filter-free page, with the breadcrumb reading "Home / ${plural} / {value}"`, async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        {
+          uid: "v1",
+          title: "Movie One",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          released: releasedA,
+        },
+        {
+          uid: "v2",
+          title: "Movie Two",
+          start: TWO_MONTHS_AGO.toISOString(),
+          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "netflix",
+        },
+      ]);
+      await connect(page);
+      await page.goto(listingPath);
+
+      await page.getByRole("link", { name: valueA }).click();
+
+      await expect(page).toHaveURL(new RegExp(`${detailPath}/?\\?${paramName}=${valueA}`));
+      await expect(page.getByRole("heading", { name: valueA, exact: true })).toBeVisible();
+      const rows = page.locator("tbody tr");
+      await expect(rows).toHaveCount(1);
+      await expect(rows).toContainText("Movie One");
+
+      // No filter chrome of any kind, and no way to change the value.
+      await expect(page.getByText("Filters", { exact: true })).toHaveCount(0);
+      await expect(page.locator("input[type=text]")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Filter", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Clear filter" })).toHaveCount(0);
+
+      const nav = page.getByRole("navigation", { name: "Breadcrumb" });
+      await expect(nav).toBeVisible();
+      await expect(nav).toContainText(`${plural} / ${valueA}`);
+      await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+
+      const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(results.violations).toEqual([]);
+    });
+
+    test(`${detailPath} shows an empty-results state for a value matching nothing, not an error`, async ({
+      page,
+    }) => {
+      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+        {
+          uid: "v1",
+          title: "Movie One",
+          start: ONE_MONTH_AGO.toISOString(),
+          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+          released: releasedA,
+        },
+      ]);
+      await connect(page);
+
+      await page.goto(`${detailPath}?${paramName}=${encodeURIComponent("1999")}`);
+
+      await expect(page.locator("tbody tr")).toHaveCount(0);
+      await expect(page.getByText("0 logged viewings.")).toBeVisible();
+      await expect(page.getByRole("alert")).toHaveCount(0);
+    });
+
+    test(`${detailPath} asks a visitor with no stored credentials to connect first`, async ({
+      page,
+    }) => {
+      await page.goto(`${detailPath}?${paramName}=${encodeURIComponent(valueA)}`);
 
       await expect(page.getByText(/^Connect first to see this/)).toBeVisible();
     });

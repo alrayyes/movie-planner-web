@@ -39,6 +39,34 @@ describe("attributeValues", () => {
     const v = viewing({ movieLanguage: "English, French" });
     expect(attributeValues(v, "movieLanguage")).toEqual(["English", "French"]);
   });
+
+  // #535: rated is single-valued (never comma-separated), but
+  // splitMultiValue already returns a comma-free string as a
+  // single-element array, so this needed no new logic of its own.
+  test("reads rated under the rated kind, as a single value", () => {
+    const v = viewing({ rated: "PG-13" });
+    expect(attributeValues(v, "rated")).toEqual(["PG-13"]);
+  });
+
+  test("reads keywords under the keyword kind, comma-split", () => {
+    const v = viewing({ keywords: "desert, prophecy, revenge" });
+    expect(attributeValues(v, "keyword")).toEqual(["desert", "prophecy", "revenge"]);
+  });
+
+  // #535: releasedYear/releasedMonth are computed from `released` via
+  // parseReleasedDate, not read off a raw field.
+  test("extracts the released year and month from the released field", () => {
+    const v = viewing({ released: "22 Oct 2021" });
+    expect(attributeValues(v, "releasedYear")).toEqual(["2021"]);
+    expect(attributeValues(v, "releasedMonth")).toEqual(["2021-10"]);
+  });
+
+  test("a missing or unparsable released field returns an empty list for both", () => {
+    expect(attributeValues(viewing({}), "releasedYear")).toEqual([]);
+    expect(attributeValues(viewing({}), "releasedMonth")).toEqual([]);
+    expect(attributeValues(viewing({ released: "Coming soon" }), "releasedYear")).toEqual([]);
+    expect(attributeValues(viewing({ released: "Coming soon" }), "releasedMonth")).toEqual([]);
+  });
 });
 
 describe("attributeHref", () => {
@@ -59,6 +87,19 @@ describe("attributeHref", () => {
       "/genre?genre=Action%20%26%20Adventure",
     );
   });
+
+  // #535: rated's listing path ("/rated") and detail path ("/rating")
+  // deliberately differ in word form, unlike the other eight kinds
+  // (director/directors, keyword/keywords, …) — see attributes.ts's own
+  // comment on the `rated` config entry.
+  test("rated's detail path differs from its listing path", () => {
+    expect(attributeHref("rated", "PG-13")).toBe("/rating?rated=PG-13");
+  });
+
+  test("links released year/month to their own dedicated pages", () => {
+    expect(attributeHref("releasedYear", "2021")).toBe("/released-year?releasedYear=2021");
+    expect(attributeHref("releasedMonth", "2021-10")).toBe("/released-month?releasedMonth=2021-10");
+  });
 });
 
 describe("ATTRIBUTES", () => {
@@ -68,11 +109,21 @@ describe("ATTRIBUTES", () => {
     }
   });
 
-  test("every listing and detail path is unique across all five attributes", () => {
+  test("every listing and detail path is unique across all nine attributes", () => {
     const paths = ATTRIBUTE_KINDS.flatMap((kind) => [
       ATTRIBUTES[kind].listingPath,
       ATTRIBUTES[kind].detailPath,
     ]);
     expect(new Set(paths).size).toBe(paths.length);
+  });
+
+  // #535: every kind sets exactly one of field/extract — never both,
+  // never neither — so attributeValues always has exactly one way to
+  // find a kind's values.
+  test("every kind sets exactly one of field or extract", () => {
+    for (const kind of ATTRIBUTE_KINDS) {
+      const config = ATTRIBUTES[kind];
+      expect(Boolean(config.field) !== Boolean(config.extract)).toBe(true);
+    }
   });
 });
