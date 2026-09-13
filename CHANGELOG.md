@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.4.0...movie-planner-web-v1.5.0) (2026-09-13)
+
+
+### Features
+
+* **log:** let a visitor search OMDb and pick a match before logging ([#594](https://github.com/alrayyes/movie-planner-web/issues/594)) ([653337f](https://github.com/alrayyes/movie-planner-web/commit/653337fc629763a5837db6140467d663d12fda1f)), closes [#593](https://github.com/alrayyes/movie-planner-web/issues/593)
+
 ## [1.4.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.3.0...movie-planner-web-v1.4.0) (2026-09-13)
 
 
