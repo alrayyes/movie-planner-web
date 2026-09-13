@@ -17,11 +17,12 @@ automatically.
 
 If you'd rather pick the exact title yourself — a remake, a same-titled
 short, anything OMDb's automatic lookup might guess wrong — use "Search
-OMDb" next to the Title field before saving. It searches OMDb and shows
-the same poster-and-year picker "Search OMDb" on a movie's own details
-page uses (see "Fixing a wrong match" below); the candidate you pick is
-what gets attached when you log the viewing, no automatic lookup or
-later disambiguation needed.
+OMDb" next to the Title field before saving. It opens a small popup to
+search OMDb and shows the same poster-and-year picker "Search OMDb" on
+a movie's own details page uses (see "Fixing a wrong match" below);
+picking a candidate closes the popup, fills in Title, and that's what
+gets attached when you log the viewing — no automatic lookup or later
+disambiguation needed.
 
 ## From a Pathé booking email
 

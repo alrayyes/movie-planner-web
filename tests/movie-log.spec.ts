@@ -407,7 +407,11 @@ test.describe("Search OMDb before logging", () => {
       });
     });
 
+    const dialog = page.getByRole("dialog", { name: "Search OMDb" });
+    await expect(dialog).toBeHidden();
     await page.getByRole("button", { name: "Search OMDb" }).click();
+    await expect(dialog).toBeVisible();
+
     await page.locator("#omdb-search-query").fill("Dune 1984");
     await page.getByRole("button", { name: "Search", exact: true }).click();
 
@@ -418,6 +422,7 @@ test.describe("Search OMDb before logging", () => {
     expect(results.violations).toEqual([]);
 
     await picker.getByRole("button", { name: "Dune (1984)" }).click();
+    await expect(dialog).toBeHidden();
     await expect(picker).toHaveCount(0);
     await expect(page.locator("#log-title")).toHaveValue("Dune");
 
@@ -434,7 +439,7 @@ test.describe("Search OMDb before logging", () => {
     await expect(page.getByLabel("Choose the matching title")).toHaveCount(0);
   });
 
-  test("canceling the search form makes no OMDb request and leaves the title untouched", async ({
+  test("canceling the search dialog makes no OMDb request and leaves the title untouched", async ({
     page,
   }) => {
     await connect(page, "test-omdb-key");
@@ -448,14 +453,29 @@ test.describe("Search OMDb before logging", () => {
       });
     });
 
+    const dialog = page.getByRole("dialog", { name: "Search OMDb" });
     await page.locator("#log-title").fill("Dune");
     await page.getByRole("button", { name: "Search OMDb" }).click();
     await expect(page.locator("#omdb-search-query")).toHaveValue("Dune");
-    await page.getByRole("button", { name: "Cancel" }).click();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
 
-    await expect(page.locator("#omdb-search-query")).toHaveCount(0);
+    await expect(dialog).toBeHidden();
     expect(omdbCalls).toBe(0);
     await expect(page.locator("#log-title")).toHaveValue("Dune");
+
+    // #596: the query resets, ready for a fresh search — not left
+    // showing whatever was typed (or searched for) last time.
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await expect(page.locator("#omdb-search-query")).toHaveValue("Dune");
+  });
+
+  test("pressing Escape closes the search dialog the same as Cancel", async ({ page }) => {
+    await connect(page, "test-omdb-key");
+    const dialog = page.getByRole("dialog", { name: "Search OMDb" });
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
   });
 
   test("dismissing the picker falls back to normal automatic enrichment on submit", async ({
