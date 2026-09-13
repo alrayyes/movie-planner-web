@@ -105,6 +105,9 @@ const { title, wide = false } = Astro.props;
     </div>
     <script>
       import "../components/site-breadcrumb";
+      import { registerServiceWorker } from "../lib/pwa/register-service-worker";
+
+      registerServiceWorker();
     </script>
   </body>
 </html>
