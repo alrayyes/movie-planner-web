@@ -1,7 +1,7 @@
 import { createViewing, listViewings, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
-import { lookupMovie, type OmdbCandidate, searchMovies } from "../omdb/client";
+import { lookupMovie, type MovieMetadata, type OmdbCandidate, searchMovies } from "../omdb/client";
 import { enrichWithTmdb } from "../tmdb/client";
 import type { PatheBooking } from "./pathe-email";
 
@@ -48,16 +48,29 @@ async function enrichWithOmdb(
   }
 }
 
+// #593: a visitor who already searched OMDb and picked the exact title
+// (LogViewingForm.svelte's own "Search OMDb" button) skips the automatic
+// best-guess t= lookup entirely — their choice is what gets attached,
+// fetching only the TMDb half (#360/#400: always keyed off an IMDb ID
+// OMDb has already resolved, never its own title/year search).
 export async function logManualViewing(
   credentials: Credentials,
   viewing: NewViewing,
+  preselectedOmdb?: MovieMetadata,
 ): Promise<LogResult> {
   const config: CaldavConfig = {
     baseUrl: credentials.caldavUrl,
     username: credentials.caldavUsername,
     password: credentials.caldavPassword,
   };
-  const enrichment = await enrichWithOmdb(credentials, viewing.title, viewing.start);
+  const enrichment = preselectedOmdb
+    ? {
+        fields: {
+          ...preselectedOmdb,
+          ...(await enrichWithTmdb(credentials.tmdbApiKey, preselectedOmdb.imdbId)),
+        },
+      }
+    : await enrichWithOmdb(credentials, viewing.title, viewing.start);
   const created = await createViewing(config, { ...viewing, ...enrichment.fields });
   return { viewing: created, omdbCandidates: enrichment.candidates };
 }

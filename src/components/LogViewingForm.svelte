@@ -6,7 +6,12 @@ import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
 import { toIsoDateTime } from "../lib/movie-log/run-import";
-import { lookupByImdbId, type OmdbCandidate } from "../lib/omdb/client";
+import {
+	lookupByImdbId,
+	type MovieMetadata,
+	type OmdbCandidate,
+	searchMovies,
+} from "../lib/omdb/client";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import { enrichWithTmdb } from "../lib/tmdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -67,6 +72,19 @@ let formError = $state("");
 let picklists = $state<Picklists>({ media: [], venues: [] });
 let pickerArea = $state<HTMLDivElement>();
 
+// #593: gates the manual form's own "Search OMDb" button, same condition
+// MovieDetails.svelte's omdbActive uses — no point offering a search
+// with nothing to search with, or while a visitor has deliberately
+// paused lookups to stay under OMDb's daily quota. Copied out of
+// `credentials` into their own $state (mirroring MovieDetails.svelte's
+// own omdbApiKey/omdbPaused) rather than derived from `credentials`
+// directly — `credentials` itself is a plain `let`, set once by init()
+// below, not reactive.
+let omdbApiKey = $state<string | undefined>();
+let omdbPaused = $state(false);
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const omdbActive = $derived(Boolean(omdbApiKey) && !omdbPaused);
+
 function caldavConfig(): CaldavConfig {
 	if (!credentials) throw new Error("<LogViewingForm> requires stored credentials");
 	return {
@@ -79,6 +97,8 @@ function caldavConfig(): CaldavConfig {
 async function init() {
 	credentials = await getCredentialsStore().get();
 	if (!credentials) return;
+	omdbApiKey = credentials.omdbApiKey;
+	omdbPaused = credentials.omdbPaused ?? false;
 	// Best-effort — a fetch failure here shouldn't block logging, same
 	// spirit as OMDb enrichment failing soft elsewhere in this form.
 	try {
@@ -196,10 +216,73 @@ let endTime = $state("");
 let medium = $state("");
 let venue = $state("");
 
+// #593: set once a visitor searches OMDb and picks a candidate (below);
+// cleared on any further hand-typed edit to the title so a stale match
+// never silently attaches to a title that's since changed.
+let selectedOmdbMatch = $state<MovieMetadata | undefined>();
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let searchingOmdb = $state(false);
+let omdbSearchQuery = $state("");
+
 // #452: the selected venue's own picklist entry is the canonical
 // source for its city/country/geo/address — attached automatically
 // below, not searched or reused from prior viewings.
 const selectedVenueEntry = $derived(venue ? findVenueEntry(venue, picklists.venues) : undefined);
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function startOmdbSearch() {
+	omdbSearchQuery = title;
+	searchingOmdb = true;
+}
+
+// #593: mirrors MovieDetails.svelte's own startOmdbSearch/submitOmdbSearch
+// — same searchMovies → buildOmdbPicker chain, "Cancel" as the picker's
+// dismiss label (its own "search" origin). The difference is what
+// picking a candidate does: nothing's been logged yet, so there's no
+// viewing to updateViewing — just the exact match this form's own
+// submit will attach.
+async function selectOmdbCandidate(candidate: OmdbCandidate) {
+	if (!omdbApiKey) return;
+	formError = "";
+	try {
+		const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
+		if (metadata) {
+			selectedOmdbMatch = metadata;
+			title = candidate.title;
+		}
+	} catch (error) {
+		formError = error instanceof Error ? error.message : "Failed to fetch the selected match.";
+	} finally {
+		pickerArea?.replaceChildren();
+	}
+}
+
+function showOmdbSearchPicker(candidates: OmdbCandidate[]) {
+	if (!pickerArea) return;
+	pickerArea.replaceChildren(
+		buildOmdbPicker(candidates, selectOmdbCandidate, () => pickerArea?.replaceChildren(), "Cancel"),
+	);
+}
+
+// A plain click handler, not a nested <form onsubmit> — this search
+// lives inside the manual-log <form> below, and HTML doesn't allow a
+// <form> nested inside another one.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function submitOmdbSearch() {
+	if (!omdbApiKey || !omdbSearchQuery.trim()) return;
+	searchingOmdb = false;
+	formError = "";
+	try {
+		const candidates = await searchMovies(omdbApiKey, omdbSearchQuery.trim());
+		if (candidates.length > 0) {
+			showOmdbSearchPicker(candidates);
+		} else {
+			status = "OMDb had no match for that search.";
+		}
+	} catch (error) {
+		formError = error instanceof Error ? error.message : "Failed to search OMDb.";
+	}
+}
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleManualSubmit(event: SubmitEvent) {
@@ -210,21 +293,25 @@ async function handleManualSubmit(event: SubmitEvent) {
 	const venueEntry = selectedVenueEntry;
 	formError = "";
 	try {
-		const result = await logManualViewing(credentials, {
-			title,
-			// A missing time defaults to midnight; a missing end time
-			// defaults to the start time — same as the CSV/JSON importer
-			// (run-import.ts) for a row that only gives a date.
-			start: toIsoDateTime(date, startTime || undefined),
-			end: toIsoDateTime(date, endTime || startTime || undefined),
-			medium,
-			venue: loggedVenue,
-			geo: venueEntry?.geo,
-			city: venueEntry?.city,
-			country: venueEntry?.country,
-			streetAddress: venueEntry?.streetAddress,
-			postalCode: venueEntry?.postalCode,
-		});
+		const result = await logManualViewing(
+			credentials,
+			{
+				title,
+				// A missing time defaults to midnight; a missing end time
+				// defaults to the start time — same as the CSV/JSON importer
+				// (run-import.ts) for a row that only gives a date.
+				start: toIsoDateTime(date, startTime || undefined),
+				end: toIsoDateTime(date, endTime || startTime || undefined),
+				medium,
+				venue: loggedVenue,
+				geo: venueEntry?.geo,
+				city: venueEntry?.city,
+				country: venueEntry?.country,
+				streetAddress: venueEntry?.streetAddress,
+				postalCode: venueEntry?.postalCode,
+			},
+			selectedOmdbMatch,
+		);
 		status = "Logged.";
 		title = "";
 		date = "";
@@ -232,6 +319,7 @@ async function handleManualSubmit(event: SubmitEvent) {
 		endTime = "";
 		medium = "";
 		venue = "";
+		selectedOmdbMatch = undefined;
 		await learnFromViewing(loggedMedium, loggedVenue);
 		if (result.omdbCandidates?.length) showOmdbPicker(result.viewing, result.omdbCandidates);
 	} catch (error) {
@@ -295,8 +383,48 @@ async function handleConfirm() {
     <form class={FORM} aria-label="Log a viewing manually" onsubmit={handleManualSubmit}>
       <div class={FIELD_WRAPPER}>
         <label class={LABEL} for="log-title">Title</label>
-        <input class={INPUT} id="log-title" name="log-title" type="text" required bind:value={title} />
+        <input
+          class={INPUT}
+          id="log-title"
+          name="log-title"
+          type="text"
+          required
+          bind:value={title}
+          oninput={() => (selectedOmdbMatch = undefined)}
+        />
+        {#if omdbActive}
+          <button
+            type="button"
+            class={`${BUTTON_SECONDARY} self-start`}
+            onclick={startOmdbSearch}
+          >
+            Search OMDb
+          </button>
+        {/if}
       </div>
+
+      {#if searchingOmdb}
+        <!-- role="search", not a nested <form> — this sits inside the
+        manual-log form above, and HTML doesn't allow a <form> nested
+        inside another one. -->
+        <div class="flex items-end gap-2" role="search" aria-label="Search OMDb">
+          <label class={FIELD_WRAPPER} for="omdb-search-query">
+            <span class={LABEL}>Search OMDb</span>
+            <input
+              class={INPUT}
+              type="text"
+              id="omdb-search-query"
+              bind:value={omdbSearchQuery}
+              onkeydown={(event) => event.key === "Enter" && submitOmdbSearch()}
+            />
+          </label>
+          <button type="button" class={BUTTON_PRIMARY} onclick={submitOmdbSearch}>Search</button>
+          <button type="button" class={BUTTON_SECONDARY} onclick={() => (searchingOmdb = false)}>
+            Cancel
+          </button>
+        </div>
+      {/if}
+
       <div class={FIELD_WRAPPER}>
         <label class={LABEL} for="log-date">Date</label>
         <input class={INPUT} id="log-date" name="log-date" type="date" required bind:value={date} />

@@ -350,6 +350,166 @@ test.describe("OMDb enrichment", () => {
   });
 });
 
+// #593: unlike the automatic best-effort lookup above (which only offers
+// a picker after logging, and only when it found no single confident
+// match), this lets a visitor search and pick the exact title *before*
+// logging — the same "Search OMDb" pattern movie-details.spec.ts already
+// covers for fixing an existing match.
+test.describe("Search OMDb before logging", () => {
+  test("no Search OMDb button appears without an OMDb key set", async ({ page }) => {
+    await connect(page);
+    await expect(page.getByRole("button", { name: "Search OMDb" })).toHaveCount(0);
+  });
+
+  test("no Search OMDb button appears while OMDb lookups are paused", async ({ page }) => {
+    await connect(page, "test-omdb-key", true);
+    await expect(page.getByRole("button", { name: "Search OMDb" })).toHaveCount(0);
+  });
+
+  test("searching and picking a match attaches it directly, with no post-log disambiguation", async ({
+    page,
+  }) => {
+    const server = await connect(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("s") === "Dune 1984") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "1984",
+                imdbID: "tt0087182",
+                Poster: "https://example.com/dune-1984.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      // The automatic t= lookup must never run for this submission — only
+      // the chosen candidate's own i=<imdbID> detail fetch.
+      expect(url.searchParams.get("i")).toBe("tt0087182");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "David Lynch",
+          Year: "1984",
+          imdbID: "tt0087182",
+          Poster: "https://example.com/dune-1984.jpg",
+          Ratings: [{ Source: "Internet Movie Database", Value: "7.6/10" }],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Dune 1984");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await picker.getByRole("button", { name: "Dune (1984)" }).click();
+    await expect(picker).toHaveCount(0);
+    await expect(page.locator("#log-title")).toHaveValue("Dune");
+
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates).toHaveLength(1);
+    expect(server.creates[0]?.director).toBe("David Lynch");
+    expect(server.creates[0]?.ratingImdb).toBe("7.6/10");
+    expect(server.creates[0]?.posterUrl).toBe("https://example.com/dune-1984.jpg");
+    expect(server.updates).toHaveLength(0);
+    await expect(page.getByLabel("Choose the matching title")).toHaveCount(0);
+  });
+
+  test("canceling the search form makes no OMDb request and leaves the title untouched", async ({
+    page,
+  }) => {
+    await connect(page, "test-omdb-key");
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False" }),
+      });
+    });
+
+    await page.locator("#log-title").fill("Dune");
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await expect(page.locator("#omdb-search-query")).toHaveValue("Dune");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(page.locator("#omdb-search-query")).toHaveCount(0);
+    expect(omdbCalls).toBe(0);
+    await expect(page.locator("#log-title")).toHaveValue("Dune");
+  });
+
+  test("dismissing the picker falls back to normal automatic enrichment on submit", async ({
+    page,
+  }) => {
+    const server = await connect(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("s")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [
+              {
+                Title: "Dune",
+                Year: "1984",
+                imdbID: "tt0087182",
+                Poster: "https://example.com/dune-1984.jpg",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      // The normal automatic t= lookup that runs on submit, since no
+      // candidate was picked.
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False" }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Dune 1984");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Cancel" }).click();
+    await expect(picker).toHaveCount(0);
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.locator("#log-medium").fill("cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates[0]?.director).toBeUndefined();
+  });
+});
+
 // #8/#203/#452: a venue's own coordinates now live on its picklist
 // entry, attached automatically when it's selected, or captured via an
 // address-search lookup while adding a genuinely new venue — this
