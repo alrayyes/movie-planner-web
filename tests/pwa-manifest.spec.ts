@@ -58,3 +58,33 @@ test.describe("logo, favicon, and PWA install support", () => {
     expect(icoResponse.ok()).toBe(true);
   });
 });
+
+// #590: the manifest and icons alone only get a bookmark-style "Add to
+// Home screen" shortcut on Android/desktop Chrome. The native install
+// prompt (beforeinstallprompt banner, desktop omnibox install icon) also
+// requires a registered service worker with a fetch handler.
+test.describe("service worker registration", () => {
+  test("/sw.js resolves as a script with install, activate, and fetch handlers", async ({
+    request,
+  }) => {
+    const response = await request.get("/sw.js");
+    expect(response.ok()).toBe(true);
+
+    const body = await response.text();
+    expect(body).toContain('addEventListener("install"');
+    expect(body).toContain('addEventListener("activate"');
+    expect(body).toContain('addEventListener("fetch"');
+  });
+
+  test("the browser registers the service worker after the page loads", async ({ page }) => {
+    await page.goto("/");
+
+    const registration = await page.evaluate(async () => {
+      if (!("serviceWorker" in navigator)) return null;
+      const registration = await navigator.serviceWorker.ready;
+      return registration.active?.scriptURL ?? null;
+    });
+
+    expect(registration).toBe(`${new URL(page.url()).origin}/sw.js`);
+  });
+});
