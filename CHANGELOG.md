@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.3.0...movie-planner-web-v1.4.0) (2026-09-13)
+
+
+### Features
+
+* **pwa:** register a service worker for real installability ([#591](https://github.com/alrayyes/movie-planner-web/issues/591)) ([ebe4e03](https://github.com/alrayyes/movie-planner-web/commit/ebe4e038fcfcbb0ce06b606f9866e83ddbbb6d05)), closes [#590](https://github.com/alrayyes/movie-planner-web/issues/590)
+
 ## [1.3.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.2.0...movie-planner-web-v1.3.0) (2026-09-10)
 
 
