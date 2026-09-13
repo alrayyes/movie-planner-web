@@ -15,6 +15,14 @@ what that captures). With an OMDb key set, the app looks up the title
 on save and fills in the poster, director, actors, genre, and ratings
 automatically.
 
+If you'd rather pick the exact title yourself — a remake, a same-titled
+short, anything OMDb's automatic lookup might guess wrong — use "Search
+OMDb" next to the Title field before saving. It searches OMDb and shows
+the same poster-and-year picker "Search OMDb" on a movie's own details
+page uses (see "Fixing a wrong match" below); the candidate you pick is
+what gets attached when you log the viewing, no automatic lookup or
+later disambiguation needed.
+
 ## From a Pathé booking email
 
 If you book cinema tickets through Pathé, paste the confirmation email's
