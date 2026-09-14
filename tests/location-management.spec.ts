@@ -91,7 +91,7 @@ test.describe("structured venue picklist", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.locator("#log-venue").selectOption("Grand Vista Cinema");
 
     // Selecting a venue with known coordinates attaches them
@@ -168,7 +168,7 @@ test.describe("structured venue picklist", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -209,7 +209,7 @@ test.describe("structured venue picklist", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -360,6 +360,136 @@ test.describe("structured venue picklist", () => {
     await expect
       .poll(() => server.picklists.venues)
       .toEqual([{ name: "Regal Union Square", city: "Metropolis" }]);
+  });
+});
+
+// #600: Picklists.media stays a flat string[] (unlike venue, a medium
+// has no address/geo worth structuring), but is offered as a native
+// <select> the same way — never free text — with its own "Add medium"
+// dialog (MediumPicker.svelte). "Cinema" is always offered even with an
+// empty picklist: the CLI never writes a medium property to CalDAV at
+// all, so there's no such thing as a viewing with no medium in
+// practice (mediumDisplay's own rule), and a fresh account still needs
+// a first sensible option to log anything with.
+test.describe("structured medium picklist", () => {
+  test("Cinema is always offered, even with an empty picklist", async ({ page }) => {
+    await connect(page, { media: [], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const mediumSelect = page.locator("#log-medium");
+    await expect(mediumSelect).toHaveRole("combobox");
+    await expect(mediumSelect).toHaveValue("Cinema");
+    await expect(mediumSelect.locator("option")).toContainText(["Cinema"]);
+  });
+
+  test("offers a previously-added medium as a select choice on the log form", async ({ page }) => {
+    await connect(page, { media: ["Netflix"], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const mediumSelect = page.locator("#log-medium");
+    await expect(mediumSelect.locator("option")).toContainText(["Cinema", "Netflix"]);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("adding a new medium via the Add medium dialog makes it selectable and attaches it when logging", async ({
+    page,
+  }) => {
+    const server = await connect(page, { media: [], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Add a new medium" });
+    await expect(dialog).toBeHidden();
+    await page.getByRole("button", { name: "Add medium" }).click();
+    await expect(dialog).toBeVisible();
+
+    await page.locator("#log-add-medium-name").fill("Blu-ray");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(dialog).toBeHidden();
+
+    // Immediately selectable — no reload, no separate confirmation step.
+    await expect(page.locator("#log-medium")).toHaveValue("Blu-ray");
+    await expect(page.locator("#log-medium option")).toContainText(["Cinema", "Blu-ray"]);
+    await expect.poll(() => server.picklists.media).toEqual(["Blu-ray"]);
+
+    await page.locator("#log-title").fill("Dune");
+    await page.locator("#log-date").fill("2026-01-01");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates[0]?.medium).toBe("Blu-ray");
+  });
+
+  test("canceling the Add medium dialog makes no change and leaves the selection untouched", async ({
+    page,
+  }) => {
+    const server = await connect(page, { media: [], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Add a new medium" });
+    await page.getByRole("button", { name: "Add medium" }).click();
+    await page.locator("#log-add-medium-name").fill("Blu-ray");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(page.locator("#log-medium")).toHaveValue("Cinema");
+    expect(server.picklists.media).toEqual([]);
+  });
+
+  test("offers a previously-added medium as a select choice when editing on the details page", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "Netflix",
+    };
+    await connect(page, { media: ["Netflix"], venues: [] }, [dune]);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+
+    const mediumSelect = page.locator("#details-medium");
+    await expect(mediumSelect).toHaveValue("Netflix");
+    await expect(mediumSelect.locator("option")).toContainText(["Cinema", "Netflix"]);
+  });
+
+  // #600: mediumDisplay's own blank-means-Cinema rule, applied to the
+  // edit form's initial value too — a CLI-logged viewing's own medium
+  // is genuinely blank (the CLI never writes that property at all), so
+  // editing one shouldn't start from an empty selection matching no
+  // real <option>.
+  test("editing a viewing with no stored medium starts from Cinema, not an empty selection", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "",
+    };
+    const server = await connect(page, { media: [], venues: [] }, [dune]);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    const mediumValue = page
+      .locator("dt", { hasText: "Medium" })
+      .locator("xpath=following-sibling::dd[1]");
+    await expect(mediumValue).toHaveText("Cinema");
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await expect(page.locator("#details-medium")).toHaveValue("Cinema");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    expect(server.viewings.get("dune-uid")?.medium).toBe("Cinema");
   });
 });
 
