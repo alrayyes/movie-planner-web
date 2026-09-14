@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.5.1...movie-planner-web-v1.6.0) (2026-09-14)
+
+
+### Features
+
+* **medium:** make medium a structured picklist, like venue ([#605](https://github.com/alrayyes/movie-planner-web/issues/605)) ([ceab7ad](https://github.com/alrayyes/movie-planner-web/commit/ceab7ad67b042f90b8e9dd9ace910d728f9122be)), closes [#600](https://github.com/alrayyes/movie-planner-web/issues/600)
+
 ## [1.5.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.5.0...movie-planner-web-v1.5.1) (2026-09-14)
 
 
