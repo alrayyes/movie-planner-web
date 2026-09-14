@@ -16,7 +16,7 @@ import { venueDisplay } from "../lib/venue/display";
 
 // #452: shared by the log form and the edit form — a native <select>
 // populated from the picklist's own known venues (never free text), plus
-// a reachable "Add venue" form for a genuinely new one. Structured-venue-
+// a reachable "Add venue" dialog for a genuinely new one. Structured-venue-
 // picklist's own design: a visitor can only ever pick an already-known
 // venue here; a new one is captured with its own separate name/address/
 // postal code/city/country fields (plus an optional Nominatim address-
@@ -27,6 +27,12 @@ import { venueDisplay } from "../lib/venue/display";
 // caller (LogViewingForm.svelte/MovieDetails.svelte) — this component
 // only owns the picking and the adding, not what happens with the
 // selection afterward.
+//
+// #601: the add/edit form is a native <dialog> (showModal()) — the same
+// pattern MediumPicker.svelte (#600) and the Search OMDb dialog
+// (#596/#597) already established, replacing what used to be an inline
+// panel expanding in place. One dialog shared by both modes (its own
+// title/fields swap on `editingVenue`), not two.
 interface Props {
 	idPrefix: string;
 	picklists: Picklists;
@@ -38,10 +44,8 @@ interface Props {
 // biome-ignore lint/correctness/noUnusedVariables: idPrefix/picklists are read in the template below, which Biome does not parse for .svelte files
 let { idPrefix, picklists, value = $bindable(), onAddVenue, onEditVenue }: Props = $props();
 
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let addingVenue = $state(false);
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let editingVenue = $state(false);
+let venueDialogEl = $state<HTMLDialogElement>();
 let newName = $state("");
 let newStreet = $state("");
 let newPostal = $state("");
@@ -60,6 +64,12 @@ let chosenGeoLabel = $state("");
 // known picklist entry — "Edit venue" only makes sense once one is
 // picked, and pre-fills the form from exactly this entry's own fields.
 const selectedEntry = $derived(picklists.venues.find((entry) => entry.name === value));
+
+// #601: computed here rather than as a template {@const} — a <dialog>
+// isn't one of the block constructs {@const} is allowed as an
+// immediate child of.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const formPrefix = $derived(editingVenue ? "edit-venue" : "add-venue");
 
 const runGeoSearch = debounce(async (query: string) => {
 	if (!query.trim()) {
@@ -85,8 +95,12 @@ function chooseGeo(candidate: GeoCandidate) {
 	geoQuery = "";
 }
 
+// #601: fires on every dialog close, however it happens — Cancel, Esc,
+// clicking outside, or the programmatic close() after a save below —
+// same one-place-resets-it pattern as MediumPicker's own
+// resetAddMediumDialog and the Search OMDb dialog's resetSearchDialog.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function resetForm() {
-	addingVenue = false;
 	editingVenue = false;
 	newName = "";
 	newStreet = "";
@@ -97,6 +111,21 @@ function resetForm() {
 	geoCandidates = [];
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function startAddVenue() {
+	editingVenue = false;
+	newName = "";
+	newStreet = "";
+	newPostal = "";
+	newCity = "";
+	newCountry = "";
+	geoQuery = "";
+	geoCandidates = [];
+	chosenGeo = undefined;
+	chosenGeoLabel = "";
+	venueDialogEl?.showModal();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -111,7 +140,7 @@ async function handleAddVenue() {
 	if (chosenGeo) entry.geo = chosenGeo;
 	await onAddVenue(entry);
 	value = entry.name;
-	resetForm();
+	venueDialogEl?.close();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -126,6 +155,7 @@ function startEditVenue() {
 	chosenGeo = entry.geo;
 	chosenGeoLabel = "";
 	editingVenue = true;
+	venueDialogEl?.showModal();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -139,7 +169,7 @@ async function handleEditVenue() {
 	if (newCountry.trim()) entry.country = newCountry.trim();
 	if (chosenGeo) entry.geo = chosenGeo;
 	await onEditVenue(entry);
-	resetForm();
+	venueDialogEl?.close();
 }
 </script>
 
@@ -153,39 +183,49 @@ async function handleEditVenue() {
   </select>
 </div>
 
-{#if !addingVenue && !editingVenue}
-  <div class="flex gap-2">
-    <button
-      type="button"
-      class={`${BUTTON_SECONDARY} self-start`}
-      onclick={() => (addingVenue = true)}
-    >
-      Add venue
+<div class="flex gap-2">
+  <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={startAddVenue}>
+    Add venue
+  </button>
+  {#if selectedEntry}
+    <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={startEditVenue}>
+      Edit venue
     </button>
-    {#if selectedEntry}
-      <button
-        type="button"
-        class={`${BUTTON_SECONDARY} self-start`}
-        onclick={startEditVenue}
-      >
-        Edit venue
-      </button>
-    {/if}
-  </div>
-{:else}
-  {@const formPrefix = editingVenue ? "edit-venue" : "add-venue"}
-  <div
-    class="flex flex-col gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/40"
-    role="group"
-    aria-label={editingVenue ? "Edit this venue" : "Add a new venue"}
-  >
+  {/if}
+</div>
+
+<!-- #601: same native <dialog> pattern as MediumPicker's own "Add
+medium" (#600) and ViewingHeatmap.svelte/keyboard-nav.ts's dialogs —
+showModal()'s own default (viewport-centered, fixed) needs nothing
+extra here. One dialog shared by both Add and Edit, its own
+title/fields swapping on editingVenue. -->
+<dialog
+  bind:this={venueDialogEl}
+  aria-label={editingVenue ? "Edit this venue" : "Add a new venue"}
+  class="max-w-sm rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg backdrop:bg-slate-900/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+  onclick={(event) => {
+    if (event.target === venueDialogEl) venueDialogEl?.close();
+  }}
+  onclose={resetForm}
+>
+  <div class="flex flex-col gap-3">
+    <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+      {editingVenue ? "Edit this venue" : "Add a new venue"}
+    </h2>
     <div class={FIELD_WRAPPER}>
       <label class={LABEL} for={`${idPrefix}-${formPrefix}-name`}>Name</label>
+      <!-- Not `required`: this dialog can be a descendant of the
+      manual-log <form> (VenuePicker is mounted directly inside it),
+      and a `required` field the browser can't focus while the dialog
+      is closed (display:none) makes Chromium silently abort the
+      *outer* form's own submit instead of reporting anything — see
+      MediumPicker.svelte's own identical note (#600, confirmed live).
+      The empty check in handleAddVenue below is what actually guards
+      this. -->
       <input
         class={INPUT}
         id={`${idPrefix}-${formPrefix}-name`}
         type="text"
-        required
         disabled={editingVenue}
         bind:value={newName}
       />
@@ -250,9 +290,13 @@ async function handleEditVenue() {
           Add
         </button>
       {/if}
-      <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={resetForm}>
+      <button
+        type="button"
+        class={`${BUTTON_SECONDARY} self-start`}
+        onclick={() => venueDialogEl?.close()}
+      >
         Cancel
       </button>
     </div>
   </div>
-{/if}
+</dialog>
