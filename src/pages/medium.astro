@@ -1,0 +1,16 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import MediumOverview from "../components/MediumOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Movie Planner" wide>
+  {
+    /* client:only, not client:load — same reasoning as venue.astro's
+    own VenueOverview island: reads stored credentials and the `medium`
+    query string, neither of which exists during the static
+    build/prerender. */
+  }
+  <MediumOverview client:only="svelte" />
+</Layout>
