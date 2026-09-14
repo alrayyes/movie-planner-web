@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.7.0...movie-planner-web-v1.8.0) (2026-09-14)
+
+
+### Features
+
+* **medium:** add a Mediums page mirroring Venues, and link medium from details ([#609](https://github.com/alrayyes/movie-planner-web/issues/609)) ([9fac707](https://github.com/alrayyes/movie-planner-web/commit/9fac707fe18da94cd53dd98870ebdc223bbe0c61)), closes [#602](https://github.com/alrayyes/movie-planner-web/issues/602)
+
 ## [1.7.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.6.0...movie-planner-web-v1.7.0) (2026-09-14)
 
 
