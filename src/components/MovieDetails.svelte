@@ -18,6 +18,8 @@ import type {
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { openStreetMapUrl } from "../lib/geo/links";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import { mediumDisplay } from "../lib/medium/display";
 import {
 	exportSingleViewingFilename,
 	exportViewingsToJson,
@@ -65,6 +67,8 @@ import IconLetterboxd from "./icons/IconLetterboxd.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import MediumPicker from "./MediumPicker.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import VenueMap from "./VenueMap.svelte";
@@ -81,14 +85,14 @@ import VenuePicker from "./VenuePicker.svelte";
 // project's "touch it for real work, convert it" rule — see
 // CalendarOverview.svelte's own note on why.
 
-// #452: venue isn't in this generic loop — a native <select> (populated
-// from the picklist's own known venues) rather than a free-text field
-// needs its own markup, rendered separately via VenuePicker below.
+// #600/#452: medium and venue aren't in this generic loop — a native
+// <select> (populated from the picklist's own known entries) rather
+// than a free-text field needs its own markup, rendered separately via
+// MediumPicker/VenuePicker below.
 const EDITABLE_FIELDS: { key: keyof NewViewing; label: string; type: string }[] = [
 	{ key: "title", label: "Title", type: "text" },
 	{ key: "start", label: "Start", type: "datetime-local" },
 	{ key: "end", label: "End", type: "datetime-local" },
-	{ key: "medium", label: "Medium", type: "text" },
 ];
 
 function toDatetimeLocal(iso: string): string {
@@ -182,6 +186,10 @@ function startEdit(current: LoggedViewing) {
 		}),
 	);
 	editValues.venue = current.venue ?? "";
+	// #600: "Cinema" is always a selectable option (MediumPicker.svelte);
+	// a blank stored medium (see mediumDisplay) edits as that same
+	// default rather than an empty string matching no <option> at all.
+	editValues.medium = current.medium || "Cinema";
 	editing = true;
 }
 
@@ -211,6 +219,20 @@ async function loadPicklists() {
 		picklists = await getPicklists(config);
 	} catch {
 		// The select just shows "No venue"; adding a new one still works.
+	}
+}
+
+// #600: MediumPicker's own "Add medium" submission — same shape as
+// LogViewingForm.svelte's identical handler.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleAddMedium(name: string) {
+	if (!config) return;
+	const next = { ...picklists, media: [...picklists.media, name] };
+	picklists = next;
+	try {
+		await updatePicklists(config, next);
+	} catch {
+		// The next attempt just re-adds it; not worth failing the edit on.
 	}
 }
 
@@ -588,6 +610,14 @@ reloadOnBfcacheRestore(() => void load());
             </label>
           {/each}
           <div class="sm:col-span-2">
+            <MediumPicker
+              idPrefix="details"
+              {picklists}
+              bind:value={editValues.medium}
+              onAddMedium={handleAddMedium}
+            />
+          </div>
+          <div class="sm:col-span-2">
             <VenuePicker
               idPrefix="details"
               {picklists}
@@ -655,7 +685,7 @@ reloadOnBfcacheRestore(() => void load());
       separate (keywordChips below) since it renders as chips, not a
       plain value. -->
       {@const fields = [
-        ['Medium', viewing.medium],
+        ['Medium', mediumDisplay(viewing.medium)],
         ['Runtime', viewing.runtime],
         ['Metascore', viewing.metascore],
         ['IMDb Votes', viewing.imdbVotes],

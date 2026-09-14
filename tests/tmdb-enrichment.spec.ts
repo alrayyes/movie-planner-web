@@ -289,7 +289,7 @@ test.describe("TMDb enrichment", () => {
 
       await page.locator("#log-title").fill("Dune");
       await page.locator("#log-date").fill("2026-01-01");
-      await page.locator("#log-medium").fill("cinema");
+      await page.locator("#log-medium").selectOption("Cinema");
       await page.getByRole("button", { name: "Log viewing" }).click();
 
       await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -317,7 +317,7 @@ test.describe("TMDb enrichment", () => {
 
       await page.locator("#log-title").fill("Dune");
       await page.locator("#log-date").fill("2026-01-01");
-      await page.locator("#log-medium").fill("cinema");
+      await page.locator("#log-medium").selectOption("Cinema");
       await page.getByRole("button", { name: "Log viewing" }).click();
 
       await expect(page.getByRole("status")).toHaveText("Logged.");

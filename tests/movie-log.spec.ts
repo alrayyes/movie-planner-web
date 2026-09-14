@@ -52,13 +52,18 @@ test.describe("manual log form", () => {
     await page.locator("#log-date").fill("2026-02-01");
     await page.locator("#log-start-time").fill("18:00");
     await page.locator("#log-end-time").fill("19:40");
-    await page.locator("#log-medium").fill("netflix");
+    // #600: a real selection, not just the default "Cinema" — proves the
+    // select actually drives what gets logged, not just its own default.
+    await page.getByRole("button", { name: "Add medium" }).click();
+    await page.locator("#log-add-medium-name").fill("Netflix");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.locator("#log-medium")).toHaveValue("Netflix");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
     expect(server.creates).toHaveLength(1);
     expect(server.creates[0]?.title).toBe("Paddington");
-    expect(server.creates[0]?.medium).toBe("netflix");
+    expect(server.creates[0]?.medium).toBe("Netflix");
   });
 
   test("logs with just a date — start and end time are both optional", async ({ page }) => {
@@ -66,7 +71,7 @@ test.describe("manual log form", () => {
 
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-date").fill("2026-02-01");
-    await page.locator("#log-medium").fill("netflix");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -160,7 +165,7 @@ test.describe("OMDb enrichment", () => {
     await page.locator("#log-date").fill("2026-01-01");
     await page.locator("#log-start-time").fill("19:00");
     await page.locator("#log-end-time").fill("21:30");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -177,7 +182,7 @@ test.describe("OMDb enrichment", () => {
     await page.locator("#log-date").fill("2026-02-01");
     await page.locator("#log-start-time").fill("18:00");
     await page.locator("#log-end-time").fill("19:40");
-    await page.locator("#log-medium").fill("netflix");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -202,7 +207,7 @@ test.describe("OMDb enrichment", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -266,7 +271,7 @@ test.describe("OMDb enrichment", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -317,7 +322,7 @@ test.describe("OMDb enrichment", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     const picker = page.getByLabel("Choose the matching title");
@@ -341,7 +346,7 @@ test.describe("OMDb enrichment", () => {
 
     await page.locator("#log-title").fill("Not A Real Movie");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -427,7 +432,7 @@ test.describe("Search OMDb before logging", () => {
     await expect(page.locator("#log-title")).toHaveValue("Dune");
 
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -522,7 +527,7 @@ test.describe("Search OMDb before logging", () => {
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
-    await page.locator("#log-medium").fill("cinema");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Logged.");
@@ -556,7 +561,7 @@ test.describe("error toasts", () => {
 
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-date").fill("2026-02-01");
-    await page.locator("#log-medium").fill("netflix");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     const toast = page.getByRole("alert");

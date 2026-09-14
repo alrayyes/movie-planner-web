@@ -7,13 +7,14 @@ The "Log a viewing" page offers two ways in.
 
 ## Manually
 
-Fill in the title, when you watched it, the medium (cinema, Netflix,
-Blu-ray — whatever you want to call it), and optionally a venue —
-picked from the ones you've already added or logged at, or entered
-right there via "Add venue" (see the [Venues](/docs/venues) page for
-what that captures). With an OMDb key set, the app looks up the title
-on save and fills in the poster, director, actors, genre, and ratings
-automatically.
+Fill in the title, when you watched it, the medium, and optionally a
+venue. Both are picked from a list — the ones you've already added or
+logged with — or added right there via "Add medium"/"Add venue" (see
+the [Venues](/docs/venues) page for what a venue captures). Cinema is
+always on the list, even before you've added anything: it's the
+default for a viewing with no medium recorded at all. With an OMDb key
+set, the app looks up the title on save and fills in the poster,
+director, actors, genre, and ratings automatically.
 
 If you'd rather pick the exact title yourself — a remake, a same-titled
 short, anything OMDb's automatic lookup might guess wrong — use "Search

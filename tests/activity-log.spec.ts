@@ -51,7 +51,7 @@ test.describe("activity log", () => {
     await page.locator("#log-date").fill("2026-02-01");
     await page.locator("#log-start-time").fill("18:00");
     await page.locator("#log-end-time").fill("19:40");
-    await page.locator("#log-medium").fill("netflix");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
     await expect(page.getByRole("status")).toHaveText("Logged.");
 
@@ -308,7 +308,7 @@ test.describe("diff-derived activity from CalDAV (#432)", () => {
     await page.locator("#log-date").fill("2026-02-01");
     await page.locator("#log-start-time").fill("18:00");
     await page.locator("#log-end-time").fill("19:40");
-    await page.locator("#log-medium").fill("netflix");
+    await page.locator("#log-medium").selectOption("Cinema");
     await page.getByRole("button", { name: "Log viewing" }).click();
     await expect(page.getByRole("status")).toHaveText("Logged.");
 

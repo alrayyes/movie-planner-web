@@ -34,31 +34,29 @@ import { findVenueEntry } from "../lib/venue/lookup";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import MediumPicker from "./MediumPicker.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import VenuePicker from "./VenuePicker.svelte";
 
 // movie-log spec: logging a viewing, via the manual form or by parsing a
 // Pathé booking email, with best-effort OMDb enrichment. See
 // log-viewing.ts for the shared write path both entry points use.
 //
-// location-management spec: the medium picklist (a sidecar CalDAV
-// object) is offered as a <datalist> suggestion rather than a closed
-// dropdown, so logging with a new medium still works — it's just not
-// offered as a choice until this same form's own submission adds it.
-//
-// #452 (structured-venue-picklist): venue is different — a native
-// <select> populated only from the picklist's own known venues, never
-// free text, with a separate "Add venue" form (VenuePicker.svelte,
-// shared with MovieDetails.svelte's edit form) for a genuinely new one.
-// A venue's own city/country/geo/address now live directly on its
-// picklist entry — the canonical source, read straight off the
-// selected entry below — rather than this form scanning `allViewings`
-// for a matching prior entry (the now-superseded findKnownGeo/#339
-// model, alongside the address-search lookup that used to run inline
-// here for whatever venue name was currently typed; that lookup now
-// lives inside VenuePicker's own "Add venue" form instead). The Pathé
-// flow keeps its own automatic-reuse behaviour, now reading the same
-// picklist entries by name instead of scanning viewings — its confirm
-// step stays a fixed read-only summary, not an editable form.
+// #600 (structured-medium-picklist) and #452 (structured-venue-picklist):
+// both medium and venue are a native <select> populated only from the
+// picklist's own known entries, never free text, each with its own
+// "Add" dialog (MediumPicker.svelte/VenuePicker.svelte, shared with
+// MovieDetails.svelte's edit form) for a genuinely new one. A venue's
+// own city/country/geo/address live directly on its picklist entry —
+// the canonical source, read straight off the selected entry below —
+// rather than this form scanning `allViewings` for a matching prior
+// entry (the now-superseded findKnownGeo/#339 model, alongside the
+// address-search lookup that used to run inline here for whatever
+// venue name was currently typed; that lookup now lives inside
+// VenuePicker's own "Add venue" dialog instead). The Pathé flow keeps
+// its own automatic-reuse behaviour, now reading the same picklist
+// entries by name instead of scanning viewings — its confirm step
+// stays a fixed read-only summary, not an editable form.
 
 let credentials: Credentials | null = null;
 
@@ -104,17 +102,18 @@ async function init() {
 	try {
 		picklists = await getPicklists(caldavConfig());
 	} catch {
-		// Suggestions just stay empty; medium free-text entry still works,
-		// and no venue is selectable until the next successful load.
+		// Neither medium nor venue is selectable beyond MediumPicker's own
+		// always-available "Cinema" until the next successful load.
 	}
 }
 init();
 
-// location-management spec, "First venue added" (medium only, now —
-// venue can no longer be freely typed into this form; #452's own "Add
-// venue" form is what adds a new venue, via handleAddVenue below). The
-// Pathé flow still calls this with its own parsed cinema name, which
-// isn't selected from the picklist and so still needs auto-learning.
+// #600/#452: medium and venue can no longer be freely typed into this
+// form — MediumPicker's own "Add medium" dialog and VenuePicker's own
+// "Add venue" dialog are what add a genuinely new one, via
+// handleAddMedium/handleAddVenue below. The Pathé flow still calls this
+// with its own parsed cinema name and hardcoded "cinema" medium, which
+// aren't selected from either picker and so still need auto-learning.
 async function learnFromViewing(medium: string, venue: string | undefined) {
 	let changed = false;
 	let next = picklists;
@@ -132,6 +131,19 @@ async function learnFromViewing(medium: string, venue: string | undefined) {
 		await updatePicklists(caldavConfig(), picklists);
 	} catch {
 		// The next log attempt just re-learns it; not worth failing on.
+	}
+}
+
+// #600: MediumPicker's own "Add medium" submission — persisted here (not
+// inside MediumPicker itself), same reasoning as handleAddVenue below.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleAddMedium(name: string) {
+	const next = { ...picklists, media: [...picklists.media, name] };
+	picklists = next;
+	try {
+		await updatePicklists(caldavConfig(), picklists);
+	} catch {
+		// The next attempt just re-adds it; not worth failing the log on.
 	}
 }
 
@@ -213,7 +225,10 @@ let title = $state("");
 let date = $state("");
 let startTime = $state("");
 let endTime = $state("");
-let medium = $state("");
+// #600: "Cinema" is always a selectable option (MediumPicker.svelte),
+// so it's the sensible default rather than an empty string that would
+// match no <option> at all.
+let medium = $state("Cinema");
 let venue = $state("");
 
 // #593: set once a visitor searches OMDb and picks a candidate (below);
@@ -338,7 +353,7 @@ async function handleManualSubmit(event: SubmitEvent) {
 		date = "";
 		startTime = "";
 		endTime = "";
-		medium = "";
+		medium = "Cinema";
 		venue = "";
 		selectedOmdbMatch = undefined;
 		await learnFromViewing(loggedMedium, loggedVenue);
@@ -442,18 +457,7 @@ async function handleConfirm() {
         <label class={LABEL} for="log-end-time">End time (optional)</label>
         <input class={INPUT} id="log-end-time" name="log-end-time" type="time" bind:value={endTime} />
       </div>
-      <div class={FIELD_WRAPPER}>
-        <label class={LABEL} for="log-medium">Medium</label>
-        <input
-          class={INPUT}
-          id="log-medium"
-          name="log-medium"
-          type="text"
-          required
-          list="log-medium-choices"
-          bind:value={medium}
-        />
-      </div>
+      <MediumPicker idPrefix="log" {picklists} bind:value={medium} onAddMedium={handleAddMedium} />
       <VenuePicker
         idPrefix="log"
         {picklists}
@@ -521,12 +525,6 @@ async function handleConfirm() {
       </div>
     {/if}
   </section>
-
-  <datalist id="log-medium-choices">
-    {#each picklists.media as option (option)}
-      <option value={option}>{option}</option>
-    {/each}
-  </datalist>
 
   <p class={STATUS_TEXT} role="status">{status}</p>
   {#if formError}
