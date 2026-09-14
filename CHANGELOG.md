@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.6.0...movie-planner-web-v1.7.0) (2026-09-14)
+
+
+### Features
+
+* **venue:** turn Add/Edit venue into a real dialog, like medium ([#607](https://github.com/alrayyes/movie-planner-web/issues/607)) ([72a1254](https://github.com/alrayyes/movie-planner-web/commit/72a125471d46cf720c521e22b4c18d3cb16c5314)), closes [#601](https://github.com/alrayyes/movie-planner-web/issues/601)
+
 ## [1.6.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.5.1...movie-planner-web-v1.6.0) (2026-09-14)
 
 
