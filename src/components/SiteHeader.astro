@@ -9,6 +9,17 @@
 // identically wherever this is rendered — including site-nav's own
 // credentials gate, so a docs page shows no nav links either until a
 // visitor has connected, exactly like everywhere else.
+//
+// #603: LogViewingWizard mounted here too, once per page alongside its
+// own trigger — log-viewing-button.ts has no direct reference to it
+// (OPEN_LOG_VIEWING_WIZARD_EVENT decouples them), but the dialog still
+// has to exist somewhere on the page before that event can open it.
+// client:only, not client:load: it reads stored credentials on mount,
+// which don't exist during the static build (same reasoning
+// LogViewingForm.svelte and every other credential-reading island
+// already documents).
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import LogViewingWizard from "./LogViewingWizard.svelte";
 ---
 
 <header class="mb-6 flex items-center justify-between">
@@ -45,6 +56,7 @@
   </div>
 </header>
 <site-nav></site-nav>
+<LogViewingWizard client:only="svelte" />
 
 <script>
   import "./keyboard-nav";

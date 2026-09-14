@@ -486,7 +486,7 @@ async function handleConfirm() {
     ></textarea>
     <input
       type="file"
-      class="text-sm text-slate-600 dark:text-slate-400"
+      class="text-base text-slate-600 dark:text-slate-400"
       accept=".eml,message/rfc822"
       aria-label="Upload a Pathé booking confirmation .eml file"
       bind:this={patheFileInput}

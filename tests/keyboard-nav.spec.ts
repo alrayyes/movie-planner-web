@@ -45,7 +45,7 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #68: present on every page via Layout.astro — the unauthenticated home
@@ -183,7 +183,7 @@ test.describe("j/k/gg/G scroll the page", () => {
 test("j/k/g/? don't fire while typing in a text field", async ({ page }) => {
   mockCaldavServer(page, CREDENTIALS["caldav-url"]);
   await connect(page);
-  await page.getByRole("link", { name: "Log a viewing" }).click();
+  await page.goto("/log");
 
   await page.locator("#log-title").fill("gj?k");
 

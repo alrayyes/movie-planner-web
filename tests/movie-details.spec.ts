@@ -88,7 +88,7 @@ async function connect(page: Page, omdbApiKey?: string) {
   // wait for its result to actually render before doing anything else, so
   // a test that navigates away right after connect() isn't racing the
   // write.
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 test.describe("movie details page", () => {

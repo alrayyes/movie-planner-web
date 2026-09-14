@@ -27,7 +27,7 @@ async function connect(
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   return server;
 }
 
@@ -39,7 +39,7 @@ async function connect(
 test.describe("structured venue picklist", () => {
   test("offers a previously-added venue as a select choice on the log form", async ({ page }) => {
     await connect(page, { media: ["cinema"], venues: [{ name: "Grand Vista Cinema" }] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const venueSelect = page.locator("#log-venue");
     await expect(venueSelect).toHaveRole("combobox");
@@ -61,7 +61,7 @@ test.describe("structured venue picklist", () => {
       media: [],
       venues: [{ name: "De Munt, Vijzelstraat 15, 1017 HD Amsterdam, Netherlands" }],
     });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const option = page.locator("#log-venue option").last();
     await expect(option).toHaveAttribute(
@@ -87,7 +87,7 @@ test.describe("structured venue picklist", () => {
         },
       ],
     });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     await page.locator("#log-title").fill("Dune");
     await page.locator("#log-date").fill("2026-01-01");
@@ -115,7 +115,7 @@ test.describe("structured venue picklist", () => {
     page,
   }) => {
     const server = await connect(page, { media: [], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
       const url = new URL(route.request().url());
@@ -181,7 +181,7 @@ test.describe("structured venue picklist", () => {
     page,
   }) => {
     const server = await connect(page, { media: [], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     await page.getByRole("button", { name: "Add venue" }).click();
     await page.locator("#log-add-venue-name").fill("Home");
@@ -201,7 +201,7 @@ test.describe("structured venue picklist", () => {
       media: ["cinema"],
       venues: ["Grand Vista Cinema"],
     });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const venueSelect = page.locator("#log-venue");
     await expect(venueSelect.locator("option")).toContainText(["Grand Vista Cinema"]);
@@ -369,7 +369,7 @@ test.describe("structured venue picklist", () => {
     page,
   }) => {
     const server = await connect(page, { media: [], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const dialog = page.getByRole("dialog", { name: "Add a new venue" });
     await expect(dialog).toBeHidden();
@@ -402,7 +402,7 @@ test.describe("structured venue picklist", () => {
 test.describe("structured medium picklist", () => {
   test("Cinema is always offered, even with an empty picklist", async ({ page }) => {
     await connect(page, { media: [], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const mediumSelect = page.locator("#log-medium");
     await expect(mediumSelect).toHaveRole("combobox");
@@ -412,7 +412,7 @@ test.describe("structured medium picklist", () => {
 
   test("offers a previously-added medium as a select choice on the log form", async ({ page }) => {
     await connect(page, { media: ["Netflix"], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const mediumSelect = page.locator("#log-medium");
     await expect(mediumSelect.locator("option")).toContainText(["Cinema", "Netflix"]);
@@ -425,7 +425,7 @@ test.describe("structured medium picklist", () => {
     page,
   }) => {
     const server = await connect(page, { media: [], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const dialog = page.getByRole("dialog", { name: "Add a new medium" });
     await expect(dialog).toBeHidden();
@@ -457,7 +457,7 @@ test.describe("structured medium picklist", () => {
     page,
   }) => {
     const server = await connect(page, { media: [], venues: [] });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     const dialog = page.getByRole("dialog", { name: "Add a new medium" });
     await page.getByRole("button", { name: "Add medium" }).click();
@@ -534,7 +534,7 @@ test.describe("editing an existing venue's structured data", () => {
       media: ["cinema"],
       venues: [{ name: "Grand Vista Cinema", city: "Anytown" }],
     });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
     await page.locator("#log-venue").selectOption("Grand Vista Cinema");
 
     await page.route("https://nominatim.openstreetmap.org/**", async (route: Route) => {
@@ -604,7 +604,7 @@ test.describe("editing an existing venue's structured data", () => {
       },
       [dune],
     );
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
     await page.locator("#log-venue").selectOption("Grand Vista Cinema");
 
     await page.getByRole("button", { name: "Edit venue" }).click();
@@ -630,7 +630,7 @@ test.describe("editing an existing venue's structured data", () => {
       media: [],
       venues: [{ name: "Grand Vista Cinema", city: "Anytown" }],
     });
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
     await page.locator("#log-venue").selectOption("Grand Vista Cinema");
 
     const dialog = page.getByRole("dialog", { name: "Edit this venue" });

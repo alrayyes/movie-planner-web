@@ -36,7 +36,7 @@ async function connect(page: Page) {
   // #435: was `getByRole("status").first()` — that's the overview's
   // count line, which no longer holds text once loading finishes, so
   // it's no longer a safe signal that the connect actually landed.
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #389: replaces the overview's own whole-list share (#335), removed

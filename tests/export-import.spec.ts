@@ -67,7 +67,7 @@ async function connect(page: Page) {
   // #436: "Log a viewing" is the header button present on every
   // connected page — Import moved to the Settings hub, so it's no
   // longer a reliable "connect landed" signal here.
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #221: the overview's filter fields sit inside a <details>, closed by

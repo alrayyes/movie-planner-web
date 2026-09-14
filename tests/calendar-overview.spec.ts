@@ -96,7 +96,7 @@ async function connect(page: Page) {
   // carries the count, and can go empty (zero-height, "hidden" to
   // Playwright) the moment loading finishes, so it's no longer a safe
   // signal that the connect actually landed.
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #221: the filter fields sit inside a <details>, closed by default —

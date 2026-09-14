@@ -1,4 +1,5 @@
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
+import { OPEN_LOG_VIEWING_WIZARD_EVENT } from "../lib/movie-log/log-viewing";
 import { BUTTON_PRIMARY } from "../lib/ui/classes";
 
 // #436: the app's primary "create" action, promoted from a nav-list item
@@ -10,9 +11,12 @@ import { BUTTON_PRIMARY } from "../lib/ui/classes";
 // as a distinct call-to-action rather than one more browsing
 // destination — same split site-nav.ts's own links no longer carry.
 //
-// Still a plain <a href="/log">, not a real <button>: it navigates to a
-// page rather than performing an in-place action, so an anchor is the
-// correct semantic element even though the design calls it a "button".
+// #603: a real <button>, not an <a href="/log"> — clicking it now opens
+// LogViewingWizard.svelte's own <dialog> in place (via
+// OPEN_LOG_VIEWING_WIZARD_EVENT) rather than navigating to a page, so a
+// <button> is the correct semantic element now, not just the design's
+// name for it. /log itself is unaffected and still reachable directly,
+// for the Pathé-booking-email flow this wizard doesn't cover.
 export class LogViewingButton extends HTMLElement {
   private readonly handleConnected = () => void this.render();
 
@@ -36,11 +40,14 @@ export class LogViewingButton extends HTMLElement {
       return;
     }
 
-    const link = document.createElement("a");
-    link.href = "/log";
-    link.className = BUTTON_PRIMARY;
-    link.textContent = "Log a viewing";
-    this.replaceChildren(link);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = BUTTON_PRIMARY;
+    button.textContent = "Log a viewing";
+    button.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent(OPEN_LOG_VIEWING_WIZARD_EVENT));
+    });
+    this.replaceChildren(button);
   }
 }
 

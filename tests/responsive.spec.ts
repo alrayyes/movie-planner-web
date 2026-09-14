@@ -159,7 +159,7 @@ for (const viewport of VIEWPORTS) {
 
     test("log form has no horizontal overflow", async ({ page }) => {
       await connect(page);
-      await page.getByRole("link", { name: "Log a viewing" }).click();
+      await page.goto("/log");
       await assertNoHorizontalOverflow(page);
       await assertInputFontSizeAtLeast16px(page);
     });

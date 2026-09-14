@@ -27,7 +27,7 @@ async function connect(page: Page) {
   // #435: was `getByRole("status").first()` — that's the overview's
   // count line, which no longer holds text once loading finishes, so
   // it's no longer a safe signal that the connect actually landed.
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 test.describe("activity log", () => {
@@ -45,7 +45,7 @@ test.describe("activity log", () => {
   test("records logging a new viewing", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-date").fill("2026-02-01");
@@ -302,7 +302,7 @@ test.describe("diff-derived activity from CalDAV (#432)", () => {
   test("this app attributes its own writes with X-LAST-MODIFIED-BY: web", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.goto("/log");
 
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-date").fill("2026-02-01");
