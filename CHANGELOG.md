@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.8.0...movie-planner-web-v1.9.0) (2026-09-14)
+
+
+### Features
+
+* **log:** open a search-and-select-first wizard from the header button ([#611](https://github.com/alrayyes/movie-planner-web/issues/611)) ([6469150](https://github.com/alrayyes/movie-planner-web/commit/646915073b27fafc0a30184a40188fa9bdc8dd7b)), closes [#603](https://github.com/alrayyes/movie-planner-web/issues/603)
+
 ## [1.8.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.7.0...movie-planner-web-v1.8.0) (2026-09-14)
 
 
