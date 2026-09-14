@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.0...movie-planner-web-v1.9.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **share:** stop the shared-link privacy check false-positiving on "me" ([#613](https://github.com/alrayyes/movie-planner-web/issues/613)) ([479bc84](https://github.com/alrayyes/movie-planner-web/commit/479bc849fac5f6a3fa3002443ce4521bb0cd7b83)), closes [#604](https://github.com/alrayyes/movie-planner-web/issues/604)
+
 ## [1.9.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.8.0...movie-planner-web-v1.9.0) (2026-09-14)
 
 
