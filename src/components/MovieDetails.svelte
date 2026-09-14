@@ -19,7 +19,7 @@ import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { openStreetMapUrl } from "../lib/geo/links";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { mediumDisplay } from "../lib/medium/display";
+import { mediumDisplay, mediumHref } from "../lib/medium/display";
 import {
 	exportSingleViewingFilename,
 	exportViewingsToJson,
@@ -685,7 +685,6 @@ reloadOnBfcacheRestore(() => void load());
       separate (keywordChips below) since it renders as chips, not a
       plain value. -->
       {@const fields = [
-        ['Medium', mediumDisplay(viewing.medium)],
         ['Runtime', viewing.runtime],
         ['Metascore', viewing.metascore],
         ['IMDb Votes', viewing.imdbVotes],
@@ -707,17 +706,13 @@ reloadOnBfcacheRestore(() => void load());
       <!-- #414: whether each grouped section below has anything to show
       — {@const} has to sit at this top level (immediate child of the
       {:else} branch, same as fields/directorChips/etc. above) rather
-      than nested inside the wrapper div below, or Svelte rejects it. -->
-      {@const hasDetailsFields =
-        fields.some(([, value]) => value) ||
-        viewing.venue ||
-        viewing.rated ||
-        viewing.movieLanguage ||
-        viewing.movieCountry ||
-        viewing.released ||
-        viewing.row ||
-        viewing.seat ||
-        keywordChips.length > 0}
+      than nested inside the wrapper div below, or Svelte rejects it.
+      #602: always true now — Medium (mediumDisplay's own always-truthy
+      blank-means-Cinema fallback, #600) guarantees this section always
+      has at least one row, unlike before when every field checked here
+      (Medium included, back when it still lived in the fields array
+      above) could all be simultaneously absent. -->
+      {@const hasDetailsFields = true}
       {@const hasCastCrew =
         directorChips.length > 0 || actorChips.length > 0 || genreChips.length > 0}
       {@const hasExtras = viewing.synopsis || viewing.website || viewing.notes}
@@ -817,6 +812,20 @@ reloadOnBfcacheRestore(() => void load());
           {#if hasDetailsFields}
             <h2 class={SECTION_HEADING}>Details</h2>
             <dl class={DL_RESPONSIVE}>
+              <!-- #602: same single-link pattern as Venue below — pulled
+              out of the generic fields loop above into its own block,
+              since it now always has a value (mediumDisplay's own
+              blank-means-Cinema rule, #600) and links out, both things
+              the generic loop's plain-text rendering can't do. -->
+              <dt class={DT}>Medium</dt>
+              <dd class={DD}>
+                <a
+                  href={mediumHref(mediumDisplay(viewing.medium))}
+                  class="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {mediumDisplay(viewing.medium)}
+                </a>
+              </dd>
               {#each fields as [term, value] (term)}
                 {#if value}
                   <dt class={DT}>{term}</dt>

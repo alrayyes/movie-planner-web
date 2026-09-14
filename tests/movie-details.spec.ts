@@ -1180,6 +1180,45 @@ test.describe("movie details page", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
   });
 
+  // #602: medium gets the same single-link treatment venue already has
+  // — pulled out of the generic Details fields into its own clickable
+  // row, rather than plain unlinked text.
+  test("clicking the medium links to its own dedicated page", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      DUNE,
+      {
+        uid: "other-uid",
+        title: "Something Else",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
+        medium: "Netflix",
+      },
+    ]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("link", { name: "cinema", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/medium\/?\?medium=cinema/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr")).toContainText("Dune");
+  });
+
+  // #600/#602: a viewing with no stored medium at all still gets a
+  // clickable Medium row — reading "Cinema" — rather than the row
+  // vanishing (the generic Details fields loop drops any field whose
+  // value is falsy, which a genuinely blank medium always was before
+  // mediumDisplay's own always-truthy fallback).
+  test("shows Medium as Cinema, linked, even when no medium was ever stored", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [{ ...DUNE, medium: "" }]);
+    await connect(page);
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    const mediumLink = page.getByRole("link", { name: "Cinema", exact: true });
+    await expect(mediumLink).toBeVisible();
+    await expect(mediumLink).toHaveAttribute("href", "/medium?medium=Cinema");
+  });
+
   test("a missing uid shows a clear not-found state, not an error", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);

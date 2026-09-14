@@ -100,6 +100,7 @@ export default defineConfig({
         { label: "The calendar overview", link: "/docs/overview/" },
         { label: "The viewing heatmap", link: "/docs/heatmap/" },
         { label: "Venues", link: "/docs/venues/" },
+        { label: "Mediums", link: "/docs/mediums/" },
         { label: "Import and export", link: "/docs/import-export/" },
         { label: "The activity log", link: "/docs/activity/" },
         { label: "Keyboard shortcuts", link: "/docs/keyboard-shortcuts/" },

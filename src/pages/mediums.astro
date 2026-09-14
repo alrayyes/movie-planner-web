@@ -1,0 +1,23 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import MediumsOverview from "../components/MediumsOverview.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Mediums — Movie Planner">
+  <h1
+    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+  >
+    Mediums
+  </h1>
+  <div class="mt-6 flex flex-col gap-4">
+    {
+      /* client:only, not client:load — same reasoning as venues.astro's
+    own VenuesOverview island: this component reads the visitor's
+    stored credentials from IndexedDB on mount, which doesn't exist
+    during the static build/prerender. */
+    }
+    <MediumsOverview client:only="svelte" />
+  </div>
+</Layout>

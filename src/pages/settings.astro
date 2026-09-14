@@ -81,6 +81,19 @@ import Layout from "../layouts/Layout.astro";
           shortcuts.</span
         >
       </li>
+      <!-- #602: same reasoning as Docs above — Venues sits in the top
+      nav, but a 6th item there would undo #436's own 5-item mobile-row
+      limit, so Mediums (Venues' own structural peer since #600) lands
+      here instead. -->
+      <li>
+        <a
+          class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          href="/mediums">Mediums</a
+        >
+        <span class="text-slate-600 dark:text-slate-400">
+          — every medium you've logged with, and how many viewings at each.</span
+        >
+      </li>
     </ul>
   </div>
 </Layout>

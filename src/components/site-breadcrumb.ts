@@ -29,6 +29,8 @@ import {
 const PAGE_NAMES: Record<string, string> = {
   "/venues": "Venues",
   "/venue": "Venues",
+  "/mediums": "Mediums",
+  "/medium": "Mediums",
   "/calendar": "Calendar",
   "/log": "Log a viewing",
   "/import": "Import",
@@ -58,7 +60,7 @@ for (const config of Object.values(ATTRIBUTES)) {
 // by the *detail* path only — a listing page itself never has a live
 // filter label to combine with, so it never reaches the branch below
 // that reads this map.
-const LISTING_HREFS: Record<string, string> = { "/venue": "/venues" };
+const LISTING_HREFS: Record<string, string> = { "/venue": "/venues", "/medium": "/mediums" };
 for (const config of Object.values(ATTRIBUTES)) {
   LISTING_HREFS[config.detailPath] = config.listingPath;
 }
@@ -78,7 +80,7 @@ for (const config of Object.values(ATTRIBUTES)) {
 // still exists and still matters for venue specifically — this URL
 // value is the *raw* venue string, whereas the trimmed name + city the
 // breadcrumb ultimately wants only exists once CalDAV data has loaded.
-const DETAIL_PARAM_NAMES: Record<string, string> = { "/venue": "venue" };
+const DETAIL_PARAM_NAMES: Record<string, string> = { "/venue": "venue", "/medium": "medium" };
 for (const config of Object.values(ATTRIBUTES)) {
   DETAIL_PARAM_NAMES[config.detailPath] = config.paramName;
 }

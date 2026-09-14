@@ -7,3 +7,11 @@
 export function mediumDisplay(medium: string | undefined): string {
   return medium ? medium : "Cinema";
 }
+
+// #602: every place a viewing's own medium links out (the details
+// page, same as every medium link on the Mediums overview) goes to the
+// dedicated /medium page — results and pagination, no filter controls
+// — same shape venueHref already gives venue.
+export function mediumHref(medium: string): string {
+  return `/medium?medium=${encodeURIComponent(medium)}`;
+}
