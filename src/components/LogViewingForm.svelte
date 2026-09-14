@@ -220,9 +220,16 @@ let venue = $state("");
 // cleared on any further hand-typed edit to the title so a stale match
 // never silently attaches to a title that's since changed.
 let selectedOmdbMatch = $state<MovieMetadata | undefined>();
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let searchingOmdb = $state(false);
 let omdbSearchQuery = $state("");
+let searchDialogEl = $state<HTMLDialogElement>();
+let searchPickerArea = $state<HTMLDivElement>();
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let searchStatus = $state("");
+// #596: the results picker (buildOmdbPicker) already has its own
+// dismiss button — this hides the dialog's own standalone Cancel while
+// results are showing, so there's only ever one way back, not two.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let searchHasResults = $state(false);
 
 // #452: the selected venue's own picklist entry is the canonical
 // source for its city/country/geo/address — attached automatically
@@ -232,7 +239,20 @@ const selectedVenueEntry = $derived(venue ? findVenueEntry(venue, picklists.venu
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function startOmdbSearch() {
 	omdbSearchQuery = title;
-	searchingOmdb = true;
+	searchStatus = "";
+	searchDialogEl?.showModal();
+}
+
+// #596: fires on every close, however it happens — Cancel, Esc,
+// clicking outside, or the programmatic close() after a pick below —
+// so there's one place that resets the dialog for its next open,
+// rather than repeating this at each of those call sites.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function resetSearchDialog() {
+	omdbSearchQuery = "";
+	searchStatus = "";
+	searchHasResults = false;
+	searchPickerArea?.replaceChildren();
 }
 
 // #593: mirrors MovieDetails.svelte's own startOmdbSearch/submitOmdbSearch
@@ -253,33 +273,34 @@ async function selectOmdbCandidate(candidate: OmdbCandidate) {
 	} catch (error) {
 		formError = error instanceof Error ? error.message : "Failed to fetch the selected match.";
 	} finally {
-		pickerArea?.replaceChildren();
+		searchDialogEl?.close();
 	}
 }
 
 function showOmdbSearchPicker(candidates: OmdbCandidate[]) {
-	if (!pickerArea) return;
-	pickerArea.replaceChildren(
-		buildOmdbPicker(candidates, selectOmdbCandidate, () => pickerArea?.replaceChildren(), "Cancel"),
+	if (!searchPickerArea) return;
+	searchHasResults = true;
+	searchPickerArea.replaceChildren(
+		buildOmdbPicker(candidates, selectOmdbCandidate, () => searchDialogEl?.close(), "Cancel"),
 	);
 }
 
-// A plain click handler, not a nested <form onsubmit> — this search
-// lives inside the manual-log <form> below, and HTML doesn't allow a
-// <form> nested inside another one.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function submitOmdbSearch() {
 	if (!omdbApiKey || !omdbSearchQuery.trim()) return;
-	searchingOmdb = false;
 	formError = "";
+	searchStatus = "Searching…";
+	searchHasResults = false;
 	try {
 		const candidates = await searchMovies(omdbApiKey, omdbSearchQuery.trim());
 		if (candidates.length > 0) {
+			searchStatus = "";
 			showOmdbSearchPicker(candidates);
 		} else {
-			status = "OMDb had no match for that search.";
+			searchStatus = "OMDb had no match for that search.";
 		}
 	} catch (error) {
+		searchStatus = "";
 		formError = error instanceof Error ? error.message : "Failed to search OMDb.";
 	}
 }
@@ -403,28 +424,6 @@ async function handleConfirm() {
         {/if}
       </div>
 
-      {#if searchingOmdb}
-        <!-- role="search", not a nested <form> — this sits inside the
-        manual-log form above, and HTML doesn't allow a <form> nested
-        inside another one. -->
-        <div class="flex items-end gap-2" role="search" aria-label="Search OMDb">
-          <label class={FIELD_WRAPPER} for="omdb-search-query">
-            <span class={LABEL}>Search OMDb</span>
-            <input
-              class={INPUT}
-              type="text"
-              id="omdb-search-query"
-              bind:value={omdbSearchQuery}
-              onkeydown={(event) => event.key === "Enter" && submitOmdbSearch()}
-            />
-          </label>
-          <button type="button" class={BUTTON_PRIMARY} onclick={submitOmdbSearch}>Search</button>
-          <button type="button" class={BUTTON_SECONDARY} onclick={() => (searchingOmdb = false)}>
-            Cancel
-          </button>
-        </div>
-      {/if}
-
       <div class={FIELD_WRAPPER}>
         <label class={LABEL} for="log-date">Date</label>
         <input class={INPUT} id="log-date" name="log-date" type="date" required bind:value={date} />
@@ -534,4 +533,47 @@ async function handleConfirm() {
     <ErrorToast message={formError} onDismiss={() => (formError = "")} />
   {/if}
   <div bind:this={pickerArea}></div>
+
+  <!-- #596: same native <dialog> pattern as ViewingHeatmap.svelte's day
+  popup and keyboard-nav.ts's help overlay — showModal()'s own default
+  (viewport-centered, fixed) needs nothing extra here. -->
+  <dialog
+    bind:this={searchDialogEl}
+    aria-label="Search OMDb"
+    class="max-w-sm rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg backdrop:bg-slate-900/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+    onclick={(event) => {
+      if (event.target === searchDialogEl) searchDialogEl?.close();
+    }}
+    onclose={resetSearchDialog}
+  >
+    <div class="flex flex-col gap-3">
+      <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Search OMDb</h2>
+      <div class="flex items-end gap-2">
+        <label class={FIELD_WRAPPER} for="omdb-search-query">
+          <span class={LABEL}>Title</span>
+          <input
+            class={INPUT}
+            type="text"
+            id="omdb-search-query"
+            bind:value={omdbSearchQuery}
+            onkeydown={(event) => event.key === "Enter" && submitOmdbSearch()}
+          />
+        </label>
+        <button type="button" class={BUTTON_PRIMARY} onclick={submitOmdbSearch}>Search</button>
+      </div>
+      {#if searchStatus}
+        <p class={STATUS_TEXT}>{searchStatus}</p>
+      {/if}
+      <div bind:this={searchPickerArea}></div>
+      {#if !searchHasResults}
+        <button
+          type="button"
+          class={`${BUTTON_SECONDARY} self-start`}
+          onclick={() => searchDialogEl?.close()}
+        >
+          Cancel
+        </button>
+      {/if}
+    </div>
+  </dialog>
 </div>
