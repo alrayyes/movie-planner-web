@@ -96,9 +96,9 @@ test.describe("structured venue picklist", () => {
 
     // Selecting a venue with known coordinates attaches them
     // automatically — no address-search field for it on this form; that
-    // lookup only exists inside "Add venue" now.
+    // lookup only exists inside the "Add venue" dialog.
     await expect(page.getByText("Using Grand Vista Cinema's known location.")).toBeVisible();
-    await expect(page.locator("#log-add-venue-geo-search")).toHaveCount(0);
+    await expect(page.locator("#log-add-venue-geo-search")).toBeHidden();
 
     await page.getByRole("button", { name: "Log viewing" }).click();
 
@@ -361,6 +361,34 @@ test.describe("structured venue picklist", () => {
       .poll(() => server.picklists.venues)
       .toEqual([{ name: "Regal Union Square", city: "Metropolis" }]);
   });
+
+  // #601: same native <dialog> pattern as MediumPicker's own "Add
+  // medium" (#600) and the Search OMDb dialog (#596/#597) — replaces
+  // what used to be an inline-expanding panel.
+  test("Add venue opens as a real dialog, closable by Cancel or Escape with no change saved", async ({
+    page,
+  }) => {
+    const server = await connect(page, { media: [], venues: [] });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Add a new venue" });
+    await expect(dialog).toBeHidden();
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await expect(dialog).toBeVisible();
+
+    await page.locator("#log-add-venue-name").fill("Grand Vista Cinema");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator("#log-venue")).toHaveValue("");
+    expect(server.picklists.venues).toEqual([]);
+
+    // Reopening starts fresh, same as the Search OMDb dialog's own reset.
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await expect(page.locator("#log-add-venue-name")).toHaveValue("");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
 });
 
 // #600: Picklists.media stays a flat string[] (unlike venue, a medium
@@ -590,5 +618,30 @@ test.describe("editing an existing venue's structured data", () => {
     // The viewing logged before the edit keeps its own stored city as of
     // when it was logged — only the picklist entry itself changed.
     expect(server.viewings.get("dune-uid")?.city).toBe("Anytown");
+  });
+
+  // #601: "Edit venue" opens the same dialog as "Add venue" (a shared
+  // element, its title/fields swapping on editingVenue), not a second
+  // one of its own.
+  test("Edit venue opens the same dialog, closable by Cancel with no change saved", async ({
+    page,
+  }) => {
+    const server = await connect(page, {
+      media: [],
+      venues: [{ name: "Grand Vista Cinema", city: "Anytown" }],
+    });
+    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await page.locator("#log-venue").selectOption("Grand Vista Cinema");
+
+    const dialog = page.getByRole("dialog", { name: "Edit this venue" });
+    await expect(dialog).toBeHidden();
+    await page.getByRole("button", { name: "Edit venue" }).click();
+    await expect(dialog).toBeVisible();
+
+    await page.locator("#log-edit-venue-city").fill("Newtown");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(dialog).toBeHidden();
+    expect(server.picklists.venues).toEqual([{ name: "Grand Vista Cinema", city: "Anytown" }]);
   });
 });
