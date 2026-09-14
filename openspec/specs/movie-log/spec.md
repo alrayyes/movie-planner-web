@@ -16,6 +16,32 @@ start/end time, medium, and venue, and SHALL write it as a CalDAV event.
 - **WHEN** a visitor submits the log form with title, date, start/end time, and medium
 - **THEN** the system SHALL create a corresponding CalDAV event in the visitor's calendar
 
+### Requirement: Search-and-select-first wizard from the header button
+
+The system SHALL let a visitor open a two-step dialog from the "Log a
+viewing" header button, reachable from every page, without navigating
+away. Step one SHALL require finding the movie — a title, optionally
+searched and picked from OMDb — before step two shows date, start/end
+time, medium, and venue. A visitor SHALL be able to return from step
+two to step one without losing anything already entered in step two.
+Logging SHALL close the dialog and leave the visitor on the page it was
+opened from.
+
+#### Scenario: Search-and-select before the rest of the form
+
+- **WHEN** a visitor opens the header wizard and has not yet entered a title
+- **THEN** the system SHALL show only the title/search step, with no date, medium, or venue fields visible
+
+#### Scenario: Back preserves step two
+
+- **WHEN** a visitor on step two returns to step one and then goes forward again
+- **THEN** the system SHALL show step two with every field they had already entered still in place
+
+#### Scenario: Logging stays on the current page
+
+- **WHEN** a visitor opens the wizard from a page other than `/log` and successfully logs a viewing
+- **THEN** the system SHALL close the dialog and leave the visitor on that same page, not navigate to `/log`
+
 ### Requirement: Pathé email parsing
 
 The system SHALL let a visitor paste or upload a Pathé booking

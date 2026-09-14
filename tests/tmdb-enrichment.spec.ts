@@ -115,8 +115,8 @@ async function connectLogForm(page: Page, omdbApiKey: string, tmdbApiKey?: strin
   await page.locator("#omdb-api-key").fill(omdbApiKey);
   if (tmdbApiKey) await page.locator("#tmdb-api-key").fill(tmdbApiKey);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
-  await page.getByRole("link", { name: "Log a viewing" }).click();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+  await page.goto("/log");
   return server;
 }
 
@@ -360,7 +360,8 @@ N°ABC123456
       await page.locator("#omdb-api-key").fill("test-omdb-key");
       await page.locator("#tmdb-api-key").fill("test-tmdb-key");
       await page.getByRole("button", { name: "Connect" }).click();
-      await page.getByRole("link", { name: "Log a viewing" }).click();
+      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+      await page.goto("/log");
 
       await page.route("https://www.omdbapi.com/**", async (route: Route) => {
         await route.fulfill({
@@ -391,7 +392,8 @@ N°ABC123456
       await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
       await page.locator("#omdb-api-key").fill("test-omdb-key");
       await page.getByRole("button", { name: "Connect" }).click();
-      await page.getByRole("link", { name: "Log a viewing" }).click();
+      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+      await page.goto("/log");
 
       await page.route("https://www.omdbapi.com/**", async (route: Route) => {
         await route.fulfill({

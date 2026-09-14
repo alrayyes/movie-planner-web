@@ -3,7 +3,17 @@ title: Logging a viewing
 description: Log a viewing manually, or by pasting a Pathé booking email.
 ---
 
-The "Log a viewing" page offers two ways in.
+"Log a viewing" in the header — reachable from every page — opens a
+quick two-step dialog without leaving where you are. Step one is
+finding the movie: type a title and, with an OMDb key set, search and
+pick the exact result before going any further, so the right title is
+locked in before anything else. Step two is everything else — date,
+start/end time, medium, and venue — with a "Back" to return to step one
+without losing what you've already filled in. Logging closes the
+dialog; you stay wherever you opened it from.
+
+The `/log` page itself offers two other ways in, for cases the header
+dialog doesn't cover.
 
 ## Manually
 

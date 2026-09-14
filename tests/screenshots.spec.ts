@@ -60,7 +60,7 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 test.describe("README screenshots", () => {

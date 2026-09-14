@@ -5,6 +5,15 @@ import { lookupMovie, type MovieMetadata, type OmdbCandidate, searchMovies } fro
 import { enrichWithTmdb } from "../tmdb/client";
 import type { PatheBooking } from "./pathe-email";
 
+// #603: log-viewing-button.ts dispatches this on `window` when clicked;
+// LogViewingWizard.svelte (mounted once, globally, in SiteHeader.astro)
+// listens for it and opens its own <dialog> — the same
+// dispatch-a-named-event decoupling CREDENTIALS_CONNECTED_EVENT already
+// uses between a vanilla Web Component and whatever needs to react,
+// since the trigger (a plain custom element) and the wizard (a Svelte
+// island) have no direct reference to each other.
+export const OPEN_LOG_VIEWING_WIZARD_EVENT = "movie-planner-web:open-log-viewing-wizard";
+
 // #49: the outcome of a logged/refreshed OMDb lookup — either a confident
 // match (attached automatically) or, when there's none, the candidates a
 // visitor can pick from (empty/absent when OMDb's search itself found

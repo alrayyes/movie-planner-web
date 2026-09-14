@@ -39,8 +39,12 @@ async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   if (omdbApiKey) await page.locator("#omdb-api-key").fill(omdbApiKey);
   if (omdbPaused) await page.locator("#omdb-paused").check();
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
-  await page.getByRole("link", { name: "Log a viewing" }).click();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+  // #603: the header button now opens the wizard dialog, not /log —
+  // this file's own "manual log form"/"Pathé email parsing" describes
+  // exercise /log's own LogViewingForm.svelte directly, which stays
+  // unaffected and reachable by URL; the wizard's own tests are below.
+  await page.goto("/log");
   return server;
 }
 
@@ -129,7 +133,8 @@ test.describe("Pathé email parsing", () => {
       },
     ]);
     await page.getByRole("button", { name: "Connect" }).click();
-    await page.getByRole("link", { name: "Log a viewing" }).click();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+    await page.goto("/log");
 
     await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
     await page.getByRole("button", { name: "Parse" }).click();
@@ -577,5 +582,157 @@ test.describe("error toasts", () => {
 
     await page.getByRole("button", { name: "Dismiss error" }).click();
     await expect(toast).toHaveCount(0);
+  });
+});
+
+// #603: the header's "Log a viewing" button no longer navigates to /log
+// (that stays reachable directly, unaffected, for the Pathé-email flow
+// covered above) — it opens LogViewingWizard.svelte's own two-step
+// <dialog> in place instead: step one is search-and-select-first (a
+// title has to be picked before date/medium/venue even appear), step
+// two is everything else, reusing MediumPicker/VenuePicker and
+// logManualViewing exactly as /log's own form does.
+test.describe("log a viewing wizard (header button)", () => {
+  async function connectOnCurrentPage(page: Page, omdbApiKey?: string) {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await page.goto("/");
+    await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+    await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+    await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+    if (omdbApiKey) await page.locator("#omdb-api-key").fill(omdbApiKey);
+    await page.getByRole("button", { name: "Connect" }).click();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+    return server;
+  }
+
+  test("step one is search-and-select only — date/medium/venue don't appear until Next", async ({
+    page,
+  }) => {
+    await connectOnCurrentPage(page);
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await expect(dialog).toBeVisible();
+    await expect(page.locator("#wizard-title")).toBeVisible();
+    await expect(page.locator("#wizard-date")).toHaveCount(0);
+    await expect(dialog.getByRole("combobox", { name: "Medium" })).toHaveCount(0);
+
+    await expect(dialog.getByRole("button", { name: "Next" })).toBeDisabled();
+    await page.locator("#wizard-title").fill("Paddington");
+    await expect(dialog.getByRole("button", { name: "Next" })).toBeEnabled();
+
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await expect(page.locator("#wizard-date")).toBeVisible();
+    await expect(dialog.getByRole("combobox", { name: "Medium" })).toBeVisible();
+  });
+
+  test("searching OMDb and picking a candidate carries the exact match into step two", async ({
+    page,
+  }) => {
+    const server = await connectOnCurrentPage(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("s") === "Dune 1984") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            Search: [{ Title: "Dune", Year: "1984", imdbID: "tt0087182", Poster: "N/A" }],
+          }),
+        });
+        return;
+      }
+      // No automatic t= best-guess lookup should ever run for this
+      // submission — only the picked candidate's own i=<imdbID> fetch.
+      expect(url.searchParams.get("i")).toBe("tt0087182");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "David Lynch",
+          Year: "1984",
+          imdbID: "tt0087182",
+          Ratings: [{ Source: "Internet Movie Database", Value: "7.6/10" }],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+
+    await page.locator("#wizard-title").fill("Dune 1984");
+    await dialog.getByRole("button", { name: "Search OMDb" }).click();
+    const picker = dialog.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await picker.getByRole("button", { name: "Dune (1984)" }).click();
+
+    await expect(page.locator("#wizard-title")).toHaveValue("Dune");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-01-01");
+    await dialog.getByRole("combobox", { name: "Medium" }).selectOption("Cinema");
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(dialog).toBeHidden();
+    expect(server.creates).toHaveLength(1);
+    expect(server.creates[0]?.title).toBe("Dune");
+    expect(server.creates[0]?.director).toBe("David Lynch");
+    expect(server.creates[0]?.ratingImdb).toBe("7.6/10");
+  });
+
+  test("Back returns to step one without losing anything already typed in step two", async ({
+    page,
+  }) => {
+    await connectOnCurrentPage(page);
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+    await page.locator("#wizard-start-time").fill("18:00");
+
+    await dialog.getByRole("button", { name: "Back" }).click();
+    await expect(page.locator("#wizard-title")).toBeVisible();
+    await expect(page.locator("#wizard-title")).toHaveValue("Paddington");
+
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await expect(page.locator("#wizard-date")).toHaveValue("2026-02-01");
+    await expect(page.locator("#wizard-start-time")).toHaveValue("18:00");
+  });
+
+  test("stays on whatever page it was opened from, after logging", async ({ page }) => {
+    const server = await connectOnCurrentPage(page);
+    await page.goto("/venues");
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+    await dialog.getByRole("combobox", { name: "Medium" }).selectOption("Cinema");
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/venues\/?$/);
+    expect(server.creates).toHaveLength(1);
+  });
+
+  test("a11y scan of both steps", async ({ page }) => {
+    await connectOnCurrentPage(page);
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+
+    let results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.locator("#wizard-title").fill("Paddington");
+    await page
+      .getByRole("dialog", { name: "Log a viewing" })
+      .getByRole("button", { name: "Next" })
+      .click();
+
+    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 });

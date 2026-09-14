@@ -25,7 +25,7 @@ async function connect(page: Page) {
   // page — wait for it before navigating directly, or credentials aren't
   // stored yet and movie-import-form's connectedCallback throws on an
   // empty store.
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   // Import moved to the Settings hub, so landing on it directly stands in
   // for that nav click.
   await page.goto("/import");

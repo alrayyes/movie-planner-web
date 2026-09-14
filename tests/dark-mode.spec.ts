@@ -69,13 +69,7 @@ test.describe("dark mode", () => {
 
   test("axe scan is clean in dark mode — log form", async ({ page }) => {
     await connectInDarkMode(page);
-    await page.getByRole("link", { name: "Log a viewing" }).click();
-    // #185: waits for the destination page's own content first — a bare
-    // check right after click() can pass by observing the outgoing
-    // page's still-attached (still dark-classed) <html>, before
-    // ClientRouter's soft transition actually swaps it, without ever
-    // verifying the state that matters: the page a visitor actually
-    // lands on.
+    await page.goto("/log");
     await expect(page.getByRole("heading", { name: "Log a viewing" })).toBeVisible();
     await expect(page.locator("html")).toHaveClass(/dark/);
 
@@ -87,15 +81,18 @@ test.describe("dark mode", () => {
   // outright — an inline <script> that's byte-identical on both the old
   // and new page doesn't get re-inserted, so it never re-runs on its
   // own, and the class it applied is gone the moment the swap lands.
+  // #603: "Log a viewing" no longer navigates (it opens the wizard
+  // dialog in place), so this now proves survival across two ordinary
+  // in-app link clicks instead — same soft-transition mechanism.
   test("survives a client-side page transition, not just a hard reload", async ({ page }) => {
     await connectInDarkMode(page);
 
-    await page.getByRole("link", { name: "Log a viewing" }).click();
-    await expect(page.getByRole("heading", { name: "Log a viewing" })).toBeVisible();
-    await expect(page.locator("html")).toHaveClass(/dark/);
-
     await page.getByRole("link", { name: "Venues" }).click();
     await expect(page.getByRole("heading", { name: "Venues" })).toBeVisible();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+
+    await page.getByRole("link", { name: "Calendar" }).click();
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
     await expect(page.locator("html")).toHaveClass(/dark/);
   });
 

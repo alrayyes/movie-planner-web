@@ -20,7 +20,7 @@ async function connect(page: Page) {
   // render before doing anything else, so a test that navigates away
   // right after connect() isn't racing the write (same pattern every
   // other spec file's own connect() helper already uses).
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #66: the "Fork me on GitHub" ribbon — present on every page via
@@ -194,14 +194,14 @@ test.describe("site nav", () => {
   test("appears immediately after connecting, without a page reload", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"]);
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toHaveCount(0);
 
     await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
     await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
     await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
     await page.getByRole("button", { name: "Connect" }).click();
 
-    await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   });
 
   test("appears on a non-home page too, and its links work from there", async ({ page }) => {
@@ -242,7 +242,7 @@ test.describe("site nav", () => {
   test("doesn't appear before a visitor has connected", async ({ page }) => {
     await page.goto("/privacy");
 
-    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toHaveCount(0);
   });
 
   // #555: the current page's own nav item is marked aria-current="page"
@@ -303,7 +303,7 @@ test.describe("log a viewing header button", () => {
   test("isn't present before a visitor has connected", async ({ page }) => {
     await page.goto("/privacy");
 
-    await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toHaveCount(0);
   });
 
   test("is present in the header, distinct from the nav links, on every page once connected", async ({
@@ -314,14 +314,31 @@ test.describe("log a viewing header button", () => {
 
     for (const path of ["/", "/venues", "/calendar", "/settings"]) {
       await page.goto(path);
-      const button = page.getByRole("link", { name: "Log a viewing" });
+      const button = page.getByRole("button", { name: "Log a viewing" });
       await expect(button).toBeVisible();
-      await expect(button).toHaveAttribute("href", "/log");
       // Not one of site-nav's browsing destinations.
       await expect(
-        page.locator("site-nav").getByRole("link", { name: "Log a viewing" }),
+        page.locator("site-nav").getByRole("button", { name: "Log a viewing" }),
       ).toHaveCount(0);
     }
+  });
+
+  // #603: a real <button> now, not an <a href="/log"> — it opens the
+  // wizard dialog in place rather than navigating anywhere, on whatever
+  // page it's clicked from. The wizard's own step-by-step behaviour
+  // (search, Next, Back, submit) is covered in movie-log.spec.ts, not
+  // duplicated here — this only pins that clicking it stays put.
+  test("clicking it opens the wizard dialog in place, without navigating away", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+    await connect(page);
+    await page.goto("/venues");
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+
+    await expect(page.getByRole("dialog", { name: "Log a viewing" })).toBeVisible();
+    await expect(page).toHaveURL(/\/venues\/?$/);
   });
 
   test("introduces no accessibility violations", async ({ page }) => {

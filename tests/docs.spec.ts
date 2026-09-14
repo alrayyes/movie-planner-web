@@ -16,7 +16,7 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 // #71: the Starlight-powered usage guide, mounted at /docs alongside the
@@ -105,7 +105,7 @@ test.describe("docs", () => {
 
       await page.goto("/docs/");
 
-      await expect(page.getByRole("link", { name: "Log a viewing" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
       await expect(page.locator("site-nav a")).toHaveText([
         "Viewings",
         "Venues",
@@ -119,7 +119,7 @@ test.describe("docs", () => {
     test("shows no nav links before a visitor has connected", async ({ page }) => {
       await page.goto("/docs/");
 
-      await expect(page.getByRole("link", { name: "Log a viewing" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Log a viewing" })).toHaveCount(0);
       await expect(page.locator("site-nav a")).toHaveCount(0);
     });
 
