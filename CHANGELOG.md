@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.5.0...movie-planner-web-v1.5.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **deps-dev:** bump the bun-dependencies group with 2 updates ([#598](https://github.com/alrayyes/movie-planner-web/issues/598)) ([16c0cfd](https://github.com/alrayyes/movie-planner-web/commit/16c0cfd65b13484a7719da0609d400ea39b5c786))
+* **log:** open Search OMDb as a real popup, not an easy-to-miss inline reveal ([#597](https://github.com/alrayyes/movie-planner-web/issues/597)) ([fc6dd9a](https://github.com/alrayyes/movie-planner-web/commit/fc6dd9a4625abfeecb2d517c47a6e5a81a0a9996)), closes [#596](https://github.com/alrayyes/movie-planner-web/issues/596)
+
 ## [1.5.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.4.0...movie-planner-web-v1.5.0) (2026-09-13)
 
 
