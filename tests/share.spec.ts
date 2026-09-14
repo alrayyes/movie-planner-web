@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { decodeSharedState } from "../src/lib/share/encode";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -66,8 +67,25 @@ test.describe("sharing a single viewing", () => {
     await expect(linkBox).toBeVisible();
     const sharedUrl = await linkBox.inputValue();
     expect(sharedUrl).toContain("/shared?state=");
-    expect(sharedUrl).not.toContain(CREDENTIALS["caldav-username"]);
-    expect(sharedUrl).not.toContain(CREDENTIALS["caldav-password"]);
+
+    // #604: was a substring search over the raw gzip+base64 blob for
+    // the 2-char username fixture "me" — gzip's own compressed bytes
+    // are close enough to random that a short value like that has real
+    // odds of turning up by pure encoding coincidence. Decoding first
+    // doesn't fix it either: SharedState's own `medium` field contains
+    // "me" as a literal substring of the *key name*, so even a search
+    // over the decoded plaintext still false-positives, every run, on
+    // an unrelated field. SharedViewing's own field allowlist
+    // (encode.ts) has no credential field at all, so the deterministic
+    // check is structural — no such key exists — not a text search
+    // for a value that might coincidentally appear anywhere.
+    const encodedState = new URL(sharedUrl).searchParams.get("state");
+    expect(encodedState).not.toBeNull();
+    const decoded = await decodeSharedState(encodedState ?? "");
+    for (const credentialField of ["caldavUrl", "caldavUsername", "caldavPassword"]) {
+      expect(decoded).not.toHaveProperty(credentialField);
+      expect(decoded.viewings[0]).not.toHaveProperty(credentialField);
+    }
 
     // A fresh, unauthenticated context — no stored credentials, no
     // mocked CalDAV routes at all — proving this page never calls out
