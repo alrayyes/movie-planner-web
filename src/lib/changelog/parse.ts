@@ -21,7 +21,22 @@ const INTERNAL_SCOPES = new Set([
 
 const VERSION_HEADING = /^## \[([^\]]+)\]\([^)]+\) \((\d{4}-\d{2}-\d{2})\)/;
 const SECTION_HEADING = /^### (Features|Bug Fixes)/;
+// The shape release-please produces for a squash-merged PR: the PR's own
+// number right after the description, then the squashed commit's link.
 const ENTRY_LINE = /^\* \*\*([a-z0-9-]+):\*\* (.+?) \(\[#(\d+)\]\((https:\/\/[^)]+)\)\)/;
+// #648: a PR merged via "Create a merge commit" instead produces a bare
+// commit-SHA link with no PR number directly after the description, and
+// — only when the commit message itself carried a "Closes #NNN" trailer
+// — a separate "closes [#NNN](url)" clause release-please appends. The
+// same PR's merge commit (its body also carries the PR's own
+// Conventional-Commits-formatted title, since this repo's
+// `merge_commit_message` setting is PR_TITLE) produces a second,
+// near-duplicate line for the same change — but that synthesized
+// "Merge pull request #NNN..." message has no "closes" trailer of its
+// own, so it matches neither this regex nor ENTRY_LINE above and drops
+// out on its own; no separate dedup pass needed.
+const ENTRY_LINE_MERGE_COMMIT =
+  /^\* \*\*([a-z0-9-]+):\*\* (.+?) \(\[[0-9a-f]{7,40}\]\(https:\/\/[^)]+\)\), closes \[#(\d+)\]\((https:\/\/[^)]+)\)/;
 
 export interface ChangelogEntry {
   type: "feature" | "fix";
@@ -57,7 +72,7 @@ export function parseChangelog(markdown: string): ChangelogRelease[] {
       continue;
     }
 
-    const entryMatch = line.match(ENTRY_LINE);
+    const entryMatch = line.match(ENTRY_LINE) ?? line.match(ENTRY_LINE_MERGE_COMMIT);
     if (entryMatch && current && currentType) {
       const [, scope, description, prNumber, prUrl] = entryMatch;
       if (!scope || !description || !prNumber || !prUrl) continue;
