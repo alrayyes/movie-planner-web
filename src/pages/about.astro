@@ -48,59 +48,75 @@ const FEATURES: {
 ---
 
 <Layout title="About — Movie Planner" wide>
-  <h1
-    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-  >
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
     About Movie Planner
   </h1>
   <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-    A public web client for <a
+    A public web client for{" "}
+    <a
       class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-      href="https://github.com/alrayyes/movie-planner">movie-planner</a
-    >, the CLI that logs movies you've watched. This site reads and writes
+      href="https://github.com/alrayyes/movie-planner"
+    >
+      movie-planner
+    </a>
+    , the CLI that logs movies you've watched. This site reads and writes
     straight to your own CalDAV calendar — no account, no server-side storage,
-    nothing but your browser talking to servers you already control. See the <a
+    nothing but your browser talking to servers you already control. See the{" "}
+    <a
       class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-      href="/privacy">privacy page</a
-    > for the full, verifiable claim, or <a
+      href="/privacy"
+    >
+      privacy page
+    </a>{" "}
+    for the full, verifiable claim, or{" "}
+    <a
       class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-      href="/docs/">the docs</a
-    > for how to connect your own server. See the <a
+      href="/docs/"
+    >
+      the docs
+    </a>{" "}
+    for how to connect your own server. See the{" "}
+    <a
       class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-      href="/changelog">changelog</a
-    > for what's changed recently.
+      href="/changelog"
+    >
+      changelog
+    </a>{" "}
+    for what's changed recently.
   </p>
 
   <div class="mt-8 flex flex-col gap-10">
-    {
-      FEATURES.map((feature) => (
-        <section>
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {feature.title}
-          </h2>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            {feature.description}
-          </p>
-          <img
-            src={`/screenshots/${feature.slug}-light.png`}
-            alt={feature.alt}
-            class="mt-3 block rounded-lg border border-slate-200 dark:hidden"
-          />
-          <img
-            src={`/screenshots/${feature.slug}-dark.png`}
-            alt={feature.alt}
-            class="mt-3 hidden rounded-lg border border-slate-700 dark:block"
-          />
-        </section>
-      ))
-    }
+    {FEATURES.map((feature) => (
+      <section>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {feature.title}
+        </h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {feature.description}
+        </p>
+        <img
+          src={`/screenshots/${feature.slug}-light.png`}
+          alt={feature.alt}
+          class="mt-3 block rounded-lg border border-slate-200 dark:hidden"
+        />
+        <img
+          src={`/screenshots/${feature.slug}-dark.png`}
+          alt={feature.alt}
+          class="mt-3 hidden rounded-lg border border-slate-700 dark:block"
+        />
+      </section>
+    ))}
   </div>
 
   <p class="mt-10 text-sm text-slate-600 dark:text-slate-400">
-    Ready to try it? <a
+    Ready to try it?{" "}
+    <a
       class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-      href="/">Connect your own CalDAV server</a
-    > — it only takes the URL, username, and password you'd give any other calendar
-    app.
+      href="/"
+    >
+      Connect your own CalDAV server
+    </a>{" "}
+    — it only takes the URL, username, and password you'd give any other
+    calendar app.
   </p>
 </Layout>

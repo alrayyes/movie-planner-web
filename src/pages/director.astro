@@ -6,8 +6,7 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Movie Planner" wide>
-  {
-    /* #450: client:only, not client:load — same reasoning as
+  {/* #450: client:only, not client:load — same reasoning as
     venue.astro's own VenueOverview. This component reads the visitor's
     stored credentials from IndexedDB and the query string, neither of
     which exists during the static build/prerender (Node has no
@@ -15,7 +14,6 @@ import Layout from "../layouts/Layout.astro";
     getStaticPaths — a visitor's own logged directors are private data
     unknowable at build time). client:load still server-renders the
     initial markup at build time and crashes on that; client:only skips
-    server rendering entirely and mounts purely in the browser. */
-  }
+    server rendering entirely and mounts purely in the browser. */}
   <AttributeDetail client:only="svelte" kind="director" />
 </Layout>

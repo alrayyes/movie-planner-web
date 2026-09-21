@@ -6,17 +6,13 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Log a viewing — Movie Planner">
-  <h1
-    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-  >
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
     Log a viewing
   </h1>
   <div class="mt-6">
-    {
-      /* client:only, not client:load — reads stored credentials on
+    {/* client:only, not client:load — reads stored credentials on
       mount, which doesn't exist during the static build (see
-      VenuesOverview's own identical note). */
-    }
+      VenuesOverview's own identical note). */}
     <LogViewingForm client:only="svelte" />
   </div>
 </Layout>

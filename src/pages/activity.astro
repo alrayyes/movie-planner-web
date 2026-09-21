@@ -6,9 +6,7 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Activity — Movie Planner" wide>
-  <h1
-    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-  >
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
     Activity
   </h1>
   <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
@@ -17,12 +15,10 @@ import Layout from "../layouts/Layout.astro";
     CLI does on its own.
   </p>
   <div class="mt-6">
-    {
-      /* #349: client:only, not client:load — reads IndexedDB on mount,
+    {/* #349: client:only, not client:load — reads IndexedDB on mount,
       which doesn't exist during the static build (no `indexedDB` global
       in Node), same reason every other browser-storage-reading island
-      here already uses client:only. */
-    }
+      here already uses client:only. */}
     <ActivityLog client:only="svelte" />
   </div>
 </Layout>

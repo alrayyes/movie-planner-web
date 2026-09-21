@@ -4,9 +4,7 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Settings — Movie Planner">
-  <h1
-    class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-  >
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
     Settings
   </h1>
   <div class="mt-6">
@@ -40,32 +38,38 @@ import Layout from "../layouts/Layout.astro";
       <li>
         <a
           class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          href="/import">Import</a
+          href="/import"
         >
+          Import
+        </a>
         <span class="text-slate-600 dark:text-slate-400">
-          — bring in viewings from a CSV or JSON file.</span
-        >
+          — bring in viewings from a CSV or JSON file.
+        </span>
       </li>
       <li>
         <a
           class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          href="/activity">Activity</a
+          href="/activity"
         >
+          Activity
+        </a>
         <span class="text-slate-600 dark:text-slate-400">
-          — a local record of what this app itself has changed.</span
-        >
+          — a local record of what this app itself has changed.
+        </span>
       </li>
       <!-- #575: same low-frequency-maintenance-tool reasoning as Import/
       Activity above — a diagnostic view, not a page to browse to. -->
       <li>
         <a
           class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          href="/missing-data">Missing data</a
+          href="/missing-data"
         >
+          Missing data
+        </a>
         <span class="text-slate-600 dark:text-slate-400">
           — find logged viewings missing OMDb-sourced data, usually a sign the
-          wrong title got matched.</span
-        >
+          wrong title got matched.
+        </span>
       </li>
       <!-- #451: added alongside Import/Activity rather than the top nav —
       #436 deliberately shrank that to 5 items to fit one row on mobile,
@@ -74,12 +78,14 @@ import Layout from "../layouts/Layout.astro";
       <li>
         <a
           class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          href="/docs/">Docs</a
+          href="/docs/"
         >
+          Docs
+        </a>
         <span class="text-slate-600 dark:text-slate-400">
           — how to use this app, from connecting a CalDAV server to keyboard
-          shortcuts.</span
-        >
+          shortcuts.
+        </span>
       </li>
       <!-- #602: same reasoning as Docs above — Venues sits in the top
       nav, but a 6th item there would undo #436's own 5-item mobile-row
@@ -88,11 +94,13 @@ import Layout from "../layouts/Layout.astro";
       <li>
         <a
           class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          href="/mediums">Mediums</a
+          href="/mediums"
         >
+          Mediums
+        </a>
         <span class="text-slate-600 dark:text-slate-400">
-          — every medium you've logged with, and how many viewings at each.</span
-        >
+          — every medium you've logged with, and how many viewings at each.
+        </span>
       </li>
     </ul>
   </div>
