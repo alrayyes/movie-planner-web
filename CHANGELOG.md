@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.2...movie-planner-web-v1.12.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* **changelog:** recognize entries from merge-commit-strategy PRs ([#649](https://github.com/alrayyes/movie-planner-web/issues/649)) ([710ffb7](https://github.com/alrayyes/movie-planner-web/commit/710ffb774258e16bcc6e4b3161154632030b2189)), closes [#648](https://github.com/alrayyes/movie-planner-web/issues/648)
+* **ci:** reduce Playwright workers to 2 on CI to stop full-suite flakes ([4b64fb6](https://github.com/alrayyes/movie-planner-web/commit/4b64fb64d238983e52f45c45600c20c01ff660fc))
+* **ci:** reduce Playwright workers to 2 on CI to stop full-suite flakes ([4440d47](https://github.com/alrayyes/movie-planner-web/commit/4440d479de847f3af38c7a35e2931589a0cd8204)), closes [#640](https://github.com/alrayyes/movie-planner-web/issues/640)
+
 ## [1.12.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.1...movie-planner-web-v1.12.2) (2026-09-21)
 
 
