@@ -11,6 +11,7 @@ import {
 	STATUS_TEXT,
 } from "../lib/ui/classes";
 import { debounce } from "../lib/ui/debounce";
+import type { MissingVenue } from "../lib/venue/backfill";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay } from "../lib/venue/display";
 
@@ -39,12 +40,30 @@ interface Props {
 	value: string;
 	onAddVenue: (entry: VenueEntry) => void | Promise<void>;
 	onEditVenue: (entry: VenueEntry) => void | Promise<void>;
+	// #636: venue names already seen in the visitor's own viewing history
+	// but not yet in the picklist — computed lazily by the caller (a
+	// listViewings() call, so it only runs when "Add venue" is actually
+	// opened) rather than eagerly on every mount.
+	missingVenues?: MissingVenue[];
+	onLoadMissingVenues?: () => void | Promise<void>;
+	onBulkAddVenues?: (names: string[]) => void | Promise<void>;
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: idPrefix/picklists are read in the template below, which Biome does not parse for .svelte files
-let { idPrefix, picklists, value = $bindable(), onAddVenue, onEditVenue }: Props = $props();
+let {
+	// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+	idPrefix,
+	picklists,
+	value = $bindable(),
+	onAddVenue,
+	onEditVenue,
+	// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+	missingVenues = [],
+	onLoadMissingVenues,
+	onBulkAddVenues,
+}: Props = $props();
 
 let editingVenue = $state(false);
+let selectedMissingVenues = $state<Set<string>>(new Set());
 let venueDialogEl = $state<HTMLDialogElement>();
 let newName = $state("");
 let newStreet = $state("");
@@ -111,6 +130,7 @@ function resetForm() {
 	geoCandidates = [];
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
+	selectedMissingVenues = new Set();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -125,6 +145,10 @@ function startAddVenue() {
 	geoCandidates = [];
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
+	selectedMissingVenues = new Set();
+	// #636: fetched lazily, only on actually opening this dialog — never
+	// on a normal log/edit dialog open.
+	onLoadMissingVenues?.();
 	venueDialogEl?.showModal();
 }
 
@@ -140,6 +164,28 @@ async function handleAddVenue() {
 	if (chosenGeo) entry.geo = chosenGeo;
 	await onAddVenue(entry);
 	value = entry.name;
+	venueDialogEl?.close();
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+function toggleMissingVenue(name: string) {
+	const next = new Set(selectedMissingVenues);
+	if (next.has(name)) {
+		next.delete(name);
+	} else {
+		next.add(name);
+	}
+	selectedMissingVenues = next;
+}
+
+// #636: one write for every selected name, not one per entry — the
+// picklist gains a plain name-only VenueEntry per selection, the same
+// shape learnFromViewing's own auto-learn already writes; a visitor can
+// "Edit venue" afterward to add structured address/geo per entry.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleBulkAddVenues() {
+	if (selectedMissingVenues.size === 0 || !onBulkAddVenues) return;
+	await onBulkAddVenues([...selectedMissingVenues]);
 	venueDialogEl?.close();
 }
 
@@ -212,6 +258,33 @@ title/fields swapping on editingVenue. -->
     <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
       {editingVenue ? "Edit this venue" : "Add a new venue"}
     </h2>
+    {#if !editingVenue && missingVenues.length > 0}
+      <div class="flex flex-col gap-2" aria-label="Already in your history, not yet added">
+        <p class={LABEL}>Already in your history, not yet added</p>
+        <ul class="flex max-h-48 flex-col gap-1 overflow-y-auto">
+          {#each missingVenues as missing (missing.name)}
+            <li>
+              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={selectedMissingVenues.has(missing.name)}
+                  onchange={() => toggleMissingVenue(missing.name)}
+                />
+                {missing.name} ({missing.count})
+              </label>
+            </li>
+          {/each}
+        </ul>
+        <button
+          type="button"
+          class={`${BUTTON_SECONDARY} self-start`}
+          disabled={selectedMissingVenues.size === 0}
+          onclick={handleBulkAddVenues}
+        >
+          Add selected
+        </button>
+      </div>
+    {/if}
     <div class={FIELD_WRAPPER}>
       <label class={LABEL} for={`${idPrefix}-${formPrefix}-name`}>Name</label>
       <!-- Not `required`: this dialog can be a descendant of the

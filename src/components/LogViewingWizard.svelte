@@ -1,10 +1,10 @@
 <script lang="ts">
-import { getPicklists, updatePicklists, updateViewing } from "../lib/caldav/client";
-import type { CaldavConfig, Picklists, VenueEntry } from "../lib/caldav/types";
+import { getPicklists, listViewings, updatePicklists, updateViewing } from "../lib/caldav/client";
+import type { CaldavConfig, LoggedViewing, Picklists, VenueEntry } from "../lib/caldav/types";
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, OPEN_LOG_VIEWING_WIZARD_EVENT } from "../lib/movie-log/log-viewing";
-import { toIsoDateTime } from "../lib/movie-log/run-import";
+import { importCheckRange, toIsoDateTime } from "../lib/movie-log/run-import";
 import {
 	lookupByImdbId,
 	type MovieMetadata,
@@ -22,6 +22,7 @@ import {
 	LABEL,
 	STATUS_TEXT,
 } from "../lib/ui/classes";
+import { type MissingVenue, venuesMissingFromPicklist } from "../lib/venue/backfill";
 import { findVenueEntry } from "../lib/venue/lookup";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
@@ -58,6 +59,13 @@ let dialogEl = $state<HTMLDialogElement>();
 let pickerArea = $state<HTMLDivElement>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let formError = $state("");
+// #636: venue names seen in viewing history but not yet in the
+// picklist — computed lazily (see loadMissingVenues below), not on
+// mount, so opening this wizard doesn't pay for a full-history
+// listViewings() call unless a visitor actually opens "Add venue".
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let missingVenues = $state<MissingVenue[]>([]);
+let cachedViewingsForBackfill: LoggedViewing[] | undefined;
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let step = $state<1 | 2>(1);
@@ -145,6 +153,45 @@ async function handleEditVenue(entry: VenueEntry) {
 	} catch {
 		// The next attempt just re-saves it; not worth failing the log on.
 	}
+}
+
+// #636: fired when VenuePicker's own "Add venue" dialog opens — a full
+// listViewings() scan (importCheckRange's whole-history window, same
+// range /venues itself uses) only ever runs on this explicit action, not
+// on a normal wizard open. Cached across repeat opens in the same
+// session; recomputed against the current picklist each time so an
+// already-added name drops off the list without a second network round
+// trip.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function loadMissingVenues() {
+	if (!cachedViewingsForBackfill) {
+		try {
+			cachedViewingsForBackfill = await listViewings(caldavConfig(), importCheckRange());
+		} catch {
+			// Leave missingVenues at whatever it already was (likely empty)
+			// — the freehand Name field still works either way.
+			return;
+		}
+	}
+	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill, picklists.venues);
+}
+
+// #636: one updatePicklists write for every name picked from the
+// "Already in your history" checklist, as plain name-only entries — the
+// same shape learnFromViewing's own auto-learn already writes.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleBulkAddVenues(names: string[]) {
+	const next = {
+		...picklists,
+		venues: [...picklists.venues, ...names.map((name) => ({ name }))],
+	};
+	picklists = next;
+	try {
+		await updatePicklists(caldavConfig(), picklists);
+	} catch {
+		// The next attempt just re-adds them; not worth failing the log on.
+	}
+	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill ?? [], picklists.venues);
 }
 
 async function learnFromViewing(loggedMedium: string, loggedVenue: string | undefined) {
@@ -487,6 +534,9 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
           bind:value={venue}
           onAddVenue={handleAddVenue}
           onEditVenue={handleEditVenue}
+          {missingVenues}
+          onLoadMissingVenues={loadMissingVenues}
+          onBulkAddVenues={handleBulkAddVenues}
         />
         {#if venue && selectedVenueEntry?.geo}
           <p class={STATUS_TEXT}>Using {venue}'s known location.</p>
