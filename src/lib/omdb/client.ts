@@ -174,10 +174,12 @@ async function searchPage(
   apiKey: string,
   title: string,
   page: number,
+  year?: string,
 ): Promise<OmdbSearchResponse | null> {
   const url = new URL("https://www.omdbapi.com/");
   url.searchParams.set("apikey", apiKey);
   url.searchParams.set("s", title);
+  if (year) url.searchParams.set("y", year);
   if (page > 1) url.searchParams.set("page", String(page));
 
   const response = await fetch(url);
@@ -191,8 +193,15 @@ async function searchPage(
 // best guess. A candidate with no imdbID is dropped rather than shown
 // unselectable, since imdbID is what `lookupByImdbId` needs to fetch
 // its full details.
-export async function searchMovies(apiKey: string, title: string): Promise<OmdbCandidate[]> {
-  const first = await searchPage(apiKey, title, 1);
+// #627: `year`, unlike `lookupMovie`'s fuzzy watched-year hint, is a real
+// OMDb `y=` filter here — narrowing the search server-side instead of
+// scanning more pages of everything OMDb has for that title.
+export async function searchMovies(
+  apiKey: string,
+  title: string,
+  year?: string,
+): Promise<OmdbCandidate[]> {
+  const first = await searchPage(apiKey, title, 1, year);
   if (!first || first.Response !== "True" || !first.Search) return [];
 
   const results = [...first.Search];
@@ -200,7 +209,7 @@ export async function searchMovies(apiKey: string, title: string): Promise<OmdbC
   const pagesAvailable = Math.min(MAX_SEARCH_PAGES, Math.ceil(totalResults / 10));
 
   for (let page = 2; page <= pagesAvailable; page++) {
-    const data = await searchPage(apiKey, title, page);
+    const data = await searchPage(apiKey, title, page, year);
     if (!data || data.Response !== "True" || !data.Search) break;
     results.push(...data.Search);
   }
@@ -278,13 +287,19 @@ export type OmdbSearchOutcome =
 // app should call — resolves a pasted IMDb ID/URL directly via `i=`
 // (skipping `s=` entirely), otherwise falls through to the existing
 // title search.
-export async function searchOmdb(apiKey: string, query: string): Promise<OmdbSearchOutcome> {
+export async function searchOmdb(
+  apiKey: string,
+  query: string,
+  year?: string,
+): Promise<OmdbSearchOutcome> {
   const imdbId = extractImdbId(query);
   if (imdbId) {
+    // An IMDb ID is already unambiguous — a year filter has nothing left
+    // to narrow.
     const candidate = await lookupCandidateByImdbId(apiKey, imdbId);
     return candidate ? { kind: "match", candidate } : { kind: "none" };
   }
 
-  const candidates = await searchMovies(apiKey, query);
+  const candidates = await searchMovies(apiKey, query, year);
   return candidates.length > 0 ? { kind: "candidates", candidates } : { kind: "none" };
 }
