@@ -164,10 +164,10 @@ let sharedUrl = $state("");
 // doesn't mean retyping an exact venue name used before, and picking one
 // attaches its own stored city/country/geo/address automatically.
 let picklists = $state<Picklists>({ media: [], venues: [] });
-// #636: venue names seen in viewing history but not yet in the
-// picklist — computed lazily (see loadMissingVenues below), not on
-// mount, so opening this page doesn't pay for a full-history
-// listViewings() call unless a visitor actually opens "Add venue".
+// #636/#646: venue names seen in viewing history but not yet in the
+// picklist — computed lazily (see loadMissingVenues below), on entering
+// edit mode rather than on mount, so a plain view of an already-logged
+// entry doesn't pay for a full-history listViewings() call.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let missingVenues = $state<MissingVenue[]>([]);
 let cachedViewingsForBackfill: LoggedViewing[] | undefined;
@@ -217,6 +217,13 @@ function startEdit(current: LoggedViewing) {
 	// default rather than an empty string matching no <option> at all.
 	editValues.medium = current.medium || "Cinema";
 	editing = true;
+	// #646: fired here rather than on mount — the Venue select's own
+	// "Already in your history" group only matters once editing starts,
+	// same cost-avoidance #636 originally gated behind opening "Add
+	// venue" (a plain view of an already-logged entry stays free of this
+	// listViewings() scan). Not awaited, same fire-and-forget shape
+	// VenuePicker's own startAddVenue already uses for this call.
+	loadMissingVenues();
 }
 
 async function load() {
@@ -293,13 +300,13 @@ async function handleEditVenue(entry: VenueEntry) {
 	}
 }
 
-// #636: fired when VenuePicker's own "Add venue" dialog opens — a full
-// listViewings() scan (importCheckRange's whole-history window, same
-// range /venues itself uses) only ever runs on this explicit action, not
-// on a normal page load. Cached across repeat opens in the same session;
-// recomputed against the current picklist each time so an already-added
-// name drops off the list without a second network round trip.
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+// #636/#646: a full listViewings() scan (importCheckRange's whole-history
+// window, same range /venues itself uses) — fired once from startEdit
+// above on entering edit mode, and again from VenuePicker's own "Add
+// venue" dialog opening in case the first attempt failed. Cached across
+// repeat calls in the same session; recomputed against the current
+// picklist each time so an already-added name drops off the list
+// without a second network round trip.
 async function loadMissingVenues() {
 	if (!config) return;
 	if (!cachedViewingsForBackfill) {
