@@ -2,11 +2,12 @@
 
 What this app reads and writes on the CalDAV calendar it's pointed at —
 the counterpart to the
-[movie-planner CLI's own `docs/calendar-schema.md`](https://github.com/alrayyes/movie-planner/blob/main/docs/calendar-schema.md),
-which documents the CLI's side of the same calendar. The two overlap but
-aren't identical: this app writes a handful of `X-*` properties the CLI
-never does, and reads a CLI-only `DESCRIPTION` format the CLI itself
-never has to parse back. All of this lives in
+[movie-planner command-line tool's own `docs/calendar-schema.md`](https://github.com/alrayyes/movie-planner/blob/main/docs/calendar-schema.md),
+which documents the command-line tool's side of the same calendar. The
+two overlap but aren't identical: this app writes a handful of `X-*`
+properties the command-line tool never does, and reads a `DESCRIPTION`
+format only the command-line tool writes — one the tool itself never
+has to parse back. All of this lives in
 [`src/lib/caldav/ical.ts`](../src/lib/caldav/ical.ts).
 
 ## A viewing (VEVENT)
@@ -70,15 +71,17 @@ X-LAST-MODIFIED-BY          lastModifiedBy
 always forces it to `web` before serializing, overriding whatever a
 caller passed. It's what the diff-on-sync activity log (see
 [`docs/activity.md`](../src/content/docs/docs/activity.md)) reads to
-tell a change this app made itself apart from one made by the CLI or
-another device, so it can skip logging a self-made change twice. It's
-a single current-state property, not a history — deleting a `VEVENT`
+tell a change this app made itself apart from one made by the
+command-line tool or another device, so it can skip logging a
+self-made change twice. It's a single current-state property, not a
+history — deleting a `VEVENT`
 doesn't destroy anything this design depends on, because the _log
 entry_ for that deletion lives in this app's own local snapshot, not
 on the resource that's gone.
 
 `X-RELEASED`, `X-AWARDS` and `X-TRAILER-URL` are this app's own
-additions — the CLI never writes them (it only puts `Released`/`Awards`
+additions — the command-line tool never writes them (it only puts
+`Released`/`Awards`
 in `DESCRIPTION` text, and has no `X-TRAILER-URL` equivalent at all,
 since it has no TMDb integration). Once this app parses one of those out
 of a `DESCRIPTION` and the viewing is saved again, it round-trips as a
@@ -86,8 +89,9 @@ structured `X-*` property from then on, same as `letterboxdUrl`/`notes`
 already did.
 
 Any property on an existing `VEVENT` this app doesn't recognize —
-something a future CLI version added that this app hasn't caught up to
-yet — is preserved verbatim across an edit (`extractUnknownProperties`),
+something a future version of the command-line tool added that this app
+hasn't caught up to yet — is preserved verbatim across an edit
+(`extractUnknownProperties`),
 rather than silently dropped.
 
 ## DTSTART/DTEND shapes
@@ -109,21 +113,23 @@ Three real shapes exist in the wild, all handled:
 ## GEO is a native property, not escaped TEXT
 
 `GEO:52.3665062;4.8947073` is a `FLOAT` pair per RFC 5545 §3.8.1.6 — the
-semicolon is a real value separator, not something TEXT's escaping rules
-apply to. Writing it through the same `escapeText` path every other
+semicolon is a real value separator, not something the `TEXT` value
+type's escaping rules apply to. Writing it through the same `escapeText`
+path every other
 property goes through would wrongly turn it into
 `GEO:52.3665062\;4.8947073`; `geoProperty()` bypasses that.
 
 ## The DESCRIPTION fallback
 
-The CLI's own `build_vevent` writes ratings and links as plain
+The command-line tool's own `build_vevent` writes ratings and links as plain
 `DESCRIPTION` lines (`IMDb: 8.5 (https://...)`, `Rotten Tomatoes: 92%`,
 `Released: 15 Mar 2024`, `Plot: ...`, `Awards: ...`,
 `Letterboxd: https://... (4.2)`, `Notes: ...`) rather than this app's
-own `X-*` properties — the CLI never reads the calendar back (other than
-`sync pull`), so it has no reason to know about them.
-`parseDescriptionMetadata` is how a CLI-logged viewing shows this data
-here without a fresh, possibly different OMDb lookup. It's a fallback,
+own `X-*` properties — the command-line tool never reads the calendar
+back (other than `sync pull`), so it has no reason to know about them.
+`parseDescriptionMetadata` is how a viewing logged by the command-line
+tool shows this data here without a fresh, possibly different OMDb
+lookup. It's a fallback,
 never an override: any `X-*` property already present always wins.
 
 ## The picklist sidecar (VJOURNAL)

@@ -80,15 +80,16 @@ provisioning is a scripted form-post replay rather than an API call —
 Baikal has no non-interactive install path.
 
 `cli-import.integration.test.ts` is the cross-tool half of this layer: a
-real `movie-planner` CLI container (`ghcr.io/alrayyes/movie-planner:latest`,
-a public image — no registry auth needed) importing a file shaped like
-this app's own "Export as JSON", against the same Baikal instance. Needs
-nothing beyond what's already documented above — `bun run test:integration`
-pulls the image itself the first time it runs.
+real `movie-planner` command-line tool container
+(`ghcr.io/alrayyes/movie-planner:latest`, a public image — no registry
+auth needed) importing a file shaped like this app's own "Export as
+JSON", against the same Baikal instance. Needs nothing beyond what's
+already documented earlier — `bun run test:integration` pulls the image
+itself the first time it runs.
 
 ## How it fits together
 
-There's no server-side application code — `astro.config.mjs` builds a
+There's no server-side app code — `astro.config.mjs` builds a
 fully static site. `src/lib/caldav/client.ts` and `src/lib/omdb/client.ts`
 run in the browser and call the visitor's own CalDAV/OMDb servers
 directly, using whatever credentials the visitor entered (held only in
@@ -100,7 +101,7 @@ permitting this app's origin — README.md documents the exact headers, and
 (`openspec/changes/archive/` holds the completed change that shipped
 them). [`docs/calendar-schema.md`](docs/calendar-schema.md) lists every
 iCalendar property this app reads and writes, and how it differs from
-what the CLI writes.
+what the command-line tool writes.
 
 Biome only lints a `.astro` file's frontmatter script, not the template
 below it — a frontmatter import or prop used only in the template reads

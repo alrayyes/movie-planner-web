@@ -10,11 +10,11 @@ watched first by default.
 
 Filters and the "Refresh all metadata" action sit inside their own
 bordered card, set apart from the results below. Expanding Filters
-shows the everyday fields right away: From, To, Title, Medium, and
+shows the everyday fields right away — From, To, Title, Medium, and
 Venue. Everything else — Director, Actor, Genre, City, Movie country,
 Movie language, Rated, Released year, and Released month — sits behind
 a nested "More filters" toggle, so the common case doesn't mean scanning
-past a dozen fields you rarely touch. A chip link that carries one of
+past a dozen fields you rarely use. A chip link that carries one of
 those advanced filters (from a details page, Venues, or elsewhere)
 expands "More filters" automatically, so the active value is never
 hidden.
