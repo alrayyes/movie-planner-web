@@ -240,6 +240,12 @@ test.describe("structured venue picklist", () => {
 
     await expect.poll(() => server.picklists.venues).toEqual([{ name: "De Munt" }]);
     await expect(page.locator("#log-venue option")).toContainText(["No venue", "De Munt"]);
+    // #636 follow-up: bulk-adding must also select the venue, the same
+    // way the single-name Add flow already does — otherwise submitting
+    // the surrounding form right after silently logs/saves with no
+    // venue at all, since the select was never actually set to
+    // anything.
+    await expect(page.locator("#log-venue")).toHaveValue("De Munt");
   });
 
   test("a venue already in the picklist isn't offered again in the bulk-add checklist", async ({
