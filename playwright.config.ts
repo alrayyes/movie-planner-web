@@ -12,24 +12,25 @@ export default defineConfig({
   // since the webServer isn't restarted between them — so CI's own
   // retries: 2 below can't recover from it either.
   //
-  // #640: 3 workers is still too many specifically on CI's own
+  // #640: even 2 workers is too many specifically on CI's own
   // `ubuntu-24.04` runner (2 vCPUs) — a different failure mode from the
   // crash above, and a genuinely separate finding, not the same bug
-  // re-described. Confirmed directly: a computed-style check
-  // (`assertInputFontSizeAtLeast16px`, tests/responsive.spec.ts) that
-  // finds zero small-font inputs in 100% of isolated local runs failed
-  // deterministically across two full CI runs in a row, every time on
-  // the exact same test (all three viewports) — but never once across
-  // several full local runs on this dev machine's own, much higher core
-  // count. That shape (reliable alone, unreliable only under full-suite
-  // parallel load, and only on the more CPU-constrained runner) is CPU
-  // contention slowing a fresh element's style application past the
-  // moment a getComputedStyle() check reads it — not a real product bug
-  // and not the crash-under-load case above. 2 workers on CI (still 3
-  // locally, where the extra core headroom means this doesn't reproduce)
-  // trades some CI wall-clock time for actually matching what CI can
-  // reliably run in parallel.
-  workers: process.env.CI ? 2 : 3,
+  // re-described. A computed-style check (`assertInputFontSizeAtLeast16px`,
+  // tests/responsive.spec.ts) that finds zero small-font inputs in 100% of
+  // isolated local runs, and that a from-scratch expect.poll() rewrite
+  // still couldn't recover within a 5s window, failed on four consecutive
+  // full CI runs in a row — the last two already at 2 workers, one with
+  // real workerd "Broken pipe"/"Connection reset by peer" server-side
+  // errors logged mid-run (non-fatal individually, other tests kept
+  // passing around them, but real evidence of connection-level stress
+  // under concurrent load). Local simulation at 2 workers only reproduced
+  // this roughly 1 run in 3, well below CI's 4-for-4 — CI's own hardware
+  // has less headroom than any local simulation of "2 workers" can
+  // capture. 1 worker (fully serial — no concurrent requests to the
+  // shared wrangler dev server at all) is the only setting left that
+  // removes this class of contention outright, still 3 locally where
+  // none of this reproduces.
+  workers: process.env.CI ? 1 : 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   // #526: a dead webServer (workerd/wrangler crashing mid-suite) doesn't
@@ -39,12 +40,10 @@ export default defineConfig({
   // exits. The job's own `|| retry` wrapper (#502) restarts the server on
   // a second invocation, but only gets a chance to run once the first
   // invocation actually returns — so it needs a hard ceiling well under
-  // the job's own timeout, not the job timeout itself. Bumped alongside
-  // #640's own 2-workers-on-CI change above: a real attempt was already
-  // taking 2.9-3.2 minutes at 3 workers per CI's own logs, leaving little
-  // headroom against the old 5-minute ceiling once 2 workers make each
-  // attempt slower still.
-  globalTimeout: process.env.CI ? 7 * 60 * 1000 : undefined,
+  // the job's own timeout, not the job timeout itself. Bumped again
+  // alongside #640's own 1-worker-on-CI change above: a serial run takes
+  // meaningfully longer wall-clock than either parallel setting did.
+  globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined,
   // #573: a second, machine-readable reporter alongside the human-readable
   // one — Codecov Test Analytics needs JUnit XML to show per-test
   // failure/flake detail on a PR, not just a coverage delta. CI-only: a
