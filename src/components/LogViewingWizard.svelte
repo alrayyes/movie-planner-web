@@ -9,7 +9,7 @@ import {
 	lookupByImdbId,
 	type MovieMetadata,
 	type OmdbCandidate,
-	searchMovies,
+	searchOmdb,
 } from "../lib/omdb/client";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import { enrichWithTmdb } from "../lib/tmdb/client";
@@ -233,10 +233,13 @@ async function runSearch() {
 	searchStatus = "Searching…";
 	searchHasResults = false;
 	try {
-		const candidates = await searchMovies(omdbApiKey, title.trim());
-		if (candidates.length > 0) {
+		const outcome = await searchOmdb(omdbApiKey, title.trim());
+		if (outcome.kind === "match") {
 			searchStatus = "";
-			showSearchResults(candidates);
+			await selectCandidate(outcome.candidate);
+		} else if (outcome.kind === "candidates") {
+			searchStatus = "";
+			showSearchResults(outcome.candidates);
 		} else {
 			searchStatus = "OMDb had no match for that search.";
 		}

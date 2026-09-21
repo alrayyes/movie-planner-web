@@ -52,6 +52,7 @@ interface OmdbRating {
 
 interface OmdbResponse {
   Response: "True" | "False";
+  Title?: string;
   Director?: string;
   Actors?: string;
   Ratings?: OmdbRating[];
@@ -230,4 +231,60 @@ export async function lookupByImdbId(
   if (!response.ok) return null;
   const data = (await response.json()) as OmdbResponse;
   return data.Response === "True" ? toMetadata(data) : null;
+}
+
+// #626: an IMDb ID is unambiguous, so a query that's actually a pasted ID
+// or a pasted IMDb URL shouldn't depend on OMDb's title-ranked s= search
+// finding it at all — matches "tt" + 7-10 digits wherever it appears in
+// the query, which covers both a bare ID and a full imdb.com/title/ URL.
+const IMDB_ID_PATTERN = /tt\d{7,10}/i;
+
+export function extractImdbId(query: string): string | null {
+  const match = query.match(IMDB_ID_PATTERN);
+  return match ? match[0].toLowerCase() : null;
+}
+
+// A lighter-weight sibling of lookupByImdbId: just enough (title, year,
+// poster) to render as an OmdbCandidate, for searchOmdb's direct-ID path
+// below — the full MovieMetadata lookup still happens afterward, once a
+// caller applies this candidate, same as picking one from the picker.
+async function lookupCandidateByImdbId(
+  apiKey: string,
+  imdbId: string,
+): Promise<OmdbCandidate | null> {
+  const url = new URL("https://www.omdbapi.com/");
+  url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("i", imdbId);
+
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  const data = (await response.json()) as OmdbResponse;
+  if (data.Response !== "True" || !data.imdbID) return null;
+
+  return {
+    title: field(data.Title) ?? "",
+    year: field(data.Year),
+    imdbId: data.imdbID,
+    posterUrl: field(data.Poster),
+  };
+}
+
+export type OmdbSearchOutcome =
+  | { kind: "match"; candidate: OmdbCandidate }
+  | { kind: "candidates"; candidates: OmdbCandidate[] }
+  | { kind: "none" };
+
+// #626: the single entry point every free-text OMDb search box in this
+// app should call — resolves a pasted IMDb ID/URL directly via `i=`
+// (skipping `s=` entirely), otherwise falls through to the existing
+// title search.
+export async function searchOmdb(apiKey: string, query: string): Promise<OmdbSearchOutcome> {
+  const imdbId = extractImdbId(query);
+  if (imdbId) {
+    const candidate = await lookupCandidateByImdbId(apiKey, imdbId);
+    return candidate ? { kind: "match", candidate } : { kind: "none" };
+  }
+
+  const candidates = await searchMovies(apiKey, query);
+  return candidates.length > 0 ? { kind: "candidates", candidates } : { kind: "none" };
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { lookupByImdbId, lookupMovie, searchMovies } from "./client";
+import { extractImdbId, lookupByImdbId, lookupMovie, searchMovies, searchOmdb } from "./client";
 
 let originalFetch: typeof fetch;
 
@@ -413,5 +413,116 @@ describe("lookupByImdbId", () => {
       })) as unknown as typeof fetch;
 
     expect(await lookupByImdbId("test-key", "tt0000000")).toBeNull();
+  });
+});
+
+// #626: a visitor who already has an IMDb ID or URL shouldn't depend on
+// OMDb's title-ranked s= search finding it at all.
+describe("extractImdbId", () => {
+  test("extracts a bare IMDb ID", () => {
+    expect(extractImdbId("tt35538033")).toBe("tt35538033");
+  });
+
+  test("extracts an IMDb ID embedded in a pasted URL", () => {
+    expect(extractImdbId("https://www.imdb.com/title/tt35538033/")).toBe("tt35538033");
+  });
+
+  test("lowercases an uppercase ID", () => {
+    expect(extractImdbId("TT35538033")).toBe("tt35538033");
+  });
+
+  test("returns null for a plain title with no IMDb ID", () => {
+    expect(extractImdbId("Resident Evil")).toBeNull();
+  });
+
+  test("returns null for a title that merely contains digits", () => {
+    expect(extractImdbId("2001: A Space Odyssey")).toBeNull();
+  });
+});
+
+describe("searchOmdb", () => {
+  test("resolves a bare IMDb ID directly via i=, skipping s= search entirely", async () => {
+    let calls = 0;
+    globalThis.fetch = (async (url: URL) => {
+      calls++;
+      expect(url.toString()).toContain("i=tt35538033");
+      expect(url.toString()).not.toContain("s=");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Title: "Resident Evil",
+          Year: "2026",
+          imdbID: "tt35538033",
+          Poster: "https://example.com/resident-evil-2026.jpg",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchOmdb("test-key", "tt35538033");
+
+    expect(calls).toBe(1);
+    expect(result).toEqual({
+      kind: "match",
+      candidate: {
+        title: "Resident Evil",
+        year: "2026",
+        imdbId: "tt35538033",
+        posterUrl: "https://example.com/resident-evil-2026.jpg",
+      },
+    });
+  });
+
+  test("resolves an IMDb ID pasted as a full URL the same way", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("i=tt35538033");
+      return new Response(
+        JSON.stringify({ Response: "True", Title: "Resident Evil", imdbID: "tt35538033" }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchOmdb("test-key", "https://www.imdb.com/title/tt35538033/");
+
+    expect(result.kind).toBe("match");
+  });
+
+  test("reports no match when the extracted IMDb ID has nothing on OMDb", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ Response: "False" }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    expect(await searchOmdb("test-key", "tt00000000")).toEqual({ kind: "none" });
+  });
+
+  test("falls through to the regular title search when the query has no IMDb ID", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("s=Dune");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [{ Title: "Dune", Year: "2021", imdbID: "tt1160419", Poster: "N/A" }],
+          totalResults: "1",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchOmdb("test-key", "Dune");
+
+    expect(result).toEqual({
+      kind: "candidates",
+      candidates: [{ title: "Dune", year: "2021", imdbId: "tt1160419", posterUrl: undefined }],
+    });
+  });
+
+  test("reports no match when a title search has no IMDb ID and no OMDb results", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ Response: "False" }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    expect(await searchOmdb("test-key", "Not A Real Movie")).toEqual({ kind: "none" });
   });
 });
