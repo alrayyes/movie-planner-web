@@ -5,6 +5,7 @@ import {
 	deleteViewing,
 	getPicklists,
 	getViewing,
+	listViewings,
 	updatePicklists,
 	updateViewing,
 } from "../lib/caldav/client";
@@ -25,6 +26,7 @@ import {
 	exportViewingsToJson,
 } from "../lib/movie-log/export-viewings";
 import { resolveBackHref } from "../lib/movie-log/movie-link";
+import { importCheckRange } from "../lib/movie-log/run-import";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
 import {
@@ -60,6 +62,7 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { computeBlockedTimeBar, formatDate, formatDateTime } from "../lib/ui/datetime";
+import { type MissingVenue, venuesMissingFromPicklist } from "../lib/venue/backfill";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay, venueHref } from "../lib/venue/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -161,6 +164,13 @@ let sharedUrl = $state("");
 // doesn't mean retyping an exact venue name used before, and picking one
 // attaches its own stored city/country/geo/address automatically.
 let picklists = $state<Picklists>({ media: [], venues: [] });
+// #636: venue names seen in viewing history but not yet in the
+// picklist — computed lazily (see loadMissingVenues below), not on
+// mount, so opening this page doesn't pay for a full-history
+// listViewings() call unless a visitor actually opens "Add venue".
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let missingVenues = $state<MissingVenue[]>([]);
+let cachedViewingsForBackfill: LoggedViewing[] | undefined;
 let pickerArea = $state<HTMLDivElement | undefined>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let showingPicker = $state(false);
@@ -275,6 +285,45 @@ async function handleEditVenue(entry: VenueEntry) {
 	} catch {
 		// The next attempt just re-saves it; not worth failing the edit on.
 	}
+}
+
+// #636: fired when VenuePicker's own "Add venue" dialog opens — a full
+// listViewings() scan (importCheckRange's whole-history window, same
+// range /venues itself uses) only ever runs on this explicit action, not
+// on a normal page load. Cached across repeat opens in the same session;
+// recomputed against the current picklist each time so an already-added
+// name drops off the list without a second network round trip.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function loadMissingVenues() {
+	if (!config) return;
+	if (!cachedViewingsForBackfill) {
+		try {
+			cachedViewingsForBackfill = await listViewings(config, importCheckRange());
+		} catch {
+			// Leave missingVenues at whatever it already was (likely empty)
+			// — the freehand Name field still works either way.
+			return;
+		}
+	}
+	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill, picklists.venues);
+}
+
+// #636: one updatePicklists write for every name picked from the
+// "Already in your history" checklist, as plain name-only entries.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleBulkAddVenues(names: string[]) {
+	if (!config) return;
+	const next = {
+		...picklists,
+		venues: [...picklists.venues, ...names.map((name) => ({ name }))],
+	};
+	picklists = next;
+	try {
+		await updatePicklists(config, next);
+	} catch {
+		// The next attempt just re-adds them; not worth failing the edit on.
+	}
+	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill ?? [], picklists.venues);
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -647,6 +696,9 @@ reloadOnBfcacheRestore(() => void load());
               bind:value={editValues.venue}
               onAddVenue={handleAddVenue}
               onEditVenue={handleEditVenue}
+              {missingVenues}
+              onLoadMissingVenues={loadMissingVenues}
+              onBulkAddVenues={handleBulkAddVenues}
             />
             {#if editValues.venue && selectedVenueEntry?.geo}
               <p class={STATUS_TEXT}>Using {editValues.venue}'s known location.</p>

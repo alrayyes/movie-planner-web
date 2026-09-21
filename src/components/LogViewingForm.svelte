@@ -1,11 +1,11 @@
 <script lang="ts">
-import { getPicklists, updatePicklists, updateViewing } from "../lib/caldav/client";
+import { getPicklists, listViewings, updatePicklists, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, Picklists, VenueEntry } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
-import { toIsoDateTime } from "../lib/movie-log/run-import";
+import { importCheckRange, toIsoDateTime } from "../lib/movie-log/run-import";
 import {
 	lookupByImdbId,
 	type MovieMetadata,
@@ -30,6 +30,7 @@ import {
 } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatDateTime } from "../lib/ui/datetime";
+import { type MissingVenue, venuesMissingFromPicklist } from "../lib/venue/backfill";
 import { findVenueEntry } from "../lib/venue/lookup";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
@@ -69,6 +70,13 @@ let status = $state("");
 let formError = $state("");
 let picklists = $state<Picklists>({ media: [], venues: [] });
 let pickerArea = $state<HTMLDivElement>();
+// #636: venue names seen in viewing history but not yet in the
+// picklist — computed lazily (see loadMissingVenues below), not on
+// mount, so opening this form doesn't pay for a full-history
+// listViewings() call unless a visitor actually opens "Add venue".
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let missingVenues = $state<MissingVenue[]>([]);
+let cachedViewingsForBackfill: LoggedViewing[] | undefined;
 
 // #593: gates the manual form's own "Search OMDb" button, same condition
 // MovieDetails.svelte's omdbActive uses — no point offering a search
@@ -179,6 +187,44 @@ async function handleEditVenue(entry: VenueEntry) {
 	} catch {
 		// The next attempt just re-saves it; not worth failing the log on.
 	}
+}
+
+// #636: fired when VenuePicker's own "Add venue" dialog opens — a full
+// listViewings() scan (importCheckRange's whole-history window, same
+// range /venues itself uses) only ever runs on this explicit action, not
+// on a normal form load. Cached across repeat opens in the same session;
+// recomputed against the current picklist each time so an already-added
+// name drops off the list without a second network round trip.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function loadMissingVenues() {
+	if (!cachedViewingsForBackfill) {
+		try {
+			cachedViewingsForBackfill = await listViewings(caldavConfig(), importCheckRange());
+		} catch {
+			// Leave missingVenues at whatever it already was (likely empty)
+			// — the freehand Name field still works either way.
+			return;
+		}
+	}
+	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill, picklists.venues);
+}
+
+// #636: one updatePicklists write for every name picked from the
+// "Already in your history" checklist, as plain name-only entries — the
+// same shape learnFromViewing's own auto-learn already writes.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleBulkAddVenues(names: string[]) {
+	const next = {
+		...picklists,
+		venues: [...picklists.venues, ...names.map((name) => ({ name }))],
+	};
+	picklists = next;
+	try {
+		await updatePicklists(caldavConfig(), picklists);
+	} catch {
+		// The next attempt just re-adds them; not worth failing the log on.
+	}
+	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill ?? [], picklists.venues);
 }
 
 // #49: shown after logging (either flow) finds no confident OMDb match
@@ -476,6 +522,9 @@ async function handleConfirm() {
         bind:value={venue}
         onAddVenue={handleAddVenue}
         onEditVenue={handleEditVenue}
+        {missingVenues}
+        onLoadMissingVenues={loadMissingVenues}
+        onBulkAddVenues={handleBulkAddVenues}
       />
 
       {#if venue && selectedVenueEntry?.geo}

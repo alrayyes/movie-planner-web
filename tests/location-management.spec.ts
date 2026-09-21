@@ -191,6 +191,84 @@ test.describe("structured venue picklist", () => {
     await expect.poll(() => server.picklists.venues).toEqual([{ name: "Home" }]);
   });
 
+  // #636: an account whose viewing history predates the structured
+  // picklist (or was only ever logged via the CLI, which knows nothing
+  // of this app's own picklist sidecar) can have real venues on every
+  // viewing but nothing in the picklist at all — bulk-add offers those
+  // names, with their viewing counts, as an explicit, visitor-triggered
+  // checklist rather than silently backfilling anything.
+  test("Add venue offers names already seen in viewing history, not yet in the picklist, as a bulk-add checklist", async ({
+    page,
+  }) => {
+    const viewings: LoggedViewing[] = [
+      {
+        uid: "v1",
+        title: "Movie A",
+        start: "2026-01-01T18:00:00.000Z",
+        end: "2026-01-01T20:00:00.000Z",
+        medium: "cinema",
+        venue: "De Munt",
+      },
+      {
+        uid: "v2",
+        title: "Movie B",
+        start: "2026-01-02T18:00:00.000Z",
+        end: "2026-01-02T20:00:00.000Z",
+        medium: "cinema",
+        venue: "De Munt",
+      },
+      {
+        uid: "v3",
+        title: "Movie C",
+        start: "2026-01-03T18:00:00.000Z",
+        end: "2026-01-03T20:00:00.000Z",
+        medium: "cinema",
+        venue: "Tuschinski",
+      },
+    ];
+    const server = await connect(page, { media: [], venues: [] }, viewings);
+    await page.goto("/log");
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    const dialog = page.getByRole("dialog", { name: "Add a new venue" });
+
+    await expect(dialog.getByRole("checkbox", { name: "De Munt (2)" })).toBeVisible();
+    await expect(dialog.getByRole("checkbox", { name: "Tuschinski (1)" })).toBeVisible();
+
+    await dialog.getByRole("checkbox", { name: "De Munt (2)" }).check();
+    await dialog.getByRole("button", { name: "Add selected" }).click();
+
+    await expect.poll(() => server.picklists.venues).toEqual([{ name: "De Munt" }]);
+    await expect(page.locator("#log-venue option")).toContainText(["No venue", "De Munt"]);
+  });
+
+  test("a venue already in the picklist isn't offered again in the bulk-add checklist", async ({
+    page,
+  }) => {
+    const viewings: LoggedViewing[] = [
+      {
+        uid: "v1",
+        title: "Movie A",
+        start: "2026-01-01T18:00:00.000Z",
+        end: "2026-01-01T20:00:00.000Z",
+        medium: "cinema",
+        venue: "De Munt",
+      },
+    ];
+    const server = await connect(page, { media: [], venues: [{ name: "De Munt" }] }, viewings);
+    await page.goto("/log");
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    const dialog = page.getByRole("dialog", { name: "Add a new venue" });
+
+    // The checklist only renders after loadMissingVenues's own
+    // listViewings() call resolves — wait for that request to actually
+    // land before asserting the checklist stays absent, so this isn't
+    // just passing because the fetch hadn't finished yet.
+    await expect.poll(() => server.listRequests.length).toBeGreaterThan(0);
+    await expect(dialog.getByText("Already in your history, not yet added")).toHaveCount(0);
+  });
+
   // #452: an existing sidecar written before this change held plain
   // venue name strings — parsePicklistsFromVJournal keeps reading those
   // (as `{name: value}`) rather than dropping or breaking on them.
