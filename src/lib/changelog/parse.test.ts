@@ -82,6 +82,101 @@ describe("parseChangelog", () => {
     expect(releases.map((r) => r.version)).toEqual(["0.79.3"]);
   });
 
+  // #648: a PR merged via "Create a merge commit" (rather than squash)
+  // produces this shape instead — a bare commit-SHA link with no PR
+  // number right after the description, and a separate "closes [#NNN]"
+  // clause (from the original commit's own "Closes #NNN" trailer).
+  // Real excerpt from this repo's own CHANGELOG.md (1.12.2/#644).
+  test("keeps a merge-commit-shaped entry (bare commit link, trailing 'closes #NNN')", () => {
+    const markdown = `# Changelog
+
+## [1.12.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.1...movie-planner-web-v1.12.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **omdb:** show a loading status and bounded scroll for a larger search ([2dc6ca1](https://github.com/alrayyes/movie-planner-web/commit/2dc6ca1094620d73df1cd6b7c86d2a511e0e5b32)), closes [#623](https://github.com/alrayyes/movie-planner-web/issues/623)
+`;
+
+    const releases = parseChangelog(markdown);
+
+    expect(releases).toEqual([
+      {
+        version: "1.12.2",
+        date: "2026-09-21",
+        entries: [
+          {
+            type: "fix",
+            scope: "omdb",
+            description: "show a loading status and bounded scroll for a larger search",
+            prNumber: 623,
+            prUrl: "https://github.com/alrayyes/movie-planner-web/issues/623",
+          },
+        ],
+      },
+    ]);
+  });
+
+  // #648: the same merge-commit-strategy PR also produces a second,
+  // near-duplicate line — the merge commit's own body carries the PR's
+  // Conventional-Commits-formatted title (this repo's
+  // `merge_commit_message` setting is PR_TITLE), which release-please
+  // treats as a distinct commit. That synthesized "Merge pull request
+  // #NNN..." message has no "closes" trailer of its own, so the line
+  // matches neither ENTRY_LINE nor ENTRY_LINE_MERGE_COMMIT and drops out
+  // — no explicit dedup needed, just the one real entry above.
+  test("drops the merge commit's own near-duplicate line (no 'closes' clause, no dedup needed)", () => {
+    const markdown = `# Changelog
+
+## [1.12.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.1...movie-planner-web-v1.12.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **omdb:** show a loading status and bounded scroll for a larger search ([6cd91d7](https://github.com/alrayyes/movie-planner-web/commit/6cd91d75750516859befa9699e6ecf36b1dd475c))
+* **omdb:** show a loading status and bounded scroll for a larger search ([2dc6ca1](https://github.com/alrayyes/movie-planner-web/commit/2dc6ca1094620d73df1cd6b7c86d2a511e0e5b32)), closes [#623](https://github.com/alrayyes/movie-planner-web/issues/623)
+`;
+
+    const releases = parseChangelog(markdown);
+
+    expect(releases).toHaveLength(1);
+    expect(releases[0]?.entries).toHaveLength(1);
+    expect(releases[0]?.entries[0]?.prNumber).toBe(623);
+  });
+
+  // #648: a merge-commit-shaped entry whose own commit message had no
+  // "Closes #NNN" trailer (1.12.1/#642, from a commit predating this
+  // repo's habit of including it) has no PR/issue reference anywhere in
+  // the text to recover — both duplicate lines are bare commit links,
+  // matching neither regex, so the release parses to zero entries and
+  // is correctly omitted (same "nothing user-relevant" behavior an
+  // all-internal-scoped release already gets). A known, documented gap,
+  // not a bug this fix claims to close.
+  test("omits a release whose merge-commit-shaped entries have no 'closes' clause at all", () => {
+    const markdown = `# Changelog
+
+## [1.12.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.0...movie-planner-web-v1.12.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **venue:** bulk-add now selects the venue it just added ([efbc16d](https://github.com/alrayyes/movie-planner-web/commit/efbc16d80ceee93f9f7540cee55cd2318f230c77))
+* **venue:** bulk-add now selects the venue it just added ([d6c68c5](https://github.com/alrayyes/movie-planner-web/commit/d6c68c5dec70ceb66dce6ba40a17ade16e95c9b0))
+
+## [1.12.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.11.0...movie-planner-web-v1.12.0) (2026-09-21)
+
+
+### Features
+
+* **venue:** bulk-add venue names already seen in viewing history ([2d548f9](https://github.com/alrayyes/movie-planner-web/commit/2d548f9c83997ba49cc858b4e8a4784802ef28bf)), closes [#636](https://github.com/alrayyes/movie-planner-web/issues/636)
+`;
+
+    const releases = parseChangelog(markdown);
+
+    expect(releases.map((r) => r.version)).toEqual(["1.12.0"]);
+    expect(releases[0]?.entries[0]?.prNumber).toBe(636);
+  });
+
   test("parses multiple releases in order with their own version and date", () => {
     const markdown = `# Changelog
 
