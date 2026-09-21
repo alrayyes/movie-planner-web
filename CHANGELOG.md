@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.10.0...movie-planner-web-v1.11.0) (2026-09-21)
+
+
+### Features
+
+* **omdb:** sort the search picker's candidates by year or title ([#633](https://github.com/alrayyes/movie-planner-web/issues/633)) ([df8d327](https://github.com/alrayyes/movie-planner-web/commit/df8d327c2ea3b720f33f81bbef1abef73eb4b3de)), closes [#628](https://github.com/alrayyes/movie-planner-web/issues/628)
+
+
+### Bug Fixes
+
+* **log-viewing-wizard:** show the matched poster, not just text ([#635](https://github.com/alrayyes/movie-planner-web/issues/635)) ([904a85f](https://github.com/alrayyes/movie-planner-web/commit/904a85f248aa2d1433ec3eb26ada03bc2e7c968e)), closes [#634](https://github.com/alrayyes/movie-planner-web/issues/634)
+
 ## [1.10.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.4...movie-planner-web-v1.10.0) (2026-09-21)
 
 
