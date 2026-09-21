@@ -284,6 +284,102 @@ describe("searchMovies", () => {
 
     expect(await searchMovies("test-key", "Dune")).toEqual([]);
   });
+
+  // #622: OMDb's s= endpoint paginates at 10 results per page. A query
+  // for a title outside the first page (a large franchise crowding out a
+  // new/obscure entry) used to never reach the disambiguation picker.
+  function candidate(imdbID: string) {
+    return { Title: "Resident Evil", Year: "2026", imdbID, Poster: "N/A" };
+  }
+
+  test("makes exactly one request when totalResults fits on a single page", async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls++;
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [candidate("tt0000001")],
+          totalResults: "1",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("test-key", "Resident Evil");
+
+    expect(calls).toBe(1);
+    expect(result).toHaveLength(1);
+  });
+
+  test("follows totalResults to fetch additional pages beyond the first", async () => {
+    const pages: string[] = [];
+    globalThis.fetch = (async (url: URL) => {
+      pages.push(url.searchParams.get("page") ?? "1");
+      const page = Number(url.searchParams.get("page") ?? "1");
+      const id = `tt${String(page).padStart(7, "0")}`;
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [candidate(id)],
+          totalResults: "12",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("test-key", "Resident Evil");
+
+    expect(pages).toEqual(["1", "2"]);
+    expect(result.map((c) => c.imdbId)).toEqual(["tt0000001", "tt0000002"]);
+  });
+
+  test("caps additional fetching at 5 pages (50 results) even when totalResults is larger", async () => {
+    const pages: string[] = [];
+    globalThis.fetch = (async (url: URL) => {
+      const page = Number(url.searchParams.get("page") ?? "1");
+      pages.push(String(page));
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [candidate(`tt${String(page).padStart(7, "0")}`)],
+          totalResults: "500",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("test-key", "Resident Evil");
+
+    expect(pages).toEqual(["1", "2", "3", "4", "5"]);
+    expect(result).toHaveLength(5);
+  });
+
+  test("stops paginating and keeps candidates gathered so far when a later page comes back Response: False", async () => {
+    let calls = 0;
+    globalThis.fetch = (async (url: URL) => {
+      calls++;
+      const page = Number(url.searchParams.get("page") ?? "1");
+      if (page === 1) {
+        return new Response(
+          JSON.stringify({
+            Response: "True",
+            Search: [candidate("tt0000001")],
+            totalResults: "20",
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(JSON.stringify({ Response: "False", Error: "Too many results." }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("test-key", "Resident Evil");
+
+    expect(calls).toBe(2);
+    expect(result.map((c) => c.imdbId)).toEqual(["tt0000001"]);
+  });
 });
 
 describe("lookupByImdbId", () => {
