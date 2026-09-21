@@ -380,6 +380,60 @@ describe("searchMovies", () => {
     expect(calls).toBe(2);
     expect(result.map((c) => c.imdbId)).toEqual(["tt0000001"]);
   });
+
+  // #627: OMDb's s= search accepts a y= year filter alongside s=,
+  // narrowing results server-side instead of relying on ranking/paging
+  // through everything OMDb has for that title.
+  test("sends a y= year filter alongside s= when a year is given", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("s=Resident+Evil");
+      expect(url.toString()).toContain("y=2026");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [candidate("tt35538033")],
+          totalResults: "1",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("test-key", "Resident Evil", "2026");
+
+    expect(result.map((c) => c.imdbId)).toEqual(["tt35538033"]);
+  });
+
+  test("omits y= when no year is given, unchanged from before", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).not.toContain("&y=");
+      return new Response(
+        JSON.stringify({ Response: "True", Search: [candidate("tt0000001")], totalResults: "1" }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    await searchMovies("test-key", "Resident Evil");
+  });
+
+  test("carries the year filter across additional pages too", async () => {
+    const pages: string[] = [];
+    globalThis.fetch = (async (url: URL) => {
+      pages.push(url.searchParams.get("page") ?? "1");
+      expect(url.searchParams.get("y")).toBe("2026");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [candidate(`tt${pages.length}`)],
+          totalResults: "12",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    await searchMovies("test-key", "Resident Evil", "2026");
+
+    expect(pages).toEqual(["1", "2"]);
+  });
 });
 
 describe("lookupByImdbId", () => {
@@ -524,5 +578,45 @@ describe("searchOmdb", () => {
       })) as unknown as typeof fetch;
 
     expect(await searchOmdb("test-key", "Not A Real Movie")).toEqual({ kind: "none" });
+  });
+
+  // #627: the year filter only makes sense for the title-search fallback
+  // — an IMDb ID is already unambiguous and never takes one.
+  test("passes a year filter through to the title search", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).toContain("s=Resident+Evil");
+      expect(url.toString()).toContain("y=2026");
+      return new Response(
+        JSON.stringify({
+          Response: "True",
+          Search: [{ Title: "Resident Evil", Year: "2026", imdbID: "tt35538033", Poster: "N/A" }],
+          totalResults: "1",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchOmdb("test-key", "Resident Evil", "2026");
+
+    expect(result).toEqual({
+      kind: "candidates",
+      candidates: [
+        { title: "Resident Evil", year: "2026", imdbId: "tt35538033", posterUrl: undefined },
+      ],
+    });
+  });
+
+  test("ignores a year filter when the query is an IMDb ID", async () => {
+    globalThis.fetch = (async (url: URL) => {
+      expect(url.toString()).not.toContain("&y=");
+      return new Response(
+        JSON.stringify({ Response: "True", Title: "Resident Evil", imdbID: "tt35538033" }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await searchOmdb("test-key", "tt35538033", "2026");
+
+    expect(result.kind).toBe("match");
   });
 });

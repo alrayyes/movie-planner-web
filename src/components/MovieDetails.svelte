@@ -171,6 +171,10 @@ let showingPicker = $state(false);
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 let searchingOmdb = $state(false);
 let omdbSearchQuery = $state("");
+// #627: narrows OMDb's own search (y=) rather than sorting/paging
+// through everything it has for a title — optional, left blank leaves
+// the search unscoped exactly as before.
+let omdbSearchYear = $state("");
 let editValues = $state<Record<string, string>>({});
 
 // #452: the selected venue's own picklist entry is the canonical
@@ -392,6 +396,7 @@ function showOmdbPicker(
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function startOmdbSearch(current: LoggedViewing) {
 	omdbSearchQuery = current.title;
+	omdbSearchYear = "";
 	searchingOmdb = true;
 }
 
@@ -402,7 +407,11 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 	searchingOmdb = false;
 	errorMessage = "";
 	try {
-		const outcome = await searchOmdb(omdbApiKey, omdbSearchQuery.trim());
+		const outcome = await searchOmdb(
+			omdbApiKey,
+			omdbSearchQuery.trim(),
+			omdbSearchYear.trim() || undefined,
+		);
 		if (outcome.kind === "match") {
 			// #626: a pasted IMDb ID/URL is already unambiguous — attach it
 			// directly instead of showing a one-item picker.
@@ -1086,12 +1095,24 @@ reloadOnBfcacheRestore(() => void load());
               onsubmit={(event) => submitOmdbSearch(viewing, event)}
             >
               <label class={FIELD_WRAPPER} for="omdb-search-query">
-                <span class={LABEL}>Search OMDb</span>
+                <span class={LABEL}>Search OMDb, or an IMDb ID/URL</span>
                 <input
                   class={INPUT}
                   type="text"
                   id="omdb-search-query"
                   bind:value={omdbSearchQuery}
+                />
+              </label>
+              <label class={FIELD_WRAPPER} for="omdb-search-year">
+                <span class={LABEL}>Year</span>
+                <input
+                  class={`${INPUT} w-20`}
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]{4}"
+                  maxlength="4"
+                  id="omdb-search-year"
+                  bind:value={omdbSearchYear}
                 />
               </label>
               <button type="submit" class={BUTTON_PRIMARY}>Search</button>

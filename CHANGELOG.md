@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.10.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.4...movie-planner-web-v1.10.0) (2026-09-21)
+
+
+### Features
+
+* **omdb:** add a Year field to narrow OMDb search server-side ([a6aeb22](https://github.com/alrayyes/movie-planner-web/commit/a6aeb228c8cf008ac24f043f32ea4d61ddcf1e4e))
+
+## [1.9.4](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.3...movie-planner-web-v1.9.4) (2026-09-21)
+
+
+### Bug Fixes
+
+* **omdb:** accept a pasted IMDb ID or URL directly in search ([#629](https://github.com/alrayyes/movie-planner-web/issues/629)) ([c86bbbc](https://github.com/alrayyes/movie-planner-web/commit/c86bbbcadec1cd0dbb639f3ac883e37814da5b0b)), closes [#626](https://github.com/alrayyes/movie-planner-web/issues/626)
+
 ## [1.9.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.2...movie-planner-web-v1.9.3) (2026-09-21)
 
 
