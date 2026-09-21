@@ -543,6 +543,100 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("button", { name: "Search OMDb" })).toBeVisible();
   });
 
+  // #623: submitOmdbSearch used to hide the form immediately on submit,
+  // showing nothing at all while searchOmdb() awaited — the other two
+  // callers (LogViewingForm/LogViewingWizard) already show this same
+  // "Searching…" status text during the same wait.
+  test("shows a 'Searching…' status while the OMDb search request is in flight", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      // Artificial delay — long enough that a mid-flight assertion is
+      // reliably still mid-flight, not a race against an instant response.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Search: [{ Title: "Dune", Year: "1984", imdbID: "tt0087182", Poster: "N/A" }],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Dune 1984");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    // The form itself stays up during the wait, not just the status text.
+    await expect(page.locator("#omdb-search-query")).toBeVisible();
+    await expect(page.getByText("Searching…")).toBeVisible();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune (1984)" })).toBeVisible();
+    await expect(page.getByText("Searching…")).toHaveCount(0);
+  });
+
+  // #623: OMDb search can now return up to 50 candidates (#622), up from
+  // a max of 10 — an unbounded flex-wrap list rendered all of them with
+  // no scroll cap, which could push the containing area very tall.
+  test("the disambiguation picker scrolls within a bounded height for a large result set, and stays accessible", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    const candidates = Array.from({ length: 50 }, (_, i) => ({
+      Title: `Dune Copy ${i + 1}`,
+      Year: String(1980 + i),
+      imdbID: `tt000${i.toString().padStart(4, "0")}`,
+      Poster: "N/A",
+    }));
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      const requestedPage = url.searchParams.get("page") ?? "1";
+      if (requestedPage !== "1") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "True", totalResults: "50", Search: candidates }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Dune Copy");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Dune Copy 1 (1980)" })).toBeVisible();
+    await expect(picker.getByRole("button")).toHaveCount(51); // 50 candidates + the dismiss button
+
+    const list = picker.locator("div.overflow-y-auto");
+    await expect(list).toHaveCount(1);
+    const { scrollHeight, clientHeight } = await list.evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+    }));
+    expect(scrollHeight).toBeGreaterThan(clientHeight);
+
+    // Still fully keyboard-navigable: the last candidate button is
+    // reachable and clickable despite being scrolled out of view.
+    const lastCandidate = picker.getByRole("button", { name: "Dune Copy 50 (2029)" });
+    await lastCandidate.scrollIntoViewIfNeeded();
+    await expect(lastCandidate).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   // #628: multiple candidates across different years, sorted newest-first
   // by default, with a control to switch to Title (A–Z) — introduced once
   // #622's pagination fix could return far more than the old 10-result cap.
