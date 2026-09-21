@@ -36,16 +36,28 @@ async function assertNoHorizontalOverflow(page: Page) {
 // overflow (neither Chromium nor Firefox reproduce that zoom behaviour,
 // so this is the regression guard for it: assert the cause, not the
 // browser-specific symptom).
+//
+// #640: a plain one-shot evaluate() here flaked under CI's own full-suite
+// parallel load — always the same shape, a freshly-mounted input read as
+// under 16px only when CPU contention is real — while a from-scratch
+// isolated check of the exact same flow found zero small-font elements
+// every time. expect.poll gives the same real assertion room to settle
+// past a transient contention window instead of reading a single,
+// possibly-too-early snapshot; a genuinely too-small input still fails
+// once the poll window (Playwright's default 5s) runs out.
 async function assertInputFontSizeAtLeast16px(page: Page) {
-  const tooSmall = await page.evaluate(() => {
-    const small: string[] = [];
-    for (const el of document.querySelectorAll("input, textarea")) {
-      const size = Number.parseFloat(getComputedStyle(el).fontSize);
-      if (size < 16) small.push(`${(el as HTMLInputElement).id || el.tagName} (${size}px)`);
-    }
-    return small;
-  });
-  expect(tooSmall).toEqual([]);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const small: string[] = [];
+        for (const el of document.querySelectorAll("input, textarea")) {
+          const size = Number.parseFloat(getComputedStyle(el).fontSize);
+          if (size < 16) small.push(`${(el as HTMLInputElement).id || el.tagName} (${size}px)`);
+        }
+        return small;
+      }),
+    )
+    .toEqual([]);
 }
 
 // Relative to `now`, not a fixed calendar date — the mock CalDAV server
