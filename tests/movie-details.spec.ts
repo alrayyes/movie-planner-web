@@ -543,6 +543,73 @@ test.describe("movie details page", () => {
     await expect(page.getByRole("button", { name: "Search OMDb" })).toBeVisible();
   });
 
+  // #628: multiple candidates across different years, sorted newest-first
+  // by default, with a control to switch to Title (A–Z) — introduced once
+  // #622's pagination fix could return far more than the old 10-result cap.
+  test("sorts the disambiguation picker's candidates by year (default) or title", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page, "test-omdb-key");
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("s") === "Resident Evil") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            Response: "True",
+            totalResults: "3",
+            Search: [
+              { Title: "Resident Evil", Year: "2002", imdbID: "tt0120804", Poster: "N/A" },
+              { Title: "Resident Evil", Year: "2026", imdbID: "tt35538033", Poster: "N/A" },
+              {
+                Title: "Resident Evil: Apocalypse",
+                Year: "2004",
+                imdbID: "tt0318627",
+                Poster: "N/A",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, body: "" });
+    });
+
+    await page.getByRole("button", { name: "Search OMDb" }).click();
+    await page.locator("#omdb-search-query").fill("Resident Evil");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+
+    const picker = page.getByLabel("Choose the matching title");
+    await expect(picker.getByRole("button", { name: "Resident Evil (2026)" })).toBeVisible();
+
+    const buttonLabels = () =>
+      picker.getByRole("button", { name: /Resident Evil/ }).allTextContents();
+    await expect
+      .poll(buttonLabels)
+      .toEqual([
+        "Resident Evil (2026)",
+        "Resident Evil: Apocalypse (2004)",
+        "Resident Evil (2002)",
+      ]);
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+
+    await page.getByLabel("Sort by").selectOption("title");
+
+    await expect
+      .poll(buttonLabels)
+      .toEqual([
+        "Resident Evil (2002)",
+        "Resident Evil (2026)",
+        "Resident Evil: Apocalypse (2004)",
+      ]);
+  });
+
   // #153: a constructed search link (the only kind ever offered for RT,
   // and the fallback for Letterboxd without a real URL) looks identical
   // to a confirmed match unless it says otherwise — a visitor has no way
