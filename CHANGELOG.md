@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.1...movie-planner-web-v1.12.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **omdb:** show a loading status and bounded scroll for a larger search ([6cd91d7](https://github.com/alrayyes/movie-planner-web/commit/6cd91d75750516859befa9699e6ecf36b1dd475c))
+* **omdb:** show a loading status and bounded scroll for a larger search ([2dc6ca1](https://github.com/alrayyes/movie-planner-web/commit/2dc6ca1094620d73df1cd6b7c86d2a511e0e5b32)), closes [#623](https://github.com/alrayyes/movie-planner-web/issues/623)
+
 ## [1.12.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.0...movie-planner-web-v1.12.1) (2026-09-21)
 
 
