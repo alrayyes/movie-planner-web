@@ -27,7 +27,13 @@ import {
 import { resolveBackHref } from "../lib/movie-log/movie-link";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
-import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "../lib/omdb/client";
+import {
+	lookupByImdbId,
+	lookupMovie,
+	type OmdbCandidate,
+	searchMovies,
+	searchOmdb,
+} from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
 import { hasOmdbMetadata } from "../lib/omdb/metadata";
@@ -341,6 +347,27 @@ async function handleRefresh(current: LoggedViewing) {
 // picker is the only way back to the viewing's own details, so it gets
 // a plain "Cancel" instead and a status line that doesn't claim OMDb
 // found nothing when candidates were shown and simply not picked.
+// #626: shared by the picker's own onSelect and a direct IMDb ID/URL
+// match in submitOmdbSearch below — both end the same way, attaching a
+// chosen candidate's full details, whether or not a picker was ever shown.
+async function selectOmdbCandidate(current: LoggedViewing, candidate: OmdbCandidate) {
+	if (!config || !omdbApiKey) return;
+	errorMessage = "";
+	try {
+		const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
+		if (metadata) {
+			await updateViewing(config, current.uid, { ...current, ...metadata });
+		}
+		await load();
+		statusText = "Refreshed.";
+	} catch (error) {
+		errorMessage = error instanceof Error ? error.message : "Failed to attach the selected match.";
+	} finally {
+		showingPicker = false;
+		pickerArea?.replaceChildren();
+	}
+}
+
 function showOmdbPicker(
 	current: LoggedViewing,
 	candidates: OmdbCandidate[],
@@ -351,24 +378,7 @@ function showOmdbPicker(
 	pickerArea.replaceChildren(
 		buildOmdbPicker(
 			candidates,
-			async (candidate) => {
-				if (!config || !omdbApiKey) return;
-				errorMessage = "";
-				try {
-					const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
-					if (metadata) {
-						await updateViewing(config, current.uid, { ...current, ...metadata });
-					}
-					await load();
-					statusText = "Refreshed.";
-				} catch (error) {
-					errorMessage =
-						error instanceof Error ? error.message : "Failed to attach the selected match.";
-				} finally {
-					showingPicker = false;
-					pickerArea?.replaceChildren();
-				}
-			},
+			(candidate) => selectOmdbCandidate(current, candidate),
 			() => {
 				showingPicker = false;
 				pickerArea?.replaceChildren();
@@ -392,13 +402,17 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 	searchingOmdb = false;
 	errorMessage = "";
 	try {
-		const candidates = await searchMovies(omdbApiKey, omdbSearchQuery.trim());
-		if (candidates.length > 0) {
+		const outcome = await searchOmdb(omdbApiKey, omdbSearchQuery.trim());
+		if (outcome.kind === "match") {
+			// #626: a pasted IMDb ID/URL is already unambiguous — attach it
+			// directly instead of showing a one-item picker.
+			await selectOmdbCandidate(current, outcome.candidate);
+		} else if (outcome.kind === "candidates") {
 			// #311: reuses the same picker/selection flow "Refresh metadata"
 			// already uses — picking a result overwrites every OMDb-derived
 			// field (poster included) via lookupByImdbId, regardless of
 			// whether this viewing already had a (possibly wrong) match.
-			showOmdbPicker(current, candidates, "search");
+			showOmdbPicker(current, outcome.candidates, "search");
 		} else {
 			statusText = "OMDb had no match for that search.";
 		}
