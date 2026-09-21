@@ -84,7 +84,17 @@ interface OmdbSearchResult {
 interface OmdbSearchResponse {
   Response: "True" | "False";
   Search?: OmdbSearchResult[];
+  totalResults?: string;
 }
+
+// #622: OMDb's s= search paginates at 10 results per page. A franchise
+// with many entries (films, games, series, spin-offs) can crowd a new or
+// less prominent title outside page 1, where it never reached the
+// disambiguation picker at all. Following totalResults to fetch a few
+// more pages fixes that without unconditionally following it to the end,
+// which could burn a lot of the free-tier daily request budget on one
+// broad query.
+const MAX_SEARCH_PAGES = 5;
 
 function rating(ratings: OmdbRating[] | undefined, source: string): string | undefined {
   return ratings?.find((r) => r.Source === source)?.Value;
@@ -159,6 +169,21 @@ export async function lookupMovie(
   return data ? toMetadata(data) : null;
 }
 
+async function searchPage(
+  apiKey: string,
+  title: string,
+  page: number,
+): Promise<OmdbSearchResponse | null> {
+  const url = new URL("https://www.omdbapi.com/");
+  url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("s", title);
+  if (page > 1) url.searchParams.set("page", String(page));
+
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  return (await response.json()) as OmdbSearchResponse;
+}
+
 // #49: when `lookupMovie` finds no single confident match, this is what
 // backs the disambiguation picker — OMDb's `s=` search endpoint, which
 // (unlike `t=`) returns a list of candidates rather than OMDb's own
@@ -166,21 +191,27 @@ export async function lookupMovie(
 // unselectable, since imdbID is what `lookupByImdbId` needs to fetch
 // its full details.
 export async function searchMovies(apiKey: string, title: string): Promise<OmdbCandidate[]> {
-  const url = new URL("https://www.omdbapi.com/");
-  url.searchParams.set("apikey", apiKey);
-  url.searchParams.set("s", title);
+  const first = await searchPage(apiKey, title, 1);
+  if (!first || first.Response !== "True" || !first.Search) return [];
 
-  const response = await fetch(url);
-  if (!response.ok) return [];
-  const data = (await response.json()) as OmdbSearchResponse;
-  if (data.Response !== "True" || !data.Search) return [];
+  const results = [...first.Search];
+  const totalResults = Number(first.totalResults ?? results.length);
+  const pagesAvailable = Math.min(MAX_SEARCH_PAGES, Math.ceil(totalResults / 10));
 
-  return data.Search.filter((r) => r.imdbID).map((r) => ({
-    title: r.Title ?? "",
-    year: field(r.Year),
-    imdbId: r.imdbID as string,
-    posterUrl: field(r.Poster),
-  }));
+  for (let page = 2; page <= pagesAvailable; page++) {
+    const data = await searchPage(apiKey, title, page);
+    if (!data || data.Response !== "True" || !data.Search) break;
+    results.push(...data.Search);
+  }
+
+  return results
+    .filter((r) => r.imdbID)
+    .map((r) => ({
+      title: r.Title ?? "",
+      year: field(r.Year),
+      imdbId: r.imdbID as string,
+      posterUrl: field(r.Poster),
+    }));
 }
 
 // #49: fetches a chosen disambiguation candidate's full details by its
