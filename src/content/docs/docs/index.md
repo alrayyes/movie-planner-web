@@ -4,8 +4,9 @@ description: Point movie-planner-web at your own CalDAV server and browse, log, 
 ---
 
 Movie Planner is a public web client for
-[movie-planner](https://github.com/alrayyes/movie-planner), the CLI that
-logs movies you've watched and syncs them to a CalDAV calendar. It's
+[movie-planner](https://github.com/alrayyes/movie-planner), the
+command-line tool that logs movies you've watched and syncs them to a
+CalDAV calendar. It's
 fully static: your browser talks straight to your own CalDAV server, and
 your credentials never pass through a server this project runs.
 

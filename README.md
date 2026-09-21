@@ -6,8 +6,9 @@
 [![licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 A public web client for
-[movie-planner](https://github.com/alrayyes/movie-planner) (the CLI that
-logs the movies you've watched and syncs them to a CalDAV calendar). Point
+[movie-planner](https://github.com/alrayyes/movie-planner) (the
+command-line tool that logs the movies you've watched and syncs them to
+a CalDAV calendar). Point
 it at your own CalDAV server and browse, log, and edit your watch history
 from any browser — no install, no account with this service. It's a fully
 static site: your browser talks straight to your CalDAV server, with

@@ -16,9 +16,9 @@ Cinema is always on the list, even before you've added anything, and
 starts every count at zero rather than being absent. It's the default
 for a viewing with no medium recorded at all — every viewing logged
 through [movie-planner](https://github.com/alrayyes/movie-planner) (the
-CLI) has no medium recorded, since the CLI doesn't write one, so those
-always count toward Cinema here and everywhere else this app shows a
-medium.
+command-line tool) has no medium recorded, since the command-line tool
+doesn't write one, so those always count toward Cinema here and
+everywhere else this app shows a medium.
 
 ## Where the list comes from
 

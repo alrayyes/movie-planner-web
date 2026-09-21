@@ -8,7 +8,7 @@ description: Point the app at your own CalDAV server and, optionally, OMDb and T
 It reads, writes, and deletes events directly on the CalDAV server you
 point it at — set up a calendar dedicated to your movie viewings
 rather than pointing it at one you also use for anything else, so a
-bug here can't touch anything that matters. See the disclaimer page
+bug here can't affect anything that matters. See the disclaimer page
 (linked in the footer) for the full terms.
 :::
 

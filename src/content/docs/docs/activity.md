@@ -20,10 +20,11 @@ new values.
 ## Changes made outside this browser
 
 This app also notices a change made anywhere else that writes to the
-same calendar — the [movie-planner CLI](/docs/import-export/), another
+same calendar — the
+[movie-planner command-line tool](/docs/import-export/), another
 device, another browser. Every time this app opens, it compares your
 full calendar against what it last saw and logs anything that changed
-since, attributed to whoever made it (shown as "CLI", or "Unknown" when
+since, attributed to whoever made it (shown as `CLI`, or `Unknown` when
 it can't tell).
 
 A few things follow from how that works:
@@ -42,8 +43,9 @@ A few things follow from how that works:
   last visit.** Two browsers used unevenly build different, incomplete
   pictures of "what changed" — the same per-browser, not-synced-anywhere
   nature the rest of this log already has.
-- **Attribution needs the CLI to write it too.** This app always tags
-  its own writes so a change you make here is never logged twice —
-  once when you make it, and again the next time this app notices it
-  itself. A CLI version that doesn't yet write that same tag still gets
-  logged here; it just shows up as "Unknown" rather than "CLI".
+- **Attribution needs the command-line tool to write it too.** This app
+  always tags its own writes so a change you make here is never logged
+  twice — once when you make it, and again the next time this app
+  notices it itself. A version of the command-line tool that doesn't
+  yet write that same tag still gets logged here; it just shows up as
+  `Unknown` rather than `CLI`.

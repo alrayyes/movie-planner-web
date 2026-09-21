@@ -27,26 +27,27 @@ here with a count of zero.
 
 ## Grouped by country and city
 
-A venue the CLI recognizes from its own hardcoded chain table shows up
-grouped under its country and city, each with a map above its own
-table pinning just that city's venues. A venue the CLI doesn't
-recognize — anything typed in free-form, or not yet backfilled with a
-city/country — falls into a single "Other locations" section instead
+A venue the command-line tool recognizes from its own hardcoded chain
+table shows up grouped under its country and city, each with a map
+atop its own table pinning just that city's venues. A venue the
+command-line tool doesn't recognize — anything typed in free-form, or
+not yet backfilled with a city/country — falls into a single "Other
+locations" section instead
 of being dropped. If nothing on your calendar has a known city/country
 yet, the page shows one flat table, same as before this grouping
 existed.
 
 ## The map
 
-Any venue with known coordinates gets a pin on the map above its
+Any venue with known coordinates gets a pin on the map atop its
 table. Click a pin for its name and an "Open in Maps" link to the
 exact location on OpenStreetMap's own site, for more precision than
 the map itself gives.
 
 Venue coordinates aren't typed in here — a venue's saved entry is the
 source of truth for its own location. They can come from
-[movie-planner](https://github.com/alrayyes/movie-planner) (the CLI),
-or from this app's own "Add venue" form, which offers an optional
+[movie-planner](https://github.com/alrayyes/movie-planner) (the
+command-line tool), or from this app's own "Add venue" form, which offers an optional
 address-search field (powered by [Nominatim](https://nominatim.org/),
 OpenStreetMap's free geocoder) to attach them right there when you add
 a new venue — skippable, and never run automatically. Once a venue has
