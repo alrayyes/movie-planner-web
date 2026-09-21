@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.1...movie-planner-web-v1.9.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **deps-dev:** bump prettier-plugin-astro from 0.14.1 to 1.0.0 ([#618](https://github.com/alrayyes/movie-planner-web/issues/618)) ([6d8e4e6](https://github.com/alrayyes/movie-planner-web/commit/6d8e4e6a99a07c35a97df0b1d9f59d037be02cb8))
+* **deps:** bump the bun-dependencies group with 3 updates ([#617](https://github.com/alrayyes/movie-planner-web/issues/617)) ([b3bc083](https://github.com/alrayyes/movie-planner-web/commit/b3bc083bc6e78cec226c9dd0fc77e75d3f07447e))
+
 ## [1.9.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.0...movie-planner-web-v1.9.1) (2026-09-14)
 
 
