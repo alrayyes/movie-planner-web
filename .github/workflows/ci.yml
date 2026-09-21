@@ -120,7 +120,7 @@ jobs:
       # Visibility, not a gate (rules/testing.md) — never fails the job,
       # even now that the repo's connected to Codecov.
       - name: upload coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           files: coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -135,7 +135,7 @@ jobs:
       # deprecated in favor of this.
       - name: upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           report_type: test_results
           files: coverage/junit-unit.xml,playwright-report/junit.xml
