@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.4](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.3...movie-planner-web-v1.12.4) (2026-09-21)
+
+
+### Bug Fixes
+
+* **ci:** run Playwright fully serial on CI, not just 2 workers ([#654](https://github.com/alrayyes/movie-planner-web/issues/654)) ([b803d86](https://github.com/alrayyes/movie-planner-web/commit/b803d86aa5c44c9cd76c847f233db0488e336925))
+
 ## [1.12.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.2...movie-planner-web-v1.12.3) (2026-09-21)
 
 
