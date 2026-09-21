@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.2...movie-planner-web-v1.9.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* **omdb:** follow totalResults to search past OMDb's first page ([#624](https://github.com/alrayyes/movie-planner-web/issues/624)) ([5ae77ab](https://github.com/alrayyes/movie-planner-web/commit/5ae77abe65d664a5518201cf9e806d057f87036e)), closes [#622](https://github.com/alrayyes/movie-planner-web/issues/622)
+
 ## [1.9.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.9.1...movie-planner-web-v1.9.2) (2026-09-21)
 
 
