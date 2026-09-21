@@ -248,6 +248,47 @@ test.describe("structured venue picklist", () => {
     await expect(page.locator("#log-venue")).toHaveValue("De Munt");
   });
 
+  // #646: a faster path than opening "Add venue" and using its own
+  // checklist — a history-only venue is directly selectable from the
+  // main select's own "Already in your history" group, no dialog
+  // involved at all.
+  test("a venue seen in history but not yet in the picklist is directly selectable from the main select", async ({
+    page,
+  }) => {
+    const viewings: LoggedViewing[] = [
+      {
+        uid: "v1",
+        title: "Movie A",
+        start: "2026-01-01T18:00:00.000Z",
+        end: "2026-01-01T20:00:00.000Z",
+        medium: "cinema",
+        venue: "De Munt",
+      },
+      {
+        uid: "v2",
+        title: "Movie B",
+        start: "2026-01-02T18:00:00.000Z",
+        end: "2026-01-02T20:00:00.000Z",
+        medium: "cinema",
+        venue: "De Munt",
+      },
+    ];
+    const server = await connect(page, { media: [], venues: [] }, viewings);
+    await page.goto("/log");
+
+    // Loaded eagerly on this form's own init — no need to open "Add
+    // venue" first for the option to exist.
+    const select = page.locator("#log-venue");
+    await expect(select.locator("option", { hasText: "De Munt (2)" })).toHaveCount(1);
+
+    await select.selectOption({ label: "De Munt (2)" });
+
+    await expect.poll(() => server.picklists.venues).toEqual([{ name: "De Munt" }]);
+    await expect(select).toHaveValue("De Munt");
+    // Now a plain picklist entry — its own option, not the history group's.
+    await expect(select.locator("option", { hasText: "De Munt (2)" })).toHaveCount(0);
+  });
+
   test("a venue already in the picklist isn't offered again in the bulk-add checklist", async ({
     page,
   }) => {
@@ -444,6 +485,52 @@ test.describe("structured venue picklist", () => {
     await expect
       .poll(() => server.picklists.venues)
       .toEqual([{ name: "Regal Union Square", city: "Metropolis" }]);
+  });
+
+  // #646: picking a history-only venue straight from the details edit
+  // form's main select, no "Add venue" dialog at all — then a genuine
+  // save and reopen, the same round trip the bulk-add checklist flow
+  // (#636/#642) already covers, for this second, faster path.
+  test("a venue seen in history is directly selectable from the details edit form's select, and persists on save", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+    };
+    const other: LoggedViewing = {
+      uid: "other-uid",
+      title: "Other Movie",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      venue: "De Munt",
+    };
+    const server = await connect(page, { media: [], venues: [] }, [dune, other]);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+    const detailsUrl = page.url();
+
+    const select = page.locator("#details-venue");
+    await expect(select.locator("option", { hasText: "De Munt (1)" })).toHaveCount(1);
+    await select.selectOption({ label: "De Munt (1)" });
+
+    await expect.poll(() => server.picklists.venues).toEqual([{ name: "De Munt" }]);
+    await expect(select).toHaveValue("De Munt");
+
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    expect(server.viewings.get("dune-uid")?.venue).toBe("De Munt");
+
+    // Genuinely reopen — fresh navigation, not just the save handler's
+    // own in-place refresh.
+    await page.goto(detailsUrl);
+    await expect(page.getByRole("heading", { name: "Dune" })).toBeVisible();
+    expect(server.viewings.get("dune-uid")?.venue).toBe("De Munt");
   });
 
   // #601: same native <dialog> pattern as MediumPicker's own "Add

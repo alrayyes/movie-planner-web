@@ -113,6 +113,12 @@ async function init() {
 		// Neither medium nor venue is selectable beyond MediumPicker's own
 		// always-available "Cinema" until the next successful load.
 	}
+	// #646: this form is always an editing context (there's no plain
+	// view-only mode to protect the way MovieDetails.svelte's own
+	// startEdit gating does) — loaded eagerly so the Venue select's own
+	// "Already in your history" group has something to show without a
+	// visitor having to open "Add venue" first.
+	await loadMissingVenues();
 }
 init();
 
@@ -189,13 +195,14 @@ async function handleEditVenue(entry: VenueEntry) {
 	}
 }
 
-// #636: fired when VenuePicker's own "Add venue" dialog opens — a full
-// listViewings() scan (importCheckRange's whole-history window, same
-// range /venues itself uses) only ever runs on this explicit action, not
-// on a normal form load. Cached across repeat opens in the same session;
-// recomputed against the current picklist each time so an already-added
-// name drops off the list without a second network round trip.
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+// #636/#646: a full listViewings() scan (importCheckRange's whole-history
+// window, same range /venues itself uses) — run once eagerly on this
+// form's own init (this form is always an editing context, unlike
+// MovieDetails.svelte's view/edit split) and again from VenuePicker's
+// "Add venue" dialog opening, in case the first attempt failed. Cached
+// across repeat calls in the same session; recomputed against the
+// current picklist each time so an already-added name drops off the
+// list without a second network round trip.
 async function loadMissingVenues() {
 	if (!cachedViewingsForBackfill) {
 		try {

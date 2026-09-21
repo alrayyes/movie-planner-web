@@ -56,7 +56,6 @@ let {
 	value = $bindable(),
 	onAddVenue,
 	onEditVenue,
-	// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 	missingVenues = [],
 	onLoadMissingVenues,
 	onBulkAddVenues,
@@ -196,6 +195,22 @@ async function handleBulkAddVenues() {
 	venueDialogEl?.close();
 }
 
+// #646: picking a name straight from the select's own "Already in your
+// history" group — no dialog, no separate confirm step. `bind:value`
+// has already updated `value` to the picked name by the time this
+// fires; read it directly off the event rather than trusting timing
+// between this handler and the binding's own change listener. Persists
+// with the same single-write shape handleBulkAddVenues above uses, just
+// for one name instead of a checked set.
+// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+async function handleSelectHistoryVenue(event: Event) {
+	const selected = (event.currentTarget as HTMLSelectElement).value;
+	if (!selected || !onBulkAddVenues) return;
+	if (picklists.venues.some((entry) => entry.name === selected)) return;
+	if (!missingVenues.some((missing) => missing.name === selected)) return;
+	await onBulkAddVenues([selected]);
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function startEditVenue() {
 	const entry = selectedEntry;
@@ -228,11 +243,23 @@ async function handleEditVenue() {
 
 <div class={FIELD_WRAPPER}>
   <label class={LABEL} for={`${idPrefix}-venue`}>Venue</label>
-  <select class={INPUT} id={`${idPrefix}-venue`} bind:value>
+  <select
+    class={INPUT}
+    id={`${idPrefix}-venue`}
+    bind:value
+    onchange={handleSelectHistoryVenue}
+  >
     <option value="">No venue</option>
     {#each picklists.venues as entry (entry.name)}
       <option value={entry.name}>{venueDisplay(entry.name, entry.city)}</option>
     {/each}
+    {#if missingVenues.length > 0}
+      <optgroup label="Already in your history">
+        {#each missingVenues as missing (missing.name)}
+          <option value={missing.name}>{missing.name} ({missing.count})</option>
+        {/each}
+      </optgroup>
+    {/if}
   </select>
 </div>
 

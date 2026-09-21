@@ -59,10 +59,10 @@ let dialogEl = $state<HTMLDialogElement>();
 let pickerArea = $state<HTMLDivElement>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let formError = $state("");
-// #636: venue names seen in viewing history but not yet in the
-// picklist — computed lazily (see loadMissingVenues below), not on
-// mount, so opening this wizard doesn't pay for a full-history
-// listViewings() call unless a visitor actually opens "Add venue".
+// #636/#646: venue names seen in viewing history but not yet in the
+// picklist — computed lazily (see loadMissingVenues below) on opening
+// this wizard, not on page mount, so the wizard's own header button
+// staying unopened doesn't pay for a full-history listViewings() call.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let missingVenues = $state<MissingVenue[]>([]);
 let cachedViewingsForBackfill: LoggedViewing[] | undefined;
@@ -155,14 +155,13 @@ async function handleEditVenue(entry: VenueEntry) {
 	}
 }
 
-// #636: fired when VenuePicker's own "Add venue" dialog opens — a full
-// listViewings() scan (importCheckRange's whole-history window, same
-// range /venues itself uses) only ever runs on this explicit action, not
-// on a normal wizard open. Cached across repeat opens in the same
-// session; recomputed against the current picklist each time so an
-// already-added name drops off the list without a second network round
-// trip.
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
+// #636/#646: a full listViewings() scan (importCheckRange's whole-history
+// window, same range /venues itself uses) — fired once from openWizard
+// above on each wizard open, and again from VenuePicker's own "Add
+// venue" dialog opening in case the first attempt failed. Cached across
+// repeat calls in the same session; recomputed against the current
+// picklist each time so an already-added name drops off the list
+// without a second network round trip.
 async function loadMissingVenues() {
 	if (!cachedViewingsForBackfill) {
 		try {
@@ -416,6 +415,11 @@ async function openWizard() {
 	} catch {
 		// See above.
 	}
+	// #646: same reasoning as LogViewingForm.svelte's own init() — this
+	// wizard step is always an editing context once opened, so the Venue
+	// select's own "Already in your history" group is loaded eagerly
+	// rather than gated behind opening "Add venue" first.
+	await loadMissingVenues();
 	dialogEl?.showModal();
 }
 window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
