@@ -681,6 +681,45 @@ test.describe("log a viewing wizard (header button)", () => {
     expect(server.creates[0]?.ratingImdb).toBe("7.6/10");
   });
 
+  // #634: a direct IMDb ID/URL match (#626) resolves straight to
+  // selectedOmdbMatch, skipping the picker entirely — the confirmation
+  // that state renders needs its own poster, same as a picked candidate
+  // would show in the picker.
+  test("a direct IMDb ID match shows the matched poster in step one, not just text", async ({
+    page,
+  }) => {
+    await connectOnCurrentPage(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      expect(url.searchParams.get("i")).toBe("tt35538033");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Title: "Resident Evil",
+          Year: "2026",
+          imdbID: "tt35538033",
+          Poster: "https://example.com/resident-evil-2026.jpg",
+          Ratings: [],
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+
+    await page.locator("#wizard-title").fill("tt35538033");
+    await dialog.getByRole("button", { name: "Search OMDb" }).click();
+
+    await expect(page.locator("#wizard-title")).toHaveValue("Resident Evil");
+    await expect(dialog.getByText("Matched: Resident Evil")).toBeVisible();
+    await expect(dialog.getByRole("img", { name: "Resident Evil poster" })).toHaveAttribute(
+      "src",
+      "https://example.com/resident-evil-2026.jpg",
+    );
+  });
+
   test("Back returns to step one without losing anything already typed in step two", async ({
     page,
   }) => {

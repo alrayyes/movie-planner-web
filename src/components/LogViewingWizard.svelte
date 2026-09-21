@@ -435,7 +435,16 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
         {/if}
         <div bind:this={searchPickerArea}></div>
         {#if selectedOmdbMatch}
-          <p class={STATUS_TEXT}>Matched: {title}</p>
+          <div class="flex items-center gap-3">
+            {#if selectedOmdbMatch.posterUrl}
+              <img
+                src={selectedOmdbMatch.posterUrl}
+                alt={`${title} poster`}
+                class="h-20 w-14 rounded object-cover"
+              />
+            {/if}
+            <p class={STATUS_TEXT}>Matched: {title}</p>
+          </div>
         {/if}
         {#if !searchHasResults}
           <div class="flex gap-2">
