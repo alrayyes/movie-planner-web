@@ -185,7 +185,14 @@ function toggleMissingVenue(name: string) {
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleBulkAddVenues() {
 	if (selectedMissingVenues.size === 0 || !onBulkAddVenues) return;
-	await onBulkAddVenues([...selectedMissingVenues]);
+	const names = [...selectedMissingVenues];
+	await onBulkAddVenues(names);
+	// #636 follow-up: without this, the surrounding form's own Save/Log
+	// action submits with no venue at all right after a bulk add — the
+	// select was never actually set to anything, unlike the single-name
+	// Add flow, which always selects what it just added.
+	const [firstAdded] = names;
+	if (firstAdded) value = firstAdded;
 	venueDialogEl?.close();
 }
 
