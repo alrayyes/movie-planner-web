@@ -66,6 +66,10 @@ let step = $state<1 | 2>(1);
 
 let title = $state("");
 let selectedOmdbMatch = $state<MovieMetadata | undefined>();
+// #627: narrows OMDb's own search (y=) rather than sorting/paging
+// through everything it has for a title — optional, left blank leaves
+// the search unscoped exactly as before.
+let searchYear = $state("");
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let searchStatus = $state("");
 let searchPickerArea = $state<HTMLDivElement>();
@@ -172,6 +176,7 @@ function resetWizard() {
 	step = 1;
 	title = "";
 	selectedOmdbMatch = undefined;
+	searchYear = "";
 	searchStatus = "";
 	searchHasResults = false;
 	searchPickerArea?.replaceChildren();
@@ -233,7 +238,7 @@ async function runSearch() {
 	searchStatus = "Searching…";
 	searchHasResults = false;
 	try {
-		const outcome = await searchOmdb(omdbApiKey, title.trim());
+		const outcome = await searchOmdb(omdbApiKey, title.trim(), searchYear.trim() || undefined);
 		if (outcome.kind === "match") {
 			searchStatus = "";
 			await selectCandidate(outcome.candidate);
@@ -383,22 +388,42 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
     {#if step === 1}
       <div class="flex flex-col gap-3">
         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Find the movie</h2>
-        <div class={FIELD_WRAPPER}>
-          <label class={LABEL} for="wizard-title">Title</label>
-          <input
-            class={INPUT}
-            id="wizard-title"
-            type="text"
-            required
-            bind:value={title}
-            oninput={onTitleInput}
-            onkeydown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                runSearch();
-              }
-            }}
-          />
+        <div class="flex items-end gap-2">
+          <div class={FIELD_WRAPPER}>
+            <label class={LABEL} for="wizard-title">Title, or an IMDb ID/URL</label>
+            <input
+              class={INPUT}
+              id="wizard-title"
+              type="text"
+              required
+              bind:value={title}
+              oninput={onTitleInput}
+              onkeydown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  runSearch();
+                }
+              }}
+            />
+          </div>
+          <div class={FIELD_WRAPPER}>
+            <label class={LABEL} for="wizard-search-year">Year</label>
+            <input
+              class={`${INPUT} w-20`}
+              id="wizard-search-year"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{4}"
+              maxlength="4"
+              bind:value={searchYear}
+              onkeydown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  runSearch();
+                }
+              }}
+            />
+          </div>
         </div>
         {#if omdbActive}
           <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={runSearch}>
