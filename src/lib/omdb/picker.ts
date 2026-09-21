@@ -86,7 +86,12 @@ export function buildOmdbPicker(
   let sort: PickerSort = "year";
 
   const list = document.createElement("div");
-  list.className = "flex flex-wrap gap-3";
+  // #623: OMDb search can now return up to 50 candidates (#622, up from
+  // a max of 10) — a bounded, scrollable height keeps a large result set
+  // from growing the containing dialog unboundedly, the same max-height/
+  // overflow-y-auto pattern VenuePicker.svelte's own bulk-add checklist
+  // already uses for an unbounded list.
+  list.className = "flex max-h-96 flex-wrap gap-3 overflow-y-auto";
 
   function renderList() {
     list.replaceChildren(

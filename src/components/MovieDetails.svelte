@@ -180,6 +180,12 @@ let showingPicker = $state(false);
 // nothing was found automatically.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 let searchingOmdb = $state(false);
+// #623: LogViewingForm.svelte/LogViewingWizard.svelte's own
+// searchStatus — shown while submitOmdbSearch's own searchOmdb() call
+// is in flight, so a slower search (up to 5 OMDb pages, #622) reads as
+// working rather than reading as broken with nothing on screen.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let omdbSearchStatus = $state("");
 let omdbSearchQuery = $state("");
 // #627: narrows OMDb's own search (y=) rather than sorting/paging
 // through everything it has for a title — optional, left blank leaves
@@ -446,6 +452,7 @@ function showOmdbPicker(
 function startOmdbSearch(current: LoggedViewing) {
 	omdbSearchQuery = current.title;
 	omdbSearchYear = "";
+	omdbSearchStatus = "";
 	searchingOmdb = true;
 }
 
@@ -453,14 +460,20 @@ function startOmdbSearch(current: LoggedViewing) {
 async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 	event.preventDefault();
 	if (!omdbApiKey || !omdbSearchQuery.trim()) return;
-	searchingOmdb = false;
 	errorMessage = "";
+	// #623: the form stays up (searchingOmdb unchanged) while this is in
+	// flight — OMDb search can now take noticeably longer (up to 5 pages,
+	// #622), and hiding the form immediately on submit left nothing on
+	// screen for that whole wait.
+	omdbSearchStatus = "Searching…";
 	try {
 		const outcome = await searchOmdb(
 			omdbApiKey,
 			omdbSearchQuery.trim(),
 			omdbSearchYear.trim() || undefined,
 		);
+		omdbSearchStatus = "";
+		searchingOmdb = false;
 		if (outcome.kind === "match") {
 			// #626: a pasted IMDb ID/URL is already unambiguous — attach it
 			// directly instead of showing a one-item picker.
@@ -475,6 +488,8 @@ async function submitOmdbSearch(current: LoggedViewing, event: SubmitEvent) {
 			statusText = "OMDb had no match for that search.";
 		}
 	} catch (error) {
+		omdbSearchStatus = "";
+		searchingOmdb = false;
 		errorMessage = error instanceof Error ? error.message : "Failed to search OMDb.";
 	}
 }
@@ -1176,6 +1191,9 @@ reloadOnBfcacheRestore(() => void load());
                 Cancel
               </button>
             </form>
+            {#if omdbSearchStatus}
+              <p class={STATUS_TEXT}>{omdbSearchStatus}</p>
+            {/if}
           {/if}
         </div>
       </div>
