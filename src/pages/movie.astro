@@ -6,14 +6,12 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Movie Planner" wide>
-  {
-    /* client:only, not client:load — this component reads the visitor's
+  {/* client:only, not client:load — this component reads the visitor's
     stored credentials from IndexedDB on mount, which doesn't exist during
     the static build/prerender (Node has no `indexedDB` global) —
     client:load still server-renders the initial markup at build time and
     crashes on that; client:only skips server rendering entirely and mounts
     purely in the browser, same as every other credential-reading
-    component here already only ever runs client-side. */
-  }
+    component here already only ever runs client-side. */}
   <MovieDetails client:only="svelte" />
 </Layout>

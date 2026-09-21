@@ -6,9 +6,7 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Movie Planner" wide>
-  {
-    /* #450: client:only, not client:load — see director.astro's own
-    comment for why. */
-  }
+  {/* #450: client:only, not client:load — see director.astro's own
+    comment for why. */}
   <AttributeDetail client:only="svelte" kind="movieCountry" />
 </Layout>
