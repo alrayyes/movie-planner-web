@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.2...movie-planner-web-v1.12.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* **changelog:** recognize entries from merge-commit-strategy PRs ([#649](https://github.com/alrayyes/movie-planner-web/issues/649)) ([710ffb7](https://github.com/alrayyes/movie-planner-web/commit/710ffb774258e16bcc6e4b3161154632030b2189)), closes [#648](https://github.com/alrayyes/movie-planner-web/issues/648)
+
 ## [1.12.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.1...movie-planner-web-v1.12.2) (2026-09-21)
 
 
