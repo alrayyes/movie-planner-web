@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.0...movie-planner-web-v1.12.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **venue:** bulk-add now selects the venue it just added ([efbc16d](https://github.com/alrayyes/movie-planner-web/commit/efbc16d80ceee93f9f7540cee55cd2318f230c77))
+* **venue:** bulk-add now selects the venue it just added ([d6c68c5](https://github.com/alrayyes/movie-planner-web/commit/d6c68c5dec70ceb66dce6ba40a17ade16e95c9b0))
+
 ## [1.12.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.11.0...movie-planner-web-v1.12.0) (2026-09-21)
 
 
