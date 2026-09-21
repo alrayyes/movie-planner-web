@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.11.0...movie-planner-web-v1.12.0) (2026-09-21)
+
+
+### Features
+
+* **venue:** bulk-add venue names already seen in viewing history ([bb611c9](https://github.com/alrayyes/movie-planner-web/commit/bb611c9d65ebaeb5781403f6266c3b37ebfd2728))
+* **venue:** bulk-add venue names already seen in viewing history ([2d548f9](https://github.com/alrayyes/movie-planner-web/commit/2d548f9c83997ba49cc858b4e8a4784802ef28bf)), closes [#636](https://github.com/alrayyes/movie-planner-web/issues/636)
+
 ## [1.11.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.10.0...movie-planner-web-v1.11.0) (2026-09-21)
 
 
