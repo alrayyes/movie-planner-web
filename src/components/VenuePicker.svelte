@@ -321,13 +321,13 @@ title/fields swapping on editingVenue. -->
         <ul class="flex max-h-48 flex-col gap-1 overflow-y-auto">
           {#each missingVenues as missing (missing.name)}
             <li>
-              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+              <label class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={selectedMissingVenues.has(missing.name)}
                   onchange={() => toggleMissingVenue(missing.name)}
                 />
-                {missing.name} ({missing.count})
+                <span class="text-sm">{missing.name} ({missing.count})</span>
               </label>
             </li>
           {/each}
