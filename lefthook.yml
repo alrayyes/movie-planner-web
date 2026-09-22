@@ -67,6 +67,11 @@ pre-push:
     - name: biome
       run: bun run lint
 
+    # Tailwind class usage, via Oxlint — narrow scope, just @shadcn/lint's
+    # rules (rules/tailwind.md). Biome keeps doing everything else above.
+    - name: tailwind
+      run: bun run lint:tailwind
+
     # These are `package.json` scripts rather than the commands spelled out,
     # because CI runs the same ones and a literal copied into two files drifts
     # the first time somebody edits one of them.
