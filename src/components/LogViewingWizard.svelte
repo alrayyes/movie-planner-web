@@ -175,14 +175,15 @@ async function loadMissingVenues() {
 	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill, picklists.venues);
 }
 
-// #636: one updatePicklists write for every name picked from the
-// "Already in your history" checklist, as plain name-only entries — the
-// same shape learnFromViewing's own auto-learn already writes.
+// #636/#657: one updatePicklists write for every entry picked from the
+// "Already in your history" checklist or select group — each already
+// seeded with whatever city/country/address/geo a matching viewing has
+// (VenuePicker.svelte's own missingVenueToEntry), not a bare name.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-async function handleBulkAddVenues(names: string[]) {
+async function handleBulkAddVenues(entries: VenueEntry[]) {
 	const next = {
 		...picklists,
-		venues: [...picklists.venues, ...names.map((name) => ({ name }))],
+		venues: [...picklists.venues, ...entries],
 	};
 	picklists = next;
 	try {

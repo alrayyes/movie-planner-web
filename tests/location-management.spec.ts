@@ -5,6 +5,20 @@ import { mockCaldavServer, type PicklistsInput } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
+// #262/movie-planner-web#657: a real, live tile provider — mocked the
+// same way movie-details.spec.ts's own identical helper does, so a test
+// exercising the per-venue map doesn't depend on the real internet.
+const BLANK_TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+async function mockTiles(page: Page) {
+  await page.route("https://*.tile.openstreetmap.org/**", async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: "image/png", body: BLANK_TILE_PNG });
+  });
+}
+
 const CREDENTIALS = {
   "caldav-url": "https://caldav.example.com/calendars/me/movies/",
   "caldav-username": "me",
@@ -531,6 +545,72 @@ test.describe("structured venue picklist", () => {
     await page.goto(detailsUrl);
     await expect(page.getByRole("heading", { name: "Dune" })).toBeVisible();
     expect(server.viewings.get("dune-uid")?.venue).toBe("De Munt");
+  });
+
+  // movie-planner-web#657: found tracing a live report ("I don't see the
+  // map on the movie page") against a real CalDAV export — a venue
+  // promoted from "Already in your history" only ever became a bare
+  // {name} picklist entry, even when that exact venue name already had
+  // known city/country/address/geo on another logged viewing. Since
+  // handleSave only attaches that data from the matching picklist entry
+  // (never straight from another viewing), the per-venue map silently
+  // stopped showing for anything picked this way.
+  test("promoting a venue from 'Already in your history' carries over its known location from other viewings", async ({
+    page,
+  }) => {
+    await mockTiles(page);
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+    };
+    const other: LoggedViewing = {
+      uid: "other-uid",
+      title: "Other Movie",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      venue: "Grand Vista Cinema, 123 Main St, Anytown, USA",
+      streetAddress: "123 Main St",
+      postalCode: "12345",
+      city: "Anytown",
+      country: "USA",
+      geo: { lat: 52.3665062, lon: 4.8947073 },
+    };
+    const server = await connect(page, { media: [], venues: [] }, [dune, other]);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+
+    const select = page.locator("#details-venue");
+    await select.selectOption({ label: "Grand Vista Cinema, 123 Main St, Anytown, USA (1)" });
+
+    await expect
+      .poll(() => server.picklists.venues)
+      .toEqual([
+        {
+          name: "Grand Vista Cinema, 123 Main St, Anytown, USA",
+          streetAddress: "123 Main St",
+          postalCode: "12345",
+          city: "Anytown",
+          country: "USA",
+          geo: { lat: 52.3665062, lon: 4.8947073 },
+        },
+      ]);
+
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+
+    const saved = server.viewings.get("dune-uid");
+    expect(saved?.city).toBe("Anytown");
+    expect(saved?.country).toBe("USA");
+    expect(saved?.streetAddress).toBe("123 Main St");
+    expect(saved?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
+
+    await expect(page.getByRole("region", { name: "Map showing 1 location" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open in Maps" })).toBeVisible();
   });
 
   // #601: same native <dialog> pattern as MediumPicker's own "Add

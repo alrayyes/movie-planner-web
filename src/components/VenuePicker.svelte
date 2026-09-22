@@ -46,7 +46,11 @@ interface Props {
 	// opened) rather than eagerly on every mount.
 	missingVenues?: MissingVenue[];
 	onLoadMissingVenues?: () => void | Promise<void>;
-	onBulkAddVenues?: (names: string[]) => void | Promise<void>;
+	// #657: entries, not bare names — missingVenues (above) already
+	// carries whatever city/country/address/geo a matching viewing has,
+	// and that's the only place this data is available at promotion
+	// time; passing names back up would lose it.
+	onBulkAddVenues?: (entries: VenueEntry[]) => void | Promise<void>;
 }
 
 let {
@@ -177,15 +181,33 @@ function toggleMissingVenue(name: string) {
 	selectedMissingVenues = next;
 }
 
+// #657: a missing venue already carries whatever city/country/address/
+// geo a matching viewing has (venuesMissingFromPicklist's own backfill)
+// — seeded into the new picklist entry here, once, at promotion time,
+// rather than leaving it a bare name a visitor has to re-enter by hand
+// via "Edit venue".
+function missingVenueToEntry(missing: MissingVenue): VenueEntry {
+	const entry: VenueEntry = { name: missing.name };
+	if (missing.streetAddress) entry.streetAddress = missing.streetAddress;
+	if (missing.postalCode) entry.postalCode = missing.postalCode;
+	if (missing.city) entry.city = missing.city;
+	if (missing.country) entry.country = missing.country;
+	if (missing.geo) entry.geo = missing.geo;
+	return entry;
+}
+
 // #636: one write for every selected name, not one per entry — the
-// picklist gains a plain name-only VenueEntry per selection, the same
-// shape learnFromViewing's own auto-learn already writes; a visitor can
-// "Edit venue" afterward to add structured address/geo per entry.
+// picklist gains a VenueEntry per selection, seeded with whatever #657's
+// own backfill already knows about it; a visitor can still "Edit venue"
+// afterward to fill in or correct anything missing.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleBulkAddVenues() {
 	if (selectedMissingVenues.size === 0 || !onBulkAddVenues) return;
 	const names = [...selectedMissingVenues];
-	await onBulkAddVenues(names);
+	const entries = missingVenues
+		.filter((missing) => selectedMissingVenues.has(missing.name))
+		.map(missingVenueToEntry);
+	await onBulkAddVenues(entries);
 	// #636 follow-up: without this, the surrounding form's own Save/Log
 	// action submits with no venue at all right after a bulk add — the
 	// select was never actually set to anything, unlike the single-name
@@ -207,8 +229,9 @@ async function handleSelectHistoryVenue(event: Event) {
 	const selected = (event.currentTarget as HTMLSelectElement).value;
 	if (!selected || !onBulkAddVenues) return;
 	if (picklists.venues.some((entry) => entry.name === selected)) return;
-	if (!missingVenues.some((missing) => missing.name === selected)) return;
-	await onBulkAddVenues([selected]);
+	const missing = missingVenues.find((entry) => entry.name === selected);
+	if (!missing) return;
+	await onBulkAddVenues([missingVenueToEntry(missing)]);
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
