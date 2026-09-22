@@ -1,7 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Route, test } from "@playwright/test";
 import type { LoggedViewing } from "../src/lib/caldav/types";
-import { mockCaldavServer, type PicklistsInput } from "./support/mock-caldav";
+import {
+  mockCaldavServer,
+  mockPicklistWriteRejected,
+  type PicklistsInput,
+} from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -542,6 +546,59 @@ test.describe("structured venue picklist", () => {
 
     // Genuinely reopen — fresh navigation, not just the save handler's
     // own in-place refresh.
+    await page.goto(detailsUrl);
+    await expect(page.getByRole("heading", { name: "Dune" })).toBeVisible();
+    expect(server.viewings.get("dune-uid")?.venue).toBe("De Munt");
+  });
+
+  // movie-planner-web#656: the original report's exact repro steps —
+  // picking a venue from "Already in your history" and saving, against
+  // a calendar that rejects VJOURNAL (confirmed live against a real
+  // Baikal instance with "Notes" unticked). The viewing's own save
+  // never touched the sidecar and still succeeds; only the picklist
+  // write (promoting the name into the picklist proper) fails, and that
+  // failure used to be swallowed silently.
+  test("picking a venue from 'Already in your history' and saving still works when the picklist write itself is rejected, with a visible error", async ({
+    page,
+  }) => {
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dune: LoggedViewing = {
+      uid: "dune-uid",
+      title: "Dune",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+    };
+    const other: LoggedViewing = {
+      uid: "other-uid",
+      title: "Other Movie",
+      start: oneMonthAgo.toISOString(),
+      end: new Date(oneMonthAgo.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      venue: "De Munt",
+    };
+    const server = await connect(page, { media: [], venues: [] }, [dune, other]);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+    const detailsUrl = page.url();
+
+    await mockPicklistWriteRejected(page, CREDENTIALS["caldav-url"]);
+
+    const select = page.locator("#details-venue");
+    await expect(select.locator("option", { hasText: "De Munt (1)" })).toHaveCount(1);
+    await select.selectOption({ label: "De Munt (1)" });
+
+    const toast = page.getByRole("alert");
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText(/403/);
+    await expect(select).toHaveValue("De Munt");
+
+    // The picklist write failed, but the viewing itself was never
+    // touched by that — saving still writes and persists the venue.
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status")).toHaveText("Saved.");
+    expect(server.viewings.get("dune-uid")?.venue).toBe("De Munt");
+
     await page.goto(detailsUrl);
     await expect(page.getByRole("heading", { name: "Dune" })).toBeVisible();
     expect(server.viewings.get("dune-uid")?.venue).toBe("De Munt");

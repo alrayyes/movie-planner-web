@@ -183,3 +183,31 @@ export function mockCaldavServer(
 
   return state;
 }
+
+// movie-planner-web#656: reproduces the confirmed real-Baikal rejection
+// (a calendar with "Notes" unticked, i.e. VJOURNAL not in its
+// supported-calendar-component-set) — registered after
+// mockCaldavServer so it intercepts the sidecar PUT first, leaving
+// every other request (including a genuine viewing PUT) to
+// mockCaldavServer's own handler via route.fallback().
+export async function mockPicklistWriteRejected(page: Page, baseUrl: string): Promise<void> {
+  const origin = new URL(baseUrl).origin;
+  await page.route(`${origin}/**`, async (route: Route) => {
+    const request = route.request();
+    const isSidecar = uidFromResourceUrl(new URL(request.url())) === SIDECAR_UID;
+    if (request.method() === "PUT" && isSidecar) {
+      await route.fulfill({
+        status: 403,
+        contentType: "application/xml",
+        body: `<?xml version="1.0" encoding="utf-8"?>
+<d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
+  <s:sabredav-version>4.7.0</s:sabredav-version>
+  <s:exception>Sabre\\CalDAV\\Exception\\InvalidComponentType</s:exception>
+  <s:message>iCalendar objects must at least have a component of type VEVENT</s:message>
+</d:error>`,
+      });
+      return;
+    }
+    await route.fallback();
+  });
+}

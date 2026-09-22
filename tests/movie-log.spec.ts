@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Route, test } from "@playwright/test";
-import { mockCaldavServer } from "./support/mock-caldav";
+import { mockCaldavServer, mockPicklistWriteRejected } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -582,6 +582,39 @@ test.describe("error toasts", () => {
 
     await page.getByRole("button", { name: "Dismiss error" }).click();
     await expect(toast).toHaveCount(0);
+  });
+
+  // movie-planner-web#656: a calendar that rejects VJOURNAL (Baikal with
+  // "Notes" unticked, confirmed live against a real instance) makes
+  // every picklist write fail — previously swallowed silently
+  // (`catch {}`), so a visitor's venue/medium lists quietly never
+  // remembered anything with nothing on screen to explain why. This
+  // stays best-effort (the new medium is still selectable and the log
+  // itself still succeeds), just no longer silent.
+  test("a rejected venue/medium picklist write shows a distinct error toast, without failing the log itself", async ({
+    page,
+  }) => {
+    const server = await connect(page);
+    await mockPicklistWriteRejected(page, CREDENTIALS["caldav-url"]);
+
+    await page.getByRole("button", { name: "Add medium" }).click();
+    await page.locator("#log-add-medium-name").fill("Netflix");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+
+    const toast = page.getByRole("alert");
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText(/403/);
+
+    // Best-effort: the new medium is still usable for this log, even
+    // though the server never actually remembered it.
+    await expect(page.locator("#log-medium")).toHaveValue("Netflix");
+
+    await page.locator("#log-title").fill("Paddington");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Logged.");
+    expect(server.creates[0]?.medium).toBe("Netflix");
   });
 });
 

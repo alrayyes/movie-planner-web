@@ -143,8 +143,13 @@ async function learnFromViewing(medium: string, venue: string | undefined) {
 	picklists = next;
 	try {
 		await updatePicklists(caldavConfig(), picklists);
-	} catch {
-		// The next log attempt just re-learns it; not worth failing on.
+	} catch (error) {
+		// Best-effort — the next log attempt just re-learns it, not worth
+		// failing on — but #656: this used to fail silently, which for a
+		// calendar that always rejects it (e.g. Baikal with "Notes" off)
+		// meant the venue/medium lists quietly never remembered anything,
+		// with nothing on screen to explain why.
+		formError = error instanceof Error ? error.message : "Failed to save your venue/medium list.";
 	}
 }
 
@@ -156,8 +161,10 @@ async function handleAddMedium(name: string) {
 	picklists = next;
 	try {
 		await updatePicklists(caldavConfig(), picklists);
-	} catch {
-		// The next attempt just re-adds it; not worth failing the log on.
+	} catch (error) {
+		// Best-effort, same as learnFromViewing above — see its #656
+		// comment for why this no longer fails silently.
+		formError = error instanceof Error ? error.message : "Failed to save your medium list.";
 	}
 }
 
@@ -171,8 +178,10 @@ async function handleAddVenue(entry: VenueEntry) {
 	picklists = next;
 	try {
 		await updatePicklists(caldavConfig(), picklists);
-	} catch {
-		// The next attempt just re-adds it; not worth failing the log on.
+	} catch (error) {
+		// Best-effort, same as learnFromViewing above — see its #656
+		// comment for why this no longer fails silently.
+		formError = error instanceof Error ? error.message : "Failed to save your venue list.";
 	}
 }
 
@@ -190,8 +199,10 @@ async function handleEditVenue(entry: VenueEntry) {
 	picklists = next;
 	try {
 		await updatePicklists(caldavConfig(), picklists);
-	} catch {
-		// The next attempt just re-saves it; not worth failing the log on.
+	} catch (error) {
+		// Best-effort, same as learnFromViewing above — see its #656
+		// comment for why this no longer fails silently.
+		formError = error instanceof Error ? error.message : "Failed to save your venue list.";
 	}
 }
 
@@ -229,8 +240,10 @@ async function handleBulkAddVenues(entries: VenueEntry[]) {
 	picklists = next;
 	try {
 		await updatePicklists(caldavConfig(), picklists);
-	} catch {
-		// The next attempt just re-adds them; not worth failing the log on.
+	} catch (error) {
+		// Best-effort, same as learnFromViewing above — see its #656
+		// comment for why this no longer fails silently.
+		formError = error instanceof Error ? error.message : "Failed to save your venue list.";
 	}
 	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill ?? [], picklists.venues);
 }

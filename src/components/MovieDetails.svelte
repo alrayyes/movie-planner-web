@@ -264,8 +264,13 @@ async function handleAddMedium(name: string) {
 	picklists = next;
 	try {
 		await updatePicklists(config, next);
-	} catch {
-		// The next attempt just re-adds it; not worth failing the edit on.
+	} catch (error) {
+		// Best-effort — the next attempt just re-adds it, not worth
+		// failing the edit on — but #656: this used to fail silently,
+		// which for a calendar that always rejects it (e.g. Baikal with
+		// "Notes" off) meant the medium list quietly never remembered
+		// anything, with nothing on screen to explain why.
+		errorMessage = error instanceof Error ? error.message : "Failed to save your medium list.";
 	}
 }
 
@@ -278,8 +283,10 @@ async function handleAddVenue(entry: VenueEntry) {
 	picklists = next;
 	try {
 		await updatePicklists(config, next);
-	} catch {
-		// The next attempt just re-adds it; not worth failing the edit on.
+	} catch (error) {
+		// Best-effort, same as handleAddMedium above — see its #656
+		// comment for why this no longer fails silently.
+		errorMessage = error instanceof Error ? error.message : "Failed to save your venue list.";
 	}
 }
 
@@ -295,8 +302,10 @@ async function handleEditVenue(entry: VenueEntry) {
 	picklists = next;
 	try {
 		await updatePicklists(config, next);
-	} catch {
-		// The next attempt just re-saves it; not worth failing the edit on.
+	} catch (error) {
+		// Best-effort, same as handleAddMedium above — see its #656
+		// comment for why this no longer fails silently.
+		errorMessage = error instanceof Error ? error.message : "Failed to save your venue list.";
 	}
 }
 
@@ -335,8 +344,10 @@ async function handleBulkAddVenues(entries: VenueEntry[]) {
 	picklists = next;
 	try {
 		await updatePicklists(config, next);
-	} catch {
-		// The next attempt just re-adds them; not worth failing the edit on.
+	} catch (error) {
+		// Best-effort, same as handleAddMedium above — see its #656
+		// comment for why this no longer fails silently.
+		errorMessage = error instanceof Error ? error.message : "Failed to save your venue list.";
 	}
 	missingVenues = venuesMissingFromPicklist(cachedViewingsForBackfill ?? [], picklists.venues);
 }
