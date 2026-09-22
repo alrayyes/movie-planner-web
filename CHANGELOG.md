@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.13.0...movie-planner-web-v1.13.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **location:** surface a rejected picklist write instead of swallowing it ([91f91b8](https://github.com/alrayyes/movie-planner-web/commit/91f91b87dbe35a09a129e2d13b71b935643441cb))
+* **location:** surface a rejected picklist write instead of swallowing it ([e0f23d4](https://github.com/alrayyes/movie-planner-web/commit/e0f23d4eb4260c7f05bff19fba9ed0d0aae06f93)), closes [#656](https://github.com/alrayyes/movie-planner-web/issues/656)
+
 ## [1.13.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.4...movie-planner-web-v1.13.0) (2026-09-22)
 
 
