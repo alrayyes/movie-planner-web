@@ -32,6 +32,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: biome check
         run: bun run lint
+      - name: oxlint (shadcn/lint Tailwind rules)
+        run: bun run lint:tailwind
       - name: sort-package-json --check
         run: bun run sort-package-json:check
       # TypeScript's own package no longer exposes astro check's compiler
