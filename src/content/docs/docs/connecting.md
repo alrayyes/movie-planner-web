@@ -28,6 +28,14 @@ If connecting fails, that's the first thing to check — a CORS failure
 usually shows as a generic network error with no further detail from the
 browser.
 
+Your calendar also has to accept `VJOURNAL` components, which is what
+this app's venue/medium picklists are stored in. On Baikal this is the
+"Notes" checkbox on the calendar's own settings — if it's off, connecting
+and logging still work, but nothing you add to a venue or medium list
+ever survives a reload, with no error shown. See the README's
+requirements section, linked in the preceding paragraph, for how to check
+and fix it.
+
 ## OMDb key (optional)
 
 Adding an [OMDb API key](https://www.omdbapi.com/apikey.aspx) on the

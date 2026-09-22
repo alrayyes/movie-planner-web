@@ -118,6 +118,22 @@ by the other. The `/changelog` page's own data shape — parsed from
   short-circuit the preceding nginx `if` block does by hand, without adding a
   second reverse proxy in front of the one already there.
 
+  **Your calendar also has to accept `VJOURNAL` components** — location
+  management (the venue/medium picklists this app remembers alongside your
+  viewings) stores them in one, and a calendar that rejects the type fails
+  every one of those writes with a `403`. On Baikal, this is the "Notes"
+  checkbox on the calendar's own settings (ticked by default when creating
+  one through Baikal's own "New calendar" form, but easy to miss on a
+  calendar you already had, or one set up some other way). Confirmed
+  directly: a PUT of this app's own picklist sidecar against a Baikal
+  calendar with Notes off returns a `403`,
+  `Sabre\CalDAV\Exception\InvalidComponentType`. This app swallows that
+  error on purpose (a picklist write failing shouldn't block logging or
+  editing a viewing) — the only symptom is your venue/medium lists never
+  actually remembering anything across a reload, with nothing in the UI
+  to say why. `test/integration/provision-baikal.sh` in this repo sets
+  `data[notes]=1` for exactly this reason.
+
 - An **[OMDb API key](https://www.omdbapi.com/apikey.aspx)**, optional —
   without one, logging and editing still work, just with no
   poster/ratings/cross-links. OMDb's free tier caps you at 1,000
