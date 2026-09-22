@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.13.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.4...movie-planner-web-v1.13.0) (2026-09-22)
+
+
+### Features
+
+* **venue:** offer history-only venues directly in the Venue select ([#647](https://github.com/alrayyes/movie-planner-web/issues/647)) ([550e739](https://github.com/alrayyes/movie-planner-web/commit/550e7398d1b94bf11f60aad37a38b9b51accbbe9)), closes [#646](https://github.com/alrayyes/movie-planner-web/issues/646)
+
+
+### Bug Fixes
+
+* **venue:** carry over known location when promoting a history venue ([#658](https://github.com/alrayyes/movie-planner-web/issues/658)) ([5df671d](https://github.com/alrayyes/movie-planner-web/commit/5df671de6479418c9083c387126c52e30192f605)), closes [#657](https://github.com/alrayyes/movie-planner-web/issues/657)
+* **venue:** keep the history-checklist checkbox at a real 16px ([59561fc](https://github.com/alrayyes/movie-planner-web/commit/59561fc5723840bf3aff623ca4c3df2749f0a39c))
+* **venue:** keep the history-checklist checkbox at a real 16px ([50271a2](https://github.com/alrayyes/movie-planner-web/commit/50271a2e8452ad9bcad0875ff46b1bd585ad7bd2)), closes [#662](https://github.com/alrayyes/movie-planner-web/issues/662)
+
 ## [1.12.4](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.12.3...movie-planner-web-v1.12.4) (2026-09-21)
 
 
