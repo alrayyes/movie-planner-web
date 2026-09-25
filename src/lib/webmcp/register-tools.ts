@@ -1,6 +1,8 @@
 import { loadEnabledCredentials } from "./credentials-guard";
 import { registerDeleteViewingTool } from "./tools/delete-viewing-tool";
 import { registerEditViewingTool } from "./tools/edit-viewing-tool";
+import { registerExportViewingsTool } from "./tools/export-viewings-tool";
+import { registerImportViewingsTool } from "./tools/import-viewings-tool";
 import { registerLogViewingTool } from "./tools/log-viewing-tool";
 import { registerSearchViewingsTool } from "./tools/search-viewings-tool";
 
@@ -26,4 +28,6 @@ export async function registerWebMcpTools(): Promise<void> {
   registerEditViewingTool();
   registerDeleteViewingTool();
   registerSearchViewingsTool();
+  registerExportViewingsTool();
+  registerImportViewingsTool();
 }
