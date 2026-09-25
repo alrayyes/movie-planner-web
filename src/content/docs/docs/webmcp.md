@@ -1,6 +1,6 @@
 ---
 title: WebMCP tools
-description: Letting a compatible in-browser agent log, edit, search, and (later) import/export your watch history on your behalf.
+description: Letting a compatible in-browser agent log, edit, search, and import/export your watch history on your behalf.
 ---
 
 [WebMCP](https://github.com/webmachinelearning/webmcp) is a draft browser
@@ -46,7 +46,18 @@ here: see the [README](https://github.com/alrayyes/movie-planner-web#readme)'s
   country/language, rated, and released year/month), capped to a default
   of 50 matches per call so a large history doesn't flood the agent's own
   context.
-
-Import and export aren't covered yet — see
-[alrayyes/movie-planner-web#667](https://github.com/alrayyes/movie-planner-web/issues/667)
-for that follow-up.
+- **`export_viewings`** — exports (optionally filtered, same fields as
+  `search_viewings`) viewings as JSON, the same format
+  [Settings' own "Export as JSON"](/docs/import-export/) produces.
+- **`import_viewings`** — bulk-imports viewings from CSV or JSON text
+  (the format `export_viewings` produces, or movie-planner's own
+  export). A row that looks like a duplicate of something already
+  logged is skipped, never created. A row that matches an existing
+  viewing by uid is only written when the tool is called with
+  `mode: "apply-updates"` — the default, `"create-only"`, never touches
+  an existing viewing, since there's no visible per-field review step
+  for an agent's call the way the real
+  [bulk-import page](/docs/import-export/) has. There's no picking some
+  fields and skipping others per row either — an update entry's changed
+  fields get applied together, so an agent should double-check what
+  it's about to import before calling this with `"apply-updates"`.
