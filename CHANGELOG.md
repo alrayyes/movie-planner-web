@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.14.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.13.1...movie-planner-web-v1.14.0) (2026-09-25)
+
+
+### Features
+
+* **webmcp:** expose export/import as WebMCP tools ([7fc9e6a](https://github.com/alrayyes/movie-planner-web/commit/7fc9e6a30566dd3c30c838188bf8c14feed1c7a5))
+* **webmcp:** expose export/import as WebMCP tools ([ae166ca](https://github.com/alrayyes/movie-planner-web/commit/ae166ca233d1446c4d10535342874fb625dfde16))
+* **webmcp:** expose log/edit/delete/search as WebMCP tools ([#669](https://github.com/alrayyes/movie-planner-web/issues/669)) ([160c27b](https://github.com/alrayyes/movie-planner-web/commit/160c27b06791b991fb7c29f956693db849a69472))
+
 ## [1.13.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.13.0...movie-planner-web-v1.13.1) (2026-09-22)
 
 
