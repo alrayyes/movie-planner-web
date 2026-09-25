@@ -21,7 +21,11 @@ are the only places they're ever sent anywhere — straight to the
 CalDAV/OMDb/TMDb URLs you configured, with no server-side code in this
 repo's build output at all
 (there's no `src/pages/api/` any more — the build is fully static, see
-`astro.config.mjs`). Only tested against
+`astro.config.mjs`). WebMCP tools this app can register for a compatible
+in-browser agent (`src/lib/webmcp/`, off by default) run the same way —
+in your own page, calling those same `caldav`/`omdb`/`tmdb` clients,
+never a new server; see `/docs/webmcp/` on your own deployment, or
+locally via `bun run dev`. Only tested against
 [Baikal](https://sabre.io/baikal/) so far — other CalDAV servers may or
 may not work.
 

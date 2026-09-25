@@ -170,6 +170,7 @@ export function buildCredentialsForm(options: {
       values?.tmdbApiKey ?? "",
       false,
     ),
+    webMcpEnabledField(values?.webMcpEnabled ?? false),
   );
 
   const submit = document.createElement("button");
@@ -204,6 +205,33 @@ function omdbPausedField(checked: boolean): HTMLDivElement {
   hint.textContent =
     "OMDb's free tier allows 1,000 requests a day. Pause this while logging or " +
     "importing a batch of viewings, then turn it back on and refresh deliberately.";
+  wrapper.append(row, hint);
+  return wrapper;
+}
+
+// #667: same checkbox-plus-caption shape as omdbPausedField above — off
+// by default, since a WebMCP-aware agent sharing the visitor's browser
+// could call delete_viewing/import_viewings, and consequentialHint only
+// asks the *agent's* own UI to confirm, not a boundary this app enforces.
+function webMcpEnabledField(checked: boolean): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = FIELD_WRAPPER;
+  const row = document.createElement("label");
+  row.className = "flex items-center gap-2";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = "webmcp-enabled";
+  input.name = "webmcp-enabled";
+  input.checked = checked;
+  const text = document.createElement("span");
+  text.className = LABEL;
+  text.textContent = "Let a compatible in-browser agent act on your behalf (WebMCP)";
+  row.append(input, text);
+  const hint = document.createElement("p");
+  hint.className = "text-xs text-slate-500 dark:text-slate-400";
+  hint.textContent =
+    "Off by default. Once on, a WebMCP-aware agent sharing this browser can log, " +
+    "edit, delete, and search your viewings the same way you can — see /docs/webmcp/.";
   wrapper.append(row, hint);
   return wrapper;
 }
@@ -243,5 +271,6 @@ export function readCredentialsForm(form: HTMLFormElement): Credentials {
     ...(omdbApiKey ? { omdbApiKey } : {}),
     ...(data.get("omdb-paused") ? { omdbPaused: true } : {}),
     ...(tmdbApiKey ? { tmdbApiKey } : {}),
+    ...(data.get("webmcp-enabled") ? { webMcpEnabled: true } : {}),
   };
 }

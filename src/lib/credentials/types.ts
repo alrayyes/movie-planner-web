@@ -16,6 +16,14 @@ export interface Credentials {
   // IMDb ID, so this has no pause flag of its own: pausing OMDb already
   // stops every TMDb call downstream of it too.
   tmdbApiKey?: string;
+  // #667: off by default — a WebMCP-aware in-browser agent can discover
+  // and call log/edit/delete/search tools that reuse this app's own
+  // CalDAV client, and delete/bulk-import are genuinely destructive.
+  // WebMCP's own `consequentialHint` only asks the *agent's* UI to
+  // confirm, not something this app enforces, so registering tools at
+  // all is this app's own explicit opt-in, same reasoning as omdbPaused
+  // being a visible, deliberate control rather than an always-on default.
+  webMcpEnabled?: boolean;
 }
 
 export interface CredentialsStore {
