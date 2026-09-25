@@ -104,8 +104,10 @@ const { title, wide = false } = Astro.props;
     <script>
       import "../components/site-breadcrumb";
       import { registerServiceWorker } from "../lib/pwa/register-service-worker";
+      import { registerWebMcpTools } from "../lib/webmcp/register-tools";
 
       registerServiceWorker();
+      registerWebMcpTools();
     </script>
   </body>
 </html>

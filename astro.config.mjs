@@ -102,6 +102,7 @@ export default defineConfig({
         { label: "Venues", link: "/docs/venues/" },
         { label: "Mediums", link: "/docs/mediums/" },
         { label: "Import and export", link: "/docs/import-export/" },
+        { label: "WebMCP tools", link: "/docs/webmcp/" },
         { label: "The activity log", link: "/docs/activity/" },
         { label: "Keyboard shortcuts", link: "/docs/keyboard-shortcuts/" },
       ],

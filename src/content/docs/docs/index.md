@@ -28,6 +28,9 @@ optional OMDb key) and the developer setup.
   with a count and a map grouped by city.
 - **[Import and export](/docs/import-export/)** — moving your watch
   history in and out as CSV or JSON.
+- **[WebMCP tools](/docs/webmcp/)** — off by default; letting a
+  compatible in-browser agent log, edit, delete, and search your watch
+  history on your behalf.
 - **[The activity log](/docs/activity/)** — a local record of what this
   app itself has done to your calendar.
 - **[Keyboard shortcuts](/docs/keyboard-shortcuts/)** — vim-style
