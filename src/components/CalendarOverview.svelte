@@ -2,6 +2,7 @@
 import { syncCaldavActivityLog } from "../lib/activity-log/sync";
 import { deleteViewing, getPicklists, listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { filterViewings } from "../lib/movie-log/filter-viewings";
 import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import type { OmdbCandidate } from "../lib/omdb/client";
@@ -435,60 +436,19 @@ let pickerArea = $state<HTMLDivElement | undefined>();
 // always acts on exactly what's currently on screen, not the
 // unfiltered/unsorted full set.
 const currentlyDisplayed = $derived.by(() => {
-	const titleFilter = titleValue.trim().toLowerCase();
-	const mediumFilter = mediumValue.trim().toLowerCase();
-	const venueFilter = venueValue.trim().toLowerCase();
-	const directorFilter = directorValue.trim().toLowerCase();
-	const actorFilter = actorValue.trim().toLowerCase();
-	const genreFilter = genreValue.trim().toLowerCase();
-	const cityFilter = cityValue.trim().toLowerCase();
-	const movieCountryFilter = movieCountryValue.trim().toLowerCase();
-	const movieLanguageFilter = movieLanguageValue.trim().toLowerCase();
-	const ratedFilter = ratedValue.trim().toLowerCase();
-	const releasedYearFilter = releasedYearValue.trim();
-	const releasedMonthFilter = releasedMonthValue.trim();
-	const filtered = allViewings.filter((v) => {
-		if (titleFilter && !v.title.toLowerCase().includes(titleFilter)) return false;
-		if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
-		if (venueFilter && (v.venue ?? "").toLowerCase() !== venueFilter) return false;
-		if (
-			directorFilter &&
-			!splitMultiValue(v.director).some((director) => director.toLowerCase() === directorFilter)
-		)
-			return false;
-		if (
-			actorFilter &&
-			!splitMultiValue(v.actors).some((actor) => actor.toLowerCase() === actorFilter)
-		)
-			return false;
-		if (
-			genreFilter &&
-			!splitMultiValue(v.genre).some((genre) => genre.toLowerCase() === genreFilter)
-		)
-			return false;
-		if (cityFilter && (v.city ?? "").toLowerCase() !== cityFilter) return false;
-		if (
-			movieCountryFilter &&
-			!splitMultiValue(v.movieCountry).some(
-				(country) => country.toLowerCase() === movieCountryFilter,
-			)
-		)
-			return false;
-		if (
-			movieLanguageFilter &&
-			!splitMultiValue(v.movieLanguage).some(
-				(language) => language.toLowerCase() === movieLanguageFilter,
-			)
-		)
-			return false;
-		if (ratedFilter && (v.rated ?? "").toLowerCase() !== ratedFilter) return false;
-		if (releasedYearFilter || releasedMonthFilter) {
-			const released = v.released ? parseReleasedDate(v.released) : null;
-			if (!released) return false;
-			if (releasedYearFilter && released.year !== releasedYearFilter) return false;
-			if (releasedMonthFilter && released.month !== releasedMonthFilter) return false;
-		}
-		return true;
+	const filtered = filterViewings(allViewings, {
+		title: titleValue,
+		medium: mediumValue,
+		venue: venueValue,
+		director: directorValue,
+		actor: actorValue,
+		genre: genreValue,
+		city: cityValue,
+		movieCountry: movieCountryValue,
+		movieLanguage: movieLanguageValue,
+		rated: ratedValue,
+		releasedYear: releasedYearValue,
+		releasedMonth: releasedMonthValue,
 	});
 	// Re-sorted fresh every time rather than relying on insertion order,
 	// since a filtered subset can change shape after every reload.
