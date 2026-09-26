@@ -1,0 +1,33 @@
+# Movie Planner
+
+> A fully static web client for movie-planner (the CLI that logs watched
+> movies and syncs them to a CalDAV calendar) — browse, log, and edit your
+> watch history from any browser, talking straight to your own CalDAV
+> server with no account and no backend of this app's own.
+
+There's no shared database and no server, of any kind, that ever sees your
+CalDAV/OMDb/TMDb credentials — not even in transit. Only tested against
+[Baikal](https://sabre.io/baikal/) as a CalDAV server so far.
+
+## Docs
+
+- [About](https://movie-planner.ryankes.eu/about/): what the app is and how it works.
+- [Usage docs](https://movie-planner.ryankes.eu/docs/): connecting a CalDAV server, logging viewings, import/export, keyboard shortcuts.
+- [Changelog](https://movie-planner.ryankes.eu/changelog/): release history.
+
+## App
+
+- [Calendar overview](https://movie-planner.ryankes.eu/calendar/): the watch history calendar view.
+- [Log a viewing](https://movie-planner.ryankes.eu/log/): record a movie you watched.
+- [Import viewings](https://movie-planner.ryankes.eu/import/): bulk CSV/JSON import.
+- [Settings](https://movie-planner.ryankes.eu/settings/): CalDAV connection and app settings.
+- [Missing data](https://movie-planner.ryankes.eu/missing-data/): viewings with incomplete metadata.
+
+## Legal
+
+- [Privacy](https://movie-planner.ryankes.eu/privacy/): what data this app touches and where it goes.
+- [Disclaimer](https://movie-planner.ryankes.eu/disclaimer/): scope and liability disclaimer.
+
+## Related
+
+- [movie-planner](https://github.com/alrayyes/movie-planner): the companion CLI this app is a web client for.
