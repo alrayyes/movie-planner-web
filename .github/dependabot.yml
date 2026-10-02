@@ -23,12 +23,14 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       # Conventional Commits, because commitlint checks these messages and
-      # the version number is computed from them. This scaffold ships as an
-      # Astro static site, so a bump here is a change to what ships whether
-      # or not it's security-relevant, and fix: cuts the patch release the
-      # same way any other fix does. github-actions below stays ci: — it
+      # the version number is computed from them. chore: cuts no release
+      # (#686): a release means code under src/ or public/ changed, and a
+      # dependency bump alone doesn't. It still deploys — Cloudflare builds
+      # every merge to main — it just doesn't get its own version and
+      # changelog entry. A bump that needs a code change ships that change
+      # as its own feat:/fix: commit. github-actions below stays ci: — it
       # changes the pipeline, not the artifact.
-      prefix: fix
+      prefix: chore
       include: scope
     groups:
       bun-dependencies:
