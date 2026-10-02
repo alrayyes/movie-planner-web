@@ -42,7 +42,7 @@ export class LogViewingButton extends HTMLElement {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.className = BUTTON_PRIMARY;
+    button.className = `${BUTTON_PRIMARY} whitespace-nowrap`;
     button.textContent = "Log a viewing";
     button.addEventListener("click", () => {
       window.dispatchEvent(new CustomEvent(OPEN_LOG_VIEWING_WIZARD_EVENT));

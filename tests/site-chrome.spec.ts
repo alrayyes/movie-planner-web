@@ -64,6 +64,47 @@ test.describe("Fork me on GitHub ribbon", () => {
     await expect(toggle).not.toHaveAttribute("aria-checked", before ?? "");
   });
 
+  // #676: at 320px the logo plus the header controls don't fit beside the
+  // ribbon's reserved margin, so the controls spilled under the ribbon and
+  // its link covered part of the dark-mode toggle. Sampled the way a tap
+  // would hit it (corners and centre of each control, resolved with
+  // elementFromPoint), not by comparing boxes: the ribbon's unrotated box
+  // is far bigger than its visible diagonal strip (see #135 above).
+  for (const width of [320, 390, 1280]) {
+    test(`no header control sits under the ribbon at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 700 });
+      mockCaldavServer(page, CREDENTIALS["caldav-url"]);
+      await connect(page);
+
+      const covered = await page.evaluate(() => {
+        const ribbonLink = document.querySelector(".gh-ribbon a");
+        const hits: string[] = [];
+        for (const el of document.querySelectorAll(
+          "header a, header button, header [role=switch]",
+        )) {
+          const r = el.getBoundingClientRect();
+          if (!r.width) continue;
+          const points = [
+            [r.left + 1, r.top + 1],
+            [r.right - 1, r.top + 1],
+            [r.left + 1, r.bottom - 1],
+            [r.right - 1, r.bottom - 1],
+            [(r.left + r.right) / 2, (r.top + r.bottom) / 2],
+          ];
+          const under = points.filter(([x, y]) => document.elementFromPoint(x, y) === ribbonLink);
+          if (under.length) {
+            hits.push(
+              `${el.getAttribute("aria-label") ?? el.textContent?.trim()}: ${under.length}/5`,
+            );
+          }
+        }
+        return hits;
+      });
+
+      expect(covered).toEqual([]);
+    });
+  }
+
   // #433: the mobile breakpoint added for #66 (max-width: 640px) shrinks
   // `.gh-ribbon` to a 130x130px clipped box and its rotated band to match,
   // but "Fork me on GitHub" doesn't actually fit that band at real font
