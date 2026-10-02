@@ -100,6 +100,17 @@ function shadeClass(count: number): string {
 	return "bg-indigo-600 dark:bg-indigo-400";
 }
 
+// #681: the "Less … More" legend's swatches are built from shadeClass
+// itself (one representative count per bucket), so they can never drift
+// from the colours the real cells use.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+const LEGEND_STEPS = [
+	{ bucket: "0", count: 0, title: "No viewings" },
+	{ bucket: "1", count: 1, title: "1 viewing" },
+	{ bucket: "2-3", count: 2, title: "2 to 3 viewings" },
+	{ bucket: "4+", count: 4, title: "4 or more viewings" },
+];
+
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 function cellLabel(day: string, count: number): string {
 	return `${day}: ${count} viewing${count === 1 ? "" : "s"}`;
@@ -291,6 +302,27 @@ reloadOnBfcacheRestore(() => void load());
       </div>
     </div>
   {/each}
+  {#if yearGrids.length > 0}
+    <!-- #681: a decorative colour-to-count key. Each real cell already
+    carries its own aria-label with date and count, so the swatches are
+    aria-hidden — a screen reader gains nothing from them. -->
+    <div
+      role="group"
+      aria-label="Viewings per day"
+      class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400"
+    >
+      <span>Less</span>
+      {#each LEGEND_STEPS as step (step.bucket)}
+        <span
+          data-legend-swatch={step.bucket}
+          title={step.title}
+          aria-hidden="true"
+          class={`h-3 w-3 rounded-sm ${shadeClass(step.count)}`}
+        ></span>
+      {/each}
+      <span>More</span>
+    </div>
+  {/if}
 </div>
 
 <!-- Same native <dialog> pattern as <keyboard-nav>'s own help overlay —
