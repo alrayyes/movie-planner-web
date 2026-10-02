@@ -103,6 +103,17 @@ body {
   }
 }
 
+/* #676: at 320px the logo and the controls don't fit in what's left beside
+   the ribbon, so they spilled under it. The header wraps instead (the
+   flex-wrap on SiteHeader's own <header>), the controls drop to a second
+   row on the left, well clear of the ribbon's diagonal, and the margin
+   that kept them out from under it isn't needed there. */
+@media (max-width: 359px) {
+  .header-actions {
+    margin-right: 0;
+  }
+}
+
 /* #451: Starlight's own PageFrame pins its Header slot as a full-width,
    fixed-height bar (`--sl-nav-height`, a single Starlight-sized row) and
    reserves that same height as top padding on the content column below
