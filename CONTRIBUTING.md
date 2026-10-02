@@ -150,6 +150,13 @@ reads the Conventional Commits on `main` and keeps a release pull request
 open with the next version and changelog entry; merging that one tags the
 release. Nobody picks a version by hand.
 
+Only code that ships to the site cuts a release. A commit whose files are
+all under `.github/`, `docs/`, `openspec/`, `scripts/`, `styles/`, `test/`,
+`tests/` or `.claude/` is skipped by release-please (`exclude-paths` in
+`release-please-config.json`), whatever its prefix. Dependabot's `bun` bumps
+use `chore(deps)` for the same reason: they deploy, but get no version of
+their own.
+
 Deploys are separate from all of this: Cloudflare's own GitHub integration
 watches the repo and builds/deploys on every push (preview per pull
 request, production on `main`), configured on the Cloudflare dashboard,
