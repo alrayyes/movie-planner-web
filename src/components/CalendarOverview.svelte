@@ -1123,7 +1123,12 @@ getPicklists(config).then((picklists) => {
               is hidden there rather than shown twice, one of several
               changes that keep the table's own required width under
               what a real phone viewport has to give it. -->
-              <th class={key === "venue" ? `${TH} hidden sm:table-cell` : TH} scope="col">
+              <!-- #680: When is hidden below sm too, same as Venue — its
+              date is repeated under the title there. -->
+              <th
+                class={key === "venue" || key === "when" ? `${TH} hidden sm:table-cell` : TH}
+                scope="col"
+              >
                 <button
                   type="button"
                   class="flex items-center gap-1 font-semibold"
@@ -1200,6 +1205,12 @@ getPicklists(config).then((picklists) => {
                 >
                   {viewing.year ? `${viewing.title} (${viewing.year})` : viewing.title}
                 </a>
+                <!-- #680: the When column is hidden below sm, so the date
+                is relocated under the title here, like venue (#217).
+                It wraps over at most two lines at phone widths. -->
+                <p class="text-xs text-slate-500 sm:hidden dark:text-slate-400">
+                  {formatPeriod(viewing.start, viewing.end)}
+                </p>
                 {#if viewing.venue}
                   <!-- #217: the Venue column itself is hidden below sm
                   (see the header row above) — shown here instead, so
@@ -1240,7 +1251,10 @@ getPicklists(config).then((picklists) => {
               link) rather than as their own columns here; keeping this
               table to a fixed, narrow column count is what lets it fit
               a phone screen without horizontal scroll. -->
-              <td class={TD}>
+              <!-- #680: hidden below sm — the date is relocated under
+              the title there, like venue (#217), so this column no
+              longer forces the table wider than a phone viewport. -->
+              <td class={`${TD} hidden sm:table-cell`}>
                 {formatPeriod(viewing.start, viewing.end)}
                 <!-- #305: same purely-decorative 24-hour bar the details
                 page already shows under Start/End — the text above it
@@ -1280,14 +1294,19 @@ getPicklists(config).then((picklists) => {
               scoped to bulk refresh only, not this single-row control,
               which stays the way to correct a title whose match went
               stale or wrong). -->
+              <!-- #680: below sm the controls stack in a column and grow
+              to 44x44px (h-11 w-11) — side by side at that size they
+              made the Actions column wider than a 320px phone could
+              give it, and 32px was under the touch-target minimum.
+              Desktop keeps the original row of 32px buttons. -->
               <td class={TD}>
-                <div class="flex gap-1">
+                <div class="flex flex-col gap-1 sm:flex-row">
                   <a
                     href={movieHref(viewing.uid, {
                       edit: true,
                       from: location.pathname + location.search,
                     })}
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    class="inline-flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     title="Edit"
                     aria-label={`Edit ${viewing.title}`}
                   >
@@ -1303,7 +1322,7 @@ getPicklists(config).then((picklists) => {
                   </a>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    class="inline-flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     title="Delete"
                     aria-label={`Delete ${viewing.title}`}
                     disabled={isDeleting}
@@ -1341,7 +1360,7 @@ getPicklists(config).then((picklists) => {
                 {#if omdbActive}
                   <button
                     type="button"
-                    class="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    class="mt-1 inline-flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     title="Refresh metadata"
                     aria-label="Refresh metadata"
                     disabled={isRefreshing}

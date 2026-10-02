@@ -103,11 +103,12 @@ body {
   }
 }
 
-/* #676: at 320px the logo and the controls don't fit in what's left beside
-   the ribbon, so they spilled under it. The header wraps instead (the
-   flex-wrap on SiteHeader's own <header>), the controls drop to a second
-   row on the left, well clear of the ribbon's diagonal, and the margin
-   that kept them out from under it isn't needed there. */
+/* #676, #680: below 640px the logo and the controls often don't fit beside
+   the ribbon's reserved margin (at 320px they spilled under it; at 390px the
+   site name and the Log button each wrapped over two lines). The header wraps
+   instead (the flex-wrap on SiteHeader's own <header>) and the controls drop
+   to a second row on the left, well clear of the ribbon's diagonal. At 320px
+   that second row is as wide as the margin allows, so the margin goes. */
 @media (max-width: 359px) {
   .header-actions {
     margin-right: 0;
