@@ -1177,12 +1177,15 @@ getPicklists(config).then((picklists) => {
                   wrapped in the same details-page link the title uses —
                   the image's own alt text ("<title> poster") gives this
                   link a distinct accessible name from the title link
-                  right next to it. -->
+                  right next to it. #679: the desktop size is now 56x84px
+                  (rows were ~177px tall; #64's 64px was too small and
+                  40x60 was judged too small too), so the sizes are a
+                  deliberate middle ground. -->
                   <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
-                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-40 sm:w-24"
+                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-21 sm:w-14"
                       loading="lazy"
                     />
                   </a>
@@ -1190,7 +1193,7 @@ getPicklists(config).then((picklists) => {
                   <!-- #236: same slot/size a real poster would occupy,
                   so a movie OMDb had no poster for doesn't leave a gap. -->
                   <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
-                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-40 sm:w-24" />
+                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-21 sm:w-14" />
                   </a>
                 {/if}
               </td>
@@ -1262,10 +1265,13 @@ getPicklists(config).then((picklists) => {
                 the timing, so this carries nothing a screen reader
                 needs to hear a second time. #444: hidden entirely (not
                 just zero-width) when the viewing has no meaningful
-                duration — there's nothing to visualize. -->
+                duration — there's nothing to visualize. #679: the bar
+                was unexplained, so it gets a title; aria-hidden stays
+                since the text above it is the real description. -->
                 {#if blockedTimeBar.widthPercent > 0}
                   <div
                     class="relative mt-1 h-1.5 w-full max-w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                    title="Time of day, over 24 hours"
                     aria-hidden="true"
                   >
                     <div
