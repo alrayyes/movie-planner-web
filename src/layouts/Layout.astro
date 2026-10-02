@@ -20,7 +20,10 @@ interface Props {
   // metadata) are cramped at the shared 768px form width every other
   // page (log, import, settings, credentials gate) is deliberately kept
   // at — those stay narrow since a form column that wide starts feeling
-  // like scanning a spreadsheet.
+  // like scanning a spreadsheet. #682: only the content card is narrowed
+  // now, not the whole container, so the header, breadcrumb and footer
+  // sit in the same place on every page instead of jumping sideways as a
+  // visitor clicks through the nav tabs.
   wide?: boolean;
 }
 
@@ -89,14 +92,16 @@ const { title, wide = false } = Astro.props;
     </div>
     <div
       id="page-container"
-      class:list={[
-        "mx-auto px-4 py-8 sm:px-6 lg:px-8",
-        wide ? "max-w-6xl" : "max-w-3xl",
-      ]}
+      class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8"
     >
       <SiteHeader />
       <site-breadcrumb></site-breadcrumb>
-      <main class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-800">
+      <main
+        class:list={[
+          "rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-800",
+          !wide && "max-w-3xl",
+        ]}
+      >
         <slot />
       </main>
       <SiteFooter />
