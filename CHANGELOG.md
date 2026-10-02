@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.2...movie-planner-web-v1.14.3) (2026-10-02)
+
+
+### Bug Fixes
+
+* **layout:** keep the header in the same place on every page ([37b206d](https://github.com/alrayyes/movie-planner-web/commit/37b206d11cd7a827d09b76be6a83f9ad1876cc10))
+
 ## [1.14.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.1...movie-planner-web-v1.14.2) (2026-10-02)
 
 
