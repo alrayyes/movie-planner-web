@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.3...movie-planner-web-v1.15.0) (2026-10-02)
+
+
+### Features
+
+* **viewings:** compact rows with a 56x84px poster ([7bac458](https://github.com/alrayyes/movie-planner-web/commit/7bac458ebbc01b562a8eb268f1b5a7314e42a898))
+* **viewings:** compact rows with a 56x84px poster ([a547554](https://github.com/alrayyes/movie-planner-web/commit/a54755434f0a6db919c6f919f058d10ecfc4d4c2))
+
 ## [1.14.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.2...movie-planner-web-v1.14.3) (2026-10-02)
 
 
