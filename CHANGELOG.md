@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.15.0...movie-planner-web-v1.16.0) (2026-10-02)
+
+
+### Features
+
+* **calendar:** add a Less to More legend to the heatmap ([39b441f](https://github.com/alrayyes/movie-planner-web/commit/39b441f856bd9e26c6712eba5ac605b00ebd5fec))
+
 ## [1.15.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.3...movie-planner-web-v1.15.0) (2026-10-02)
 
 
