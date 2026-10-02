@@ -58,8 +58,14 @@ commit-msg:
 pre-push:
   parallel: true
   jobs:
+    # --retries=2, as CI has (playwright.config.ts): the local `wrangler dev`
+    # server this suite drives drops connections under load (workerd `Broken
+    # pipe`), which fails a few unrelated tests at random with 30 second
+    # timeouts, a different few each run and all passing on a rerun (#640).
+    # CI retries them; the hook didn't, so it failed about half the time on a
+    # busy machine. A test that fails three times in a row still fails.
     - name: test
-      run: bun run test
+      run: bun run test:unit && bun run test:e2e --retries=2
 
     - name: check
       run: bun run check
