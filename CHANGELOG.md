@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.14.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.1...movie-planner-web-v1.14.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* **header:** keep the controls out from under the ribbon at 320px ([e162957](https://github.com/alrayyes/movie-planner-web/commit/e16295797a15a87932a3e3d32d94b6e34aaaa599))
+* **header:** keep the controls out from under the ribbon at 320px ([018d17d](https://github.com/alrayyes/movie-planner-web/commit/018d17d42b5791f885ed7f846ab090a85b40aeaa))
+* **viewings:** fit the Viewings table and header on phones ([f125288](https://github.com/alrayyes/movie-planner-web/commit/f125288654459a52ff38a9c2d91d6f8b4156acac))
+* **viewings:** fit the Viewings table and header on phones ([ad0ffbf](https://github.com/alrayyes/movie-planner-web/commit/ad0ffbf25e7310936d091efa9946dd0aa8e5b167))
+
 ## [1.14.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.14.0...movie-planner-web-v1.14.1) (2026-10-02)
 
 
