@@ -49,12 +49,13 @@ test.describe("content column width on a desktop viewport", () => {
     expect(width).toBeGreaterThan(768);
   });
 
-  test("a form page (log) keeps the narrower, original width", async ({ page }) => {
+  // #682: the container is the same width on every page now (so the header
+  // doesn't jump between nav tabs); a form page's content card is what stays
+  // at the original 768px reading width.
+  test("a form page (log) keeps the narrower, original content width", async ({ page }) => {
     await connect(page);
     await page.goto("/log");
-    const width = await page
-      .locator("#page-container")
-      .evaluate((el) => el.getBoundingClientRect().width);
+    const width = await page.locator("main").evaluate((el) => el.getBoundingClientRect().width);
     expect(width).toBeLessThanOrEqual(768);
   });
 });
