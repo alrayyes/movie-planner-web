@@ -23,13 +23,15 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       # Conventional Commits, because commitlint checks these messages and
-      # the version number is computed from them. chore: cuts no release
-      # (#686): a release means code under src/ or public/ changed, and a
-      # dependency bump alone doesn't. It still deploys — Cloudflare builds
-      # every merge to main — it just doesn't get its own version and
-      # changelog entry. A bump that needs a code change ships that change
-      # as its own feat:/fix: commit. github-actions below stays ci: — it
-      # changes the pipeline, not the artifact.
+      # the version number is computed from them. chore: cuts no release, and
+      # that is the default for every bun bump (#686): a release should mean
+      # frontend code or a production dependency changed, not a dev tool. The
+      # dependabot-release-type workflow upgrades the title to fix(deps) when
+      # the pull request changes `dependencies`, because prefix-development
+      # and dependency-type groups aren't documented for the bun ecosystem.
+      # Every bump still deploys — Cloudflare builds each merge to main — it
+      # just doesn't always get its own version. github-actions below stays
+      # ci: — it changes the pipeline, not the artifact.
       prefix: chore
       include: scope
     groups:

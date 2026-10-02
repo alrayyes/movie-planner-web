@@ -1,0 +1,64 @@
+# A new release should mean the site changed: frontend code, or a production
+# dependency (#686). dependabot.yml titles every bun bump chore(deps…), which
+# cuts no release, because Dependabot's prefix-development and dependency-type
+# groups aren't documented for the bun ecosystem. This upgrades the title to
+# fix(deps) when the pull request's package.json diff changes `dependencies`,
+# so a production bump releases and a dev-tooling bump doesn't. A squash merge
+# uses the pull request title, and release-please reads what lands on main.
+#
+# Fails safe: if this doesn't run, the title stays chore(deps…) and nothing
+# releases. The classification is scripts/classify-dependency-bump.ts, which
+# has its own unit tests.
+#
+# pull_request, like dependabot-auto-merge.yml: Dependabot's pull requests come
+# from a branch on this repo, never a fork, and GitHub grants the default
+# GITHUB_TOKEN write access for pull_request events actor'd by dependabot[bot].
+name: dependabot-release-type
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  retitle:
+    # Only bun bumps carry a chore(deps…) title. github-actions bumps are
+    # ci(deps), and stay that way.
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      startsWith(github.event.pull_request.title, 'chore(deps')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      # The API, not git: the checkout is the shallow merge commit, so the
+      # base commit's package.json isn't in it.
+      - name: Fetch package.json at the base and head commits
+        run: |
+          gh api -H "Accept: application/vnd.github.raw" \
+            "repos/$REPO/contents/package.json?ref=$BASE_SHA" > "$RUNNER_TEMP/base.json"
+          gh api -H "Accept: application/vnd.github.raw" \
+            "repos/$REPO/contents/package.json?ref=$HEAD_SHA" > "$RUNNER_TEMP/head.json"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      # The title goes through env, never interpolated into the script, so a
+      # crafted dependency name can't inject a command.
+      - name: Retitle when a production dependency changed
+        run: |
+          new_title="$(bun scripts/classify-dependency-bump.ts "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/head.json" "$TITLE")"
+          if [ "$new_title" != "$TITLE" ]; then
+            gh pr edit "$PR_URL" --title "$new_title"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          TITLE: ${{ github.event.pull_request.title }}
