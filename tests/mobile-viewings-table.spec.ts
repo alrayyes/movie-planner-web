@@ -17,7 +17,9 @@ const CREDENTIALS = {
 // Fixed, absolute timestamps, never relative to now (#698): the rendered date
 // text is what the wrap tests measure, and its width depends on the exact
 // digits, so a date moving with the clock made a borderline case pass one
-// hour and fail the next.
+// hour and fail the next. Whole minutes, like a real viewing (a time is
+// entered to the minute, and formatTime drops zero seconds, #359): seconds in
+// the fixture would make the date wider than any real one.
 const at = (iso: string, hours = 2.5) => ({
   start: iso,
   end: new Date(new Date(iso).getTime() + hours * 60 * 60 * 1000).toISOString(),
@@ -32,9 +34,9 @@ const viewing = (uid: string, title: string, iso: string, medium: string, venue?
 });
 
 const VIEWINGS = [
-  viewing("dune", "Dune: Part Two", "2026-09-29T17:34:50Z", "cinema", "Grand Vista Cinema"),
+  viewing("dune", "Dune: Part Two", "2026-09-29T17:34:00Z", "cinema", "Grand Vista Cinema"),
   viewing("paddington", "Paddington in Peru", "2026-09-12T15:30:00Z", "netflix"),
-  viewing("lumen", "The Brutalist", "2026-09-23T20:15:10Z", "cinema", "Filmhuis Lumen"),
+  viewing("lumen", "The Brutalist", "2026-09-23T20:15:00Z", "cinema", "Filmhuis Lumen"),
 ];
 
 // The same date text on every machine: formatPeriod reads the browser's zone.
@@ -103,11 +105,9 @@ for (const width of [390, 320]) {
       }
     });
 
-    // At 320px the title column is about 100px wide, so how many lines a date
-    // with seconds (17:34:50 - 19:34:50) wraps over is borderline and moves
-    // with the digits. Not asserted there until the seconds are dropped (#679).
-    test("a viewing's date takes at most two lines", async ({ page }) => {
-      test.skip(width === 320, "borderline at 320px until the seconds are dropped (#679)");
+    // 390px is the ticket's width (#680): two lines. At 320px the title column
+    // is only about 80px wide, so a whole-minute date still wraps to three.
+    test("a viewing's date wraps over few lines", async ({ page }) => {
       await openViewings(page, width);
 
       const dates = page
@@ -118,7 +118,7 @@ for (const width of [390, 320]) {
       const lines = await dates
         .first()
         .evaluate(new Function(`return (${COUNT_LINES})(arguments[0])`) as never);
-      expect(lines).toBeLessThanOrEqual(2);
+      expect(lines).toBeLessThanOrEqual(width === 390 ? 2 : 3);
     });
 
     test("the site name and the Log button each fit on one line", async ({ page }) => {
