@@ -193,10 +193,12 @@ test.describe("calendar overview", () => {
     await expect(row.locator("img")).toHaveAttribute("src", DUNE.posterUrl);
     // #64/#166: a UX audit flagged the old h-16 (64px) thumbnail as too
     // small to recognize a poster by, and #166 grew it again from h-32
-    // (128px) to h-40 (160px) — this asserts the fix actually rendered
-    // large enough, not just that a size class changed name.
+    // (128px) to h-40 (160px). #679 then traded that for denser rows
+    // (about 177px each, so two viewings per screen) at the maintainer's
+    // call: 56x84px on desktop, still above the 64px #64 rejected. This
+    // asserts the size actually rendered, not just that a class changed name.
     const posterBox = await row.locator("img").boundingBox();
-    expect(posterBox?.height).toBeGreaterThanOrEqual(150);
+    expect(posterBox?.height).toBeGreaterThanOrEqual(80);
     // #38/#93: director/actors/genre/ratings/medium live on the details
     // page (one click away via the title link), not as their own
     // overview columns — that's what keeps this table to a fixed,
