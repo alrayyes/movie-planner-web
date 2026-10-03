@@ -13,7 +13,27 @@
         "styles",
         "test",
         "tests",
-        ".claude"
+        ".claude",
+        "lefthook.yml",
+        "biome.json",
+        "playwright.config.ts",
+        "codecov.yml",
+        "bunfig.toml",
+        "README.md",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "CLAUDE.md",
+        ".commitlintrc.json",
+        ".editorconfig",
+        ".gitattributes",
+        ".gitignore",
+        ".gitleaks.toml",
+        ".ltex.json",
+        ".markdownlint-cli2.yaml",
+        ".oxlintrc.json",
+        ".prettierignore",
+        ".prettierrc.json",
+        ".vale.ini"
       ]
     }
   }
