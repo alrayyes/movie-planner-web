@@ -61,6 +61,19 @@ test.describe("first-load credentials capture", () => {
     await expect(privacyLink).toHaveAttribute("href", "/privacy");
   });
 
+  // #683: the form is where a visitor first hits a server that can't work
+  // from a browser, so it says so before they try.
+  test("notes that the server must allow CORS, linking to which servers work", async ({ page }) => {
+    await page.goto("/");
+
+    const note = page.getByText(/must allow CORS/);
+    await expect(note).toBeVisible();
+    await expect(note.getByRole("link", { name: "which servers work" })).toHaveAttribute(
+      "href",
+      "/docs/connecting/#which-servers-work",
+    );
+  });
+
   // Same warning as /disclaimer and docs/connecting.md — shown here since
   // this is the point a visitor can still decide to use a dedicated
   // calendar, before they've typed in real credentials.
