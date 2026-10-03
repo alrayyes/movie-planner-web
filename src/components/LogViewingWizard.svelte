@@ -1,10 +1,11 @@
 <script lang="ts">
-import { getPicklists, listViewings, updatePicklists, updateViewing } from "../lib/caldav/client";
+import { getPicklists, updatePicklists, updateViewing } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, Picklists, VenueEntry } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { logManualViewing, OPEN_LOG_VIEWING_WIZARD_EVENT } from "../lib/movie-log/log-viewing";
-import { importCheckRange, toIsoDateTime } from "../lib/movie-log/run-import";
+import { toIsoDateTime } from "../lib/movie-log/run-import";
 import {
 	lookupByImdbId,
 	type MovieMetadata,
@@ -174,7 +175,7 @@ async function handleEditVenue(entry: VenueEntry) {
 async function loadMissingVenues() {
 	if (!cachedViewingsForBackfill) {
 		try {
-			cachedViewingsForBackfill = await listViewings(caldavConfig(), importCheckRange());
+			cachedViewingsForBackfill = await listAllViewings(caldavConfig());
 		} catch {
 			// Leave missingVenues at whatever it already was (likely empty)
 			// — the freehand Name field still works either way.

@@ -1,3 +1,4 @@
+import { retainViewingsCacheFor } from "../caldav/viewings-cache";
 import type { Credentials, CredentialsStore } from "./types";
 
 // Plain browser storage (Option A from the credentials capability spec) —
@@ -48,5 +49,11 @@ export class IndexedDbCredentialsStore implements CredentialsStore {
     } finally {
       db.close();
     }
+    // #715: viewings cached for any other calendar go, so pointing the app
+    // at a different one never shows the old one's list.
+    await retainViewingsCacheFor({
+      baseUrl: credentials.caldavUrl,
+      username: credentials.caldavUsername,
+    });
   }
 }

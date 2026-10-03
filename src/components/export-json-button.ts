@@ -1,8 +1,7 @@
-import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig } from "../lib/caldav/types";
+import { fetchFreshViewings } from "../lib/caldav/viewings-source";
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import { exportFilename, exportViewingsToJson } from "../lib/movie-log/export-viewings";
-import { importCheckRange } from "../lib/movie-log/run-import";
 import { BUTTON_SECONDARY, STATUS_TEXT } from "../lib/ui/classes";
 
 // #174: previously lived only on the overview itself (CalendarOverview.svelte),
@@ -57,7 +56,8 @@ export class ExportJsonButton extends HTMLElement {
       status.setAttribute("role", "status");
       status.textContent = "Preparing export…";
       try {
-        const all = await listViewings(config, importCheckRange());
+        // #715: an export is the server's own state, never a cached copy.
+        const all = await fetchFreshViewings(config);
         const blob = new Blob([exportViewingsToJson(all)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
