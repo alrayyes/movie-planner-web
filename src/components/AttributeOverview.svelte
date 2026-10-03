@@ -12,6 +12,7 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
+import ConnectLink from "./ConnectLink.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 
@@ -31,6 +32,9 @@ const config = ATTRIBUTES[kind];
 
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
+// #677: set while no credentials are stored, so the empty state can link
+// to where a visitor connects.
+let disconnected = $state(false);
 // #442: a genuine load failure gets the distinct error-toast treatment
 // instead of blending into status's own quiet line.
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
@@ -54,6 +58,7 @@ async function load() {
 	loadController = controller;
 	loadError = "";
 	const credentials = await getCredentialsStore().get();
+	disconnected = !credentials;
 	if (!credentials) {
 		status = `Connect first to see your ${config.plural.toLowerCase()}.`;
 		return;
@@ -110,6 +115,9 @@ reloadOnBfcacheRestore(() => void load());
 
 <div class="flex flex-col gap-4">
   <p class={STATUS_TEXT} role="status">{status}</p>
+  {#if disconnected}
+    <ConnectLink />
+  {/if}
   {#if loadError}
     <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
   {/if}

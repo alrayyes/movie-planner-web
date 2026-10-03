@@ -286,6 +286,35 @@ test.describe("site nav", () => {
     await expect(page.getByRole("button", { name: "Log a viewing" })).toHaveCount(0);
   });
 
+  // #677: before connecting the nav used to render nothing at all, so a
+  // first-time visitor on any page but the form had no way anywhere.
+  test("offers Settings and About, and only those, before a visitor has connected", async ({
+    page,
+  }) => {
+    await page.goto("/venues");
+
+    const nav = page.locator("site-nav");
+    await expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    await expect(nav.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    await expect(nav.getByRole("link")).toHaveCount(2);
+  });
+
+  test("leaves no blank gap in the header actions before a visitor has connected", async ({
+    page,
+  }) => {
+    await page.goto("/venues");
+    await expect(page.locator("site-nav").getByRole("link", { name: "Settings" })).toBeVisible();
+
+    const displays = await page
+      .locator(".header-actions")
+      .evaluate((el) =>
+        [...el.children]
+          .filter((child) => child.childElementCount === 0)
+          .map((child) => getComputedStyle(child).display),
+      );
+    expect(displays.every((display) => display === "none")).toBe(true);
+  });
+
   // #555: the current page's own nav item is marked aria-current="page"
   // and visually distinguished (underlined), so a visitor always knows
   // where they are — both on a hard load and after a soft, in-app
@@ -656,6 +685,29 @@ test.describe("footer", () => {
     await expect(
       page.getByRole("link", { name: "Connect your own CalDAV server" }),
     ).toHaveAttribute("href", "/");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
+// #677: a disconnected visitor on a page that needs credentials used to
+// read "Connect first to see …" with nowhere to go.
+test.describe("disconnected empty states", () => {
+  for (const path of ["/calendar", "/venues", "/genres"]) {
+    test(`${path} links to where a visitor connects`, async ({ page }) => {
+      await page.goto(path);
+
+      const link = page.getByRole("link", { name: "Connect your calendar" });
+      await expect(link).toHaveAttribute("href", "/");
+      await link.click();
+      await expect(page.locator("#caldav-url")).toBeVisible();
+    });
+  }
+
+  test("introduces no accessibility violations", async ({ page }) => {
+    await page.goto("/venues");
+    await expect(page.getByRole("link", { name: "Connect your calendar" })).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);

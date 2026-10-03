@@ -134,12 +134,13 @@ test.describe("docs", () => {
     });
 
     // Mirrors site-nav.ts's own credentials gate — same component,
-    // same behavior, everywhere it's mounted.
-    test("shows no nav links before a visitor has connected", async ({ page }) => {
+    // same behavior, everywhere it's mounted. #677: Settings and About
+    // are offered before connecting; everything else waits for credentials.
+    test("shows only Settings and About before a visitor has connected", async ({ page }) => {
       await page.goto("/docs/");
 
       await expect(page.getByRole("button", { name: "Log a viewing" })).toHaveCount(0);
-      await expect(page.locator("site-nav a")).toHaveCount(0);
+      await expect(page.locator("site-nav a")).toHaveText(["Settings", "About"]);
     });
 
     test("Starlight's own sidebar is still present and navigates", async ({ page }) => {

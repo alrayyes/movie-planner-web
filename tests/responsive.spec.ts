@@ -86,7 +86,7 @@ async function connect(page: Page) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 for (const viewport of VIEWPORTS) {
@@ -151,7 +151,7 @@ for (const viewport of VIEWPORTS) {
       await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
       await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
       await page.getByRole("button", { name: "Connect" }).click();
-      await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
       await page.getByRole("link", { name: "Dune", exact: true }).click();
 
       // Compared against the "Trailer" heading's own width, not the

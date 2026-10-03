@@ -30,7 +30,7 @@ async function connect(page: Page, omdbApiKey?: string) {
     await page.locator("#omdb-api-key").fill(omdbApiKey);
   }
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 test.describe("first-load credentials capture", () => {
@@ -43,7 +43,9 @@ test.describe("first-load credentials capture", () => {
     await expect(page.locator("#caldav-username")).toBeVisible();
     await expect(page.locator("#caldav-password")).toBeVisible();
     await expect(page.getByText("Optional integrations")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
+    // #677: only Settings and About before connecting, not the pages that need credentials.
+    await expect(page.locator("site-nav").getByRole("link", { name: "Venues" })).toHaveCount(0);
+    await expect(page.locator("site-nav").getByRole("link", { name: "Calendar" })).toHaveCount(0);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
@@ -68,12 +70,13 @@ test.describe("first-load credentials capture", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
-    // Was 735px, behind the whole intro. The beta notice above it is fixed
-    // legal-style text (#678 keeps it unchanged), so this is the ceiling
-    // with it in place, not a design target.
+    // Was 735px, behind the whole intro. What's above it is now fixed: the
+    // beta notice (#678 keeps its text unchanged) and the Settings/About nav
+    // a visitor gets before connecting (#677, about 60px). So this is the
+    // ceiling with both in place, not a design target.
     const box = await page.locator("#caldav-url").boundingBox();
     expect(box).not.toBeNull();
-    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(620);
+    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(680);
   });
 
   test("tucks the optional integrations into a collapsed group", async ({ page }) => {
@@ -141,7 +144,7 @@ test.describe("first-load credentials capture", () => {
     mockEmptyEventList(page);
     await page.reload();
 
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
     await expect(page.locator("#caldav-url")).toHaveCount(0);
   });
 
@@ -157,7 +160,7 @@ test.describe("first-load credentials capture", () => {
 
     await page.getByRole("button", { name: "Connect" }).click();
 
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   });
 
   // #360/#400 (credentials spec, "TMDb API key is optional"): same
@@ -175,7 +178,7 @@ test.describe("first-load credentials capture", () => {
 
     await page.getByRole("button", { name: "Connect" }).click();
 
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   });
 });
 
