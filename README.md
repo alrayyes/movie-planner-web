@@ -190,6 +190,8 @@ works the same way.
 
 - [User guide](https://movie-planner.ryankes.eu/docs/): connecting a server,
   logging, import and export, and the rest, as built from `src/content/docs/`.
+- [Architecture](ARCHITECTURE.md) and the [decision records](docs/adr/): how
+  the system fits together, and why it is built that way.
 - [Calendar schema](docs/calendar-schema.md): what this app reads and writes on
   the CalDAV calendar, and how it lines up with the command-line tool's.
 - [Design references](docs/design/README.md): the Stitch screens used for the

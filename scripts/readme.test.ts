@@ -15,9 +15,14 @@ describe("README.md", () => {
     expect(pages.length).toBeGreaterThan(0);
   });
 
+  // A page counts as linked when the README links it, or links the directory
+  // that holds it: docs/adr/ is an index of numbered records, and a link to it
+  // reaches all of them.
   for (const page of pages) {
     test(`links ${page}`, () => {
-      expect(readme).toContain(`](${page})`);
+      const directory = `${page.slice(0, page.lastIndexOf("/"))}/`;
+      const linked = readme.includes(`](${page})`) || readme.includes(`](${directory})`);
+      expect(linked).toBe(true);
     });
   }
 
