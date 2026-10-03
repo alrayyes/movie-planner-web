@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.19.0...movie-planner-web-v1.20.0) (2026-10-03)
+
+
+### Features
+
+* **ui:** give disconnected visitors a way forward ([#709](https://github.com/alrayyes/movie-planner-web/issues/709)) ([43711e8](https://github.com/alrayyes/movie-planner-web/commit/43711e8a7b90417586c68bb7eb4759ad445cc2b6))
+
 ## [1.19.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.18.0...movie-planner-web-v1.19.0) (2026-10-03)
 
 
