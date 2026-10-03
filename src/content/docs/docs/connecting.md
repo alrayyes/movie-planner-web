@@ -38,6 +38,10 @@ and fix it.
 
 ## OMDb key (optional)
 
+The OMDb and TMDb keys, the pause checkbox, and the WebMCP checkbox sit
+together under **Optional integrations** on the connect form and the
+settings page. Expand that group to reach them.
+
 Adding an [OMDb API key](https://www.omdbapi.com/apikey.aspx) on the
 connect form or the settings page enables posters, ratings, and
 cross-links to IMDb, Rotten Tomatoes, and Letterboxd when you log a
