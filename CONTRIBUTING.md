@@ -8,12 +8,12 @@ for whoever runs it.
 - **[bun](https://bun.sh) 1.3 or newer.** Runtime, test runner, package
   manager for the linter, and the [lefthook](https://lefthook.dev) that
   runs the git hooks — bun is the only thing to install.
-- **[Vale](https://vale.sh)** on your `PATH`, for the style tier of the
-  prose lint:
-
-  ```sh
-  go install github.com/errata-ai/vale/v3/cmd/vale@latest
-  ```
+- **[Vale](https://vale.sh)** for the style tier of the prose lint. Nothing to
+  install if you have Docker: with no `vale` on your `PATH`,
+  `scripts/lint-prose.sh` runs the same official `jdkato/vale` image CI does.
+  The pre-commit hook calls `vale` directly, so install it
+  ([instructions](https://vale.sh/docs/install)) if you want that check
+  to run on commit too.
 
   `ltex-cli-plus` needs nothing installed: the hook fetches and caches it
   on first use.

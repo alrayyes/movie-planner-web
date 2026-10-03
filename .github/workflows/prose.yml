@@ -37,11 +37,12 @@ concurrency:
 
 env:
   LEFTHOOK: "0"
-  # Pinned like everything else. Vale's style packages are versioned
-  # separately and fetched by `vale sync`.
-  VALE_VERSION: v3.17.1
-  # ltex-ls-plus is pinned inside scripts/lint-mechanics.sh instead, so the
-  # hook and this workflow cannot install different versions of it.
+
+# Vale's image is pinned in the `style` job below and again in
+# scripts/lint-prose.sh, and a test (scripts/vale-image.test.ts) fails when the
+# two differ. Its style packages are versioned separately and fetched by
+# `vale sync`. ltex-ls-plus is pinned inside scripts/lint-mechanics.sh instead,
+# so the hook and this workflow cannot install different versions of it.
 
 jobs:
   # Mechanics: grammar, spelling, the phonetic article. These have a right
@@ -60,19 +61,25 @@ jobs:
   style:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # The official image, not a Go build: no Go toolchain, no cgo build
+    # dependency, no module path to break. It is Alpine with /bin/vale as its
+    # entrypoint, so the entrypoint is cleared for a job that runs a shell.
+    container:
+      # renovate: datasource=docker depName=jdkato/vale
+      image: jdkato/vale:v3.17.1@sha256:7dba3c9104ba366f172d119022c4ec53a005f7d14dc1b80e285421a3f0b71657
+      options: --entrypoint ""
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: "1.26"
+      # The image ships node but neither bash nor git, and the script needs
+      # both. Before checkout, so the action can use git.
+      - name: Install bash and git
+        run: apk add --no-cache bash git
 
-      - name: Install Vale
-        # No project Go toolchain here — this is only a vehicle to fetch a
-        # single pinned binary, the same way the local hook and
-        # CONTRIBUTING.md's setup step do.
-        env:
-          GOTOOLCHAIN: auto
-        run: go install github.com/errata-ai/vale/v3/cmd/vale@${{ env.VALE_VERSION }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Trust the workspace
+        # The job runs as root over a checkout owned by the runner user, which
+        # git refuses to read without this.
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Vale
         # The same script the pre-push hook runs, so the two cannot check
