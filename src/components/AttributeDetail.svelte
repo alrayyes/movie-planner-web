@@ -197,13 +197,13 @@ reloadOnBfcacheRestore(() => void load());
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
-                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-40 sm:w-24"
+                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-21 sm:w-14"
                       loading="lazy"
                     />
                   </a>
                 {:else}
                   <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
-                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-40 sm:w-24" />
+                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-21 sm:w-14" />
                   </a>
                 {/if}
               </td>
