@@ -28,7 +28,7 @@ async function connect(page: Page, omdbApiKey?: string) {
     await page.locator("#omdb-api-key").fill(omdbApiKey);
   }
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
 }
 
 test.describe("first-load credentials capture", () => {
@@ -85,7 +85,7 @@ test.describe("first-load credentials capture", () => {
     mockEmptyEventList(page);
     await page.reload();
 
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
     await expect(page.locator("#caldav-url")).toHaveCount(0);
   });
 
@@ -101,7 +101,7 @@ test.describe("first-load credentials capture", () => {
 
     await page.getByRole("button", { name: "Connect" }).click();
 
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   });
 
   // #360/#400 (credentials spec, "TMDb API key is optional"): same
@@ -119,7 +119,7 @@ test.describe("first-load credentials capture", () => {
 
     await page.getByRole("button", { name: "Connect" }).click();
 
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   });
 });
 

@@ -55,7 +55,7 @@ async function connect(
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   if (options.webMcpEnabled) await page.locator("#webmcp-enabled").check();
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   return server;
 }
 
