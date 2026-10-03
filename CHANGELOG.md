@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.18.0...movie-planner-web-v1.19.0) (2026-10-03)
+
+
+### Features
+
+* **caldav:** show cached viewings first, refresh them in the background ([d6be7e4](https://github.com/alrayyes/movie-planner-web/commit/d6be7e4b1009db6848f6760b170d7ace1a30a435))
+* **caldav:** show cached viewings first, refresh them in the background ([39e78b4](https://github.com/alrayyes/movie-planner-web/commit/39e78b44c146e5f8860f6e0e911ebffa31d46004)), closes [#715](https://github.com/alrayyes/movie-planner-web/issues/715)
+
 ## [1.18.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.17.0...movie-planner-web-v1.18.0) (2026-10-03)
 
 
