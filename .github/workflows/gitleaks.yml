@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  LEFTHOOK: "0"
   # Pinned like everything else. go install can pin a binary by tag; no
   # separate download step or container image needed for that.
   GITLEAKS_VERSION: v8.30.1

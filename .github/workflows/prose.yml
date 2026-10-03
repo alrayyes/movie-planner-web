@@ -35,6 +35,9 @@ concurrency:
   group: prose-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  LEFTHOOK: "0"
+
 # Vale's image is pinned in the `style` job below and again in
 # scripts/lint-prose.sh, and a test (scripts/vale-image.test.ts) fails when the
 # two differ. Its style packages are versioned separately and fetched by
