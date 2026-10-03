@@ -87,6 +87,22 @@ scrolling (or tabbing) past a secondary visualization. No filter, or
 nothing located yet, means no map shows at all rather than an empty
 one.
 
+## Pages open from a local copy
+
+Most pages need your whole history, so this browser keeps a copy of your
+viewings (not your password) and shows it straight away when a page
+opens, then asks your CalDAV server for the current list in the
+background. If something changed on the server, such as a viewing added
+from the command line or another device, the page updates in place a
+moment later. Anything you add, edit, or delete here shows on the next
+page at once.
+
+The first visit, and the first visit after you point the app at a
+different calendar, still wait for the server, because there's no copy
+yet. Clearing this site's data in your browser removes the copy. Export
+and import always read from the server itself, never from the copy, and
+so does the activity log's check for changes made elsewhere.
+
 ## Sharing a single viewing
 
 "Share" on a viewing's own details page generates a link to just that

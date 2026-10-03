@@ -14,6 +14,7 @@ import {
 } from "./ical";
 import type { CaldavConfig, DateRange, LoggedViewing, NewViewing, Picklists } from "./types";
 import { validateCaldavConfig } from "./validate-config";
+import { cacheViewing, uncacheViewing } from "./viewings-cache";
 
 function authHeader(config: CaldavConfig): string {
   return `Basic ${btoa(`${config.username}:${config.password}`)}`;
@@ -135,7 +136,11 @@ async function putViewing(
     body: serializeViewingToVEvent(uid, attributed, extraLines),
   });
   await assertOk(response, "saving event");
-  return { ...attributed, uid };
+  const saved = { ...attributed, uid };
+  // #715: keeps the browser-side copy in step with this write, so the next
+  // page doesn't serve the row as it was before.
+  await cacheViewing(config, saved);
+  return saved;
 }
 
 export async function createViewing(
@@ -214,8 +219,13 @@ export async function deleteViewing(config: CaldavConfig, uid: string): Promise<
     method: "DELETE",
     headers: { Authorization: authHeader(config) },
   });
-  if (response.status === 404) return;
+  if (response.status === 404) {
+    // Already gone on the server; make sure the cached copy agrees.
+    await uncacheViewing(config, uid);
+    return;
+  }
   await assertOk(response, "deleting event");
+  await uncacheViewing(config, uid);
   await recordActivity({
     at: new Date().toISOString(),
     action: "deleted",

@@ -5,7 +5,6 @@ import {
 	deleteViewing,
 	getPicklists,
 	getViewing,
-	listViewings,
 	updatePicklists,
 	updateViewing,
 } from "../lib/caldav/client";
@@ -16,6 +15,7 @@ import type {
 	Picklists,
 	VenueEntry,
 } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { openStreetMapUrl } from "../lib/geo/links";
@@ -26,7 +26,6 @@ import {
 	exportViewingsToJson,
 } from "../lib/movie-log/export-viewings";
 import { resolveBackHref } from "../lib/movie-log/movie-link";
-import { importCheckRange } from "../lib/movie-log/run-import";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
 import {
@@ -320,7 +319,7 @@ async function loadMissingVenues() {
 	if (!config) return;
 	if (!cachedViewingsForBackfill) {
 		try {
-			cachedViewingsForBackfill = await listViewings(config, importCheckRange());
+			cachedViewingsForBackfill = await listAllViewings(config);
 		} catch {
 			// Leave missingVenues at whatever it already was (likely empty)
 			// — the freehand Name field still works either way.

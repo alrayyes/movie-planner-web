@@ -1,10 +1,9 @@
 <script lang="ts">
-import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
-import { importCheckRange } from "../lib/movie-log/run-import";
 import { hasOmdbMetadata, type MissingOmdbField, missingOmdbFields } from "../lib/omdb/metadata";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
@@ -150,7 +149,17 @@ async function load() {
 	omdbApiKey = credentials.omdbPaused ? undefined : credentials.omdbApiKey;
 	tmdbApiKey = credentials.tmdbApiKey;
 	try {
-		allViewings = await listViewings(config, importCheckRange(), { signal: controller.signal });
+		// #715: cached copy first, then a background refresh that
+		// reassigns this when the server's list differs.
+		allViewings = await listAllViewings(config, {
+			signal: controller.signal,
+			onRefresh: (fresh) => {
+				allViewings = fresh;
+			},
+			onRefreshError: (error) => {
+				loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+			},
+		});
 		status = "";
 		hasLoaded = true;
 	} catch (error) {

@@ -2,6 +2,7 @@
 import { syncCaldavActivityLog } from "../lib/activity-log/sync";
 import { deleteViewing, getPicklists, listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { filterViewings } from "../lib/movie-log/filter-viewings";
 import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
@@ -534,15 +535,15 @@ function currentRange() {
 // visitor's own CalDAV server sees a wasted duplicate request for no
 // reason.
 let reloadController: AbortController | undefined;
-// #533: syncActivityLogUntilNavigatedAway (below) always wants the same
-// full, unfiltered history reload() itself fetches whenever no explicit
-// From/To narrows it — this is what lets it reuse reload()'s own
-// in-flight request instead of firing its own identical, fully
-// redundant one. Left unset (or stale from an earlier, narrower reload)
-// whenever a filter is active, so the sync falls back to its own fetch
-// in that case — it always needs the *whole* history to diff correctly,
-// never just whatever range the visible table happens to be scoped to.
-let latestUnfilteredFetch: Promise<LoggedViewing[]> | undefined;
+// #533/#715: the activity-log sync always needs the server's whole history,
+// which an unfiltered reload() below fetches too. Both now go through
+// viewings-source.ts, which shares one request between them, so there is
+// nothing to hand across here any more.
+//
+// The last From/To this component filled in itself from the data (#188), so a
+// background refresh can tell its own values from ones the visitor typed.
+let autoFrom = "";
+let autoTo = "";
 
 async function reload(options: { silent?: boolean } = {}) {
 	reloadController?.abort();
@@ -553,18 +554,40 @@ async function reload(options: { silent?: boolean } = {}) {
 	const hadNoExplicitFrom = !fromValue;
 	const hadNoExplicitTo = !toValue;
 	try {
-		const fetchPromise = listViewings(config, currentRange(), { signal: controller.signal });
-		if (hadNoExplicitFrom && hadNoExplicitTo) latestUnfilteredFetch = fetchPromise;
-		allViewings = await fetchPromise;
 		// #188: only when no explicit range was chosen — never overwrite a
 		// visitor's own typed-in From/To, including on a silent
 		// refresh-triggered reload that runs long after they set one.
-		if ((hadNoExplicitFrom || hadNoExplicitTo) && allViewings.length > 0) {
-			const starts = allViewings.map((v) => new Date(v.start).getTime());
-			if (hadNoExplicitFrom)
-				fromValue = toDateInputValue(new Date(Math.min(...starts)).toISOString());
-			if (hadNoExplicitTo) toValue = toDateInputValue(new Date(Math.max(...starts)).toISOString());
+		const adoptRange = (viewings: LoggedViewing[], adoptFrom: boolean, adoptTo: boolean) => {
+			if ((!adoptFrom && !adoptTo) || viewings.length === 0) return;
+			const starts = viewings.map((v) => new Date(v.start).getTime());
+			if (adoptFrom) {
+				autoFrom = toDateInputValue(new Date(Math.min(...starts)).toISOString());
+				fromValue = autoFrom;
+			}
+			if (adoptTo) {
+				autoTo = toDateInputValue(new Date(Math.max(...starts)).toISOString());
+				toValue = autoTo;
+			}
+		};
+		if (hadNoExplicitFrom && hadNoExplicitTo) {
+			// #715: the unfiltered view is the whole history, which is what the
+			// cache holds — shown from it at once, then replaced if the
+			// background refresh differs. The auto-filled From/To follow it
+			// only while the visitor hasn't changed them.
+			allViewings = await listAllViewings(config, {
+				signal: controller.signal,
+				onRefresh: (fresh) => {
+					allViewings = fresh;
+					adoptRange(fresh, fromValue === autoFrom, toValue === autoTo);
+				},
+				onRefreshError: (error) => {
+					loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+				},
+			});
+		} else {
+			allViewings = await listViewings(config, currentRange(), { signal: controller.signal });
 		}
+		adoptRange(allViewings, hadNoExplicitFrom, hadNoExplicitTo);
 		// #435: the count has its own persistent element now (near the
 		// page-size selector) rather than sharing this slot with
 		// "Loading…" — clear it instead of writing the count here, so a
@@ -812,16 +835,10 @@ async function handleRefreshAll() {
 function syncActivityLogUntilNavigatedAway() {
 	const controller = new AbortController();
 	document.addEventListener("astro:before-swap", () => controller.abort(), { once: true });
-	// #533: reload() (called just below, before this) has already set
-	// latestUnfilteredFetch synchronously if this mount is unfiltered —
-	// reusing it here means an unfiltered overview load fires one
-	// full-history REPORT, not two concurrent, identical ones.
-	void syncCaldavActivityLog(config, {
-		signal: controller.signal,
-		fetchAllViewings: latestUnfilteredFetch
-			? () => latestUnfilteredFetch as Promise<LoggedViewing[]>
-			: undefined,
-	});
+	// #533/#715: the sync fetches the server's own list (never the cache) via
+	// viewings-source.ts, which shares a request already in flight from
+	// reload() above — an unfiltered load still fires one REPORT, not two.
+	void syncCaldavActivityLog(config, { signal: controller.signal });
 }
 
 reload();

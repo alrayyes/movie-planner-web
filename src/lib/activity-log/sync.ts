@@ -1,6 +1,5 @@
-import { listViewings } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../caldav/types";
-import { importCheckRange } from "../movie-log/run-import";
+import { fetchFreshViewings } from "../caldav/viewings-source";
 import { diffCaldavSnapshot } from "./snapshot-diff";
 import { type CaldavSnapshotStore, getCaldavSnapshotStore } from "./snapshot-store";
 import { recordActivity } from "./store";
@@ -40,7 +39,7 @@ export async function syncCaldavActivityLog(
   deps: SyncDeps = {},
 ): Promise<void> {
   const fetchAllViewings =
-    deps.fetchAllViewings ?? ((c) => listViewings(c, importCheckRange(), { signal: deps.signal }));
+    deps.fetchAllViewings ?? ((c) => fetchFreshViewings(c, { signal: deps.signal }));
   const store = deps.store ?? getCaldavSnapshotStore();
   const record = deps.record ?? recordActivity;
 
