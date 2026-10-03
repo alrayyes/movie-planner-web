@@ -50,25 +50,33 @@ commit-msg:
     - name: commitlint
       run: bunx commitlint --edit {1}
 
-# pre-push never writes. A hook rewriting files under a push leaves the pushed
-# commit and the working tree disagreeing about what was reviewed.
+# pre-push never rewrites tracked files. A hook rewriting files under a push
+# leaves the pushed commit and the working tree disagreeing about what was
+# reviewed.
 #
-# Parallel because of that: nothing here touches a file, so no job can be
-# reading what another is rewriting.
+# Parallel because of that, with one exception: `test` and `check` both write
+# the untracked `.astro/` cache (the e2e webServer runs `astro build`), and
+# overlapping they fail with `ENOENT ... rename '.astro/content-assets.mjs.tmp'`
+# before any test runs (#640). They run one after the other in a group; every
+# other job still runs alongside them.
 pre-push:
   parallel: true
   jobs:
-    # --retries=2, as CI has (playwright.config.ts): the local `wrangler dev`
-    # server this suite drives drops connections under load (workerd `Broken
-    # pipe`), which fails a few unrelated tests at random with 30 second
-    # timeouts, a different few each run and all passing on a rerun (#640).
-    # CI retries them; the hook didn't, so it failed about half the time on a
-    # busy machine. A test that fails three times in a row still fails.
-    - name: test
-      run: bun run test:unit && bun run test:e2e --retries=2
+    - group:
+        parallel: false
+        jobs:
+          - name: check
+            run: bun run check
 
-    - name: check
-      run: bun run check
+          # --retries=2, as CI has (playwright.config.ts): the local `wrangler
+          # dev` server this suite drives drops connections under load (workerd
+          # `Broken pipe`), which fails a few unrelated tests at random with 30
+          # second timeouts, a different few each run and all passing on a rerun
+          # (#640). CI retries them; the hook didn't, so it failed about half
+          # the time on a busy machine. A test that fails three times in a row
+          # still fails.
+          - name: test
+            run: bun run test:unit && bun run test:e2e --retries=2
 
     - name: biome
       run: bun run lint
