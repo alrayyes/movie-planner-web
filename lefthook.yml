@@ -86,6 +86,10 @@ pre-push:
     - name: tailwind
       run: bun run lint:tailwind
 
+    # CLAUDE.md and .claude/settings*.json, one file per cclint call.
+    - name: claude
+      run: bun run lint:claude
+
     # These are `package.json` scripts rather than the commands spelled out,
     # because CI runs the same ones and a literal copied into two files drifts
     # the first time somebody edits one of them.

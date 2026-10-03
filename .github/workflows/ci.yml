@@ -34,6 +34,8 @@ jobs:
         run: bun run lint
       - name: oxlint (shadcn/lint Tailwind rules)
         run: bun run lint:tailwind
+      - name: cclint (CLAUDE.md and .claude/settings*.json)
+        run: bun run lint:claude
       - name: sort-package-json --check
         run: bun run sort-package-json:check
       # TypeScript's own package no longer exposes astro check's compiler
