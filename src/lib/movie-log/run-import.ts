@@ -1,5 +1,6 @@
-import { createViewing, listViewings, updateViewing } from "../caldav/client";
+import { createViewing, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
+import { fetchFreshViewings } from "../caldav/viewings-source";
 import type { Credentials } from "../credentials/types";
 import { isLikelyDuplicateTitle } from "./duplicates";
 import type { ImportRow, ParsedRow } from "./import-rows";
@@ -140,17 +141,9 @@ export function planUpdates(rows: ParsedRow[], existing: LoggedViewing[]): Impor
   return updates;
 }
 
-// A wide-enough window to cover essentially any import file without the
-// visitor having to pick a range up front — mirrors calendar-overview's
-// own default range for the same reason.
-export function importCheckRange(): { from: string; to: string } {
-  const now = new Date();
-  const from = new Date(now);
-  from.setFullYear(now.getFullYear() - 15);
-  const to = new Date(now);
-  to.setFullYear(now.getFullYear() + 1);
-  return { from: from.toISOString(), to: to.toISOString() };
-}
+// Moved to ../caldav/range so the viewings cache can use it without a cycle
+// through this file; re-exported so existing imports keep working.
+export { importCheckRange } from "../caldav/range";
 
 // No timezone in the minimal import format, same as the manual log
 // form's date + optional time fields — interpreted as the visitor's own
@@ -224,5 +217,6 @@ export async function applyImportUpdate(
 export async function fetchExistingForImportCheck(
   credentials: Credentials,
 ): Promise<LoggedViewing[]> {
-  return listViewings(configFromCredentials(credentials), importCheckRange());
+  // #715: the duplicate check must see the server's own list, not a cached one.
+  return fetchFreshViewings(configFromCredentials(credentials));
 }

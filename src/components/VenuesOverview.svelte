@@ -1,6 +1,7 @@
 <script lang="ts">
-import { getPicklists, listViewings } from "../lib/caldav/client";
-import type { CaldavConfig } from "../lib/caldav/types";
+import { getPicklists } from "../lib/caldav/client";
+import type { CaldavConfig, LoggedViewing, VenueEntry } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
@@ -178,46 +179,59 @@ async function load() {
 		password: credentials.caldavPassword,
 	};
 	try {
-		const range = importCheckRange();
-		loadedRange = range;
-		const [{ venues }, viewings] = await Promise.all([
-			getPicklists(config),
-			listViewings(config, range, { signal: controller.signal }),
-		]);
-		// #452: a picklist entry now carries its own city/country/geo
-		// directly — seeded here so a venue with zero viewings (still
-		// worth showing, #99's own scenario) can be grouped/pinned from
-		// its own structured data alone, same as one only known from a
-		// viewing already was.
-		const infoByVenue = new Map<string, VenueInfo>(
-			venues.map((entry) => [
-				entry.name,
-				{
-					venue: entry.name,
-					count: 0,
-					city: entry.city,
-					country: entry.country,
-					lat: entry.geo?.lat,
-					lon: entry.geo?.lon,
-				},
-			]),
-		);
-		for (const viewing of viewings) {
-			if (!viewing.venue) continue;
-			const info = infoByVenue.get(viewing.venue) ?? { venue: viewing.venue, count: 0 };
-			info.count += 1;
-			if (viewing.geo && info.lat === undefined) {
-				info.lat = viewing.geo.lat;
-				info.lon = viewing.geo.lon;
+		loadedRange = importCheckRange();
+		// #715: viewings come from the cache at once and are redone if the
+		// background refresh differs. The picklist is a small live fetch the
+		// refresh waits for, since it can finish first.
+		const picklists = getPicklists(config);
+		const apply = (venues: VenueEntry[], viewings: LoggedViewing[]) => {
+			// #452: a picklist entry now carries its own city/country/geo
+			// directly — seeded here so a venue with zero viewings (still
+			// worth showing, #99's own scenario) can be grouped/pinned from
+			// its own structured data alone, same as one only known from a
+			// viewing already was.
+			const infoByVenue = new Map<string, VenueInfo>(
+				venues.map((entry) => [
+					entry.name,
+					{
+						venue: entry.name,
+						count: 0,
+						city: entry.city,
+						country: entry.country,
+						lat: entry.geo?.lat,
+						lon: entry.geo?.lon,
+					},
+				]),
+			);
+			for (const viewing of viewings) {
+				if (!viewing.venue) continue;
+				const info = infoByVenue.get(viewing.venue) ?? { venue: viewing.venue, count: 0 };
+				info.count += 1;
+				if (viewing.geo && info.lat === undefined) {
+					info.lat = viewing.geo.lat;
+					info.lon = viewing.geo.lon;
+				}
+				if (viewing.city && info.city === undefined) info.city = viewing.city;
+				if (viewing.country && info.country === undefined) info.country = viewing.country;
+				infoByVenue.set(viewing.venue, info);
 			}
-			if (viewing.city && info.city === undefined) info.city = viewing.city;
-			if (viewing.country && info.country === undefined) info.country = viewing.country;
-			infoByVenue.set(viewing.venue, info);
-		}
-		venueInfos = [...infoByVenue.values()].sort(
-			(a, b) => b.count - a.count || a.venue.localeCompare(b.venue),
-		);
-		status = `${venueInfos.length} venue${venueInfos.length === 1 ? "" : "s"}.`;
+			venueInfos = [...infoByVenue.values()].sort(
+				(a, b) => b.count - a.count || a.venue.localeCompare(b.venue),
+			);
+			status = `${venueInfos.length} venue${venueInfos.length === 1 ? "" : "s"}.`;
+		};
+		const viewings = await listAllViewings(config, {
+			signal: controller.signal,
+			onRefresh: (fresh) => {
+				void picklists.then(({ venues }) => {
+					if (!controller.signal.aborted) apply(venues, fresh);
+				});
+			},
+			onRefreshError: (error) => {
+				loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+			},
+		});
+		apply((await picklists).venues, viewings);
 	} catch (error) {
 		// Superseded by a newer load — the newer call's own catch/success
 		// block is what should actually update status now, not this one.

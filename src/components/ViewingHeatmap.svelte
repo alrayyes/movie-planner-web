@@ -1,10 +1,9 @@
 <script lang="ts">
-import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
-import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { BUTTON_SECONDARY, STATUS_TEXT, TABLE_WRAP } from "../lib/ui/classes";
@@ -222,12 +221,22 @@ async function load() {
 		password: credentials.caldavPassword,
 	};
 	try {
-		const viewings = await listViewings(config, importCheckRange());
-		viewingsByDay = groupViewingsByLocalDay(viewings);
-		status =
-			viewings.length === 0
-				? "No logged viewings yet."
-				: `${viewings.length} logged viewing${viewings.length === 1 ? "" : "s"}.`;
+		// #715: cached list first, redrawn if the background refresh differs.
+		const apply = (viewings: LoggedViewing[]) => {
+			viewingsByDay = groupViewingsByLocalDay(viewings);
+			status =
+				viewings.length === 0
+					? "No logged viewings yet."
+					: `${viewings.length} logged viewing${viewings.length === 1 ? "" : "s"}.`;
+		};
+		apply(
+			await listAllViewings(config, {
+				onRefresh: apply,
+				onRefreshError: (error) => {
+					loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+				},
+			}),
+		);
 	} catch (error) {
 		status = "";
 		loadError = error instanceof Error ? error.message : "Failed to load the heatmap.";

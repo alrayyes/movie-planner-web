@@ -81,12 +81,12 @@ function buildIntro(): HTMLDivElement {
   const p1 = document.createElement("p");
   p1.textContent =
     "Movie Planner reads and writes your watch history straight to your own " +
-    "CalDAV calendar — the same standard protocol most calendar apps already " +
-    "speak. There's no account with this service and nothing stored anywhere " +
-    "but your own browser: the fields below are your CalDAV server's own " +
-    "address and login, the same ones you'd give any calendar app.";
+    "CalDAV calendar, the same standard protocol most calendar apps speak.";
   wrap.appendChild(p1);
 
+  // #678: one sentence that only restates /privacy, with the "no CalDAV
+  // server yet?" pointer ahead of it. This used to be two paragraphs and
+  // pushed the form ~700px down on a phone.
   const p2 = document.createElement("p");
   const docsLink = document.createElement("a");
   docsLink.href = "/docs/connecting/";
@@ -97,12 +97,12 @@ function buildIntro(): HTMLDivElement {
   privacyLink.className = "text-indigo-600 underline dark:text-indigo-400";
   privacyLink.textContent = "privacy page";
   p2.append(
-    "No CalDAV server yet, or not sure what this is asking for? See ",
-    docsLink,
-    ". These credentials are never sent anywhere except straight to the " +
-      "CalDAV server you point them at below — see the ",
+    "Your credentials are stored in this browser and sent only to the server " +
+      "you enter, with no proxy or analytics (",
     privacyLink,
-    " for the full, verifiable claim.",
+    "). No CalDAV server yet? See ",
+    docsLink,
+    ".",
   );
   wrap.appendChild(p2);
 
@@ -155,22 +155,31 @@ export function buildCredentialsForm(options: {
       values?.caldavPassword ?? "",
       true,
     ),
-    labelledField(
-      "omdb-api-key",
-      "OMDb API key (optional)",
-      "text",
-      values?.omdbApiKey ?? "",
-      false,
+    optionalIntegrations(
+      [
+        labelledField(
+          "omdb-api-key",
+          "OMDb API key (optional)",
+          "text",
+          values?.omdbApiKey ?? "",
+          false,
+        ),
+        omdbPausedField(values?.omdbPaused ?? false),
+        labelledField(
+          "tmdb-api-key",
+          "TMDb API key (optional)",
+          "text",
+          values?.tmdbApiKey ?? "",
+          false,
+        ),
+        webMcpEnabledField(values?.webMcpEnabled ?? false),
+      ],
+      // Open when something in it is already set, so a returning visitor
+      // editing their keys on /settings doesn't have to hunt for them.
+      Boolean(
+        values?.omdbApiKey || values?.tmdbApiKey || values?.omdbPaused || values?.webMcpEnabled,
+      ),
     ),
-    omdbPausedField(values?.omdbPaused ?? false),
-    labelledField(
-      "tmdb-api-key",
-      "TMDb API key (optional)",
-      "text",
-      values?.tmdbApiKey ?? "",
-      false,
-    ),
-    webMcpEnabledField(values?.webMcpEnabled ?? false),
   );
 
   const submit = document.createElement("button");
@@ -180,6 +189,22 @@ export function buildCredentialsForm(options: {
   form.appendChild(submit);
 
   return form;
+}
+
+// #678: the required three fields come first and alone; everything
+// optional sits behind one native <details>, collapsed unless a value is
+// already set. Fields inside a closed <details> still submit with the form.
+function optionalIntegrations(fields: HTMLElement[], open: boolean): HTMLDetailsElement {
+  const details = document.createElement("details");
+  details.open = open;
+  const summary = document.createElement("summary");
+  summary.className = `${LABEL} cursor-pointer`;
+  summary.textContent = "Optional integrations";
+  const body = document.createElement("div");
+  body.className = "mt-3 flex flex-col gap-4";
+  body.append(...fields);
+  details.append(summary, body);
+  return details;
 }
 
 // #80: a checkbox, not the text-input labelledField shape — plus an

@@ -20,6 +20,14 @@ import Layout from "../layouts/Layout.astro";
       except straight to the CalDAV and OMDb URLs you configured yourself.
     </p>
     <p>
+      So that pages open quickly with a long history, this browser also keeps a
+      copy of your viewings (titles, dates, venues and any OMDb details) in its
+      own storage, and refreshes it from your CalDAV server each time a page
+      opens. That copy never includes your password. Pointing the site at a
+      different calendar removes the old copy, and so does clearing the site
+      data described below.
+    </p>
+    <p>
       Every CalDAV and OMDb request this site makes goes directly from your
       browser to the servers you pointed it at — there's no proxy, relay, or
       analytics service of any kind in between. Clearing your browser's site

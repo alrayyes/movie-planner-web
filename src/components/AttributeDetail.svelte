@@ -1,11 +1,10 @@
 <script lang="ts">
 import { ATTRIBUTES, type AttributeKind, attributeValues } from "../lib/attribute/attributes";
-import { listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
-import { importCheckRange } from "../lib/movie-log/run-import";
 import { ACTIVE_FILTER_LABEL_EVENT } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -149,8 +148,16 @@ async function load() {
 		password: credentials.caldavPassword,
 	};
 	try {
-		allViewings = await listViewings(caldavConfig, importCheckRange(), {
+		// #715: cached copy first, then a background refresh that
+		// reassigns this when the server's list differs.
+		allViewings = await listAllViewings(caldavConfig, {
 			signal: controller.signal,
+			onRefresh: (fresh) => {
+				allViewings = fresh;
+			},
+			onRefreshError: (error) => {
+				loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+			},
 		});
 		status = "";
 		hasLoaded = true;
@@ -205,13 +212,13 @@ reloadOnBfcacheRestore(() => void load());
                     <img
                       src={viewing.posterUrl}
                       alt={`${viewing.title} poster`}
-                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-40 sm:w-24"
+                      class="h-24 w-16 max-w-none rounded object-cover shadow-sm sm:h-21 sm:w-14"
                       loading="lazy"
                     />
                   </a>
                 {:else}
                   <a href={movieHref(viewing.uid, { from: location.pathname + location.search })}>
-                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-40 sm:w-24" />
+                    <PosterPlaceholder class="h-24 w-16 rounded shadow-sm sm:h-21 sm:w-14" />
                   </a>
                 {/if}
               </td>

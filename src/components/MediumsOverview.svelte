@@ -1,10 +1,10 @@
 <script lang="ts">
-import { getPicklists, listViewings } from "../lib/caldav/client";
-import type { CaldavConfig } from "../lib/caldav/types";
+import { getPicklists } from "../lib/caldav/client";
+import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { mediumDisplay, mediumHref } from "../lib/medium/display";
-import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
@@ -55,24 +55,37 @@ async function load() {
 		password: credentials.caldavPassword,
 	};
 	try {
-		const range = importCheckRange();
-		const [{ media }, viewings] = await Promise.all([
-			getPicklists(config),
-			listViewings(config, range, { signal: controller.signal }),
-		]);
-		const infoByMedium = new Map<string, MediumInfo>(
-			["Cinema", ...media].map((medium) => [medium, { medium, count: 0 }]),
-		);
-		for (const viewing of viewings) {
-			const medium = mediumDisplay(viewing.medium);
-			const info = infoByMedium.get(medium) ?? { medium, count: 0 };
-			info.count += 1;
-			infoByMedium.set(medium, info);
-		}
-		mediumInfos = [...infoByMedium.values()].sort(
-			(a, b) => b.count - a.count || a.medium.localeCompare(b.medium),
-		);
-		status = `${mediumInfos.length} medium${mediumInfos.length === 1 ? "" : "s"}.`;
+		// #715: viewings come from the cache at once and are redone if the
+		// background refresh differs. The picklist is a small live fetch the
+		// refresh waits for, since it can finish first.
+		const picklists = getPicklists(config);
+		const apply = (media: string[], viewings: LoggedViewing[]) => {
+			const infoByMedium = new Map<string, MediumInfo>(
+				["Cinema", ...media].map((medium) => [medium, { medium, count: 0 }]),
+			);
+			for (const viewing of viewings) {
+				const medium = mediumDisplay(viewing.medium);
+				const info = infoByMedium.get(medium) ?? { medium, count: 0 };
+				info.count += 1;
+				infoByMedium.set(medium, info);
+			}
+			mediumInfos = [...infoByMedium.values()].sort(
+				(a, b) => b.count - a.count || a.medium.localeCompare(b.medium),
+			);
+			status = `${mediumInfos.length} medium${mediumInfos.length === 1 ? "" : "s"}.`;
+		};
+		const viewings = await listAllViewings(config, {
+			signal: controller.signal,
+			onRefresh: (fresh) => {
+				void picklists.then(({ media }) => {
+					if (!controller.signal.aborted) apply(media, fresh);
+				});
+			},
+			onRefreshError: (error) => {
+				loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+			},
+		});
+		apply((await picklists).media, viewings);
 	} catch (error) {
 		// Superseded by a newer load — the newer call's own catch/success
 		// block is what should actually update status now, not this one.

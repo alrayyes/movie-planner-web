@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.18.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.17.0...movie-planner-web-v1.18.0) (2026-10-03)
+
+
+### Features
+
+* **ui:** use the compact 56x84px poster in the other viewing tables ([4b92ef6](https://github.com/alrayyes/movie-planner-web/commit/4b92ef681c857e5f5915c112544ca28703853c6f))
+
+## [1.17.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.16.0...movie-planner-web-v1.17.0) (2026-10-03)
+
+
+### Features
+
+* **ui:** collapse the optional connect settings and shorten the intro ([2d00879](https://github.com/alrayyes/movie-planner-web/commit/2d008792d37523204f120ef2e0c8037e9ab82bc2))
+* **ui:** collapse the optional connect settings and shorten the intro ([f472f47](https://github.com/alrayyes/movie-planner-web/commit/f472f474684315e7c840ff0e728e9a233d9133f8)), closes [#678](https://github.com/alrayyes/movie-planner-web/issues/678)
+
 ## [1.16.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.15.0...movie-planner-web-v1.16.0) (2026-10-02)
 
 
