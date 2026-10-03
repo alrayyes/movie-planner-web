@@ -1,7 +1,7 @@
 # movie-planner-web
 
 Bootstrapped from `alrayyes/scaffold-astro-site`, then adapted: CalDAV is
-the app's sole data store (see `openspec/changes/add-movie-planner-web-app/`
+the app's sole data store (see `openspec/changes/archive/2026-09-04-add-movie-planner-web-app/`
 for the full design). Fully static — the CalDAV and OMDb clients run in
 the browser and call the visitor's own servers directly, so there's no
 server-side app code at all, only static assets served by a
