@@ -41,7 +41,9 @@ test.describe("first-load credentials capture", () => {
     await expect(page.locator("#caldav-username")).toBeVisible();
     await expect(page.locator("#caldav-password")).toBeVisible();
     await expect(page.locator("#omdb-api-key")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
+    // #677: only Settings and About before connecting, not the pages that need credentials.
+    await expect(page.locator("site-nav").getByRole("link", { name: "Venues" })).toHaveCount(0);
+    await expect(page.locator("site-nav").getByRole("link", { name: "Calendar" })).toHaveCount(0);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
