@@ -55,7 +55,9 @@ by the other. The `/changelog` page's own data shape — parsed from
   that runs the git hooks.
 - Your own **CalDAV calendar** (Baikal or otherwise) to point the app at —
   this project doesn't provision one. **It has to send CORS headers
-  permitting this app's origin**, since your browser talks to it directly:
+  permitting this app's origin**, since your browser talks to it directly
+  ([which servers work](https://movie-planner.ryankes.eu/docs/connecting/#which-servers-work)
+  lists what's been tried):
 
   ```text
   Access-Control-Allow-Origin: *

@@ -36,6 +36,28 @@ ever survives a reload, with no error shown. See the README's
 requirements section, linked in the preceding paragraph, for how to check
 and fix it.
 
+## Which servers work
+
+This app talks to your CalDAV server straight from your browser, so the
+server has to send CORS headers. Only one provider has been tried in a
+real browser. The rest are judged from a preflight request, so treat
+"not expected to work" as a warning, not a verdict.
+
+| Server                           | Status                         | Why                                                                                                                                                                                                                                                           |
+| -------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baikal                           | Tested, works                  | Sends no CORS headers itself; works once a reverse proxy adds them (see the README's requirements section).                                                                                                                                                   |
+| iCloud (`caldav.icloud.com`)     | Not expected to work, untested | The preflight returns 200 but no `Access-Control-Allow-*` headers, only `Access-Control-Expose-Headers`, so a browser blocks the request.                                                                                                                     |
+| Fastmail (`caldav.fastmail.com`) | Not expected to work, untested | The preflight returns 401 with no CORS headers. A preflight request carries no credentials, so it fails before login.                                                                                                                                         |
+| Nextcloud                        | Not expected to work, untested | Sends no CORS headers by default ([Nextcloud server issue 3131](https://github.com/nextcloud/server/issues/3131)). The community [WebAppPassword](https://apps.nextcloud.com/apps/webapppassword) app is reported as a workaround; it hasn't been tried here. |
+
+The iCloud and Fastmail results come from a preflight sent from this
+app's origin on 2026-10-02 and repeated on 2026-10-03. The Nextcloud demo
+server didn't answer that probe, so its row rests on the linked issue.
+
+If you connect a provider in a real browser, whether it works or not,
+please [open an issue](https://github.com/alrayyes/movie-planner-web/issues)
+with the result, so this table can say which and when.
+
 ## OMDb key (optional)
 
 Adding an [OMDb API key](https://www.omdbapi.com/apikey.aspx) on the
