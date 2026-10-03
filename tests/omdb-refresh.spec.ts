@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { serializeViewingToVEvent } from "../src/lib/caldav/ical";
+import { openOptionalIntegrations } from "./support/connect-form";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -51,8 +52,14 @@ async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-  if (omdbApiKey) await page.locator("#omdb-api-key").fill(omdbApiKey);
-  if (omdbPaused) await page.locator("#omdb-paused").check();
+  if (omdbApiKey) {
+    await openOptionalIntegrations(page);
+    await page.locator("#omdb-api-key").fill(omdbApiKey);
+  }
+  if (omdbPaused) {
+    await openOptionalIntegrations(page);
+    await page.locator("#omdb-paused").check();
+  }
   await page.getByRole("button", { name: "Connect" }).click();
 }
 

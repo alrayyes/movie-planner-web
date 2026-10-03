@@ -1,5 +1,6 @@
 import { expect, type Page, type Route, test } from "@playwright/test";
 import type { LoggedViewing } from "../src/lib/caldav/types";
+import { openOptionalIntegrations } from "./support/connect-form";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 // #360/#400: TMDb enrichment, wired into every place this app already
@@ -101,8 +102,12 @@ async function connectOverview(page: Page, omdbApiKey: string, tmdbApiKey?: stri
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+  await openOptionalIntegrations(page);
   await page.locator("#omdb-api-key").fill(omdbApiKey);
-  if (tmdbApiKey) await page.locator("#tmdb-api-key").fill(tmdbApiKey);
+  if (tmdbApiKey) {
+    await openOptionalIntegrations(page);
+    await page.locator("#tmdb-api-key").fill(tmdbApiKey);
+  }
   await page.getByRole("button", { name: "Connect" }).click();
 }
 
@@ -112,8 +117,12 @@ async function connectLogForm(page: Page, omdbApiKey: string, tmdbApiKey?: strin
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+  await openOptionalIntegrations(page);
   await page.locator("#omdb-api-key").fill(omdbApiKey);
-  if (tmdbApiKey) await page.locator("#tmdb-api-key").fill(tmdbApiKey);
+  if (tmdbApiKey) {
+    await openOptionalIntegrations(page);
+    await page.locator("#tmdb-api-key").fill(tmdbApiKey);
+  }
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   await page.goto("/log");
@@ -357,7 +366,9 @@ N°ABC123456
       await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
       await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
       await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+      await openOptionalIntegrations(page);
       await page.locator("#omdb-api-key").fill("test-omdb-key");
+      await openOptionalIntegrations(page);
       await page.locator("#tmdb-api-key").fill("test-tmdb-key");
       await page.getByRole("button", { name: "Connect" }).click();
       await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
@@ -390,6 +401,7 @@ N°ABC123456
       await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
       await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
       await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+      await openOptionalIntegrations(page);
       await page.locator("#omdb-api-key").fill("test-omdb-key");
       await page.getByRole("button", { name: "Connect" }).click();
       await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
