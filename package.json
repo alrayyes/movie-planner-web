@@ -42,7 +42,7 @@
     "astro": "7.3.5",
     "fuzzball": "2.2.6",
     "leaflet": "1.9.4",
-    "postal-mime": "3.0.1",
+    "postal-mime": "4.0.0",
     "svelte": "5.57.1",
     "tailwindcss": "4.3.3"
   },
