@@ -13,6 +13,15 @@ describe("bunfig.toml", () => {
     const config = Bun.TOML.parse(read("bunfig.toml")) as { install?: { exact?: boolean } };
     expect(config.install?.exact).toBe(true);
   });
+
+  // Adding an [install] section made Semgrep's bun-missing-minimum-release-age
+  // rule apply to this file. Seven days matches Dependabot's cooldown.
+  test("waits seven days before resolving a newly published version", () => {
+    const config = Bun.TOML.parse(read("bunfig.toml")) as {
+      install?: { minimumReleaseAge?: number };
+    };
+    expect(config.install?.minimumReleaseAge).toBeGreaterThanOrEqual(604800);
+  });
 });
 
 describe("workflows", () => {
