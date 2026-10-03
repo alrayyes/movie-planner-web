@@ -76,7 +76,9 @@
       "WebDAV",
       "webmcp",
       "WebMCP",
-      "wrangler"
+      "wrangler",
+      "Fastmail",
+      "WebAppPassword"
     ]
   },
   "ltex.disabledRules": {

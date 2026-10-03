@@ -182,6 +182,18 @@ export function buildCredentialsForm(options: {
     ),
   );
 
+  // #683: your browser talks to the CalDAV server directly, so a server
+  // that sends no CORS headers can't work. Said before the visitor tries,
+  // not after a generic network error.
+  const corsNote = document.createElement("p");
+  corsNote.className = "text-xs text-slate-500 dark:text-slate-400";
+  const corsLink = document.createElement("a");
+  corsLink.href = "/docs/connecting/#which-servers-work";
+  corsLink.className = "text-indigo-600 underline dark:text-indigo-400";
+  corsLink.textContent = "which servers work";
+  corsNote.append("Your CalDAV server must allow CORS from this site; see ", corsLink, ".");
+  form.appendChild(corsNote);
+
   const submit = document.createElement("button");
   submit.type = "submit";
   submit.className = BUTTON_PRIMARY;
