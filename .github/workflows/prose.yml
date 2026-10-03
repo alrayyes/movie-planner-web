@@ -36,6 +36,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  LEFTHOOK: "0"
   # Pinned like everything else. Vale's style packages are versioned
   # separately and fetched by `vale sync`.
   VALE_VERSION: v3.17.1

@@ -23,6 +23,9 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  LEFTHOOK: "0"
+
 jobs:
   retitle:
     # Only bun bumps carry a chore(deps…) title. github-actions bumps are

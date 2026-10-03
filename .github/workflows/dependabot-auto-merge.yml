@@ -17,6 +17,9 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  LEFTHOOK: "0"
+
 jobs:
   auto-merge:
     if: github.actor == 'dependabot[bot]'

@@ -21,6 +21,9 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  LEFTHOOK: "0"
+
 jobs:
   release-please:
     runs-on: ubuntu-24.04

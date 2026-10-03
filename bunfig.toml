@@ -1,4 +1,9 @@
 # Bun-specific settings live here rather than duplicated across scripts.
+
+[install]
+# Pin by default: a casual `bun add` writes 1.2.3, not ^1.2.3.
+exact = true
+
 [test]
 coverage = true
 coverageReporter = ["text", "lcov"]
