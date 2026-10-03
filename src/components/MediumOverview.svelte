@@ -23,6 +23,7 @@ import {
 import { computeBlockedTimeBar, formatPeriod } from "../lib/ui/datetime";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { computePageNumbers, PAGE_SIZE_OPTIONS } from "../lib/ui/pagination";
+import ConnectLink from "./ConnectLink.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -37,6 +38,9 @@ const medium = new URLSearchParams(location.search).get("medium") ?? "";
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let status = $state("Loading…");
+// #677: set while no credentials are stored, so the empty state can link
+// to where a visitor connects.
+let disconnected = $state(false);
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let loadError = $state("");
 
@@ -95,6 +99,7 @@ async function load() {
 	loadController = controller;
 	loadError = "";
 	const credentials = await getCredentialsStore().get();
+	disconnected = !credentials;
 	if (!credentials) {
 		status = "Connect first to see this medium.";
 		return;
@@ -124,6 +129,9 @@ reloadOnBfcacheRestore(() => void load());
     {medium || "Medium"}
   </h1>
   <p class={STATUS_TEXT} role="status">{status}</p>
+  {#if disconnected}
+    <ConnectLink />
+  {/if}
   {#if loadError}
     <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
   {/if}

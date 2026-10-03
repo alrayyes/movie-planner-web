@@ -49,7 +49,10 @@ import LogViewingWizard from "./LogViewingWizard.svelte";
     </svg>
     Movie Planner
   </a>
-  <div class="header-actions flex items-center gap-2">
+  <!-- #677: before connecting, log-viewing-button and keyboard-nav render
+  nothing, but an empty flex item still takes a gap beside the theme
+  toggle — hide the empty ones so the layout closes up. -->
+  <div class="header-actions flex items-center gap-2 [&>*:empty]:hidden">
     <keyboard-nav></keyboard-nav>
     <log-viewing-button></log-viewing-button>
     <theme-toggle></theme-toggle>

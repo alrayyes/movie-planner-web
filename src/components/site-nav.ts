@@ -28,6 +28,11 @@ const LINKS: [string, string][] = [
   ["/settings", "Settings"],
 ];
 
+const DISCONNECTED_LINKS: [string, string][] = [
+  ["/settings", "Settings"],
+  ["/about", "About"],
+];
+
 // #127: mounted once in Layout.astro rather than built inside
 // credentials-gate.ts's own renderConnected() (the old home — moved
 // here, not duplicated) — that only ever rendered on the home page, so
@@ -70,19 +75,16 @@ export class SiteNav extends HTMLElement {
 
   private async render() {
     const credentials = await getCredentialsStore().get();
-    // Nothing meaningful to link to before a visitor has connected —
-    // every one of these pages either requires credentials itself or,
-    // for a page that doesn't (privacy/disclaimer), still has nowhere
-    // useful for the links to lead yet.
-    if (!credentials) {
-      this.replaceChildren();
-      return;
-    }
+    // #677: before a visitor has connected, most of these pages have
+    // nothing to show (they need credentials), so only the two that
+    // work without them are offered. Rendering nothing left a visitor
+    // on any page but the form with no way anywhere.
+    const links = credentials ? LINKS : DISCONNECTED_LINKS;
 
     const currentPath = normalizePath(window.location.pathname);
     const nav = document.createElement("nav");
     nav.className = NAV;
-    for (const [href, text] of LINKS) {
+    for (const [href, text] of links) {
       const a = document.createElement("a");
       const isCurrent = href === currentPath;
       a.className = isCurrent ? `${NAV_LINK} underline underline-offset-4` : NAV_LINK;
