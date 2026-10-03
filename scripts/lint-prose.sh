@@ -12,6 +12,23 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
+# The same image CI runs (prose.yml), for a machine with no `vale` of its own.
+# Keep the pin identical to the workflow's; scripts/vale-image.test.ts checks.
+VALE_IMAGE="jdkato/vale:v3.17.1@sha256:7dba3c9104ba366f172d119022c4ec53a005f7d14dc1b80e285421a3f0b71657"
+
+if ! command -v vale >/dev/null 2>&1; then
+  if command -v docker >/dev/null 2>&1; then
+    # Run as the caller so the style packages `vale sync` writes into
+    # styles/ aren't left owned by root.
+    vale() {
+      docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work -w /work "$VALE_IMAGE" "$@"
+    }
+  else
+    echo "Neither vale nor docker is on PATH; install one (see CONTRIBUTING.md)" >&2
+    exit 1
+  fi
+fi
+
 # Vale ships no opinions of its own; the styles it checks against are
 # downloaded rather than committed. Without them it reports nothing at all and
 # exits 0, which reads exactly like a pass.
