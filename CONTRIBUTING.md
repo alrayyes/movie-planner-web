@@ -51,6 +51,7 @@ bun run test:unit            # bun test, against a mocked fetch
 bun run test:e2e             # playwright, against a build served through wrangler
 
 bun run lint                 # biome check ., the check-only form
+bun run lint:tailwind        # oxlint, the @shadcn/lint Tailwind rules
 bun run format                # biome check --write ., the fixer
 
 bun run format:check         # prettier --check (md/yml/astro), add --write to fix
