@@ -1,3 +1,8 @@
+# Print only what failed. A passing hook says nothing, so a failure is the one
+# thing on screen.
+output:
+  - failure
+
 # The same commands CI runs, so the two cannot drift. The hook catches it
 # early; CI is the gate that cannot be skipped.
 #
@@ -9,7 +14,7 @@
 pre-commit:
   jobs:
     - name: biome
-      glob: "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc}"
+      glob: "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css}"
       run: bunx biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
 
