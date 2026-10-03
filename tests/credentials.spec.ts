@@ -70,12 +70,13 @@ test.describe("first-load credentials capture", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
-    // Was 735px, behind the whole intro. The beta notice above it is fixed
-    // legal-style text (#678 keeps it unchanged), so this is the ceiling
-    // with it in place, not a design target.
+    // Was 735px, behind the whole intro. What's above it is now fixed: the
+    // beta notice (#678 keeps its text unchanged) and the Settings/About nav
+    // a visitor gets before connecting (#677, about 60px). So this is the
+    // ceiling with both in place, not a design target.
     const box = await page.locator("#caldav-url").boundingBox();
     expect(box).not.toBeNull();
-    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(620);
+    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(680);
   });
 
   test("tucks the optional integrations into a collapsed group", async ({ page }) => {
