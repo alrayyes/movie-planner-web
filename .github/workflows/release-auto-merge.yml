@@ -10,9 +10,14 @@ name: release-auto-merge
 
 on: pull_request
 
+# No write permission anywhere: the merge below runs as RELEASE_TOKEN, not as
+# this workflow's own GITHUB_TOKEN.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+
+concurrency:
+  group: release-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 env:
   LEFTHOOK: "0"
