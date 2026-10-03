@@ -75,3 +75,6 @@ CLI's
 TMDb
 uids?
 WebMCP
+Fastmail
+iCloud
+Nextcloud

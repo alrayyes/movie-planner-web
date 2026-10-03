@@ -60,6 +60,25 @@ test.describe("docs", () => {
     expect(results.violations).toEqual([]);
   });
 
+  // #683: a developer picking a CalDAV provider needs to know which ones
+  // can work from a browser at all, before spending time on one that can't.
+  test("the connecting page says which servers work from a browser, with a clean a11y scan", async ({
+    page,
+  }) => {
+    await page.goto("/docs/connecting/");
+
+    await expect(page.getByRole("heading", { name: "Which servers work" })).toBeVisible();
+    await expect(page.getByRole("row", { name: /Baikal/ })).toContainText("Tested, works");
+    for (const provider of ["iCloud", "Fastmail", "Nextcloud"]) {
+      await expect(page.getByRole("row", { name: new RegExp(provider) })).toContainText(
+        "Not expected to work, untested",
+      );
+    }
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
   test("the main app's own pages still render untouched", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Movie Planner" })).toBeVisible();
