@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import type { LoggedViewing } from "../src/lib/caldav/types";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 // #700: #679 made the Viewings table's desktop poster 56x84px. These are the
@@ -37,7 +38,7 @@ const VIEWINGS = [
 
 test.use({ timezoneId: "UTC", viewport: { width: 1280, height: 900 } });
 
-async function connect(page: Page, viewings: Record<string, unknown>[]) {
+async function connect(page: Page, viewings: LoggedViewing[]) {
   mockCaldavServer(page, CREDENTIALS["caldav-url"], viewings);
   await page.goto("/");
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
