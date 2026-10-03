@@ -6,10 +6,9 @@ import {
 	attributeHref,
 	attributeValues,
 } from "../lib/attribute/attributes";
-import { listViewings } from "../lib/caldav/client";
-import type { CaldavConfig } from "../lib/caldav/types";
+import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
-import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
@@ -68,21 +67,31 @@ async function load() {
 		// #123/#446: the visitor's whole history, same wide window every
 		// other listing page (Venues) and bulk-import's own duplicate check
 		// already use — there's no filter UI here to narrow it.
-		const viewings = await listViewings(caldavConfig, importCheckRange(), {
-			signal: controller.signal,
-		});
-		const counts = new Map<string, number>();
-		for (const viewing of viewings) {
-			for (const value of attributeValues(viewing, kind)) {
-				counts.set(value, (counts.get(value) ?? 0) + 1);
+		// #715: shown from the cached list at once, recomputed if the
+		// background refresh brings a different one.
+		const apply = (viewings: LoggedViewing[]) => {
+			const counts = new Map<string, number>();
+			for (const viewing of viewings) {
+				for (const value of attributeValues(viewing, kind)) {
+					counts.set(value, (counts.get(value) ?? 0) + 1);
+				}
 			}
-		}
-		valueInfos = [...counts.entries()]
-			.map(([value, count]) => ({ value, count }))
-			.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
-		const label =
-			valueInfos.length === 1 ? config.singular.toLowerCase() : config.plural.toLowerCase();
-		status = `${valueInfos.length} ${label}.`;
+			valueInfos = [...counts.entries()]
+				.map(([value, count]) => ({ value, count }))
+				.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+			const label =
+				valueInfos.length === 1 ? config.singular.toLowerCase() : config.plural.toLowerCase();
+			status = `${valueInfos.length} ${label}.`;
+		};
+		apply(
+			await listAllViewings(caldavConfig, {
+				signal: controller.signal,
+				onRefresh: apply,
+				onRefreshError: (error) => {
+					loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
+				},
+			}),
+		);
 	} catch (error) {
 		// Superseded by a newer load — the newer call's own catch/success
 		// block is what should actually update status now, not this one.

@@ -141,13 +141,13 @@ by the other. The `/changelog` page's own data shape — parsed from
   `data[notes]=1` for exactly this reason.
 
 - An **[OMDb API key](https://www.omdbapi.com/apikey.aspx)**, optional —
-  without one, logging and editing still work, just with no
-  poster/ratings/cross-links. OMDb's free tier caps you at 1,000
-  requests a day; the settings screen (and the initial connect form)
-  has a "Pause OMDb lookups" checkbox that skips every OMDb call
-  without clearing the stored key, for when you're logging or
-  importing a large batch and want to stay under that limit, then
-  refresh deliberately once you're done.
+  the optional keys and checkboxes sit under "Optional integrations" on
+  the connect form and settings screen. Without a key, logging and
+  editing still work, just with no poster/ratings/cross-links. OMDb's
+  free tier caps you at 1,000 requests a day; the "Pause OMDb lookups"
+  checkbox skips every OMDb call without clearing the stored key, for
+  when you're logging or importing a large batch and want to stay under
+  that limit, then refresh deliberately once you're done.
 - A **[TMDb API key](https://www.themoviedb.org/settings/api)**, also
   optional — enriches an already-matched viewing further (trailer,
   collection, certification, keywords, budget, popularity). TMDb only
@@ -171,6 +171,13 @@ bun run preview   # serves the build through wrangler — what the real deploy r
 bun run check     # astro check — type-checks .astro and .ts files together
 bun run test      # unit tests, then Playwright against a build served through wrangler
 ```
+
+Pages that need the whole history (most of them) render from a copy of the
+viewings kept in the browser's IndexedDB, then refresh from the CalDAV
+server in the background (`src/lib/caldav/viewings-source.ts`). The copy
+is keyed by a hash of the CalDAV URL and username, never holds the
+password, and is updated by this app's own writes. Export, import's
+duplicate check and the activity log's sync always read from the server.
 
 `bun run build` writes a plain static site to `dist/`, nothing specific to
 any one host, and no account is needed to build, run, or test this repo.

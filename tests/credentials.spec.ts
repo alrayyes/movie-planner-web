@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { openOptionalIntegrations } from "./support/connect-form";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -25,6 +26,7 @@ async function connect(page: Page, omdbApiKey?: string) {
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   if (omdbApiKey) {
+    await openOptionalIntegrations(page);
     await page.locator("#omdb-api-key").fill(omdbApiKey);
   }
   await page.getByRole("button", { name: "Connect" }).click();
@@ -40,7 +42,7 @@ test.describe("first-load credentials capture", () => {
     await expect(page.locator("#caldav-url")).toBeVisible();
     await expect(page.locator("#caldav-username")).toBeVisible();
     await expect(page.locator("#caldav-password")).toBeVisible();
-    await expect(page.locator("#omdb-api-key")).toBeVisible();
+    await expect(page.getByText("Optional integrations")).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
@@ -59,6 +61,49 @@ test.describe("first-load credentials capture", () => {
     await expect(docsLink).toHaveAttribute("href", "/docs/connecting/");
     const privacyLink = page.getByRole("link", { name: "privacy page" });
     await expect(privacyLink).toHaveAttribute("href", "/privacy");
+  });
+
+  // #678: on a phone the form started ~700px down, under five paragraphs.
+  test("shows the CalDAV URL field within the first screen at 390px wide", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    // Was 735px, behind the whole intro. The beta notice above it is fixed
+    // legal-style text (#678 keeps it unchanged), so this is the ceiling
+    // with it in place, not a design target.
+    const box = await page.locator("#caldav-url").boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(620);
+  });
+
+  test("tucks the optional integrations into a collapsed group", async ({ page }) => {
+    await page.goto("/");
+
+    const group = page.locator("details", { has: page.locator("#omdb-api-key") });
+    await expect(group.locator("summary")).toHaveText("Optional integrations");
+    await expect(group).not.toHaveAttribute("open", "");
+    for (const id of ["#omdb-api-key", "#omdb-paused", "#tmdb-api-key", "#webmcp-enabled"]) {
+      await expect(page.locator(id)).toBeHidden();
+    }
+
+    await group.locator("summary").click();
+    for (const id of ["#omdb-api-key", "#omdb-paused", "#tmdb-api-key", "#webmcp-enabled"]) {
+      await expect(page.locator(id)).toBeVisible();
+    }
+  });
+
+  test("states the privacy claim in one sentence that links to the privacy page", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const claim = page.getByText(/stored in this browser/);
+    await expect(claim).toContainText("only to the server you enter");
+    await expect(claim).toContainText("no proxy or analytics");
+    await expect(claim.getByRole("link", { name: "privacy page" })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
   });
 
   // #683: the form is where a visitor first hits a server that can't work
@@ -168,6 +213,7 @@ test.describe("settings screen", () => {
     await page.goto("/settings");
 
     await expect(page.locator("#omdb-paused")).not.toBeChecked();
+    await openOptionalIntegrations(page);
     await page.locator("#omdb-paused").check();
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("status")).toHaveText("Saved.");
@@ -183,6 +229,7 @@ test.describe("settings screen", () => {
     await page.goto("/settings");
 
     await expect(page.locator("#tmdb-api-key")).toHaveValue("");
+    await openOptionalIntegrations(page);
     await page.locator("#tmdb-api-key").fill("test-tmdb-key");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("status")).toHaveText("Saved.");

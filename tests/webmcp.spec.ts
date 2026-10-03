@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { LoggedViewing } from "../src/lib/caldav/types";
+import { openOptionalIntegrations } from "./support/connect-form";
 import { mockCaldavServer } from "./support/mock-caldav";
 
 // #667: this suite talks to the WebMCP tools this app registers, not the
@@ -53,7 +54,10 @@ async function connect(
   await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
   await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-  if (options.webMcpEnabled) await page.locator("#webmcp-enabled").check();
+  if (options.webMcpEnabled) {
+    await openOptionalIntegrations(page);
+    await page.locator("#webmcp-enabled").check();
+  }
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
   return server;
@@ -213,6 +217,7 @@ test.describe("WebMCP tools (#667)", () => {
     // off and saves, with no reload afterward.
     await page.goto("/settings");
     await expect(page.locator("#webmcp-enabled")).toBeChecked();
+    await openOptionalIntegrations(page);
     await page.locator("#webmcp-enabled").uncheck();
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("status")).toHaveText("Saved.");
