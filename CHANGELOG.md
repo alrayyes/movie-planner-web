@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.17.0...movie-planner-web-v1.18.0) (2026-10-03)
+
+
+### Features
+
+* **ui:** use the compact 56x84px poster in the other viewing tables ([4b92ef6](https://github.com/alrayyes/movie-planner-web/commit/4b92ef681c857e5f5915c112544ca28703853c6f))
+
 ## [1.17.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.16.0...movie-planner-web-v1.17.0) (2026-10-03)
 
 
