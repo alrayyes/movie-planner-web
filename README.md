@@ -4,6 +4,7 @@
 [![coverage](https://codecov.io/gh/alrayyes/movie-planner-web/graph/badge.svg)](https://codecov.io/gh/alrayyes/movie-planner-web)
 [![release](https://img.shields.io/github/v/release/alrayyes/movie-planner-web?sort=semver)](https://github.com/alrayyes/movie-planner-web/releases/latest)
 [![licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![production](https://img.shields.io/website?url=https%3A%2F%2Fmovie-planner.ryankes.eu&label=production)](https://movie-planner.ryankes.eu)
 
 A public web client for
 [movie-planner](https://github.com/alrayyes/movie-planner) (the
@@ -164,13 +165,9 @@ bun install
 
 ## Usage
 
-```sh
-bun run dev       # dev server with hot reload, at localhost:4321
-bun run build     # writes the static build to dist/
-bun run preview   # serves the build through wrangler — what the real deploy runs
-bun run check     # astro check — type-checks .astro and .ts files together
-bun run test      # unit tests, then Playwright against a build served through wrangler
-```
+Build, run and test commands are in [CONTRIBUTING.md](CONTRIBUTING.md). This
+section covers what that doesn't: how pages get their data, and where the site
+deploys.
 
 Pages that need the whole history (most of them) render from a copy of the
 viewings kept in the browser's IndexedDB, then refresh from the CalDAV
@@ -188,6 +185,17 @@ independent of the [release job](.github/workflows/release.yml), which
 only tags versions — but that's this repo's own hosting choice, not a
 requirement of the app itself. Point any static host at `dist/` and it
 works the same way.
+
+## More documentation
+
+- [User guide](https://movie-planner.ryankes.eu/docs/): connecting a server,
+  logging, import and export, and the rest, as built from `src/content/docs/`.
+- [Architecture](ARCHITECTURE.md) and the [decision records](docs/adr/): how
+  the system fits together, and why it is built that way.
+- [Calendar schema](docs/calendar-schema.md): what this app reads and writes on
+  the CalDAV calendar, and how it lines up with the command-line tool's.
+- [Design references](docs/design/README.md): the Stitch screens used for the
+  October 2026 UI audit tickets.
 
 ## Contributing
 
