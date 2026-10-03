@@ -57,6 +57,7 @@ bun run format:check         # prettier --check (md/yml/astro), add --write to f
 bun run lint:md
 bun run lint:prose           # vale
 bun run lint:mechanics       # ltex-cli-plus
+bun run lint:claude          # cclint on CLAUDE.md and .claude/settings*.json
 ```
 
 ## Integration tests
