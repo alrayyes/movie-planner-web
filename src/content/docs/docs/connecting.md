@@ -38,7 +38,7 @@ and fix it.
 
 ## OMDb key (optional)
 
-The OMDb and TMDb keys, the pause checkbox and the WebMCP checkbox sit
+The OMDb and TMDb keys, the pause checkbox, and the WebMCP checkbox sit
 together under **Optional integrations** on the connect form and the
 settings page. Expand that group to reach them.
 
