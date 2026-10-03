@@ -19,7 +19,7 @@
 # stay.
 services:
   baikal:
-    image: ckulka/baikal@sha256:1a901125d121a3e414cda87c617bd322c57ae86b9d2aedbff7b3a7ac84bb23aa
+    image: ckulka/baikal:0.10.1-nginx@sha256:434bdd162247cc6aa6f878c9b4dce6216e39e79526b980453b13812d5f8ebf4b
     mem_limit: 512m
     security_opt:
       - no-new-privileges:true
@@ -33,18 +33,40 @@ services:
           "/dev/null",
           "http://localhost/admin/install/",
         ]
+      # Baikal's nginx and php-fpm take a few seconds to come up. Failures
+      # inside this window don't count toward `retries`.
+      start_period: 10s
       interval: 2s
       timeout: 2s
       retries: 30
 
   caddy:
-    image: caddy@sha256:df7f1c2fb114453b951de51a98efc010db1655a92c2e86be6706714e2417a78d
+    image: caddy:2.11.6@sha256:907efba736324e43f891ccb9d760fe5abe545e313419b3d18d63d4ec670dad8d
     mem_limit: 256m
     security_opt:
       - no-new-privileges:true
     depends_on:
       baikal:
         condition: service_healthy
+    # Ready means the proxy answers over TLS *and* reaches Baikal, which is
+    # what `up --wait` and the provisioning script both need. The same page
+    # Baikal's own check uses, requested through Caddy; the cert is Caddy's
+    # internal CA, trusted by the tests but not by this container.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-check-certificate",
+          "-q",
+          "-O",
+          "/dev/null",
+          "https://localhost:8443/admin/install/",
+        ]
+      start_period: 5s
+      interval: 2s
+      timeout: 3s
+      retries: 30
     ports:
       - "8443:8443"
     volumes:
