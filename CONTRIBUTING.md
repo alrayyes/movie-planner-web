@@ -91,6 +91,9 @@ itself the first time it runs.
 
 ## How it fits together
 
+[ARCHITECTURE.md](ARCHITECTURE.md) is the one-page map, with the decision records
+in `docs/adr/` behind it. The rest of this section is the contributor's view.
+
 There's no server-side app code — `astro.config.mjs` builds a
 fully static site. `src/lib/caldav/client.ts` and `src/lib/omdb/client.ts`
 run in the browser and call the visitor's own CalDAV/OMDb servers
