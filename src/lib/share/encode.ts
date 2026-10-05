@@ -68,9 +68,7 @@ function fromBase64Url(value: string): Bytes {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/");
   const padding = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));
   const binary = atob(padded + padding);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
 // A single-chunk ReadableStream, rather than Blob's own .stream() —
