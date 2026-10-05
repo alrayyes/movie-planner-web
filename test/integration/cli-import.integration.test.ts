@@ -160,6 +160,11 @@ describe("movie-planner CLI importing this app's exported format", () => {
       expect(dune?.letterboxdUrl).toBe("https://letterboxd.com/film/dune-part-two/");
       expect(dune?.letterboxdRating).toBe("4.2");
       expect(dune?.notes).toBe("Watched with Sam");
+      // #752: the CLI writes a floating wall-clock time, and this app has to
+      // read it as that wall-clock time in the viewer's zone, not as UTC. Built
+      // from local parts so the assertion holds in any zone the test runs in.
+      expect(dune?.start).toBe(new Date(2026, 0, 1, 19, 0).toISOString());
+      expect(dune?.end).toBe(new Date(2026, 0, 1, 21, 30).toISOString());
     },
     DOCKER_TIMEOUT_MS,
   );

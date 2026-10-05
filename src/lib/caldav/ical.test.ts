@@ -596,3 +596,112 @@ describe("serializeViewingToVEvent with extraLines", () => {
     expect(ical.indexOf("X-CITY:Amsterdam")).toBeLessThan(ical.indexOf("END:VEVENT"));
   });
 });
+
+// #752: a viewing is a wall-clock time at the cinema. The movie-planner CLI
+// writes floating times (DTSTART:20260101T190000, no Z and no TZID), which
+// iCalendar defines as "the same wall-clock time wherever you are". This app
+// used to read them as UTC, so a CLI-logged 19:00 showed at 20:00 in
+// Amsterdam, and wrote UTC, so the CLI read a web-logged 00:30 as the previous
+// day at 23:30. Each test sets its own zone: a runner in UTC can't tell the
+// two readings apart.
+describe("wall-clock times", () => {
+  const inZone = (zone: string, run: () => void) => {
+    const before = process.env.TZ;
+    process.env.TZ = zone;
+    try {
+      run();
+    } finally {
+      if (before === undefined) delete process.env.TZ;
+      else process.env.TZ = before;
+    }
+  };
+  const vevent = (...lines: string[]) =>
+    [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:u",
+      "SUMMARY:Dune",
+      ...lines,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+  const dtstart = (ics: string) => /^DTSTART:(.*)$/m.exec(ics)?.[1];
+  const dtend = (ics: string) => /^DTEND:(.*)$/m.exec(ics)?.[1];
+
+  test("a floating DTSTART is read as that wall-clock time in the viewer's zone", () => {
+    inZone("Europe/Amsterdam", () => {
+      const parsed = parseVEventToViewing(
+        vevent("DTSTART:20260101T190000", "DTEND:20260101T213000"),
+      );
+      expect(new Date(parsed.start).getHours()).toBe(19);
+      expect(new Date(parsed.start).getDate()).toBe(1);
+      expect(new Date(parsed.end).getHours()).toBe(21);
+      expect(new Date(parsed.end).getMinutes()).toBe(30);
+    });
+  });
+
+  test("a floating time reads the same wall-clock time west of UTC too", () => {
+    inZone("America/New_York", () => {
+      const parsed = parseVEventToViewing(
+        vevent("DTSTART:20260101T190000", "DTEND:20260101T213000"),
+      );
+      expect(new Date(parsed.start).getHours()).toBe(19);
+      expect(new Date(parsed.start).getDate()).toBe(1);
+    });
+  });
+
+  test("a DTSTART with a Z is still the instant it names", () => {
+    inZone("Europe/Amsterdam", () => {
+      const parsed = parseVEventToViewing(
+        vevent("DTSTART:20260101T190000Z", "DTEND:20260101T213000Z"),
+      );
+      expect(parsed.start).toBe("2026-01-01T19:00:00.000Z");
+      expect(parsed.end).toBe("2026-01-01T21:30:00.000Z");
+    });
+  });
+
+  test("DTSTART and DTEND are written floating, and DTSTAMP stays UTC", () => {
+    inZone("Europe/Amsterdam", () => {
+      const viewing: NewViewing = {
+        title: "Dune",
+        start: new Date(2026, 0, 1, 19, 0).toISOString(),
+        end: new Date(2026, 0, 1, 21, 30).toISOString(),
+        medium: "cinema",
+      };
+      const ics = serializeViewingToVEvent("u", viewing);
+      expect(dtstart(ics)).toBe("20260101T190000");
+      expect(dtend(ics)).toBe("20260101T213000");
+      expect(/^DTSTAMP:\d{8}T\d{6}Z$/m.test(ics)).toBe(true);
+    });
+  });
+
+  test("a viewing at 00:30 local keeps its local date when written", () => {
+    inZone("Europe/Amsterdam", () => {
+      const viewing: NewViewing = {
+        title: "Late show",
+        start: new Date(2026, 2, 15, 0, 30).toISOString(),
+        end: new Date(2026, 2, 15, 2, 15).toISOString(),
+        medium: "cinema",
+      };
+      // The instant is 23:30Z on the 14th; the CLI must still see the 15th.
+      expect(viewing.start.slice(0, 10)).toBe("2026-03-14");
+      expect(dtstart(serializeViewingToVEvent("u", viewing))).toBe("20260315T003000");
+    });
+  });
+
+  test("a viewing survives a write and a read in zones either side of UTC", () => {
+    for (const zone of ["Europe/Amsterdam", "America/New_York", "Asia/Tokyo"]) {
+      inZone(zone, () => {
+        const viewing: NewViewing = {
+          title: "Dune",
+          start: new Date(2026, 5, 20, 19, 0).toISOString(),
+          end: new Date(2026, 5, 20, 21, 30).toISOString(),
+          medium: "cinema",
+        };
+        const parsed = parseVEventToViewing(serializeViewingToVEvent("u", viewing));
+        expect(parsed.start).toBe(viewing.start);
+        expect(parsed.end).toBe(viewing.end);
+      });
+    }
+  });
+});
