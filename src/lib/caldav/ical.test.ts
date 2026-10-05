@@ -705,3 +705,46 @@ describe("wall-clock times", () => {
     }
   });
 });
+
+// #779: TEXT escapes are read one at a time, left to right (RFC 5545 §3.3.11),
+// so an escaped backslash followed by a letter n is not a newline.
+describe("TEXT values with backslashes", () => {
+  const roundTrip = (notes: string) =>
+    parseVEventToViewing(serializeViewingToVEvent("u", { ...VIEWING, notes })).notes;
+
+  test("a backslash before n comes back as typed", () => {
+    expect(roundTrip(String.raw`C:\new`)).toBe(String.raw`C:\new`);
+    expect(roundTrip(String.raw`a\nb`)).toBe(String.raw`a\nb`);
+  });
+
+  test("a real newline, comma, semicolon and backslash all survive together", () => {
+    const text = String.raw`a\b;c,d` + "\ne" + String.raw`\n`;
+    expect(roundTrip(text)).toBe(text);
+  });
+
+  test("escapes another client wrote are each read as the RFC says", () => {
+    const raw = [
+      "BEGIN:VEVENT",
+      "UID:u",
+      "DTSTART:20260102T030405Z",
+      "DTEND:20260102T060708Z",
+      "SUMMARY:x",
+      String.raw`X-NOTES:one\ntwo\Nthree\,four\;five\\six`,
+      "END:VEVENT",
+    ].join("\r\n");
+    expect(parseVEventToViewing(raw).notes).toBe("one\ntwo\nthree,four;five\\six");
+  });
+
+  test("a backslash before any other character is kept as it is", () => {
+    const raw = [
+      "BEGIN:VEVENT",
+      "UID:u",
+      "DTSTART:20260102T030405Z",
+      "DTEND:20260102T060708Z",
+      "SUMMARY:x",
+      String.raw`X-NOTES:a\xb`,
+      "END:VEVENT",
+    ].join("\r\n");
+    expect(parseVEventToViewing(raw).notes).toBe(String.raw`a\xb`);
+  });
+});
