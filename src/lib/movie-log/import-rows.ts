@@ -59,7 +59,9 @@ export interface ParsedRow {
   error?: string;
 }
 
-const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Not anchored: isCalendarDate compares what it prints with the whole value, so
+// any text round the date fails there.
+const DATE_RE = /(\d{4})-(\d{2})-(\d{2})/;
 // HH:MM or HH:MM:SS, what the CLI's time.fromisoformat and both published
 // schemas accept (#753). Checked against the clock below, not only the shape.
 const TIME_RE = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
@@ -74,14 +76,12 @@ function str(value: unknown): string | undefined {
 // setUTCFullYear rather than Date.UTC, which reads a year below 100 as 19xx.
 function isCalendarDate(value: string): boolean {
   const match = DATE_RE.exec(value);
-  if (!match) return false;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  if (year < 1) return false;
+  if (!match || Number(match[1]) < 1) return false;
   const date = new Date(0);
-  date.setUTCFullYear(year, month - 1, day);
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
+  date.setUTCFullYear(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  // A day or month that doesn't exist rolls over into the next, which changes
+  // the date this prints.
+  return date.toISOString().slice(0, 10) === value;
 }
 
 function isClockTime(value: string): boolean {
@@ -199,6 +199,16 @@ function parseCsvLines(text: string): string[][] {
   let row: string[] = [];
   let inQuotes = false;
 
+  // A row with nothing in it is a blank line, so it's dropped, which is also
+  // what makes a text's final line break, and a \r\n counted as two breaks,
+  // cost nothing.
+  const endRow = () => {
+    row.push(field);
+    field = "";
+    if (row.some((cell) => cell !== "")) rows.push(row);
+    row = [];
+  };
+
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     if (inQuotes) {
@@ -219,26 +229,19 @@ function parseCsvLines(text: string): string[][] {
       row.push(field);
       field = "";
     } else if (char === "\n" || char === "\r") {
-      if (char === "\r" && text[i + 1] === "\n") i++;
-      row.push(field);
-      field = "";
-      if (row.some((cell) => cell !== "")) rows.push(row);
-      row = [];
+      endRow();
     } else {
       field += char;
     }
   }
-  if (field !== "" || row.length > 0) {
-    row.push(field);
-    if (row.some((cell) => cell !== "")) rows.push(row);
-  }
+  endRow();
   return rows;
 }
 
 export function parseCsvImport(text: string): ParsedRow[] {
   const lines = parseCsvLines(text);
-  const header = lines[0];
-  if (!header) return [];
+  // With no lines there are no data rows to map, so the header is never read.
+  const header = lines[0] as string[];
 
   return lines.slice(1).map((line, i) => {
     const raw: Record<string, string | undefined> = {};
