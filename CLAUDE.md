@@ -76,6 +76,14 @@ bun run lint                 # biome check .
   - One flake is left, about 1% on "removes the event once confirmed", with
     a different cause (#747). A test that fails with `Viewing not found.` and
     passes alone is that one.
+- **A test that sets `process.env.TZ` can pass here and fail in CI.** CI runs
+  bun 1.3.14, the `packageManager` pin, and a local bun may be newer.
+  - Switching between two zones in one process didn't take effect on 1.3.14
+    (a test set New York, got Amsterdam's date, and failed only in CI, #760).
+    Switching from the default into one zone and back does work.
+  - Use one non-UTC zone per test file, and a second offset by choosing a July
+    date. Run `bunx bun@1.3.14 test <file>` to check a zone test the
+    way CI will.
 - **`package.json`'s `overrides.js-yaml` pins a version Astro's own build
   needs.**
   - Cause: `markdownlint-cli2` depends on `js-yaml@5` (pure ESM, no default
