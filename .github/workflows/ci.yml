@@ -21,7 +21,44 @@ env:
   LEFTHOOK: "0"
 
 jobs:
+  # #727: which of the jobs below have files to look at. The lists live in
+  # scripts/changed-groups.ts, with a test that pins them, and lefthook.yml's
+  # pre-push jobs carry the same globs. A skipped job reports success, so a PR
+  # that touches one kind of file still gets a status and can merge. A push to
+  # main runs everything, because the release hangs off it. `audit` and
+  # `commits` always run: an advisory lands whatever the PR touched, and a
+  # commit message is checked on every PR.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      lint: ${{ steps.groups.outputs.lint }}
+      test: ${{ steps.groups.outputs.test }}
+      security: ${{ steps.groups.outputs.security }}
+      integration: ${{ steps.groups.outputs.integration }}
+      prose: ${{ steps.groups.outputs.prose }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - name: which groups changed
+        id: groups
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            bun scripts/changed-groups.ts "$BASE" "$HEAD" | tee -a "$GITHUB_OUTPUT"
+          else
+            bun scripts/changed-groups.ts --all | tee -a "$GITHUB_OUTPUT"
+          fi
+
   lint:
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -82,6 +119,8 @@ jobs:
   # tracking; this is the separate security pass that can — the free
   # Semgrep Registry ruleset, no paid tier or account needed.
   security:
+    needs: changes
+    if: needs.changes.outputs.security == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
@@ -92,6 +131,8 @@ jobs:
         run: semgrep scan --config auto --error
 
   test:
+    needs: changes
+    if: needs.changes.outputs.test == 'true'
     runs-on: ubuntu-24.04
     # #640: bumped again alongside playwright.config.ts's own 1-worker-on-
     # CI change and globalTimeout bump — two attempts (the `|| retry`
@@ -201,6 +242,8 @@ jobs:
   # container/integration layer, catching what src/lib/caldav/*.test.ts's
   # mocks can't. See test/integration/compose.yaml's header comment.
   integration:
+    needs: changes
+    if: needs.changes.outputs.integration == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -224,6 +267,8 @@ jobs:
   # Layout and structure. Style and mechanics are prose.yml — see its header
   # comment for why they're split out.
   prose:
+    needs: changes
+    if: needs.changes.outputs.prose == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -258,3 +303,21 @@ jobs:
             --from "${{ github.event.pull_request.base.sha }}" \
             --to "${{ github.event.pull_request.head.sha }}" \
             --verbose
+
+  # The one check to require (#727): it passes when every job above passed or
+  # was skipped, so a path-gated job never leaves a PR waiting on a status that
+  # will not come, and a red `audit` or `security` can't be merged past. It
+  # replaces listing each job in branch protection. `always()` so it still
+  # reports when a job it needs failed or was skipped.
+  ci-status:
+    if: always()
+    needs: [changes, lint, audit, security, test, integration, prose, commits]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: every job passed or was skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          case " $RESULTS " in *" failure "* | *" cancelled "*) exit 1 ;; esac

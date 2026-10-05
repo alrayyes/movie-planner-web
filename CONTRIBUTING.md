@@ -61,6 +61,12 @@ bun run lint:mechanics       # ltex-cli-plus
 bun run lint:claude          # cclint on CLAUDE.md and .claude/settings*.json
 ```
 
+A job only runs when a file it covers changed. CI's `changes` job and the
+pre-push hook's `glob:` values both read their lists from
+`scripts/changed-groups.ts`, and its test fails when they drift. A job skipped
+that way reports success, so a docs-only pull request still merges. A change
+to `ci.yml` itself wakes every job, and a push to `main` runs them all.
+
 ## Integration tests
 
 `bun run test:unit` mocks every outbound CalDAV call; it proves the client
