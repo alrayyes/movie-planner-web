@@ -120,6 +120,73 @@ test.describe("mediums overview", () => {
     await expect(page.locator("tbody tr", { hasText: "Blu-ray" })).toBeVisible();
   });
 
+  // #755: the Pathé path stored "cinema" and the log form stored "Cinema", and the
+  // page matched by exact string, so one cinema showed up as two rows. Both
+  // spellings are on the calendar already, so nothing is rewritten: the page
+  // groups them.
+  test("viewings stored as cinema and Cinema count as one medium", async ({ page }) => {
+    const start = (daysAgo: number) => new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: start(30).toISOString(),
+          end: new Date(start(30).getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+        },
+        {
+          uid: "paddington-uid",
+          title: "Paddington",
+          start: start(20).toISOString(),
+          end: new Date(start(20).getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "Cinema",
+        },
+      ],
+      { media: [], venues: [] },
+    );
+    await connect(page);
+    await page.goto("/mediums");
+
+    const rows = page.locator("tbody tr");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.nth(0)).toContainText("Cinema");
+    await expect(rows.nth(0)).toContainText("2");
+  });
+
+  test("a medium's page lists the viewings of every spelling of it", async ({ page }) => {
+    const start = (daysAgo: number) => new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    mockCaldavServer(
+      page,
+      CREDENTIALS["caldav-url"],
+      [
+        {
+          uid: "dune-uid",
+          title: "Dune",
+          start: start(30).toISOString(),
+          end: new Date(start(30).getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "cinema",
+        },
+        {
+          uid: "paddington-uid",
+          title: "Paddington",
+          start: start(20).toISOString(),
+          end: new Date(start(20).getTime() + 60 * 60 * 1000).toISOString(),
+          medium: "Cinema",
+        },
+      ],
+      { media: [], venues: [] },
+    );
+    await connect(page);
+    await page.goto("/mediums");
+
+    await page.getByRole("link", { name: "Cinema" }).click();
+    await expect(page.getByRole("link", { name: "Dune", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Paddington", exact: true })).toBeVisible();
+  });
+
   test("clicking a medium goes to its own dedicated page, showing only that medium's viewings", async ({
     page,
   }) => {

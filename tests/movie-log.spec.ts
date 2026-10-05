@@ -116,6 +116,9 @@ test.describe("Pathé email parsing", () => {
     await page.getByRole("button", { name: "Confirm and log" }).click();
     await expect(page.getByRole("status")).toHaveText("Logged.");
     expect(server.creates).toHaveLength(1);
+    // #755: the same spelling the manual form defaults to, so a Pathé viewing and
+    // a hand-logged one count as one medium, not "cinema" and "Cinema".
+    expect(server.creates[0]?.medium).toBe("Cinema");
   });
 
   test("a re-submitted booking number updates the existing entry instead of duplicating", async ({
