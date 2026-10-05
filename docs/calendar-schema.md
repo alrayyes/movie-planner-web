@@ -99,7 +99,8 @@ rather than silently dropped.
 Three real shapes exist in the wild, all handled:
 
 1. **Date-only, all-day** (RFC 5545 §3.3.4 `DATE` value, no time
-   component, no `DTEND`) — treated as midnight UTC of that date.
+   component, no `DTEND`) — treated as midnight UTC of that date (unchanged
+   by #752, which only covers date-times).
 2. **Date and time, both `DTSTART` and `DTEND` present** — the common
    case for a manually logged or Pathé-imported viewing.
 3. **Date and time, `DTSTART` only, no `DTEND` at all** — a real
@@ -109,6 +110,20 @@ Three real shapes exist in the wild, all handled:
    missing end to the start time, matching this app's own write path
    (`LogViewingForm.svelte`'s identical rule for a manually logged
    viewing with no end time given).
+
+## Times are wall-clock times at the cinema
+
+A viewing's `DTSTART` and `DTEND` are written in RFC 5545 §3.3.5's floating
+form (`DTSTART:20260101T190000`, no `Z` and no `TZID`), the same as the
+command-line tool writes them. A floating time means the same wall-clock time
+wherever it's read, which is what a film at 19:00 is. `DTSTAMP` stays UTC,
+because the RFC requires it.
+
+Reading handles both forms. A floating time is that wall-clock time in the
+browser's own zone. A time with a trailing `Z` is the instant it names, which
+is what this app wrote before #752 and what other clients write, so those
+events keep their meaning. A `TZID` parameter isn't kept by the property
+parser, so that form reads as floating too.
 
 ## GEO is a native property, not escaped TEXT
 
