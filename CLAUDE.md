@@ -89,6 +89,10 @@ bun run lint                 # biome check .
     runner takes an explicit list and with none it discovers every test in the
     repo, including the Baikal integration tests. A glob string is passed
     through literally and matches nothing.
+  - The CI job runs `astro sync` first. The TypeScript checker compiles the
+    whole project, and `src/content.config.ts` needs the `astro:content` types
+    that Astro generates into `.astro/`. A clean checkout has none, so without it
+    the job dies at start-up (#767). Move `.astro/` away to reproduce.
   - `bun.inspectorTimeout` is 20 seconds. The default 5 failed the dry run here
     with `Timeout waiting for inspector URL`.
   - The CI job mutates only changed lines, because a full run takes about nine
