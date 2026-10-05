@@ -61,6 +61,17 @@ export const GROUPS = {
     "tsconfig.json",
     ".github/workflows/ci.yml",
   ],
+  // Stryker over the lines a pull request changed in src/lib (#728). A test
+  // file change wakes it too, and the job skips itself when no source line moved.
+  mutation: [
+    "src/lib/**",
+    "stryker.config.mjs",
+    "package.json",
+    "bun.lock",
+    "bunfig.toml",
+    "tsconfig.json",
+    ".github/workflows/ci.yml",
+  ],
   // prettier --check and markdownlint.
   prose: [
     "**/*.{md,yml,yaml,astro}",

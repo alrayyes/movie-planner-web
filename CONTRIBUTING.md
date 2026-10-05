@@ -60,6 +60,7 @@ bun run lint:md
 bun run lint:prose           # vale
 bun run lint:mechanics       # ltex-cli-plus
 bun run lint:claude          # cclint on CLAUDE.md and .claude/settings*.json
+bun run mutation             # Stryker over all of src/lib: about nine minutes, scores about 50
 ```
 
 A job only runs when a file it covers changed. CI's `changes` job and the
@@ -74,6 +75,27 @@ a red `audit`, `security` or `integration` blocks a merge too. `check` is the
 pull request title lint and `secrets` is the `gitleaks` scan. Both live in their
 own workflows, which `ci-status` can't wait on, so they stay required beside
 it.
+
+## Mutation testing
+
+Stryker mutates `src/lib` and checks that a test fails for each change. A
+mutant that survives means no test pins that line. CI runs it on pull requests
+only, over the lines the pull request changed
+(`scripts/stryker-changed-lines.ts` turns the diff into `file:start-end`
+ranges), and `thresholds.break` is 100: a surviving mutant in code you wrote
+blocks the merge, and the survivors in code you didn't touch don't. A change
+with no `src/lib` source line skips the job. It isn't in the pre-push hook,
+because it would add minutes to every push for a check CI already runs.
+
+To try your own change before pushing:
+
+```sh
+bunx stryker run --mutate "src/lib/ui/heatmap.ts:70-90"
+```
+
+The inherited survivors are tracked in #749. The runner is
+`@hughescr/stryker-bun-runner`, which collects per-test coverage through bun's
+inspector, and Stryker itself needs Node 22 or newer.
 
 ## Integration tests
 

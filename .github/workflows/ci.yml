@@ -37,6 +37,7 @@ jobs:
       security: ${{ steps.groups.outputs.security }}
       integration: ${{ steps.groups.outputs.integration }}
       prose: ${{ steps.groups.outputs.prose }}
+      mutation: ${{ steps.groups.outputs.mutation }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -264,6 +265,50 @@ jobs:
         if: always()
         run: bun run test:integration:down
 
+  # #728: mutation testing over src/lib, on the lines a pull request changed.
+  # A surviving mutant blocks the merge (rules/testing.md), and scoping the run
+  # to the diff is how that holds for new code without failing every PR over the
+  # ~1,150 survivors in code nobody touched (a full run is ~9 minutes and scores
+  # 50%). Pull requests only: a push to main has no diff to scope to. Not in the
+  # pre-push hook, which would add minutes to every push for a check CI runs.
+  mutation:
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.mutation == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      # Stryker runs on Node, and only its test children run on bun.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: bun install
+        run: bun install --frozen-lockfile
+      - name: changed lines in src/lib
+        id: ranges
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: echo "ranges=$(bun scripts/stryker-changed-lines.ts "$BASE" "$HEAD")" | tee -a "$GITHUB_OUTPUT"
+      - name: stryker
+        if: steps.ranges.outputs.ranges != ''
+        env:
+          RANGES: ${{ steps.ranges.outputs.ranges }}
+        run: bunx stryker run --mutate "$RANGES"
+      - name: mutation report
+        if: always() && steps.ranges.outputs.ranges != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          if-no-files-found: ignore
+          retention-days: 7
+
   # Layout and structure. Style and mechanics are prose.yml — see its header
   # comment for why they're split out.
   prose:
@@ -311,7 +356,18 @@ jobs:
   # reports when a job it needs failed or was skipped.
   ci-status:
     if: always()
-    needs: [changes, lint, audit, security, test, integration, prose, commits]
+    needs:
+      [
+        changes,
+        lint,
+        audit,
+        security,
+        test,
+        integration,
+        mutation,
+        prose,
+        commits,
+      ]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
