@@ -55,13 +55,10 @@ interface ViewingRecord {
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // Version 1 only upgrades from no database at all, so neither store exists yet.
     request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(VIEWINGS_STORE)) {
-        request.result.createObjectStore(VIEWINGS_STORE, { keyPath: ["account", "uid"] });
-      }
-      if (!request.result.objectStoreNames.contains(META_STORE)) {
-        request.result.createObjectStore(META_STORE, { keyPath: "account" });
-      }
+      request.result.createObjectStore(VIEWINGS_STORE, { keyPath: ["account", "uid"] });
+      request.result.createObjectStore(META_STORE, { keyPath: "account" });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -83,6 +80,7 @@ function done(tx: IDBTransaction): Promise<void> {
 function result<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
+    // Stryker disable next-line ArrowFunction: a get or getAll on a healthy database never fails, so this handler can't be reached from a test; it's the same one-liner as the open and transaction handlers, which are tested.
     request.onerror = () => reject(request.error);
   });
 }
