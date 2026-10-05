@@ -8,7 +8,8 @@ export function debounce<Args extends unknown[]>(
 ): (...args: Args) => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return (...args: Args) => {
-    if (timer !== undefined) clearTimeout(timer);
+    // Clearing a timer that never started is a no-op, so there's nothing to guard.
+    clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delayMs);
   };
 }
