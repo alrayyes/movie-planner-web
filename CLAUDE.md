@@ -77,13 +77,10 @@ bun run lint                 # biome check .
     a different cause (#747). A test that fails with `Viewing not found.` and
     passes alone is that one.
 - **A test that sets `process.env.TZ` can pass here and fail in CI.** CI runs
-  bun 1.3.14, the `packageManager` pin, and a local bun may be newer.
-  - Switching between two zones in one process didn't take effect on 1.3.14
-    (a test set New York, got Amsterdam's date, and failed only in CI, #760).
-    Switching from the default into one zone and back does work.
-  - Use one non-UTC zone per test file, and a second offset by choosing a July
-    date. Run `bunx bun@1.3.14 test <file>` to check a zone test the
-    way CI will.
+  bun 1.3.14 (the `packageManager` pin); a local bun may be newer.
+  - Switching between two non-UTC zones in one process didn't take effect there
+    (#760). Use one zone per test file and a July date for a second offset, and
+    run `bunx bun@1.3.14 test <file>` to check it the way CI will.
 - **Stryker runs on Node, and only its test children run on bun** (#728).
   - `stryker.config.mjs` builds `bun.testFiles` from `src/lib/**/*.test.ts`. The
     runner takes an explicit list and with none it discovers every test in the
