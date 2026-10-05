@@ -20,7 +20,10 @@ export default {
   checkers: ["typescript"],
   tsconfigFile: "tsconfig.json",
   coverageAnalysis: "perTest",
-  mutate: ["src/lib/**/*.ts", "!src/lib/**/*.test.ts"],
+  // ui/classes.ts is Tailwind class strings. A mutant there changes how a
+  // button looks, and no unit test can tell; Playwright and the Tailwind lint
+  // are what watch it (#749).
+  mutate: ["src/lib/**/*.ts", "!src/lib/**/*.test.ts", "!src/lib/ui/classes.ts"],
   // A cold runner can take longer than the default 5s to print bun's inspector URL.
   bun: { testFiles, inspectorTimeout: 20000 },
   reporters: ["clear-text", "json"],

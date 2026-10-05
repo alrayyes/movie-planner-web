@@ -9,7 +9,8 @@
 // nothing when no line of src/lib source changed.
 
 const MUTATED = /^src\/lib\/.+\.ts$/;
-const NOT_MUTATED = /\.(test|d)\.ts$/;
+// classes.ts is Tailwind class strings, left out of stryker.config.mjs too.
+const NOT_MUTATED = /\.(test|d)\.ts$|^src\/lib\/ui\/classes\.ts$/;
 
 export function changedRanges(diff: string): string[] {
   const ranges: string[] = [];
