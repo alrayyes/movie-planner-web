@@ -85,6 +85,10 @@ bun run lint                 # biome check .
     with `Timeout waiting for inspector URL`.
   - The CI job mutates only changed lines, because a full run takes about nine
     minutes and scores 50 (#749 tracks the backlog).
+  - `package.json`'s `overrides.qs` is 6.16.0 because Stryker's
+    `typed-rest-client` pins `qs` to exactly 6.15.1, which `bun audit` flags
+    (three moderate advisories, patched in 6.16.0). Drop the override once
+    Stryker's own dependency moves past 6.15.3, and re-run `bun audit`.
 - **`package.json`'s `overrides.js-yaml` pins a version Astro's own build
   needs.**
   - Cause: `markdownlint-cli2` depends on `js-yaml@5` (pure ESM, no default
