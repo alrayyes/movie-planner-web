@@ -29,3 +29,8 @@ playwright-report/
 # bun test --coverage's own report, uploaded to Codecov in CI rather than
 # committed.
 coverage/
+
+# Stryker (#728)
+.stryker-tmp/
+reports/mutation/
+stryker.log
