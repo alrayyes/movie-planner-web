@@ -49,7 +49,7 @@ export function setTheme(theme: Theme): void {
 // is only ever defined by Starlight's own ThemeProvider.astro, so this
 // is a no-op on every non-docs page.
 function syncStarlightTheme(theme: Theme): void {
-  if (typeof document === "undefined" || !("StarlightThemeProvider" in window)) return;
+  if (!("StarlightThemeProvider" in window)) return;
   try {
     localStorage.setItem("starlight-theme", theme);
   } catch {
