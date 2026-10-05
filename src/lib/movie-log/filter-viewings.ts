@@ -43,7 +43,7 @@ export function filterViewings(
   return viewings.filter((v) => {
     if (titleFilter && !v.title.toLowerCase().includes(titleFilter)) return false;
     if (mediumFilter && v.medium.toLowerCase() !== mediumFilter) return false;
-    if (venueFilter && (v.venue ?? "").toLowerCase() !== venueFilter) return false;
+    if (venueFilter && v.venue?.toLowerCase() !== venueFilter) return false;
     if (
       directorFilter &&
       !splitMultiValue(v.director).some((director) => director.toLowerCase() === directorFilter)
@@ -59,7 +59,7 @@ export function filterViewings(
       !splitMultiValue(v.genre).some((genre) => genre.toLowerCase() === genreFilter)
     )
       return false;
-    if (cityFilter && (v.city ?? "").toLowerCase() !== cityFilter) return false;
+    if (cityFilter && v.city?.toLowerCase() !== cityFilter) return false;
     if (
       movieCountryFilter &&
       !splitMultiValue(v.movieCountry).some(
@@ -74,7 +74,7 @@ export function filterViewings(
       )
     )
       return false;
-    if (ratedFilter && (v.rated ?? "").toLowerCase() !== ratedFilter) return false;
+    if (ratedFilter && v.rated?.toLowerCase() !== ratedFilter) return false;
     if (releasedYearFilter || releasedMonthFilter) {
       const released = v.released ? parseReleasedDate(v.released) : null;
       if (!released) return false;
