@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { LoggedViewing } from "../caldav/types";
 import type { ImportRow, ParsedRow } from "./import-rows";
-import { planImport, planUpdates } from "./run-import";
+import { planImport, planUpdates, toIsoDateTime } from "./run-import";
 
 function row(rowNumber: number, title: string, date: string): ParsedRow {
   return { rowNumber, row: { title, date, medium: "cinema" } };
@@ -223,5 +223,24 @@ describe("planUpdates", () => {
       ?.changes.map((c) => c.field)
       .sort();
     expect(fields).toEqual(["director", "posterUrl"]);
+  });
+});
+
+// #753: a row's time may carry seconds, so the stamp can't append ":00" blindly.
+describe("toIsoDateTime with seconds", () => {
+  test("a time with seconds keeps them", () => {
+    expect(toIsoDateTime("2024-03-15", "19:00:30")).toBe(
+      new Date(2024, 2, 15, 19, 0, 30).toISOString(),
+    );
+  });
+  test("a time without seconds still works", () => {
+    expect(toIsoDateTime("2024-03-15", "19:00")).toBe(
+      new Date(2024, 2, 15, 19, 0, 0).toISOString(),
+    );
+  });
+  test("no time means midnight", () => {
+    expect(toIsoDateTime("2024-03-15", undefined)).toBe(
+      new Date(2024, 2, 15, 0, 0, 0).toISOString(),
+    );
   });
 });
