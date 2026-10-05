@@ -64,6 +64,11 @@ commit-msg:
 # overlapping they fail with `ENOENT ... rename '.astro/content-assets.mjs.tmp'`
 # before any test runs (#640). They run one after the other in a group; every
 # other job still runs alongside them.
+#
+# Each job's `glob` is what the pipeline's job covers. scripts/changed-groups.ts
+# holds the lists and its test fails when these drift (#727), so a push that
+# touches none of a job's files skips it the way ci.yml's `changes` job does.
+# The first job to use a list defines it and the rest alias it.
 pre-push:
   parallel: true
   jobs:
@@ -71,6 +76,13 @@ pre-push:
         parallel: false
         jobs:
           - name: check
+            glob: &lint
+              - "**/*.{ts,tsx,js,mjs,cjs,jsx,json,jsonc,css,astro,svelte}"
+              - bun.lock
+              - bunfig.toml
+              - CLAUDE.md
+              - .claude/**
+              - .github/workflows/ci.yml
             run: bun run check
 
           # --retries=2, as CI has (playwright.config.ts): the local `wrangler
@@ -81,30 +93,67 @@ pre-push:
           # the time on a busy machine. A test that fails three times in a row
           # still fails.
           - name: test
+            glob: &test
+              - src/**
+              - tests/**
+              - scripts/**
+              - test/**
+              - public/**
+              - docs/**
+              - "*.md"
+              - .github/**
+              - package.json
+              - bun.lock
+              - bunfig.toml
+              - tsconfig.json
+              - astro.config.mjs
+              - playwright.config.ts
+              - wrangler.jsonc
+              - biome.json
+              - .oxlintrc.json
+              - .prettierrc.json
+              - .commitlintrc.json
+              - .gitleaks.toml
+              - .ltex.json
+              - codecov.yml
+              - lefthook.yml
+              - release-please-config.json
             run: bun run test:unit && bun run test:e2e --retries=2
 
     - name: biome
+      glob: *lint
       run: bun run lint
 
     # Tailwind class usage, via Oxlint — narrow scope, just @shadcn/lint's
     # rules (rules/tailwind.md). Biome keeps doing everything else above.
     - name: tailwind
+      glob: *lint
       run: bun run lint:tailwind
 
     # CLAUDE.md and .claude/settings*.json, one file per cclint call.
     - name: claude
+      glob: *lint
       run: bun run lint:claude
 
     # These are `package.json` scripts rather than the commands spelled out,
     # because CI runs the same ones and a literal copied into two files drifts
     # the first time somebody edits one of them.
     - name: prettier
+      glob: &prose
+        - "**/*.{md,yml,yaml,astro}"
+        - .prettierrc.json
+        - .prettierignore
+        - .markdownlint*
+        - package.json
+        - bun.lock
       run: bun run format:check
 
     - name: markdownlint
+      glob: *prose
       run: bun run lint:md
 
     - name: sort-package-json
+      glob: *lint
       run: bun run sort-package-json:check
 
     # Every other linter here runs at commit, at push and in CI. Vale ran at
