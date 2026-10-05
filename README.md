@@ -175,6 +175,8 @@ server in the background (`src/lib/caldav/viewings-source.ts`). The copy
 is keyed by a hash of the CalDAV URL and username, never holds the
 password, and is updated by this app's own writes. Export, import's
 duplicate check and the activity log's sync always read from the server.
+Settings has a button that clears the copy and the service worker's cache
+(`src/lib/cache/purge.ts`), for a device that shows stale data.
 
 `bun run build` writes a plain static site to `dist/`, nothing specific to
 any one host, and no account is needed to build, run, or test this repo.
