@@ -109,3 +109,34 @@ describe("exportSingleViewingFilename", () => {
     );
   });
 });
+
+// #753: the import refuses a release year that isn't digits, as the CLI does,
+// and OMDb reports a series' year as a range ("2011–2019"). The export has to
+// write something the import, and the CLI, will take back.
+describe("export release year", () => {
+  const exported = (year: string | undefined) =>
+    JSON.parse(exportViewingsToJson([{ ...VIEWING, year }]))[0].release_year;
+
+  test("a plain year is written as it is", () => {
+    expect(exported("2021")).toBe("2021");
+  });
+
+  test("a series' range is written as the year it started", () => {
+    expect(exported("2011–2019")).toBe("2011");
+    expect(exported("2011-2019")).toBe("2011");
+    expect(exported("2022–")).toBe("2022");
+  });
+
+  test("a year that isn't a year is left out", () => {
+    expect(exported("N/A")).toBeUndefined();
+    expect(exported("")).toBeUndefined();
+    expect(exported(undefined)).toBeUndefined();
+  });
+
+  test("whatever is exported imports back without an error", () => {
+    for (const year of ["2021", "2011–2019", "N/A", undefined]) {
+      const [row] = parseJsonImport(exportViewingsToJson([{ ...VIEWING, year }]));
+      expect(row?.error).toBeUndefined();
+    }
+  });
+});

@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseCsvImport, parseJsonImport } from "./import-rows";
 
 // Mirrors movie-planner's own examples/movies.csv and movies.json — the
@@ -217,5 +219,109 @@ describe("required field validation", () => {
       JSON.stringify([{ title: "X", date: "not-a-date", medium: "cinema" }]),
     );
     expect(rows[0]?.error).toContain("date");
+  });
+});
+
+// #753: what a row has to look like to import is one rule, kept in the
+// movie-planner CLI (`importers.py`: date.fromisoformat, time.fromisoformat, an
+// int release year) and in the published schema. This app's check had drifted:
+// it refused 19:00:30, which the CLI and both schemas accept, and passed
+// 2024-02-30 and "N/A", which the CLI refuses.
+describe("row validation agrees with the CLI and the published schema", () => {
+  const one = (fields: Record<string, unknown>) =>
+    parseJsonImport(
+      JSON.stringify([{ title: "Dune", medium: "cinema", date: "2024-03-15", ...fields }]),
+    )[0];
+
+  test("a time may carry seconds", () => {
+    const parsed = one({ start_time: "19:00:30", end_time: "21:30:15" });
+    expect(parsed?.error).toBeUndefined();
+    expect(parsed?.row?.startTime).toBe("19:00:30");
+    expect(parsed?.row?.endTime).toBe("21:30:15");
+  });
+
+  test("a time outside the clock is refused", () => {
+    for (const value of ["25:00", "19:60", "19:00:61", "24:00"]) {
+      expect(one({ start_time: value })?.error).toBe(`start_time is not a valid time: "${value}"`);
+    }
+    expect(one({ end_time: "99:99" })?.error).toBe('end_time is not a valid time: "99:99"');
+  });
+
+  test("a time with the wrong shape is refused", () => {
+    for (const value of ["7:00", "19:0", "19:00:3", "1900", "19.00"]) {
+      expect(one({ start_time: value })?.error).toBe(`start_time is not a valid time: "${value}"`);
+    }
+  });
+
+  test("a date that isn't on the calendar is refused", () => {
+    for (const date of ["2024-02-30", "2024-13-01", "2024-04-31", "2023-02-29", "2024-00-10"]) {
+      expect(one({ date })?.error).toBe(`not a valid date: "${date}"`);
+    }
+  });
+
+  test("a real date is accepted, including a leap day", () => {
+    expect(one({ date: "2024-02-29" })?.error).toBeUndefined();
+    expect(one({ date: "2024-12-31" })?.error).toBeUndefined();
+  });
+
+  test("a release year is digits, as the CLI's int() requires", () => {
+    expect(one({ release_year: "N/A" })?.error).toBe('release_year is not a valid year: "N/A"');
+    expect(one({ release_year: "20x1" })?.error).toBe('release_year is not a valid year: "20x1"');
+    expect(one({ release_year: "2021" })?.row?.year).toBe("2021");
+  });
+
+  test("a release year may be a JSON number, as the CLI allows", () => {
+    const parsed = one({ release_year: 2021 });
+    expect(parsed?.error).toBeUndefined();
+    expect(parsed?.row?.year).toBe("2021");
+  });
+
+  test("a blank release year means none", () => {
+    expect(one({ release_year: "" })?.row?.year).toBeUndefined();
+  });
+});
+
+describe("the published schema and the parser agree", () => {
+  const schema = JSON.parse(
+    readFileSync(
+      join(import.meta.dir, "../../../public/schemas/movie-viewings.schema.json"),
+      "utf8",
+    ),
+  ) as {
+    $defs: {
+      row: { properties: Record<string, { pattern?: string; oneOf?: { pattern?: string }[] }> };
+    };
+  };
+  const properties = schema.$defs.row.properties;
+  const one = (fields: Record<string, unknown>) =>
+    parseJsonImport(
+      JSON.stringify([{ title: "Dune", medium: "cinema", date: "2024-03-15", ...fields }]),
+    )[0];
+
+  test("start_time and end_time take the same shapes", () => {
+    for (const field of ["start_time", "end_time"]) {
+      const pattern = new RegExp(properties[field]?.pattern ?? "$^");
+      for (const value of ["19:00", "19:00:30", "7:00", "19:00:3", "1900"]) {
+        const parserShape = one({ [field]: value })?.error?.includes("not a valid time") !== true;
+        // The parser also checks the clock, so only shape mismatches must agree.
+        if (!pattern.test(value)) expect(parserShape).toBe(false);
+        if (pattern.test(value) && !["25:00"].includes(value)) expect(parserShape).toBe(true);
+      }
+    }
+  });
+
+  test("date takes the same shape", () => {
+    const pattern = new RegExp(properties.date?.pattern ?? "$^");
+    expect(pattern.test("2024-03-15")).toBe(true);
+    expect(pattern.test("2024-3-15")).toBe(false);
+    expect(one({ date: "2024-3-15" })?.error).toContain("not a valid date");
+  });
+
+  test("release_year allows an integer or a string of digits, as the CLI's schema does", () => {
+    const year = properties.release_year as { oneOf?: { type?: string; pattern?: string }[] };
+    const types = (year.oneOf ?? []).map((alternative) => alternative.type).sort();
+    expect(types).toEqual(["integer", "string"]);
+    const digits = (year.oneOf ?? []).find((alternative) => alternative.type === "string");
+    expect(digits?.pattern).toBe("^\\d+$");
   });
 });

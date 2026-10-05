@@ -18,6 +18,7 @@ const cases: [path: string, groups: Group[]][] = [
   ["test/integration/compose.yaml", ["test", "security", "integration", "prose"]],
   ["scripts/lint-prose.sh", ["test", "security"]],
   ["scripts/changed-groups.ts", ["lint", "test", "security"]],
+  ["public/schemas/movie-viewings.schema.json", ["lint", "test", "security", "integration"]],
   ["package.json", ["lint", "test", "security", "integration", "prose"]],
   ["bun.lock", ["lint", "test", "integration", "prose"]],
   ["tsconfig.json", ["lint", "test", "security", "integration"]],

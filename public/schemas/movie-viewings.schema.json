@@ -18,8 +18,14 @@
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
           "description": "YYYY-MM-DD, interpreted in the importing visitor's own browser timezone. Required unless 'start' is present, in which case it's derived from that instant's own UTC date if omitted."
         },
-        "start_time": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
-        "end_time": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
+        "start_time": {
+          "type": "string",
+          "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"
+        },
+        "end_time": {
+          "type": "string",
+          "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"
+        },
         "venue": { "type": "string" },
         "imdb_url": { "type": "string", "format": "uri" },
         "uid": {
@@ -35,7 +41,13 @@
         "director": { "type": "string" },
         "actors": { "type": "string" },
         "genre": { "type": "string" },
-        "release_year": { "type": "string" },
+        "release_year": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string", "pattern": "^\\d+$" }
+          ],
+          "description": "Digits, as a string or a JSON integer. Anything else, such as N/A, is refused, the same as the movie-planner CLI."
+        },
         "poster_url": { "type": "string", "format": "uri" },
         "imdb_rating": { "type": "string" },
         "rotten_tomatoes_rating": { "type": "string" },

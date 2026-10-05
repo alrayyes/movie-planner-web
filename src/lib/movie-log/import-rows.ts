@@ -57,12 +57,51 @@ export interface ParsedRow {
   error?: string;
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_RE = /^\d{2}:\d{2}$/;
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// HH:MM or HH:MM:SS, what the CLI's time.fromisoformat and both published
+// schemas accept (#753). Checked against the clock below, not only the shape.
+const TIME_RE = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
+const YEAR_RE = /^\d+$/;
 const IMDB_URL_RE = /\/title\/(tt\d+)\/?/;
 
 function str(value: unknown): string | undefined {
   return typeof value === "string" && value ? value : undefined;
+}
+
+// The CLI's date.fromisoformat refuses 2024-02-30; a shape check alone didn't.
+// setUTCFullYear rather than Date.UTC, which reads a year below 100 as 19xx.
+function isCalendarDate(value: string): boolean {
+  const match = DATE_RE.exec(value);
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  if (year < 1) return false;
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+function isClockTime(value: string): boolean {
+  const match = TIME_RE.exec(value);
+  if (!match) return false;
+  const [hour, minute, second] = [Number(match[1]), Number(match[2]), Number(match[3] ?? 0)];
+  return hour <= 23 && minute <= 59 && second <= 59;
+}
+
+// A release year is digits, as the CLI's int() requires ("N/A" is refused), and
+// JSON may hand in a plain integer where CSV hands in a string. Undefined for a
+// blank, an error message for anything else.
+function releaseYear(value: unknown): { year?: string; error?: string } {
+  if (typeof value === "number") {
+    return Number.isInteger(value)
+      ? { year: String(value) }
+      : { error: `release_year is not a valid year: "${value}"` };
+  }
+  const text = str(value)?.trim();
+  if (!text) return {};
+  if (!YEAR_RE.test(text)) return { error: `release_year is not a valid year: "${text}"` };
+  return { year: text };
 }
 
 function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedRow {
@@ -84,7 +123,7 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
   // A plain `date` field, or (this app's own export) derived from the
   // higher-precision `start` instant when `date` itself isn't given.
   const date = str(raw.date)?.trim() ?? start?.slice(0, 10);
-  if (!date || !DATE_RE.test(date)) {
+  if (!date || !isCalendarDate(date)) {
     return { rowNumber, error: `not a valid date: "${String(raw.date ?? "")}"` };
   }
 
@@ -94,10 +133,13 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
     ["start_time", startTime],
     ["end_time", endTime],
   ] as const) {
-    if (value && !TIME_RE.test(value)) {
+    if (value && !isClockTime(value)) {
       return { rowNumber, error: `${field} is not a valid time: "${value}"` };
     }
   }
+
+  const year = releaseYear(raw.release_year);
+  if (year.error) return { rowNumber, error: year.error };
 
   const imdbUrlValue = str(raw.imdb_url);
   // #79's ical.ts parses the same shape out of a CLI-authored
@@ -124,7 +166,7 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
       ratingRottenTomatoes: str(raw.rotten_tomatoes_rating),
       ratingMetacritic: str(raw.metacritic_rating),
       genre: str(raw.genre),
-      year: str(raw.release_year),
+      year: year.year,
       posterUrl: str(raw.poster_url),
       imdbId,
       bookingRef: str(raw.booking_ref),
