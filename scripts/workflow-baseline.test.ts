@@ -12,7 +12,10 @@ type Workflow = {
   permissions?: Record<string, string>;
   jobs: Record<
     string,
-    { permissions?: Record<string, string>; steps?: { uses?: string; with?: unknown }[] }
+    {
+      permissions?: Record<string, string>;
+      steps?: { uses?: string; with?: unknown; run?: string }[];
+    }
   >;
 };
 
@@ -67,5 +70,30 @@ describe("release.yml", () => {
     const inputs = wrapper?.with as { action?: string; attempt_limit?: number | string };
     expect(inputs.action).toMatch(/^googleapis\/release-please-action@[0-9a-f]{40}$/);
     expect(Number(inputs.attempt_limit)).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// #767: Stryker's TypeScript checker compiles the whole project, and
+// src/content.config.ts imports `astro:content`, whose types Astro generates
+// into .astro/types.d.ts. A clean checkout has none, so the job died at start-up
+// on every pull request that touched src/lib until it generated them first.
+describe("ci.yml's mutation job", () => {
+  const ci = workflows.find((w) => w.file === "ci.yml");
+  const steps = ci?.doc.jobs.mutation?.steps ?? [];
+  const at = (needle: string) => steps.findIndex((step) => step.run?.includes(needle));
+
+  test("has a mutation job with steps", () => {
+    expect(steps.length).toBeGreaterThan(0);
+  });
+
+  test("generates Astro's types before it runs Stryker", () => {
+    expect(at("astro sync")).toBeGreaterThan(-1);
+    expect(at("stryker run")).toBeGreaterThan(-1);
+    expect(at("astro sync")).toBeLessThan(at("stryker run"));
+  });
+
+  test("installs dependencies before it generates them", () => {
+    expect(at("bun install")).toBeGreaterThan(-1);
+    expect(at("bun install")).toBeLessThan(at("astro sync"));
   });
 });

@@ -289,6 +289,12 @@ jobs:
           node-version: 24
       - name: bun install
         run: bun install --frozen-lockfile
+      # #767: Stryker's TypeScript checker compiles the whole project, and
+      # src/content.config.ts imports `astro:content`, whose types Astro writes to
+      # .astro/types.d.ts. A clean checkout has none, so without this the job dies
+      # at start-up. Locally it passes by accident, off a leftover .astro/.
+      - name: generate Astro's types
+        run: bunx astro sync
       - name: changed lines in src/lib
         id: ranges
         env:
