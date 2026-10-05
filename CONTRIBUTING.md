@@ -68,6 +68,13 @@ pre-push hook's `glob:` values both read their lists from
 that way reports success, so a docs-only pull request still merges. A change
 to `ci.yml` itself wakes every job, and a push to `main` runs them all.
 
+Branch protection requires three checks: `ci-status`, `check` and `secrets`.
+`ci-status` passes when every other job in `ci.yml` passed or was skipped, so
+a red `audit`, `security` or `integration` blocks a merge too. `check` is the
+pull request title lint and `secrets` is the `gitleaks` scan. Both live in their
+own workflows, which `ci-status` can't wait on, so they stay required beside
+it.
+
 ## Integration tests
 
 `bun run test:unit` mocks every outbound CalDAV call; it proves the client
