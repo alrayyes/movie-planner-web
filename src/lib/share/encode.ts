@@ -61,16 +61,14 @@ type Bytes = Uint8Array<ArrayBuffer>;
 function toBase64Url(bytes: Bytes): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
+// atob follows the "forgiving base64" rule, which accepts input without its
+// trailing = padding, so none is put back before decoding.
 function fromBase64Url(value: string): Bytes {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));
-  const binary = atob(padded + padding);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+  const binary = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
 // A single-chunk ReadableStream, rather than Blob's own .stream() —
@@ -108,13 +106,9 @@ export async function encodeSharedState(state: SharedState): Promise<string> {
 
 export async function decodeSharedState(encoded: string): Promise<SharedState> {
   const json = await gunzip(fromBase64Url(encoded));
-  const parsed: unknown = JSON.parse(json);
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    !Array.isArray((parsed as SharedState).viewings) ||
-    typeof (parsed as SharedState).sharedAt !== "string"
-  ) {
+  const parsed = JSON.parse(json) as Partial<SharedState> | null;
+  // A string or a number has no viewings list, so it fails the second check.
+  if (!parsed || !Array.isArray(parsed.viewings) || typeof parsed.sharedAt !== "string") {
     throw new Error("not a recognised shared link");
   }
   return parsed as SharedState;
