@@ -55,8 +55,6 @@ export const GROUPS = {
   integration: [
     "src/lib/**",
     "test/integration/**",
-    // The schema-parity test reads it (#753).
-    "public/schemas/**",
     "package.json",
     "bun.lock",
     "bunfig.toml",
