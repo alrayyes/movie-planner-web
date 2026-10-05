@@ -1,0 +1,269 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`registerWebMcpTools each tool's name, description, schema and warning flag are what an agent reads 1`] = `
+[
+  {
+    "consequentialHint": false,
+    "description": "Log a manually-watched title to the visitor's own CalDAV calendar.",
+    "inputSchema": {
+      "properties": {
+        "actors": {
+          "description": "Comma-separated if more than one.",
+          "type": "string",
+        },
+        "director": {
+          "description": "Comma-separated if more than one.",
+          "type": "string",
+        },
+        "end": {
+          "description": "When it ended, ISO 8601.",
+          "type": "string",
+        },
+        "genre": {
+          "description": "Comma-separated if more than one.",
+          "type": "string",
+        },
+        "medium": {
+          "description": "How it was watched, e.g. "cinema" or "streaming".",
+          "type": "string",
+        },
+        "notes": {
+          "description": "Personal notes — who it was watched with, a reaction.",
+          "type": "string",
+        },
+        "start": {
+          "description": "When it started, ISO 8601.",
+          "type": "string",
+        },
+        "title": {
+          "description": "The title as watched, e.g. "Dune: Part Two".",
+          "type": "string",
+        },
+        "venue": {
+          "description": "Where it was watched, if applicable.",
+          "type": "string",
+        },
+        "year": {
+          "description": "The title's release year.",
+          "type": "string",
+        },
+      },
+      "required": [
+        "title",
+        "start",
+        "end",
+        "medium",
+      ],
+      "type": "object",
+    },
+    "name": "log_viewing",
+  },
+  {
+    "consequentialHint": false,
+    "description": "Change fields on an already-logged viewing, leaving everything else as is.",
+    "inputSchema": {
+      "properties": {
+        "actors": {
+          "description": "Comma-separated if more than one.",
+          "type": "string",
+        },
+        "director": {
+          "description": "Comma-separated if more than one.",
+          "type": "string",
+        },
+        "end": {
+          "description": "When it ended, ISO 8601.",
+          "type": "string",
+        },
+        "genre": {
+          "description": "Comma-separated if more than one.",
+          "type": "string",
+        },
+        "medium": {
+          "description": "How it was watched, e.g. "cinema" or "streaming".",
+          "type": "string",
+        },
+        "notes": {
+          "description": "Personal notes — who it was watched with, a reaction.",
+          "type": "string",
+        },
+        "start": {
+          "description": "When it started, ISO 8601.",
+          "type": "string",
+        },
+        "title": {
+          "description": "The title as watched, e.g. "Dune: Part Two".",
+          "type": "string",
+        },
+        "uid": {
+          "description": "The viewing's uid.",
+          "type": "string",
+        },
+        "venue": {
+          "description": "Where it was watched, if applicable.",
+          "type": "string",
+        },
+        "year": {
+          "description": "The title's release year.",
+          "type": "string",
+        },
+      },
+      "required": [
+        "uid",
+      ],
+      "type": "object",
+    },
+    "name": "edit_viewing",
+  },
+  {
+    "consequentialHint": true,
+    "description": "Permanently remove a logged viewing. This cannot be undone.",
+    "inputSchema": {
+      "properties": {
+        "uid": {
+          "description": "The viewing's uid.",
+          "type": "string",
+        },
+      },
+      "required": [
+        "uid",
+      ],
+      "type": "object",
+    },
+    "name": "delete_viewing",
+  },
+  {
+    "consequentialHint": false,
+    "description": "Filter and search the visitor's own watch history, the same fields the overview's own filters use.",
+    "inputSchema": {
+      "properties": {
+        "actor": {
+          "type": "string",
+        },
+        "city": {
+          "type": "string",
+        },
+        "director": {
+          "type": "string",
+        },
+        "genre": {
+          "type": "string",
+        },
+        "limit": {
+          "description": "Maximum number of matches to return (default 50).",
+          "type": "number",
+        },
+        "medium": {
+          "type": "string",
+        },
+        "movieCountry": {
+          "type": "string",
+        },
+        "movieLanguage": {
+          "type": "string",
+        },
+        "rated": {
+          "type": "string",
+        },
+        "releasedMonth": {
+          "description": "YYYY-MM.",
+          "type": "string",
+        },
+        "releasedYear": {
+          "type": "string",
+        },
+        "title": {
+          "description": "Substring match against the title.",
+          "type": "string",
+        },
+        "venue": {
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "search_viewings",
+  },
+  {
+    "consequentialHint": false,
+    "description": "Export (optionally filtered) viewings as JSON, the same format Settings' own "Export as JSON" produces and import_viewings reads back.",
+    "inputSchema": {
+      "properties": {
+        "actor": {
+          "type": "string",
+        },
+        "city": {
+          "type": "string",
+        },
+        "director": {
+          "type": "string",
+        },
+        "genre": {
+          "type": "string",
+        },
+        "medium": {
+          "type": "string",
+        },
+        "movieCountry": {
+          "type": "string",
+        },
+        "movieLanguage": {
+          "type": "string",
+        },
+        "rated": {
+          "type": "string",
+        },
+        "releasedMonth": {
+          "description": "YYYY-MM.",
+          "type": "string",
+        },
+        "releasedYear": {
+          "type": "string",
+        },
+        "title": {
+          "description": "Substring match against the title.",
+          "type": "string",
+        },
+        "venue": {
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "export_viewings",
+  },
+  {
+    "consequentialHint": true,
+    "description": "Bulk-import viewings from CSV or JSON text (the same format export_viewings produces). A likely duplicate is skipped, never created; a row matching an existing viewing by uid only gets written when mode is "apply-updates".",
+    "inputSchema": {
+      "properties": {
+        "data": {
+          "description": "The CSV or JSON text to import.",
+          "type": "string",
+        },
+        "format": {
+          "enum": [
+            "json",
+            "csv",
+          ],
+          "type": "string",
+        },
+        "mode": {
+          "description": "create-only (default): only creates new, non-duplicate viewings. apply-updates: also writes field changes onto a viewing an imported row matches by uid.",
+          "enum": [
+            "create-only",
+            "apply-updates",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "format",
+        "data",
+      ],
+      "type": "object",
+    },
+    "name": "import_viewings",
+  },
+]
+`;
