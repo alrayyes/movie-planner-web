@@ -76,6 +76,15 @@ bun run lint                 # biome check .
   - One flake is left, about 1% on "removes the event once confirmed", with
     a different cause (#747). A test that fails with `Viewing not found.` and
     passes alone is that one.
+- **Stryker runs on Node, and only its test children run on bun** (#728).
+  - `stryker.config.mjs` builds `bun.testFiles` from `src/lib/**/*.test.ts`. The
+    runner takes an explicit list and with none it discovers every test in the
+    repo, including the Baikal integration tests. A glob string is passed
+    through literally and matches nothing.
+  - `bun.inspectorTimeout` is 20 seconds. The default 5 failed the dry run here
+    with `Timeout waiting for inspector URL`.
+  - The CI job mutates only changed lines, because a full run takes about nine
+    minutes and scores 50 (#749 tracks the backlog).
 - **`package.json`'s `overrides.js-yaml` pins a version Astro's own build
   needs.**
   - Cause: `markdownlint-cli2` depends on `js-yaml@5` (pure ESM, no default
