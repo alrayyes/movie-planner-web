@@ -3,6 +3,7 @@ import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import { fetchFreshViewings } from "../caldav/viewings-source";
 import type { Credentials } from "../credentials/types";
 import { isLikelyDuplicateTitle } from "./duplicates";
+import { localDateAndTime } from "./export-viewings";
 import type { ImportRow, ParsedRow } from "./import-rows";
 
 export interface ImportPlanEntry {
@@ -41,7 +42,10 @@ export function planImport(rows: ParsedRow[], existing: LoggedViewing[]): Import
   const byUid = existingByUid(existing);
   const candidates: DuplicateCandidate[] = existing.map((v) => ({
     title: v.title,
-    date: v.start.slice(0, 10),
+    // The viewer's own calendar date for the start (#751), not the UTC date of
+    // the stored instant, which is the previous day for a viewing logged just
+    // after local midnight.
+    date: localDateAndTime(v.start).date,
   }));
 
   const plan: ImportPlanEntry[] = [];

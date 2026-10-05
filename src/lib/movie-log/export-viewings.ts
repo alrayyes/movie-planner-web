@@ -9,7 +9,7 @@ function pad(n: number): string {
 // the minimal import format's date/start_time/end_time already uses
 // (LogViewingForm.svelte, run-import.ts's toIsoDateTime), so a plain
 // date/time reader sees the same wall-clock time a visitor logged.
-function localDateAndTime(iso: string): { date: string; time: string } {
+export function localDateAndTime(iso: string): { date: string; time: string } {
   const d = new Date(iso);
   return {
     date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,

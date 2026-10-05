@@ -325,3 +325,25 @@ describe("the published schema and the parser agree", () => {
     expect(digits?.pattern).toBe("^\\d+$");
   });
 });
+
+// #751: a row that carries only a `start` instant gets its date from it, and the
+// date is the viewer's own calendar date. 00:30 on the 15th in Amsterdam is
+// 23:30Z on the 14th, and the UTC date would put the viewing a day early.
+describe("a row's date from its start instant", () => {
+  test("is the viewer's local date, not the UTC date", () => {
+    const before = process.env.TZ;
+    process.env.TZ = "Europe/Amsterdam";
+    try {
+      const start = new Date(2024, 2, 15, 0, 30).toISOString();
+      expect(start.slice(0, 10)).toBe("2024-03-14");
+      const [parsed] = parseJsonImport(
+        JSON.stringify([{ title: "Late Show", medium: "cinema", start }]),
+      );
+      expect(parsed?.error).toBeUndefined();
+      expect(parsed?.row?.date).toBe("2024-03-15");
+    } finally {
+      if (before === undefined) delete process.env.TZ;
+      else process.env.TZ = before;
+    }
+  });
+});

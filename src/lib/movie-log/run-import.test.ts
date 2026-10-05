@@ -244,3 +244,61 @@ describe("toIsoDateTime with seconds", () => {
     );
   });
 });
+
+// #751: the duplicate check compares an existing viewing's date with the row's
+// date, and the row's date is a calendar date the visitor typed. The existing
+// viewing's date is the viewer's own calendar date for its start, not the UTC
+// date of the stored instant: 00:30 on the 15th in Amsterdam is 23:30Z on the
+// 14th, and the UTC date made a viewing logged just after midnight never match.
+describe("planImport compares dates as the viewer's local date", () => {
+  const inZone = (zone: string, run: () => void) => {
+    const before = process.env.TZ;
+    process.env.TZ = zone;
+    try {
+      run();
+    } finally {
+      if (before === undefined) delete process.env.TZ;
+      else process.env.TZ = before;
+    }
+  };
+  const lateShow = (): LoggedViewing => ({
+    uid: "late",
+    title: "Late Show",
+    start: new Date(2024, 2, 15, 0, 30).toISOString(),
+    end: new Date(2024, 2, 15, 2, 15).toISOString(),
+    medium: "cinema",
+  });
+
+  test("a viewing logged at 00:30 matches a row dated that local day", () => {
+    inZone("Europe/Amsterdam", () => {
+      const viewing = lateShow();
+      expect(viewing.start.slice(0, 10)).toBe("2024-03-14");
+      const plan = planImport([row(2, "Late Show", "2024-03-15")], [viewing]);
+      expect(plan[0]?.isDuplicate).toBe(true);
+    });
+  });
+
+  test("and doesn't match a row dated the UTC day before", () => {
+    inZone("Europe/Amsterdam", () => {
+      const plan = planImport([row(2, "Late Show", "2024-03-14")], [lateShow()]);
+      expect(plan[0]?.isDuplicate).toBe(false);
+    });
+  });
+
+  test("a viewing logged in the evening west of UTC matches its own local day", () => {
+    inZone("America/New_York", () => {
+      // 21:00 on the 15th in New York is 01:00Z on the 16th.
+      const evening: LoggedViewing = {
+        uid: "evening",
+        title: "Evening Show",
+        start: new Date(2024, 2, 15, 21, 0).toISOString(),
+        end: new Date(2024, 2, 15, 23, 0).toISOString(),
+        medium: "cinema",
+      };
+      expect(evening.start.slice(0, 10)).toBe("2024-03-16");
+      expect(planImport([row(2, "Evening Show", "2024-03-15")], [evening])[0]?.isDuplicate).toBe(
+        true,
+      );
+    });
+  });
+});
