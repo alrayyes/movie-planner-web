@@ -12,7 +12,7 @@ const BASE: NewViewing = {
 };
 
 const lines = (ics: string) => ics.split("\r\n");
-const vevent = (viewing: Partial<NewViewing> = {}, extra: string[] = []) =>
+const vevent = (viewing: Partial<NewViewing> = {}, extra?: string[]) =>
   serializeViewingToVEvent("uid-1", { ...BASE, ...viewing }, extra);
 
 afterEach(() => setSystemTime());
@@ -203,6 +203,10 @@ describe("unfolding and line endings", () => {
     expect(unknown(wrap("X-A:1", "", "X-B:2").join("\r\n"))).toEqual(["X-A:1", "X-B:2"]);
   });
 
+  test("a blank line doesn't stop the line before it being continued", () => {
+    expect(unknown(wrap("X-A:one", "", " two").join("\r\n"))).toEqual(["X-A:onetwo"]);
+  });
+
   test("an indented line with nothing before it stands as a line of its own", () => {
     const raw = [" X-A:1", "BEGIN:VEVENT", "X-B:2", "END:VEVENT"].join("\r\n");
     expect(unknown(raw)).toEqual(["X-B:2"]);
@@ -239,7 +243,7 @@ describe("extractUnknownProperties", () => {
 
   test("returns nothing without both markers, or with them the wrong way round", () => {
     expect(extractUnknownProperties("X-A:1")).toEqual([]);
-    expect(extractUnknownProperties("BEGIN:VEVENT\r\nX-A:1")).toEqual([]);
+    expect(extractUnknownProperties("BEGIN:VEVENT\r\nX-A:1\r\nX-B:2")).toEqual([]);
     expect(extractUnknownProperties("X-A:1\r\nEND:VEVENT")).toEqual([]);
     expect(extractUnknownProperties("END:VEVENT\r\nX-A:1\r\nBEGIN:VEVENT")).toEqual([]);
   });
@@ -350,6 +354,16 @@ describe("reading a VEVENT block", () => {
     expect(parseVEventToViewing(body("garbage", ":orphan", "X-NOTES:ok")).notes).toBe("ok");
   });
 
+  test("a line with no colon never stands in for a property", () => {
+    // Without the colon check its last character would be cut and the rest read as UID's value.
+    expect(parseVEventToViewing(body("UIDX")).uid).toBe("u");
+  });
+
+  test("properties outside the block are not read", () => {
+    const raw = ["X-NOTES:before", body(), "X-NOTES:after"].join("\r\n");
+    expect(parseVEventToViewing(raw).notes).toBeUndefined();
+  });
+
   test("with no markers it names what was missing", () => {
     expect(() => parseVEventToViewing("SUMMARY:x")).toThrow(
       "no BEGIN:VEVENT/END:VEVENT block found",
@@ -363,7 +377,7 @@ describe("reading a VEVENT block", () => {
   });
 
   test("with only one marker it is refused", () => {
-    expect(() => parseVEventToViewing("BEGIN:VEVENT\r\nSUMMARY:x")).toThrow(/block found/);
+    expect(() => parseVEventToViewing("BEGIN:VEVENT\r\nSUMMARY:x\r\nUID:u")).toThrow(/block found/);
     expect(() => parseVEventToViewing("SUMMARY:x\r\nEND:VEVENT")).toThrow(/block found/);
   });
 });
