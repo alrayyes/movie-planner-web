@@ -27,10 +27,15 @@ export interface PurgeDeps {
   cacheStorage: CacheStorageLike | undefined;
 }
 
-const defaults = (): PurgeDeps => ({
-  clearViewings: clearViewingsCache,
-  cacheStorage: typeof caches === "undefined" ? undefined : caches,
-});
+// Cache Storage is a global some contexts lack (an insecure origin, some embedded
+// webviews), so the default wiring looks for it on the scope it's given rather
+// than assuming it. The scope is a parameter so a test can hand it one.
+export function defaultDeps(scope: { caches?: CacheStorageLike }): PurgeDeps {
+  return {
+    clearViewings: () => clearViewingsCache(),
+    cacheStorage: scope.caches,
+  };
+}
 
 async function clearServiceWorkerCaches(storage: CacheStorageLike | undefined): Promise<void> {
   if (!storage) return;
@@ -44,7 +49,7 @@ async function clearServiceWorkerCaches(storage: CacheStorageLike | undefined): 
 
 // Both are attempted whatever happens to the other, then the first failure is
 // reported: a browser that blocks one still gets the other cleared.
-export async function purgeLocalCache(deps: PurgeDeps = defaults()): Promise<void> {
+export async function purgeLocalCache(deps: PurgeDeps = defaultDeps(globalThis)): Promise<void> {
   const results = await Promise.allSettled([
     deps.clearViewings(),
     clearServiceWorkerCaches(deps.cacheStorage),

@@ -171,8 +171,10 @@ export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
 // browser's local copy. A page opened afterwards finds nothing cached and waits
 // for the server, as it did before there was a cache. A background refresh that
 // was already in flight can still write its fresh answer back, which is fine.
-export async function clearViewingsCache(): Promise<void> {
-  const db = await openDatabase();
+export async function clearViewingsCache(
+  open: () => Promise<IDBDatabase> = openDatabase,
+): Promise<void> {
+  const db = await open();
   try {
     const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readwrite");
     tx.objectStore(VIEWINGS_STORE).clear();

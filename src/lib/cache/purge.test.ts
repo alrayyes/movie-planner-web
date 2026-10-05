@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { purgeLocalCache } from "./purge";
+import { defaultDeps, purgeLocalCache } from "./purge";
 
 // #765: the button in Settings that clears this browser's local copy of the
 // server's data. What it clears is the viewings cache (IndexedDB, covered by the
@@ -77,5 +77,23 @@ describe("purgeLocalCache", () => {
       }),
     ).rejects.toThrow("storage unavailable");
     expect(cleared).toBe(1);
+  });
+});
+
+// The real browser's Cache Storage is a global that some contexts don't have
+// (an insecure origin, some embedded webviews), so the default wiring looks for it
+// rather than assuming it.
+describe("defaultDeps", () => {
+  test("uses the scope's Cache Storage when it has one", () => {
+    const storage = { keys: async () => [], delete: async () => true };
+    expect(defaultDeps({ caches: storage }).cacheStorage).toBe(storage);
+  });
+
+  test("has no Cache Storage when the scope lacks one", () => {
+    expect(defaultDeps({}).cacheStorage).toBeUndefined();
+  });
+
+  test("clears the real viewings cache", () => {
+    expect(typeof defaultDeps({}).clearViewings).toBe("function");
   });
 });
