@@ -326,6 +326,22 @@ describe("the published schema and the parser agree", () => {
   });
 });
 
+// A CSV cell often arrives with stray spaces around it, and the date is trimmed
+// before it's checked (the mutation gate found no test saying so, #751).
+describe("a row's date with surrounding spaces", () => {
+  test("is trimmed, and still has to be a real date", () => {
+    const [padded] = parseJsonImport(
+      JSON.stringify([{ title: "Dune", medium: "cinema", date: "  2024-03-15 " }]),
+    );
+    expect(padded?.error).toBeUndefined();
+    expect(padded?.row?.date).toBe("2024-03-15");
+    const [bad] = parseJsonImport(
+      JSON.stringify([{ title: "Dune", medium: "cinema", date: " 2024-02-30 " }]),
+    );
+    expect(bad?.error).toBe('not a valid date: " 2024-02-30 "');
+  });
+});
+
 // #751: a row that carries only a `start` instant gets its date from it, and the
 // date is the viewer's own calendar date. 00:30 on the 15th in Amsterdam is
 // 23:30Z on the 14th, and the UTC date would put the viewing a day early.
