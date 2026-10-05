@@ -12,6 +12,8 @@
 // file either side produces needs no translation layer to read on the
 // other. See public/schemas/movie-viewings.schema.json for the full
 // shape.
+import { localDateAndTime } from "./export-viewings";
+
 export interface ImportRow {
   title: string;
   date: string; // YYYY-MM-DD
@@ -122,7 +124,7 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
 
   // A plain `date` field, or (this app's own export) derived from the
   // higher-precision `start` instant when `date` itself isn't given.
-  const date = str(raw.date)?.trim() ?? start?.slice(0, 10);
+  const date = str(raw.date)?.trim() ?? (start ? localDateAndTime(start).date : undefined);
   if (!date || !isCalendarDate(date)) {
     return { rowNumber, error: `not a valid date: "${String(raw.date ?? "")}"` };
   }
