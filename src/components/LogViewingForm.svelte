@@ -4,6 +4,7 @@ import type { CaldavConfig, LoggedViewing, Picklists, VenueEntry } from "../lib/
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
+import { CINEMA } from "../lib/medium/display";
 import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
 import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
 import { toIsoDateTime } from "../lib/movie-log/run-import";
@@ -296,7 +297,7 @@ let endTime = $state("");
 // #600: "Cinema" is always a selectable option (MediumPicker.svelte),
 // so it's the sensible default rather than an empty string that would
 // match no <option> at all.
-let medium = $state("Cinema");
+let medium = $state(CINEMA);
 let venue = $state("");
 
 // #593: set once a visitor searches OMDb and picks a candidate (below);
@@ -433,7 +434,7 @@ async function handleManualSubmit(event: SubmitEvent) {
 		date = "";
 		startTime = "";
 		endTime = "";
-		medium = "Cinema";
+		medium = CINEMA;
 		venue = "";
 		selectedOmdbMatch = undefined;
 		await learnFromViewing(loggedMedium, loggedVenue);
@@ -483,7 +484,7 @@ async function handleConfirm() {
 		const result = await logPatheBooking(credentials, booking, patheKnownGeo);
 		status = result.wasUpdate ? "Updated the existing entry." : "Logged.";
 		confirmVisible = false;
-		await learnFromViewing("cinema", booking.cinema);
+		await learnFromViewing(CINEMA, booking.cinema);
 		patheEmailText = "";
 		parsedBooking = undefined;
 		if (result.omdbCandidates?.length) showOmdbPicker(result.viewing, result.omdbCandidates);

@@ -1,6 +1,7 @@
 import { createViewing, listViewings, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
+import { CINEMA } from "../medium/display";
 import { lookupMovie, type MovieMetadata, type OmdbCandidate, searchMovies } from "../omdb/client";
 import { enrichWithTmdb } from "../tmdb/client";
 import type { PatheBooking } from "./pathe-email";
@@ -121,7 +122,7 @@ export async function logPatheBooking(
     title: booking.title,
     start: booking.start,
     end: booking.end,
-    medium: "cinema",
+    medium: CINEMA,
     venue: booking.cinema,
     bookingRef: booking.bookingRef,
     geo,
