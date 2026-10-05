@@ -1,7 +1,8 @@
-import { describe, expect, test } from "bun:test";
-import type { LoggedViewing } from "../caldav/types";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import type { LoggedViewing, NewViewing } from "../caldav/types";
+import type { Credentials } from "../credentials/types";
 import type { ImportRow, ParsedRow } from "./import-rows";
-import { planImport, planUpdates, toIsoDateTime } from "./run-import";
+import { applyImportUpdate, importRow, planImport, planUpdates, toIsoDateTime } from "./run-import";
 
 function row(rowNumber: number, title: string, date: string): ParsedRow {
   return { rowNumber, row: { title, date, medium: "cinema" } };
@@ -303,3 +304,202 @@ describe("planImport compares dates as the viewer's local date", () => {
     });
   });
 });
+
+// Every comparable field is reported under its own label, which the review
+// page shows the visitor as the name of the checkbox.
+describe("planUpdates labels every comparable field", () => {
+  const labels: [keyof ImportRow & keyof NewViewing, string][] = [
+    ["title", "Title"],
+    ["medium", "Medium"],
+    ["venue", "Venue"],
+    ["director", "Director"],
+    ["actors", "Actors"],
+    ["genre", "Genre"],
+    ["year", "Year"],
+    ["posterUrl", "Poster"],
+    ["imdbId", "IMDb ID"],
+    ["bookingRef", "Booking reference"],
+    ["letterboxdUrl", "Letterboxd URL"],
+    ["letterboxdRating", "Letterboxd rating"],
+    ["notes", "Notes"],
+    ["ratingImdb", "IMDb rating"],
+    ["ratingRottenTomatoes", "Rotten Tomatoes rating"],
+    ["ratingMetacritic", "Metacritic rating"],
+  ];
+  const existing: LoggedViewing[] = [
+    {
+      uid: "u",
+      title: "Dune",
+      start: "2026-01-01T19:00:00.000Z",
+      end: "2026-01-01T21:30:00.000Z",
+      medium: "cinema",
+    },
+  ];
+
+  for (const [field, label] of labels) {
+    test(`${field} is reported as ${label}`, () => {
+      const rows = [exportedRow(2, { uid: "u", [field]: "changed value" })];
+      const [entry] = planUpdates(rows, existing);
+      expect(entry?.changes).toEqual([
+        {
+          field,
+          label,
+          oldValue: (existing[0] as unknown as Record<string, string | undefined>)[field],
+          newValue: "changed value",
+        },
+      ]);
+    });
+  }
+
+  test("an empty string in the row never counts as a change", () => {
+    const rows = [exportedRow(2, { uid: "u", director: "" })];
+    expect(planUpdates(rows, existing)).toEqual([]);
+  });
+
+  test("a changed end time is reported as its own change", () => {
+    const rows = [exportedRow(2, { uid: "u", end: "2026-01-01T22:00:00.000Z" })];
+    const [entry] = planUpdates(rows, existing);
+    expect(entry?.changes).toEqual([
+      {
+        field: "end",
+        label: "End",
+        oldValue: "2026-01-01T21:30:00.000Z",
+        newValue: "2026-01-01T22:00:00.000Z",
+      },
+    ]);
+  });
+
+  test("a row with no end leaves the stored end alone", () => {
+    const rows = [exportedRow(2, { uid: "u", end: undefined })];
+    expect(planUpdates(rows, existing)).toEqual([]);
+  });
+});
+
+const CREDENTIALS: Credentials = {
+  caldavUrl: "https://caldav.example.com/calendars/me/movies/",
+  caldavUsername: "me",
+  caldavPassword: "secret",
+} as Credentials;
+
+// Both writers PUT a VEVENT; the body is what proves which fields went out.
+describe("writing to the calendar", () => {
+  let originalFetch: typeof fetch;
+  let puts: { url: string; body: string }[];
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    puts = [];
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      if (init.method === "PUT") puts.push({ url, body: String(init.body) });
+      return new Response("", { status: init.method === "PUT" ? 201 : 404 });
+    }) as unknown as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const unfold = (ics: string) => ics.replace(/\r?\n[ \t]/g, "");
+
+  describe("importRow", () => {
+    test("creates an entry from the row's exported instants", async () => {
+      await importRow(CREDENTIALS, {
+        title: "Dune",
+        date: "2026-01-01",
+        medium: "cinema",
+        start: "2026-01-01T19:00:00.000Z",
+        end: "2026-01-01T21:30:00.000Z",
+        venue: "Odeon",
+        director: "Denis Villeneuve",
+      });
+      expect(puts).toHaveLength(1);
+      const body = unfold(puts[0]?.body ?? "");
+      expect(body).toContain("SUMMARY:Dune");
+      // Written as the visitor's own wall-clock time, so computed rather than fixed.
+      expect(body).toContain(`DTSTART:${wallClock(new Date("2026-01-01T19:00:00.000Z"))}`);
+      expect(body).toContain(`DTEND:${wallClock(new Date("2026-01-01T21:30:00.000Z"))}`);
+      expect(body).toContain("Odeon");
+      expect(body).toContain("Denis Villeneuve");
+    });
+
+    test("builds start and end from date and times when there are no instants", async () => {
+      await importRow(CREDENTIALS, {
+        title: "Dune",
+        date: "2026-01-01",
+        medium: "cinema",
+        startTime: "19:00",
+        endTime: "21:30",
+      });
+      const body = unfold(puts[0]?.body ?? "");
+      const start = new Date(2026, 0, 1, 19, 0);
+      const end = new Date(2026, 0, 1, 21, 30);
+      expect(body).toContain(`DTSTART:${wallClock(start)}`);
+      expect(body).toContain(`DTEND:${wallClock(end)}`);
+    });
+
+    test("ends when it starts if the row names no end time", async () => {
+      await importRow(CREDENTIALS, {
+        title: "Dune",
+        date: "2026-01-01",
+        medium: "cinema",
+        startTime: "19:00",
+      });
+      const body = unfold(puts[0]?.body ?? "");
+      const at = wallClock(new Date(2026, 0, 1, 19, 0));
+      expect(body).toContain(`DTSTART:${at}`);
+      expect(body).toContain(`DTEND:${at}`);
+    });
+  });
+
+  describe("applyImportUpdate", () => {
+    const current: LoggedViewing = {
+      uid: "u",
+      title: "Dune",
+      start: "2026-01-01T19:00:00.000Z",
+      end: "2026-01-01T21:30:00.000Z",
+      medium: "cinema",
+      venue: "Odeon",
+    };
+    const entry = {
+      rowNumber: 2,
+      uid: "u",
+      title: "Dune",
+      changes: [
+        { field: "venue", label: "Venue", oldValue: "Odeon", newValue: "Imax" },
+        { field: "director", label: "Director", newValue: "Denis Villeneuve" },
+      ],
+    } as const;
+
+    test("writes only the approved fields and carries the rest forward", async () => {
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...entry, changes: [...entry.changes] },
+        new Set<keyof NewViewing>(["venue"]),
+      );
+      expect(puts).toHaveLength(1);
+      expect(puts[0]?.url).toContain("u.ics");
+      const body = unfold(puts[0]?.body ?? "");
+      expect(body).toContain("Imax");
+      expect(body).not.toContain("Odeon");
+      expect(body).not.toContain("Denis Villeneuve");
+      expect(body).toContain("SUMMARY:Dune");
+    });
+
+    test("approving nothing writes the entry back unchanged", async () => {
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...entry, changes: [...entry.changes] },
+        new Set<keyof NewViewing>(),
+      );
+      const body = unfold(puts[0]?.body ?? "");
+      expect(body).toContain("Odeon");
+      expect(body).not.toContain("Imax");
+    });
+  });
+});
+
+function wallClock(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
