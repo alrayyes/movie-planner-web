@@ -55,7 +55,7 @@ export function registerSearchViewingsTool(): void {
         // #715: the server's own list, since an agent acts on what it finds.
         const all = await fetchFreshViewings(config);
         const matches = filterViewings(all, input);
-        const limit = input.limit && input.limit > 0 ? input.limit : DEFAULT_LIMIT;
+        const limit = input.limit !== undefined && input.limit > 0 ? input.limit : DEFAULT_LIMIT;
         return textResult(JSON.stringify(matches.slice(0, limit)));
       } catch (error) {
         return textResult(`Could not search viewings: ${errorMessage(error)}`, true);
