@@ -48,7 +48,8 @@ bun run build
 bun run check                # astro check, type-checks .astro and .ts together
 bun run test                 # test:unit then test:e2e
 bun run test:unit            # bun test, against a mocked fetch
-bun run test:e2e             # playwright, against a build served through wrangler
+bun run test:e2e             # playwright, against a build served through wrangler,
+                             # in a loopback-only network namespace (see CLAUDE.md)
 
 bun run lint                 # biome check ., the check-only form
 bun run lint:tailwind        # oxlint, the @shadcn/lint Tailwind rules

@@ -61,12 +61,21 @@ bun run lint                 # biome check .
       semgrep scan --config auto --error
     ```
 
-- **The e2e suite flakes about 1% of runs on `net::ERR_NETWORK_CHANGED`.**
-  Chromium aborts in-flight script requests whenever the host's network
-  interfaces change, such as Docker starting a container, so a page never
-  hydrates and a test times out waiting for `#caldav-url`.
-  - Reproduced by loading `/` 150 times in parallel; rerun before debugging a
-    test that fails like this and passes alone (#640).
+- **`bun run test:e2e` runs in a network namespace that has only loopback.**
+  - Chromium aborts in-flight script requests with
+    `net::ERR_NETWORK_CHANGED` whenever the host's interfaces change, such as
+    Docker starting a container. A page never hydrated and a test timed out
+    waiting for `#caldav-url`. Loading `/` 120 times during Docker network
+    churn failed 116 pages on the host and none in the namespace (#640).
+  - `scripts/in-private-network.sh` does it with `unshare -Urn`. CI, a machine
+    without user namespaces and `E2E_HOST_NETWORK=1` run on the host network
+    instead. A headed run needs `E2E_HOST_NETWORK=1`, because the X server's
+    socket lives in the host namespace.
+  - It also gives each run its own port 4321, so two checkouts no longer share
+    a server.
+  - One flake is left, about 1% on "removes the event once confirmed", with
+    a different cause (#747). A test that fails with `Viewing not found.` and
+    passes alone is that one.
 - **`package.json`'s `overrides.js-yaml` pins a version Astro's own build
   needs.**
   - Cause: `markdownlint-cli2` depends on `js-yaml@5` (pure ESM, no default
