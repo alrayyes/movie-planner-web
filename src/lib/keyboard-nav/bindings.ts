@@ -13,25 +13,20 @@ interface TypingTargetLike {
   isContentEditable?: boolean;
 }
 
-// `unknown`, not `EventTarget | null` (a real keydown's own
-// `event.target` type) or the structural `TypingTargetLike` itself —
-// TypeScript's weak-type check refuses to assign either a real
-// EventTarget or a plain object literal to an all-optional-properties
-// interface type, from both directions, so the parameter has to be
-// wide enough to accept both and narrow internally instead.
-function asTypingTargetLike(value: unknown): TypingTargetLike | undefined {
-  return typeof value === "object" && value !== null ? (value as TypingTargetLike) : undefined;
-}
-
 // A visitor typing into a field shouldn't have j/k/g/? hijacked —
 // select and contenteditable aren't in the issue's own acceptance
 // criteria (input/textarea only), but skipping them too costs nothing
 // and avoids the same class of surprise.
+//
+// `target` is `unknown`, not `EventTarget | null` or the all-optional
+// `TypingTargetLike` itself: TypeScript's weak-type check refuses to assign
+// either a real EventTarget or a plain object literal to that interface, so the
+// parameter is wide enough for both and narrowed here. Optional chaining covers
+// null, undefined and any primitive, none of which is a typing target.
 export function isTypingTarget(target: unknown): boolean {
-  const el = asTypingTargetLike(target);
-  if (!el) return false;
-  if (el.isContentEditable) return true;
-  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT";
+  const el = target as TypingTargetLike | null | undefined;
+  if (el?.isContentEditable) return true;
+  return el?.tagName === "INPUT" || el?.tagName === "TEXTAREA" || el?.tagName === "SELECT";
 }
 
 // "gg" is two separate keydown events, not a single keyboard shortcut
