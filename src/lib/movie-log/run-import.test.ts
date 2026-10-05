@@ -244,3 +244,62 @@ describe("toIsoDateTime with seconds", () => {
     );
   });
 });
+
+// #751: the duplicate check compares an existing viewing's date with the row's
+// date, and the row's date is a calendar date the visitor typed. The existing
+// viewing's date is the viewer's own calendar date for its start, not the UTC
+// date of the stored instant: 00:30 on the 15th in Amsterdam is 23:30Z on the
+// 14th, and the UTC date made a viewing logged just after midnight never match.
+describe("planImport compares dates as the viewer's local date", () => {
+  const inZone = (zone: string, run: () => void) => {
+    const before = process.env.TZ;
+    process.env.TZ = zone;
+    try {
+      run();
+    } finally {
+      if (before === undefined) delete process.env.TZ;
+      else process.env.TZ = before;
+    }
+  };
+  const lateShow = (): LoggedViewing => ({
+    uid: "late",
+    title: "Late Show",
+    start: new Date(2024, 2, 15, 0, 30).toISOString(),
+    end: new Date(2024, 2, 15, 2, 15).toISOString(),
+    medium: "cinema",
+  });
+
+  test("a viewing logged at 00:30 matches a row dated that local day", () => {
+    inZone("Europe/Amsterdam", () => {
+      const viewing = lateShow();
+      expect(viewing.start.slice(0, 10)).toBe("2024-03-14");
+      const plan = planImport([row(2, "Late Show", "2024-03-15")], [viewing]);
+      expect(plan[0]?.isDuplicate).toBe(true);
+    });
+  });
+
+  test("and doesn't match a row dated the UTC day before", () => {
+    inZone("Europe/Amsterdam", () => {
+      const plan = planImport([row(2, "Late Show", "2024-03-14")], [lateShow()]);
+      expect(plan[0]?.isDuplicate).toBe(false);
+    });
+  });
+
+  test("a viewing logged just after midnight in summer time matches its own local day", () => {
+    // One zone throughout: switching between two zones in one process isn't
+    // reliable on the bun CI runs (1.3.14), and a second offset is what's wanted.
+    inZone("Europe/Amsterdam", () => {
+      // 00:30 on 15 July in Amsterdam is UTC+2, so 22:30Z on the 14th.
+      const summer: LoggedViewing = {
+        uid: "summer",
+        title: "Summer Show",
+        start: new Date(2024, 6, 15, 0, 30).toISOString(),
+        end: new Date(2024, 6, 15, 2, 0).toISOString(),
+        medium: "cinema",
+      };
+      expect(summer.start.slice(0, 10)).toBe("2024-07-14");
+      const plan = planImport([row(2, "Summer Show", "2024-07-15")], [summer]);
+      expect(plan[0]?.isDuplicate).toBe(true);
+    });
+  });
+});
