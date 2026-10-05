@@ -142,12 +142,13 @@ function escapeText(value: string): string {
     .replace(/\n/g, "\\n");
 }
 
+// One pass, left to right: undoing each escape in turn would read the second
+// backslash of an escaped one as the start of the next, so `\\n` (a backslash
+// and the letter n) came back as a newline (#779). RFC 5545 allows `\N` too.
 function unescapeText(value: string): string {
-  return value
-    .replace(/\\n/g, "\n")
-    .replace(/\\,/g, ",")
-    .replace(/\\;/g, ";")
-    .replace(/\\\\/g, "\\");
+  return value.replace(/\\([nN,;\\])/g, (_, escaped: string) =>
+    escaped === "n" || escaped === "N" ? "\n" : escaped,
+  );
 }
 
 // RFC 5545 §3.1: lines over 75 octets fold onto a continuation line starting
