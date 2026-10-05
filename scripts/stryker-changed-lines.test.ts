@@ -55,10 +55,17 @@ describe("changedRanges", () => {
       "@@ -1 +1 @@",
       "+++ b/src/lib/types.d.ts",
       "@@ -1 +1 @@",
-      "+++ b/src/lib/ui/classes.ts",
+      "+++ b/src/lib/ui/heatmap.ts",
       "@@ -3 +3 @@",
     );
-    expect(changedRanges(out)).toEqual(["src/lib/ui/classes.ts:3-3"]);
+    expect(changedRanges(out)).toEqual(["src/lib/ui/heatmap.ts:3-3"]);
+  });
+
+  // stryker.config.mjs leaves it out, but --mutate replaces that list, so the
+  // CI job has to leave it out itself.
+  test("the Tailwind class strings are never mutated", () => {
+    const out = diff("+++ b/src/lib/ui/classes.ts", "@@ -3 +3 @@");
+    expect(changedRanges(out)).toEqual([]);
   });
 
   test("a deleted file has no new lines", () => {
