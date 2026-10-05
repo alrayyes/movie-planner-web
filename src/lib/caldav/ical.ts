@@ -79,7 +79,7 @@ function formatDateTimeUtc(iso: string): string {
   return date
     .toISOString()
     .replace(/[-:]/g, "")
-    .replace(/\.\d{3}Z$/, "Z");
+    .replace(/\.\d{3}Z/, "Z");
 }
 
 // #752: a viewing's DTSTART and DTEND are the wall-clock time at the cinema,
@@ -154,7 +154,6 @@ function unescapeText(value: string): string {
 // RFC 5545 §3.1: lines over 75 octets fold onto a continuation line starting
 // with a single space.
 function foldLine(line: string): string {
-  if (line.length <= 75) return line;
   const parts: string[] = [];
   let rest = line;
   while (rest.length > 75) {
@@ -167,8 +166,10 @@ function foldLine(line: string): string {
 
 function unfoldLines(raw: string): string[] {
   const physicalLines = raw.split(/\r\n|\n/);
+  // Stryker disable next-line ArrayDeclaration: a stray first line sits ahead of every BEGIN, so nothing reads it.
   const logicalLines: string[] = [];
   for (const line of physicalLines) {
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: a continuation before any line has nothing to continue, and a line ahead of BEGIN is outside every block either way.
     if ((line.startsWith(" ") || line.startsWith("\t")) && logicalLines.length > 0) {
       logicalLines[logicalLines.length - 1] += line.slice(1);
     } else if (line.length > 0) {
@@ -176,6 +177,23 @@ function unfoldLines(raw: string): string[] {
     }
   }
   return logicalLines;
+}
+
+// The lines between a BEGIN and its END marker, or undefined when the block
+// isn't there or is the wrong way round.
+function blockLines(lines: string[], begin: string, end: string): string[] | undefined {
+  const start = lines.indexOf(begin);
+  const stop = lines.indexOf(end);
+  // Stryker disable next-line EqualityOperator: the markers are different lines, so they only match when both are missing, and the first check catches that.
+  if (start === -1 || stop < start) return undefined;
+  return lines.slice(start + 1, stop);
+}
+
+// What a content line is called: the text before its ;PARAM or its colon,
+// upper-cased.
+function propertyName(line: string, colon: number): string {
+  // Stryker disable next-line OptionalChaining: split always yields a first element.
+  return (line.slice(0, colon).split(";")[0] as string).toUpperCase();
 }
 
 function property(name: string, value: string): string {
@@ -195,10 +213,7 @@ const GEO_RE = /^(-?\d+(?:\.\d+)?);(-?\d+(?:\.\d+)?)$/;
 function parseGeo(value: string): { lat: number; lon: number } | undefined {
   const match = GEO_RE.exec(value);
   if (!match) return undefined;
-  const lat = Number(match[1]);
-  const lon = Number(match[2]);
-  if (Number.isNaN(lat) || Number.isNaN(lon)) return undefined;
-  return { lat, lon };
+  return { lat: Number(match[1]), lon: Number(match[2]) };
 }
 
 // #294: every property this app knows how to read or write — anything
@@ -231,15 +246,13 @@ const KNOWN_PROPERTIES = new Set([
 // best-effort preservation, not a hard requirement that could block a
 // save outright.
 export function extractUnknownProperties(raw: string): string[] {
-  const lines = unfoldLines(raw);
-  const start = lines.indexOf("BEGIN:VEVENT");
-  const end = lines.indexOf("END:VEVENT");
-  if (start === -1 || end === -1 || end < start) return [];
+  const block = blockLines(unfoldLines(raw), "BEGIN:VEVENT", "END:VEVENT");
+  if (!block) return [];
   const result: string[] = [];
-  for (const line of lines.slice(start + 1, end)) {
+  for (const line of block) {
     const colon = line.indexOf(":");
     if (colon === -1) continue;
-    const name = line.slice(0, colon).split(";")[0]?.toUpperCase();
+    const name = propertyName(line, colon);
     if (!name || KNOWN_PROPERTIES.has(name)) continue;
     result.push(line);
   }
@@ -282,19 +295,14 @@ function parseProperties(
   beginMarker: string,
   endMarker: string,
 ): ParsedProperties {
-  const start = logicalLines.indexOf(beginMarker);
-  const end = logicalLines.indexOf(endMarker);
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error(`no ${beginMarker}/${endMarker} block found`);
-  }
+  const block = blockLines(logicalLines, beginMarker, endMarker);
+  if (!block) throw new Error(`no ${beginMarker}/${endMarker} block found`);
   const properties: ParsedProperties = {};
-  for (const line of logicalLines.slice(start + 1, end)) {
+  for (const line of block) {
     const colon = line.indexOf(":");
     if (colon === -1) continue;
-    // Drop any ;PARAM=value parameters before the colon — not used here.
-    const name = line.slice(0, colon).split(";")[0]?.toUpperCase();
-    if (!name) continue;
-    properties[name] = unescapeText(line.slice(colon + 1));
+    // Any ;PARAM=value parameters before the colon are dropped — not used here.
+    properties[propertyName(line, colon)] = unescapeText(line.slice(colon + 1));
   }
   return properties;
 }
@@ -350,7 +358,7 @@ function parseDescriptionMetadata(
   for (const rawLine of description.split("\n")) {
     const line = rawLine.trim();
 
-    const imdb = /^IMDb:\s*(.+)$/.exec(line);
+    const imdb = /^IMDb:\s*(.+)/.exec(line);
     if (imdb?.[1]) {
       const value = imdb[1];
       const urlMatch = IMDB_URL_RE.exec(value);
@@ -367,31 +375,31 @@ function parseDescriptionMetadata(
       continue;
     }
 
-    const rt = /^Rotten Tomatoes:\s*(.+)$/.exec(line);
+    const rt = /^Rotten Tomatoes:\s*(.+)/.exec(line);
     if (rt?.[1]) {
       result.ratingRottenTomatoes = rt[1];
       continue;
     }
 
-    const metacritic = /^Metacritic:\s*(.+)$/.exec(line);
+    const metacritic = /^Metacritic:\s*(.+)/.exec(line);
     if (metacritic?.[1]) {
       result.ratingMetacritic = metacritic[1];
       continue;
     }
 
-    const released = /^Released:\s*(.+)$/.exec(line);
+    const released = /^Released:\s*(.+)/.exec(line);
     if (released?.[1]) {
       result.released = released[1];
       continue;
     }
 
-    const plot = /^Plot:\s*(.+)$/.exec(line);
+    const plot = /^Plot:\s*(.+)/.exec(line);
     if (plot?.[1]) {
       result.synopsis = plot[1];
       continue;
     }
 
-    const awards = /^Awards:\s*(.+)$/.exec(line);
+    const awards = /^Awards:\s*(.+)/.exec(line);
     if (awards?.[1]) {
       result.awards = awards[1];
       continue;
@@ -404,7 +412,7 @@ function parseDescriptionMetadata(
       continue;
     }
 
-    const notes = /^Notes:\s*(.+)$/.exec(line);
+    const notes = /^Notes:\s*(.+)/.exec(line);
     if (notes?.[1]) {
       result.notes = notes[1];
     }
@@ -439,15 +447,15 @@ export function parseVEventToViewing(raw: string): LoggedViewing {
     title,
     start: parseDateTimeUtc(start),
     end: parseDateTimeUtc(end),
-    medium: properties["X-MEDIUM"] ?? "",
+    medium: "",
   };
   if (properties.LOCATION) viewing.venue = properties.LOCATION;
+  // Stryker disable next-line ConditionalExpression: parseGeo(undefined) is undefined too.
   if (properties.GEO) {
     const geo = parseGeo(properties.GEO);
     if (geo) viewing.geo = geo;
   }
   for (const [xProp, field] of Object.entries(X_PROPERTIES)) {
-    if (field === "medium") continue;
     const value = properties[xProp];
     if (value) viewing[field] = value;
   }
@@ -457,7 +465,7 @@ export function parseVEventToViewing(raw: string): LoggedViewing {
     const fromDescription = parseDescriptionMetadata(properties.DESCRIPTION);
     for (const [field, value] of Object.entries(fromDescription)) {
       const key = field as keyof typeof fromDescription;
-      if (viewing[key] === undefined && value !== undefined) {
+      if (viewing[key] === undefined) {
         viewing[key] = value;
       }
     }
@@ -473,7 +481,7 @@ export function parseViewingsFromMultistatus(xml: string): LoggedViewing[] {
   const viewings: LoggedViewing[] = [];
   const pattern = /<[^:>]*:?calendar-data[^>]*>([\s\S]*?)<\/[^:>]*:?calendar-data>/g;
   for (const match of xml.matchAll(pattern)) {
-    const calendarData = decodeXmlEntities(match[1] ?? "");
+    const calendarData = decodeXmlEntities(match[1] as string);
     try {
       viewings.push(parseVEventToViewing(calendarData));
     } catch {
@@ -539,22 +547,17 @@ export function parsePicklistsFromVJournal(raw: string | null): Picklists {
   if (!raw) return EMPTY_PICKLISTS;
   try {
     const properties = parseProperties(unfoldLines(raw), "BEGIN:VJOURNAL", "END:VJOURNAL");
-    const parsed: unknown = JSON.parse(properties.DESCRIPTION ?? "");
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      Array.isArray((parsed as { media?: unknown }).media) &&
-      Array.isArray((parsed as { venues?: unknown }).venues)
-    ) {
-      const media = (parsed as { media: unknown[] }).media.filter(
-        (value): value is string => typeof value === "string",
-      );
-      const venues = (parsed as { venues: unknown[] }).venues
-        .map(normalizeVenueEntry)
-        .filter((entry): entry is VenueEntry => entry !== undefined);
-      return { media, venues };
-    }
-    return EMPTY_PICKLISTS;
+    const parsed: unknown = JSON.parse(properties.DESCRIPTION as string);
+    // JSON of any other shape (null, a number, media or venues that aren't
+    // arrays) throws on the property read, `.filter` or `.map` below, and the
+    // catch turns that into the same empty picklists.
+    const media = (parsed as { media: unknown[] }).media.filter(
+      (value): value is string => typeof value === "string",
+    );
+    const venues = (parsed as { venues: unknown[] }).venues
+      .map(normalizeVenueEntry)
+      .filter((entry): entry is VenueEntry => entry !== undefined);
+    return { media, venues };
   } catch {
     return EMPTY_PICKLISTS;
   }
