@@ -16,7 +16,7 @@ interface FakeTransaction {
 
 function fakeDatabase(
   log: string[],
-  how: { failWith?: Error; holdOpen?: { tx?: FakeTransaction } } = {},
+  how: { failWith?: Error; abort?: boolean; holdOpen?: { tx?: FakeTransaction } } = {},
 ) {
   const database = {
     transaction(stores: string[], mode: string) {
@@ -30,7 +30,11 @@ function fakeDatabase(
       }
       if (how.failWith) tx.error = how.failWith;
       // The handlers are set by the time this runs: it waits for the stack to unwind.
-      queueMicrotask(() => (how.failWith ? tx.onerror?.() : tx.oncomplete?.()));
+      queueMicrotask(() => {
+        if (!how.failWith) tx.oncomplete?.();
+        else if (how.abort) tx.onabort?.();
+        else tx.onerror?.();
+      });
       return tx;
     },
     close: () => log.push("close"),
@@ -74,6 +78,16 @@ describe("clearViewingsCache", () => {
     await expect(
       clearViewingsCache(async () => fakeDatabase(log, { failWith: new Error("quota") })),
     ).rejects.toThrow("quota");
+    expect(log.at(-1)).toBe("close");
+  });
+
+  test("an aborted transaction rejects with its error too", async () => {
+    const log: string[] = [];
+    await expect(
+      clearViewingsCache(async () =>
+        fakeDatabase(log, { failWith: new Error("aborted"), abort: true }),
+      ),
+    ).rejects.toThrow("aborted");
     expect(log.at(-1)).toBe("close");
   });
 });
