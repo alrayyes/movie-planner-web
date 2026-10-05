@@ -155,9 +155,8 @@ export { importCheckRange } from "../caldav/range";
 // defaults to midnight; shared with LogViewingForm.svelte so both entry
 // points treat "no time given" identically.
 export function toIsoDateTime(date: string, time: string | undefined): string {
-  // HH:MM or HH:MM:SS (#753): only the first needs its seconds filled in.
-  const clock = time ?? "00:00";
-  return new Date(`${date}T${clock.length === 5 ? `${clock}:00` : clock}`).toISOString();
+  // HH:MM or HH:MM:SS (#753): Date reads both as local time.
+  return new Date(`${date}T${time ?? "00:00"}`).toISOString();
 }
 
 function configFromCredentials(credentials: Credentials): CaldavConfig {
