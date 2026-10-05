@@ -4,7 +4,8 @@ import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { mediumDisplay, mediumHref } from "../lib/medium/display";
+import { mediumHref } from "../lib/medium/display";
+import { groupMediums, type MediumInfo } from "../lib/medium/group";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
@@ -28,11 +29,6 @@ let status = $state("Loading…");
 let disconnected = $state(false);
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let loadError = $state("");
-
-interface MediumInfo {
-	medium: string;
-	count: number;
-}
 
 let mediumInfos = $state<MediumInfo[]>([]);
 
@@ -60,18 +56,7 @@ async function load() {
 		// refresh waits for, since it can finish first.
 		const picklists = getPicklists(config);
 		const apply = (media: string[], viewings: LoggedViewing[]) => {
-			const infoByMedium = new Map<string, MediumInfo>(
-				["Cinema", ...media].map((medium) => [medium, { medium, count: 0 }]),
-			);
-			for (const viewing of viewings) {
-				const medium = mediumDisplay(viewing.medium);
-				const info = infoByMedium.get(medium) ?? { medium, count: 0 };
-				info.count += 1;
-				infoByMedium.set(medium, info);
-			}
-			mediumInfos = [...infoByMedium.values()].sort(
-				(a, b) => b.count - a.count || a.medium.localeCompare(b.medium),
-			);
+			mediumInfos = groupMediums(viewings, media);
 			status = `${mediumInfos.length} medium${mediumInfos.length === 1 ? "" : "s"}.`;
 		};
 		const viewings = await listAllViewings(config, {

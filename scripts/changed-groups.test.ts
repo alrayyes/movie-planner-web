@@ -20,6 +20,7 @@ const cases: [path: string, groups: Group[]][] = [
   ["scripts/changed-groups.ts", ["lint", "test", "security"]],
   ["stryker.config.mjs", ["lint", "security", "mutation"]],
   ["src/lib/ui/heatmap.test.ts", ["lint", "test", "security", "integration", "mutation"]],
+  ["public/schemas/movie-viewings.schema.json", ["lint", "test", "security", "integration"]],
   ["package.json", ["lint", "test", "security", "integration", "prose", "mutation"]],
   ["bun.lock", ["lint", "test", "integration", "prose", "mutation"]],
   ["tsconfig.json", ["lint", "test", "security", "integration", "mutation"]],

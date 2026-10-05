@@ -2,7 +2,7 @@
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
-import { mediumDisplay } from "../lib/medium/display";
+import { sameMedium } from "../lib/medium/display";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
 import { ACTIVE_FILTER_LABEL_EVENT } from "../lib/ui/active-filter";
@@ -52,7 +52,7 @@ let currentPage = $state(0);
 // property) is what "Cinema" means here, the same rule it displays
 // under everywhere else.
 const viewings = $derived.by(() => {
-	const matched = allViewings.filter((v) => mediumDisplay(v.medium) === medium);
+	const matched = allViewings.filter((v) => sameMedium(v.medium, medium));
 	return [...matched].sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
 });
 const total = $derived(viewings.length);

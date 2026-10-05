@@ -87,6 +87,11 @@ async function connect(page: Page) {
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+  // #756: the header's button shows before the viewings table renders, so a
+  // test that measured right after this could find no table, or measure a page
+  // without its widest row in it. Waiting for the row is what "connected and
+  // showing the overview" means here.
+  await expect(page.getByRole("link", { name: "Dune", exact: true })).toBeVisible();
 }
 
 for (const viewport of VIEWPORTS) {

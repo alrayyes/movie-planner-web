@@ -29,6 +29,14 @@ function localDateAndTime(iso: string): { date: string; time: string } {
 // own re-import prefers the ISO pair for exact fidelity regardless of
 // which timezone the importing browser is in. See
 // public/schemas/movie-viewings.schema.json for the full shape.
+// #753: the import (and the movie-planner CLI) take a release year only as
+// digits, and OMDb gives a series' year as a range, "2011–2019". The year a
+// series started is its release year; anything that isn't a year is left out
+// rather than written as something the import would refuse.
+function exportYear(year: string | undefined): string | undefined {
+  return year ? /^\d{4}/.exec(year.trim())?.[0] : undefined;
+}
+
 export function exportViewingsToJson(viewings: LoggedViewing[]): string {
   const rows = viewings.map((v) => {
     const { date, time: startTime } = localDateAndTime(v.start);
@@ -46,7 +54,7 @@ export function exportViewingsToJson(viewings: LoggedViewing[]): string {
       director: v.director,
       actors: v.actors,
       genre: v.genre,
-      release_year: v.year,
+      release_year: exportYear(v.year),
       poster_url: v.posterUrl,
       imdb_rating: v.ratingImdb,
       rotten_tomatoes_rating: v.ratingRottenTomatoes,
