@@ -285,20 +285,21 @@ describe("planImport compares dates as the viewer's local date", () => {
     });
   });
 
-  test("a viewing logged in the evening west of UTC matches its own local day", () => {
-    inZone("America/New_York", () => {
-      // 21:00 on the 15th in New York is 01:00Z on the 16th.
-      const evening: LoggedViewing = {
-        uid: "evening",
-        title: "Evening Show",
-        start: new Date(2024, 2, 15, 21, 0).toISOString(),
-        end: new Date(2024, 2, 15, 23, 0).toISOString(),
+  test("a viewing logged just after midnight in summer time matches its own local day", () => {
+    // One zone throughout: switching between two zones in one process isn't
+    // reliable on the bun CI runs (1.3.14), and a second offset is what's wanted.
+    inZone("Europe/Amsterdam", () => {
+      // 00:30 on 15 July in Amsterdam is UTC+2, so 22:30Z on the 14th.
+      const summer: LoggedViewing = {
+        uid: "summer",
+        title: "Summer Show",
+        start: new Date(2024, 6, 15, 0, 30).toISOString(),
+        end: new Date(2024, 6, 15, 2, 0).toISOString(),
         medium: "cinema",
       };
-      expect(evening.start.slice(0, 10)).toBe("2024-03-16");
-      expect(planImport([row(2, "Evening Show", "2024-03-15")], [evening])[0]?.isDuplicate).toBe(
-        true,
-      );
+      expect(summer.start.slice(0, 10)).toBe("2024-07-14");
+      const plan = planImport([row(2, "Summer Show", "2024-07-15")], [summer]);
+      expect(plan[0]?.isDuplicate).toBe(true);
     });
   });
 });
