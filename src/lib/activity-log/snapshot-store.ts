@@ -1,4 +1,5 @@
 import type { LoggedViewing } from "../caldav/types";
+import { done, openDatabase, result } from "../idb/helpers";
 
 // #432: the last-seen state of every viewing, as of this browser's own
 // last sync — a separate database from both the capped activity-log
@@ -28,40 +29,25 @@ const VIEWINGS_STORE = "viewings";
 const META_STORE = "meta";
 const SEEDED_KEY = "seeded";
 
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(VIEWINGS_STORE)) {
-        request.result.createObjectStore(VIEWINGS_STORE, { keyPath: "uid" });
-      }
-      if (!request.result.objectStoreNames.contains(META_STORE)) {
-        request.result.createObjectStore(META_STORE);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+function openSnapshot(): Promise<IDBDatabase> {
+  return openDatabase(DB_NAME, DB_VERSION, (db) => {
+    db.createObjectStore(VIEWINGS_STORE, { keyPath: "uid" });
+    db.createObjectStore(META_STORE);
   });
 }
 
 export class IndexedDbCaldavSnapshotStore implements CaldavSnapshotStore {
   async load(): Promise<Map<string, LoggedViewing> | null> {
-    const db = await openDatabase();
+    const db = await openSnapshot();
     try {
-      const seeded = await new Promise<boolean>((resolve, reject) => {
-        const tx = db.transaction(META_STORE, "readonly");
-        const request = tx.objectStore(META_STORE).get(SEEDED_KEY);
-        request.onsuccess = () => resolve(request.result === true);
-        request.onerror = () => reject(request.error);
-      });
-      if (!seeded) return null;
+      const seeded = await result(
+        db.transaction(META_STORE, "readonly").objectStore(META_STORE).get(SEEDED_KEY),
+      );
+      if (seeded !== true) return null;
 
-      const viewings = await new Promise<LoggedViewing[]>((resolve, reject) => {
-        const tx = db.transaction(VIEWINGS_STORE, "readonly");
-        const request = tx.objectStore(VIEWINGS_STORE).getAll();
-        request.onsuccess = () => resolve(request.result as LoggedViewing[]);
-        request.onerror = () => reject(request.error);
-      });
+      const viewings = await result<LoggedViewing[]>(
+        db.transaction(VIEWINGS_STORE, "readonly").objectStore(VIEWINGS_STORE).getAll(),
+      );
       return new Map(viewings.map((v) => [v.uid, v]));
     } finally {
       db.close();
@@ -69,31 +55,25 @@ export class IndexedDbCaldavSnapshotStore implements CaldavSnapshotStore {
   }
 
   async replaceAll(viewings: LoggedViewing[]): Promise<void> {
-    const db = await openDatabase();
+    const db = await openSnapshot();
     try {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readwrite");
-        const viewingsStore = tx.objectStore(VIEWINGS_STORE);
-        viewingsStore.clear();
-        for (const viewing of viewings) viewingsStore.put(viewing);
-        tx.objectStore(META_STORE).put(true, SEEDED_KEY);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
+      const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readwrite");
+      const viewingsStore = tx.objectStore(VIEWINGS_STORE);
+      viewingsStore.clear();
+      for (const viewing of viewings) viewingsStore.put(viewing);
+      tx.objectStore(META_STORE).put(true, SEEDED_KEY);
+      await done(tx);
     } finally {
       db.close();
     }
   }
 
   async remove(uid: string): Promise<void> {
-    const db = await openDatabase();
+    const db = await openSnapshot();
     try {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(VIEWINGS_STORE, "readwrite");
-        tx.objectStore(VIEWINGS_STORE).delete(uid);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
+      const tx = db.transaction(VIEWINGS_STORE, "readwrite");
+      tx.objectStore(VIEWINGS_STORE).delete(uid);
+      await done(tx);
     } finally {
       db.close();
     }

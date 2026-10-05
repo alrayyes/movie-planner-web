@@ -1,3 +1,4 @@
+import { done, openDatabase, result } from "../idb/helpers";
 import type { ActivityLogEntry, ActivityLogStore } from "./types";
 
 // A separate database from credentials/indexeddb-store.ts's own —
@@ -14,69 +15,49 @@ const STORE_NAME = "entries";
 // permanent record.
 const MAX_ENTRIES = 500;
 
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE_NAME)) {
-        request.result.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+function openActivityLog(): Promise<IDBDatabase> {
+  return openDatabase(DB_NAME, DB_VERSION, (db) => {
+    db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
   });
 }
 
 export class IndexedDbActivityLogStore implements ActivityLogStore {
   async append(entry: Omit<ActivityLogEntry, "id">): Promise<void> {
-    const db = await openDatabase();
+    const db = await openActivityLog();
     try {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        store.add(entry);
-        // Trim oldest-first (auto-increment key order = insertion order)
-        // once over the cap, in the same transaction as the add.
-        const countRequest = store.count();
-        countRequest.onsuccess = () => {
-          const excess = countRequest.result - MAX_ENTRIES;
-          if (excess <= 0) return;
-          const cursorRequest = store.openCursor();
-          let toDelete = excess;
-          cursorRequest.onsuccess = () => {
-            const cursor = cursorRequest.result;
-            if (!cursor || toDelete <= 0) return;
-            cursor.delete();
-            toDelete--;
-            cursor.continue();
-          };
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      store.add(entry);
+      // Trim oldest-first (auto-increment key order = insertion order)
+      // once over the cap, in the same transaction as the add. A count at or
+      // under the cap leaves `toDelete` at zero or less, and the cursor stops
+      // at once.
+      const countRequest = store.count();
+      countRequest.onsuccess = () => {
+        const cursorRequest = store.openCursor();
+        let toDelete = countRequest.result - MAX_ENTRIES;
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor || toDelete <= 0) return;
+          cursor.delete();
+          toDelete--;
+          cursor.continue();
         };
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
+      };
+      await done(tx);
     } finally {
       db.close();
     }
   }
 
   async list(limit = MAX_ENTRIES): Promise<ActivityLogEntry[]> {
-    const db = await openDatabase();
+    const db = await openActivityLog();
     try {
-      return await new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const request = tx.objectStore(STORE_NAME).openCursor(null, "prev");
-        const results: ActivityLogEntry[] = [];
-        request.onsuccess = () => {
-          const cursor = request.result;
-          if (!cursor || results.length >= limit) {
-            resolve(results);
-            return;
-          }
-          results.push(cursor.value as ActivityLogEntry);
-          cursor.continue();
-        };
-        request.onerror = () => reject(request.error);
-      });
+      const entries = await result<ActivityLogEntry[]>(
+        db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll(),
+      );
+      // Keys are insertion order, so newest first is the reverse.
+      return entries.reverse().slice(0, limit);
     } finally {
       db.close();
     }
