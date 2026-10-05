@@ -70,7 +70,8 @@ function buildYearGrid(year: string, counts: Map<string, number>, today: Date): 
   // The current year in progress renders only up to today — a
   // contribution graph with a wall of "empty" cells for a future that
   // hasn't happened yet reads as broken, not accurate.
-  const end = y === today.getFullYear() && today < dec31 ? today : dec31;
+  const end =
+    y === today.getFullYear() ? new Date(Math.min(today.getTime(), dec31.getTime())) : dec31;
 
   const gridStart = new Date(jan1);
   gridStart.setDate(gridStart.getDate() - gridStart.getDay());
@@ -82,6 +83,7 @@ function buildYearGrid(year: string, counts: Map<string, number>, today: Date): 
 
   for (
     let weekStart = new Date(gridStart);
+    // Stryker disable next-line EqualityOperator: gridEnd is always a Saturday and weekStart a Sunday, so they are never equal and < gives the same grid
     weekStart <= gridEnd;
     weekStart.setDate(weekStart.getDate() + 7)
   ) {

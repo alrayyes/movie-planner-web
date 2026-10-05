@@ -49,6 +49,7 @@ export const FILTER_KEYS = Object.keys(FILTER_QUALIFIERS) as (keyof ActiveFilter
 // Svelte island, so it can't read CalendarOverview's own reactive state
 // directly) can stay in sync without re-deriving the same filter logic
 // from the URL a second time.
+// Stryker disable next-line StringLiteral: both sides of the event read this constant, so its spelling changes no behaviour
 export const ACTIVE_FILTER_LABEL_EVENT = "movie-planner-web-active-filter-label";
 
 export function activeFilterLabel(values: ActiveFilterValues): string | null {
