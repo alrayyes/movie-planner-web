@@ -21,6 +21,9 @@ import Layout from "../layouts/Layout.astro";
     </h2>
     <div class="mt-3">
       <export-json-button></export-json-button>
+      <!-- #765: clears this browser's local copy of the viewings and the
+      service worker's pages, for a device showing old or missing data. -->
+      <purge-cache-button></purge-cache-button>
     </div>
   </div>
   <!-- #436: Import and Activity moved here from the top nav — both are
@@ -109,4 +112,5 @@ import Layout from "../layouts/Layout.astro";
 <script>
   import "../components/credentials-settings-form";
   import "../components/export-json-button";
+  import "../components/purge-cache-button";
 </script>

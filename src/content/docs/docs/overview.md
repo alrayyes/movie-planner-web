@@ -99,9 +99,13 @@ page at once.
 
 The first visit, and the first visit after you point the app at a
 different calendar, still wait for the server, because there's no copy
-yet. Clearing this site's data in your browser removes the copy. Export
-and import always read from the server itself, never from the copy, and
-so does the activity log's check for changes made elsewhere.
+yet. If one device shows old or missing viewings and another doesn't,
+[Settings](/settings/) has a "Clear local cache" button under Data. It
+removes the copy and the pages this browser keeps for speed, and leaves your
+sign-in and your activity log alone. Clearing this site's data in your browser
+removes the copy too, along with your sign-in. Export and import always read
+from the server itself, never from the copy, and so does the activity log's
+check for changes made elsewhere.
 
 ## Sharing a single viewing
 
