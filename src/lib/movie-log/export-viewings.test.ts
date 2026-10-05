@@ -127,6 +127,15 @@ describe("export release year", () => {
     expect(exported("2022–")).toBe("2022");
   });
 
+  test("spaces round a year are ignored", () => {
+    expect(exported(" 2021 ")).toBe("2021");
+  });
+
+  test("a year has to start the text, so a year buried in it is left out", () => {
+    expect(exported("ca. 2011")).toBeUndefined();
+    expect(exported("(2021)")).toBeUndefined();
+  });
+
   test("a year that isn't a year is left out", () => {
     expect(exported("N/A")).toBeUndefined();
     expect(exported("")).toBeUndefined();
@@ -138,5 +147,18 @@ describe("export release year", () => {
       const [row] = parseJsonImport(exportViewingsToJson([{ ...VIEWING, year }]));
       expect(row?.error).toBeUndefined();
     }
+  });
+});
+
+// #749: the slug in a single viewing's filename.
+describe("exportSingleViewingFilename, the slug", () => {
+  const named = (title: string) => exportSingleViewingFilename({ ...VIEWING, title });
+
+  test("runs of punctuation and spaces become one hyphen, none left at either end", () => {
+    expect(named("!!Dune:  Part Two??")).toBe("movie-planner-export-dune-part-two-2026-01-01.json");
+  });
+
+  test("keeps a hyphen that sits between words", () => {
+    expect(named("Spider-Man")).toBe("movie-planner-export-spider-man-2026-01-01.json");
   });
 });

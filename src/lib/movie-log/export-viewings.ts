@@ -85,8 +85,10 @@ export function exportFilename(now: Date): string {
 export function exportSingleViewingFilename(viewing: LoggedViewing): string {
   const slug = viewing.title
     .toLowerCase()
+    // A run of anything else is already one hyphen, so at most one is left at
+    // each end to trim.
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-|-$/g, "");
   const { date } = localDateAndTime(viewing.start);
   return `movie-planner-export-${slug}-${date}.json`;
 }
