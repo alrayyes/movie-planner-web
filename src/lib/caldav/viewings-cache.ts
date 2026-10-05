@@ -1,3 +1,4 @@
+import { done, openDatabase, result } from "../idb/helpers";
 import type { CaldavConfig, LoggedViewing } from "./types";
 
 // #715: a browser-side copy of the visitor's viewings, so a page can render
@@ -52,16 +53,10 @@ interface ViewingRecord {
   viewing: LoggedViewing;
 }
 
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    // Version 1 only upgrades from no database at all, so neither store exists yet.
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(VIEWINGS_STORE, { keyPath: ["account", "uid"] });
-      request.result.createObjectStore(META_STORE, { keyPath: "account" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+function openViewingsCache(): Promise<IDBDatabase> {
+  return openDatabase(DB_NAME, DB_VERSION, (db) => {
+    db.createObjectStore(VIEWINGS_STORE, { keyPath: ["account", "uid"] });
+    db.createObjectStore(META_STORE, { keyPath: "account" });
   });
 }
 
@@ -69,25 +64,9 @@ function accountRange(account: string): IDBKeyRange {
   return IDBKeyRange.bound([account, ""], [account, "￿"]);
 }
 
-function done(tx: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error);
-  });
-}
-
-function result<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    // Stryker disable next-line ArrowFunction: a get or getAll on a healthy database never fails, so this handler can't be reached from a test; it's the same one-liner as the open and transaction handlers, which are tested.
-    request.onerror = () => reject(request.error);
-  });
-}
-
 export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
   async load(account: string): Promise<CachedViewings | null> {
-    const db = await openDatabase();
+    const db = await openViewingsCache();
     try {
       const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readonly");
       const meta = await result<{ fetchedAt: number } | undefined>(
@@ -105,7 +84,7 @@ export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
   }
 
   async replaceAll(account: string, viewings: LoggedViewing[]): Promise<void> {
-    const db = await openDatabase();
+    const db = await openViewingsCache();
     try {
       const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readwrite");
       const store = tx.objectStore(VIEWINGS_STORE);
@@ -121,7 +100,7 @@ export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
   }
 
   async upsert(account: string, viewing: LoggedViewing): Promise<void> {
-    const db = await openDatabase();
+    const db = await openViewingsCache();
     try {
       const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readwrite");
       const meta = await result(tx.objectStore(META_STORE).get(account));
@@ -138,7 +117,7 @@ export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
   }
 
   async remove(account: string, uid: string): Promise<void> {
-    const db = await openDatabase();
+    const db = await openViewingsCache();
     try {
       const tx = db.transaction(VIEWINGS_STORE, "readwrite");
       tx.objectStore(VIEWINGS_STORE).delete([account, uid]);
@@ -149,7 +128,7 @@ export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
   }
 
   async retainOnly(account: string): Promise<void> {
-    const db = await openDatabase();
+    const db = await openViewingsCache();
     try {
       const tx = db.transaction([VIEWINGS_STORE, META_STORE], "readwrite");
       const accounts = await result<IDBValidKey[]>(tx.objectStore(META_STORE).getAllKeys());
@@ -170,7 +149,7 @@ export class IndexedDbViewingsCacheStore implements ViewingsCacheStore {
 // for the server, as it did before there was a cache. A background refresh that
 // was already in flight can still write its fresh answer back, which is fine.
 export async function clearViewingsCache(
-  open: () => Promise<IDBDatabase> = openDatabase,
+  open: () => Promise<IDBDatabase> = openViewingsCache,
 ): Promise<void> {
   const db = await open();
   try {

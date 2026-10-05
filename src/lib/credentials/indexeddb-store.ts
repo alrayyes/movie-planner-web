@@ -1,4 +1,5 @@
 import { retainViewingsCacheFor } from "../caldav/viewings-cache";
+import { done, openDatabase, result } from "../idb/helpers";
 import type { Credentials, CredentialsStore } from "./types";
 
 // Plain browser storage (Option A from the credentials capability spec) —
@@ -9,43 +10,31 @@ const DB_VERSION = 1;
 const STORE_NAME = "credentials";
 const RECORD_KEY = "current";
 
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE_NAME)) {
-        request.result.createObjectStore(STORE_NAME);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+function openCredentials(): Promise<IDBDatabase> {
+  return openDatabase(DB_NAME, DB_VERSION, (db) => {
+    db.createObjectStore(STORE_NAME);
   });
 }
 
 export class IndexedDbCredentialsStore implements CredentialsStore {
   async get(): Promise<Credentials | null> {
-    const db = await openDatabase();
+    const db = await openCredentials();
     try {
-      return await new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const request = tx.objectStore(STORE_NAME).get(RECORD_KEY);
-        request.onsuccess = () => resolve(request.result ?? null);
-        request.onerror = () => reject(request.error);
-      });
+      const stored = await result<Credentials | undefined>(
+        db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(RECORD_KEY),
+      );
+      return stored ?? null;
     } finally {
       db.close();
     }
   }
 
   async save(credentials: Credentials): Promise<void> {
-    const db = await openDatabase();
+    const db = await openCredentials();
     try {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        tx.objectStore(STORE_NAME).put(credentials, RECORD_KEY);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(credentials, RECORD_KEY);
+      await done(tx);
     } finally {
       db.close();
     }
