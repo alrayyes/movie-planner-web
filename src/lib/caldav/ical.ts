@@ -82,11 +82,38 @@ function formatDateTimeUtc(iso: string): string {
     .replace(/\.\d{3}Z$/, "Z");
 }
 
+// #752: a viewing's DTSTART and DTEND are the wall-clock time at the cinema,
+// written as RFC 5545 §3.3.5's floating form (no Z, no TZID), the same as the
+// movie-planner CLI writes. Written as UTC, the CLI read a viewing logged at
+// 00:30 in Amsterdam as the previous day at 23:30. DTSTAMP stays UTC, which the
+// RFC requires.
+function formatDateTimeFloating(iso: string): string {
+  const date = new Date(iso);
+  const two = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}${two(date.getMonth() + 1)}${two(date.getDate())}` +
+    `T${two(date.getHours())}${two(date.getMinutes())}${two(date.getSeconds())}`
+  );
+}
+
+// A trailing Z is the instant it names, which is what this app wrote before
+// #752 and what other clients write. No Z is a floating time: the wall-clock
+// time in the viewer's own zone, which is how the CLI and every calendar app
+// read it. A TZID parameter isn't kept by the property parser, so that form is
+// read as floating too.
 function parseDateTimeUtc(value: string): string {
-  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/.exec(value);
+  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/.exec(value);
   if (dateTime) {
-    const [, year, month, day, hour, minute, second] = dateTime;
-    return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+    const [, year, month, day, hour, minute, second, zulu] = dateTime;
+    if (zulu) return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    ).toISOString();
   }
   // #233: an all-day event's DTSTART/DTEND (RFC 5545 §3.3.4's DATE
   // value, not DATE-TIME — no "T", no time component at all) used to
@@ -230,8 +257,8 @@ export function serializeViewingToVEvent(
     "BEGIN:VEVENT",
     property("UID", uid),
     property("DTSTAMP", formatDateTimeUtc(new Date().toISOString())),
-    property("DTSTART", formatDateTimeUtc(viewing.start)),
-    property("DTEND", formatDateTimeUtc(viewing.end)),
+    property("DTSTART", formatDateTimeFloating(viewing.start)),
+    property("DTEND", formatDateTimeFloating(viewing.end)),
     property("SUMMARY", viewing.title),
   ];
   if (viewing.venue) lines.push(property("LOCATION", viewing.venue));
