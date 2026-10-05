@@ -203,3 +203,52 @@ describe("computeBlockedTimeBar", () => {
     expect(positionPercent).toBeCloseTo((expectedMinutes * 100) / (24 * 60), 5);
   });
 });
+
+// #749: the gate on src/lib found these edges unpinned.
+describe("localDayBoundary, exactly", () => {
+  const parts = (iso: string) => {
+    const d = new Date(iso);
+    return [
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      d.getHours(),
+      d.getMinutes(),
+      d.getSeconds(),
+      d.getMilliseconds(),
+    ];
+  };
+
+  test("the start of a local day is its first millisecond", () => {
+    expect(parts(localDayBoundary("2024-03-15", false))).toEqual([2024, 2, 15, 0, 0, 0, 0]);
+  });
+
+  test("the end of a local day is its last millisecond, in the same month", () => {
+    expect(parts(localDayBoundary("2024-03-15", true))).toEqual([2024, 2, 15, 23, 59, 59, 999]);
+  });
+});
+
+describe("computeBlockedTimeBar, edges", () => {
+  const local = (hour: number, minute: number, second: number) =>
+    new Date(2024, 2, 15, hour, minute, second).toISOString();
+
+  test("the position counts hours, minutes and seconds", () => {
+    // 06:30:30 is 390.5 minutes into a 1,440 minute day.
+    const { positionPercent, widthPercent } = computeBlockedTimeBar(
+      local(6, 30, 30),
+      local(8, 30, 30),
+    );
+    expect(positionPercent).toBeCloseTo((390.5 / 1440) * 100, 8);
+    expect(widthPercent).toBeCloseTo((120 / 1440) * 100, 8);
+  });
+
+  test("a viewing with no duration has no bar at all, not the minimum width", () => {
+    expect(computeBlockedTimeBar(local(19, 0, 0), local(19, 0, 0)).widthPercent).toBe(0);
+  });
+
+  test("an end before the start has no bar, not the minimum width", () => {
+    expect(
+      computeBlockedTimeBar(local(19, 0, 0), local(18, 0, 0)).widthPercent,
+    ).toBeLessThanOrEqual(0);
+  });
+});

@@ -161,3 +161,64 @@ describe("buildYearGrids", () => {
     }
   });
 });
+
+// #749: where a year's grid ends, by hand. Weeks run Sunday to Saturday.
+describe("buildYearGrids, where a grid ends", () => {
+  const cells = (week: { days: ({ date: string } | null)[] } | undefined) =>
+    (week?.days ?? []).map((day) => day?.date ?? null);
+
+  test("a past year ends at its own December 31st, padded to the Saturday after", () => {
+    // 2025 starts on a Wednesday and ends on a Wednesday: the first week starts
+    // Sunday 29 December 2024 and the last ends Saturday 3 January 2026.
+    const [grid] = buildYearGrids(new Map([["2025-06-01", 1]]), new Date(2026, 8, 10));
+    expect(grid?.weeks).toHaveLength(53);
+    expect(cells(grid?.weeks.at(-1))).toEqual([
+      "2025-12-28",
+      "2025-12-29",
+      "2025-12-30",
+      "2025-12-31",
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  test("a year still to come is drawn in full, not cut off at today", () => {
+    const [grid] = buildYearGrids(new Map([["2027-03-01", 2]]), new Date(2026, 8, 10));
+    const days = grid?.weeks.flatMap((w) => w.days).filter((d) => d !== null) ?? [];
+    expect(days.find((d) => d?.date === "2027-03-01")?.count).toBe(2);
+    expect(days.at(-1)?.date).toBe("2027-12-31");
+  });
+
+  test("the current year ends at today and is padded to that week's Saturday", () => {
+    // Wednesday 4 March 2026: the last week is 1 to 7 March, with 5 to 7 empty.
+    const [grid] = buildYearGrids(new Map([["2026-03-04", 1]]), new Date(2026, 2, 4));
+    expect(grid?.weeks).toHaveLength(10);
+    expect(cells(grid?.weeks.at(-1))).toEqual([
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  test("a current year that ends on a Sunday still gets that last week", () => {
+    // Sunday 8 March 2026: its week holds one cell, then six empty ones.
+    const [grid] = buildYearGrids(new Map([["2026-03-08", 1]]), new Date(2026, 2, 8));
+    expect(grid?.weeks).toHaveLength(11);
+    expect(cells(grid?.weeks.at(-1))).toEqual(["2026-03-08", null, null, null, null, null, null]);
+  });
+
+  test("years come back newest first whatever order the counts were built in", () => {
+    const counts = new Map([
+      ["2025-01-01", 1],
+      ["2023-01-01", 1],
+      ["2024-01-01", 1],
+    ]);
+    const years = buildYearGrids(counts, new Date(2026, 8, 10)).map((grid) => grid.year);
+    expect(years).toEqual(["2025", "2024", "2023"]);
+  });
+});
