@@ -11,24 +11,26 @@ import { allGroups, classify, GROUPS, type Group } from "./changed-groups";
 // open README.md, CHANGELOG.md, the workflows and most config files, and the
 // e2e suite reads docs/, so a docs-only change can still fail it.
 const cases: [path: string, groups: Group[]][] = [
-  ["src/lib/caldav/client.ts", ["lint", "test", "security", "integration"]],
+  ["src/lib/caldav/client.ts", ["lint", "test", "security", "integration", "mutation"]],
   ["src/components/Foo.svelte", ["lint", "test", "security"]],
   ["src/pages/index.astro", ["lint", "test", "security", "prose"]],
   ["tests/venues.spec.ts", ["lint", "test", "security"]],
   ["test/integration/compose.yaml", ["test", "security", "integration", "prose"]],
   ["scripts/lint-prose.sh", ["test", "security"]],
   ["scripts/changed-groups.ts", ["lint", "test", "security"]],
+  ["stryker.config.mjs", ["lint", "security", "mutation"]],
+  ["src/lib/ui/heatmap.test.ts", ["lint", "test", "security", "integration", "mutation"]],
   ["public/schemas/movie-viewings.schema.json", ["lint", "test", "security"]],
-  ["package.json", ["lint", "test", "security", "integration", "prose"]],
-  ["bun.lock", ["lint", "test", "integration", "prose"]],
-  ["tsconfig.json", ["lint", "test", "security", "integration"]],
+  ["package.json", ["lint", "test", "security", "integration", "prose", "mutation"]],
+  ["bun.lock", ["lint", "test", "integration", "prose", "mutation"]],
+  ["tsconfig.json", ["lint", "test", "security", "integration", "mutation"]],
   ["biome.json", ["lint", "test", "security"]],
   ["CLAUDE.md", ["lint", "test", "prose"]],
   [".claude/settings.json", ["lint", "security"]],
   ["README.md", ["test", "prose"]],
   ["docs/getting-started.md", ["test", "prose"]],
   ["lefthook.yml", ["test", "security", "prose"]],
-  [".github/workflows/ci.yml", ["lint", "test", "security", "integration", "prose"]],
+  [".github/workflows/ci.yml", ["lint", "test", "security", "integration", "prose", "mutation"]],
   [".github/workflows/prose.yml", ["test", "security", "prose"]],
   [".prettierrc.json", ["lint", "test", "security", "prose"]],
   [".markdownlint-cli2.yaml", ["security", "prose"]],
@@ -54,6 +56,7 @@ describe("classify", () => {
       security: true,
       integration: true,
       prose: true,
+      mutation: true,
     });
   });
 
