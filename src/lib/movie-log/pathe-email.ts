@@ -25,12 +25,12 @@ const HEADER_RE = /^(From|To|Subject|Date|MIME-Version|Content-Type|Message-ID):
 const TITLE_RE = /\n([^\n]+)\n=+\n/;
 const DATETIME_RE =
   /\b\w+day (\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) Expected to end at (\d{2}:\d{2})/;
-const CINEMA_RE = /^(Pathé [^\n]+)$/m;
-const AUDITORIUM_RE = /^(Auditorium[^\n]*)$/m;
-const BOOKING_REF_RE = /Booking number\s*\n+\s*(N°\S+)/;
+const CINEMA_RE = /^(Pathé [^\n]+)/m;
+const AUDITORIUM_RE = /^(Auditorium[^\n]*)/m;
+const BOOKING_REF_RE = /Booking number\s*\n\s*(N°\S+)/;
 
 async function extractBody(raw: string): Promise<string> {
-  const head = raw.split("\n\n", 1)[0] ?? "";
+  const head = raw.split("\n\n", 1)[0] as string;
   if (!HEADER_RE.test(head)) return raw;
 
   const parsed = await PostalMime.parse(raw);
@@ -39,12 +39,10 @@ async function extractBody(raw: string): Promise<string> {
 }
 
 function screeningDetails(body: string, after: number, before: number): string | undefined {
-  const languageBlock = body.slice(after, before).trim();
-  const language = languageBlock
-    .split("\n")
-    .map((line) => line.trim())
-    .find((line) => line.length > 0);
-  const auditorium = AUDITORIUM_RE.exec(body)?.[1]?.trim();
+  // The block is trimmed, so its first line is the first non-empty one.
+  const language = (body.slice(after, before).trim().split("\n")[0] as string).trim();
+  const auditoriumMatch = AUDITORIUM_RE.exec(body);
+  const auditorium = auditoriumMatch ? (auditoriumMatch[1] as string).trim() : undefined;
   const parts = [language, auditorium].filter((part): part is string => Boolean(part));
   return parts.length > 0 ? parts.join(", ") : undefined;
 }
@@ -73,11 +71,9 @@ function amsterdamOffsetMinutes(date: Date): number {
     timeZone: "Europe/Amsterdam",
     timeZoneName: "shortOffset",
   }).formatToParts(date);
-  const offset = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT+1";
-  const match = /GMT([+-]\d{1,2})(?::(\d{2}))?/.exec(offset);
-  const hours = Number(match?.[1] ?? 1);
-  const minutes = Number(match?.[2] ?? 0);
-  return hours * 60 + (hours < 0 ? -minutes : minutes);
+  const offset = (parts.find((p) => p.type === "timeZoneName") as Intl.DateTimeFormatPart).value;
+  // Amsterdam is only ever GMT+1 or GMT+2, never a part-hour offset.
+  return Number(/GMT([+-]\d)/.exec(offset)?.[1]) * 60;
 }
 
 export async function parsePatheEmail(raw: string): Promise<PatheBooking> {
@@ -91,18 +87,21 @@ export async function parsePatheEmail(raw: string): Promise<PatheBooking> {
     throw new PatheEmailParseError("could not parse this as a Pathé booking confirmation email");
   }
 
-  const [, dateStr, startTime, endTime] = datetimeMatch;
-  const [day, month, year] = (dateStr ?? "").split("/");
-  if (!day || !month || !year || !startTime || !endTime) {
-    throw new PatheEmailParseError("could not parse this as a Pathé booking confirmation email");
-  }
+  // DATETIME_RE only matches when every group is there.
+  const [, dateStr, startTime, endTime] = datetimeMatch as unknown as string[] as [
+    string,
+    string,
+    string,
+    string,
+  ];
+  const [day, month, year] = dateStr.split("/") as [string, string, string];
 
   return {
-    title: titleMatch[1]?.trim() ?? "",
+    title: (titleMatch[1] as string).trim(),
     start: amsterdamWallClockToUtcIso(day, month, year, startTime),
     end: amsterdamWallClockToUtcIso(day, month, year, endTime),
-    cinema: cinemaMatch[1]?.trim() ?? "",
-    bookingRef: bookingMatch[1]?.trim() ?? "",
+    cinema: (cinemaMatch[1] as string).trim(),
+    bookingRef: bookingMatch[1] as string,
     screeningDetails: screeningDetails(
       body,
       (titleMatch.index ?? 0) + titleMatch[0].length,
