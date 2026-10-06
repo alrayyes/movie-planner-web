@@ -35,6 +35,12 @@ async function connectAndOpenDetails(page: Page) {
   await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
   await page.getByRole("button", { name: "Connect" }).click();
   await page.getByRole("link", { name: "Dune", exact: true }).click();
+  // #747: the click returns before ClientRouter swaps the page in, and the
+  // overview's own rows have a "Delete Dune" button that matches
+  // name: "Delete" too. Without this wait, a fast Delete click lands on
+  // the overview, and the details page then mounts for an event that's
+  // already gone.
+  await page.waitForURL(/\/movie\/\?uid=/);
 }
 
 const VENUES = {
