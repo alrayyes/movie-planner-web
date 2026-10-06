@@ -98,14 +98,6 @@ bun run lint                 # biome check .
     `typed-rest-client` pins `qs` to exactly 6.15.1, which `bun audit` flags
     (three moderate advisories, patched in 6.16.0). Drop the override once
     Stryker's own dependency moves past 6.15.3, and re-run `bun audit`.
-- **`package.json`'s `overrides.katex`, `postcss-selector-parser` and
-  `smol-toml` exist only to clear `bun audit`** (#786).
-  - Each pins a transitive dependency past an advisory its parent's range still
-    allows: `katex` 0.18.2 (via `markdownlint-cli2`), `postcss-selector-parser`
-    7.1.6 (via Starlight's `postcss-nested`, which asks for 6.x) and
-    `smol-toml` 1.9.0.
-  - Drop each once its parent's own range reaches the patched version, and
-    re-run `bun run build` and `bun run lint:md` when bumping one.
 - **`package.json`'s `overrides.js-yaml` pins a version Astro's own build
   needs.**
   - Cause: `markdownlint-cli2` depends on `js-yaml@5` (pure ESM, no default
