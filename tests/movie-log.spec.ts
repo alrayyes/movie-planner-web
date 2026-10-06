@@ -11,26 +11,6 @@ const CREDENTIALS = {
   "caldav-password": "secret",
 };
 
-const PATHE_EMAIL = `Booking Confirmation
-
-Dune: Part Two
-==============
-
-English, subtitled
-
-Wednesday 15/01/25, 19:30 Expected to end at 21:50
-
-Auditorium 3, Seat A12
-
-Pathé Tuschinski
-Reguliersbreestraat 26
-Amsterdam
-
-Booking number
-
-N°ABC123456
-`;
-
 async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
   await page.goto("/");
@@ -48,8 +28,8 @@ async function connect(page: Page, omdbApiKey?: string, omdbPaused = false) {
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
   // #603: the header button now opens the wizard dialog, not /log —
-  // this file's own "manual log form"/"Pathé email parsing" describes
-  // exercise /log's own LogViewingForm.svelte directly, which stays
+  // this file's own "manual log form" describe
+  // exercises /log's own LogViewingForm.svelte directly, which stays
   // unaffected and reachable by URL; the wizard's own tests are below.
   await page.goto("/log");
   return server;
@@ -98,62 +78,6 @@ test.describe("manual log form", () => {
     await connect(page);
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
-  });
-});
-
-test.describe("Pathé email parsing", () => {
-  test("shows the parsed result for confirmation before writing", async ({ page }) => {
-    const server = await connect(page);
-
-    await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
-    await page.getByRole("button", { name: "Parse" }).click();
-
-    await expect(page.getByText("Dune: Part Two")).toBeVisible();
-    await expect(page.getByText("N°ABC123456")).toBeVisible();
-    // Not written yet — only Parse was clicked, not Confirm.
-    expect(server.creates).toHaveLength(0);
-
-    await page.getByRole("button", { name: "Confirm and log" }).click();
-    await expect(page.getByRole("status")).toHaveText("Logged.");
-    expect(server.creates).toHaveLength(1);
-    // #755: the same spelling the manual form defaults to, so a Pathé viewing and
-    // a hand-logged one count as one medium, not "cinema" and "Cinema".
-    expect(server.creates[0]?.medium).toBe("Cinema");
-  });
-
-  test("a re-submitted booking number updates the existing entry instead of duplicating", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
-    await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
-    await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-
-    // The dedup check lists the booking's own day looking for a matching
-    // bookingRef — seed an existing viewing on that same day with the
-    // booking's own reference already logged.
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      {
-        uid: "existing-uid",
-        title: "Dune: Part Two",
-        start: "2025-01-15T18:30:00.000Z",
-        end: "2025-01-15T20:50:00.000Z",
-        medium: "cinema",
-        bookingRef: "N°ABC123456",
-      },
-    ]);
-    await page.getByRole("button", { name: "Connect" }).click();
-    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
-    await page.goto("/log");
-
-    await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
-    await page.getByRole("button", { name: "Parse" }).click();
-    await page.getByRole("button", { name: "Confirm and log" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Updated the existing entry.");
-    expect(server.creates).toHaveLength(0);
-    expect(server.updates).toHaveLength(1);
-    expect(server.updates[0]?.uid).toBe("existing-uid");
   });
 });
 
@@ -629,8 +553,7 @@ test.describe("error toasts", () => {
 });
 
 // #603: the header's "Log a viewing" button no longer navigates to /log
-// (that stays reachable directly, unaffected, for the Pathé-email flow
-// covered above) — it opens LogViewingWizard.svelte's own two-step
+// (that stays reachable directly, unaffected) — it opens LogViewingWizard.svelte's own two-step
 // <dialog> in place instead: step one is search-and-select-first (a
 // title has to be picked before date/medium/venue even appear), step
 // two is everything else, reusing MediumPicker/VenuePicker and

@@ -18,9 +18,8 @@ export interface CaldavConfig {
 //   X-DIRECTOR, X-ACTORS, X-RATING-IMDB, X-RATING-ROTTEN-TOMATOES,
 //   X-RATING-METACRITIC, X-GENRE, X-YEAR, X-POSTER-URL, X-IMDB-ID,
 //   X-SYNOPSIS -> OMDb-enriched metadata, all optional
-//   X-BOOKING-REF -> the Pathé booking number, when logged from an email —
-//     what a re-submission is matched against, per the movie-log spec's
-//     "Re-submitted booking confirmation" scenario
+//   X-BOOKING-REF -> the Pathé booking number, when the CLI logged it from
+//     an email — this app reads and keeps it but never sets it
 //   X-ROW, X-SEAT -> a Pathé booking's seat assignment, when known
 //     (alrayyes/movie-planner#218) — absent for anything else, since
 //     most media aren't a seated cinema booking at all

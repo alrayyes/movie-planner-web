@@ -1,10 +1,9 @@
-import { createViewing, listViewings, updateViewing } from "../caldav/client";
+import { createViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
 import { CINEMA } from "../medium/display";
 import { lookupMovie, type MovieMetadata, type OmdbCandidate, searchMovies } from "../omdb/client";
 import { enrichWithTmdb } from "../tmdb/client";
-import type { PatheBooking } from "./pathe-email";
 
 // #603: log-viewing-button.ts dispatches this on `window` when clicked;
 // LogViewingWizard.svelte (mounted once, globally, in SiteHeader.astro)
@@ -30,9 +29,8 @@ export interface LogResult {
   omdbCandidates?: OmdbCandidate[];
 }
 
-// Shared write path for both the manual form and the Pathé-email confirm
-// step — OMDb enrichment and (for a Pathé booking) re-submission dedup
-// both happen here, so neither entry point can forget either one.
+// OMDb enrichment for a new viewing, kept in one place so the form and the
+// wizard can't drift.
 async function enrichWithOmdb(
   credentials: Credentials,
   title: string,
@@ -83,57 +81,4 @@ export async function logManualViewing(
     : await enrichWithOmdb(credentials, viewing.title, viewing.start);
   const created = await createViewing(config, { ...viewing, ...enrichment.fields });
   return { viewing: created, omdbCandidates: enrichment.candidates };
-}
-
-// movie-log spec, "Re-submitted booking confirmation": a booking number
-// already logged updates that entry instead of creating a duplicate.
-// Detected by listing the booking's own day and matching on bookingRef —
-// no dedicated CalDAV query needed, since the fixed operation set has no
-// "find by custom property" operation and doesn't need one for this.
-export async function logPatheBooking(
-  credentials: Credentials,
-  booking: PatheBooking,
-  // #8/#203: the cinema's own known coordinates, reused automatically
-  // when an earlier viewing at the same cinema already has them
-  // (movie-log spec's "Reuses a venue's known coordinates" scenario) —
-  // the caller resolves this (findKnownGeo against already-loaded
-  // viewings), not this function, since it has no viewing list of its
-  // own beyond the same-day dedup query above.
-  geo?: { lat: number; lon: number },
-): Promise<LogResult & { wasUpdate: boolean }> {
-  const config: CaldavConfig = {
-    baseUrl: credentials.caldavUrl,
-    username: credentials.caldavUsername,
-    password: credentials.caldavPassword,
-  };
-
-  const dayStart = new Date(booking.start);
-  dayStart.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
-
-  const existing = await listViewings(config, {
-    from: dayStart.toISOString(),
-    to: dayEnd.toISOString(),
-  });
-  const duplicate = existing.find((v) => v.bookingRef === booking.bookingRef);
-
-  const viewing: NewViewing = {
-    title: booking.title,
-    start: booking.start,
-    end: booking.end,
-    medium: CINEMA,
-    venue: booking.cinema,
-    bookingRef: booking.bookingRef,
-    geo,
-  };
-  const enrichment = await enrichWithOmdb(credentials, booking.title, booking.start);
-  const merged = { ...viewing, ...enrichment.fields };
-
-  if (duplicate) {
-    const updated = await updateViewing(config, duplicate.uid, merged);
-    return { viewing: updated, omdbCandidates: enrichment.candidates, wasUpdate: true };
-  }
-  const created = await createViewing(config, merged);
-  return { viewing: created, omdbCandidates: enrichment.candidates, wasUpdate: false };
 }

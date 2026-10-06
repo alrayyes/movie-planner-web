@@ -46,8 +46,8 @@ import VenuePicker from "./VenuePicker.svelte";
 // title before, not alongside, the rest of the form. Step two reuses
 // MediumPicker/VenuePicker (#600/#601) and logManualViewing (extended in
 // #593/#594 to accept a pre-selected match) exactly as /log's own
-// LogViewingForm.svelte does — /log itself, and its Pathé-booking-email
-// flow, are unaffected and still reachable directly by URL.
+// LogViewingForm.svelte does — /log itself is unaffected and still
+// reachable directly by URL.
 
 let credentials: Credentials | null = null;
 let omdbApiKey = $state<string | undefined>();

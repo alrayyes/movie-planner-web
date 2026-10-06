@@ -1,6 +1,6 @@
 ---
 title: Logging a viewing
-description: Log a viewing manually, or by pasting a Pathé booking email.
+description: Log a viewing from the form, or from a Pathé booking email with the command-line tool.
 ---
 
 "Log a viewing" in the header — reachable from every page — opens a
@@ -37,11 +37,10 @@ disambiguation needed.
 
 ## From a Pathé booking email
 
-If you book cinema tickets through Pathé, paste the confirmation email's
-text directly into the "Log from a Pathé booking email" box (or upload
-the `.eml` file itself) and click parse. The app reads the film title,
-showtime, and cinema out of the email and shows you what it found before
-saving anything — nothing is written until you confirm.
+This app doesn't read emails. If you book cinema tickets through Pathé,
+log the booking with the command-line tool's `from-pathe-email` command
+instead. It writes to the same calendar, so the viewing shows up here,
+booking number and all.
 
 ## Editing and deleting
 

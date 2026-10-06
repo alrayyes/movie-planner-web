@@ -5,8 +5,7 @@ import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { CINEMA } from "../lib/medium/display";
-import { logManualViewing, logPatheBooking } from "../lib/movie-log/log-viewing";
-import { type PatheBooking, parsePatheEmail } from "../lib/movie-log/pathe-email";
+import { logManualViewing } from "../lib/movie-log/log-viewing";
 import { toIsoDateTime } from "../lib/movie-log/run-import";
 import {
 	lookupByImdbId,
@@ -20,9 +19,6 @@ import { enrichWithTmdb } from "../lib/tmdb/client";
 import {
 	BUTTON_PRIMARY,
 	BUTTON_SECONDARY,
-	DD,
-	DL,
-	DT,
 	FIELD_WRAPPER,
 	FORM,
 	INPUT,
@@ -30,8 +26,6 @@ import {
 	SECTION_HEADING,
 	STATUS_TEXT,
 } from "../lib/ui/classes";
-// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import { formatDateTime } from "../lib/ui/datetime";
 import { type MissingVenue, venuesMissingFromPicklist } from "../lib/venue/backfill";
 import { findVenueEntry } from "../lib/venue/lookup";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -41,9 +35,8 @@ import MediumPicker from "./MediumPicker.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import VenuePicker from "./VenuePicker.svelte";
 
-// movie-log spec: logging a viewing, via the manual form or by parsing a
-// Pathé booking email, with best-effort OMDb enrichment. See
-// log-viewing.ts for the shared write path both entry points use.
+// movie-log spec: logging a viewing from the form, with best-effort OMDb
+// enrichment. See log-viewing.ts for the shared write path.
 //
 // #600 (structured-medium-picklist) and #452 (structured-venue-picklist):
 // both medium and venue are a native <select> populated only from the
@@ -56,10 +49,7 @@ import VenuePicker from "./VenuePicker.svelte";
 // entry (the now-superseded findKnownGeo/#339 model, alongside the
 // address-search lookup that used to run inline here for whatever
 // venue name was currently typed; that lookup now lives inside
-// VenuePicker's own "Add venue" dialog instead). The Pathé flow keeps
-// its own automatic-reuse behaviour, now reading the same picklist
-// entries by name instead of scanning viewings — its confirm step
-// stays a fixed read-only summary, not an editable form.
+// VenuePicker's own "Add venue" dialog instead).
 
 let credentials: Credentials | null = null;
 
@@ -127,9 +117,7 @@ init();
 // #600/#452: medium and venue can no longer be freely typed into this
 // form — MediumPicker's own "Add medium" dialog and VenuePicker's own
 // "Add venue" dialog are what add a genuinely new one, via
-// handleAddMedium/handleAddVenue below. The Pathé flow still calls this
-// with its own parsed cinema name and hardcoded "cinema" medium, which
-// aren't selected from either picker and so still need auto-learning.
+// handleAddMedium/handleAddVenue below.
 async function learnFromViewing(medium: string, venue: string | undefined) {
 	let changed = false;
 	let next = picklists;
@@ -443,55 +431,6 @@ async function handleManualSubmit(event: SubmitEvent) {
 		formError = error instanceof Error ? error.message : "Failed to log viewing.";
 	}
 }
-
-// ---- Pathé email parsing ----
-
-let patheEmailText = $state("");
-let patheFileInput = $state<HTMLInputElement>();
-let parsedBooking = $state<PatheBooking | undefined>();
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-let confirmVisible = $state(false);
-
-const patheKnownGeo = $derived(
-	parsedBooking ? findVenueEntry(parsedBooking.cinema, picklists.venues)?.geo : undefined,
-);
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-async function handlePatheFileChange() {
-	const file = patheFileInput?.files?.[0];
-	if (file) patheEmailText = await file.text();
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-async function handleParse() {
-	formError = "";
-	try {
-		parsedBooking = await parsePatheEmail(patheEmailText);
-		confirmVisible = true;
-		status = "";
-	} catch (error) {
-		confirmVisible = false;
-		formError = error instanceof Error ? error.message : "Could not parse this email.";
-	}
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
-async function handleConfirm() {
-	if (!parsedBooking || !credentials) return;
-	const booking = parsedBooking;
-	formError = "";
-	try {
-		const result = await logPatheBooking(credentials, booking, patheKnownGeo);
-		status = result.wasUpdate ? "Updated the existing entry." : "Logged.";
-		confirmVisible = false;
-		await learnFromViewing(CINEMA, booking.cinema);
-		patheEmailText = "";
-		parsedBooking = undefined;
-		if (result.omdbCandidates?.length) showOmdbPicker(result.viewing, result.omdbCandidates);
-	} catch (error) {
-		formError = error instanceof Error ? error.message : "Failed to log viewing.";
-	}
-}
 </script>
 
 <div class="flex flex-col gap-8">
@@ -556,58 +495,6 @@ async function handleConfirm() {
 
       <button type="submit" class={`${BUTTON_PRIMARY} self-start`}>Log viewing</button>
     </form>
-  </section>
-
-  <section
-    class="flex flex-col gap-4 border-t border-slate-200 pt-6 dark:border-slate-700"
-    aria-label="Log from a Pathé booking email"
-  >
-    <h2 class={SECTION_HEADING}>Log from a Pathé booking email</h2>
-    <label class={LABEL} for="pathe-email-text">
-      Paste the booking confirmation email, or upload the .eml file
-    </label>
-    <textarea id="pathe-email-text" class={`${INPUT} min-h-32`} bind:value={patheEmailText}
-    ></textarea>
-    <input
-      type="file"
-      class="text-base text-slate-600 dark:text-slate-400"
-      accept=".eml,message/rfc822"
-      aria-label="Upload a Pathé booking confirmation .eml file"
-      bind:this={patheFileInput}
-      onchange={handlePatheFileChange}
-    />
-    <button type="button" class={`${BUTTON_SECONDARY} self-start`} onclick={handleParse}>
-      Parse
-    </button>
-
-    {#if confirmVisible && parsedBooking}
-      <div class="flex flex-col gap-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-900/40">
-        <dl class={DL}>
-          <dt class={DT}>Title</dt>
-          <dd class={DD}>{parsedBooking.title}</dd>
-          {#if parsedBooking.start === parsedBooking.end}
-            <!-- #359: same rule as MovieDetails.svelte's own Start/End
-            collapse — a real Pathé booking always parses a distinct end
-            time, but this stays consistent with every other place this
-            app shows Start/End rather than assuming that's guaranteed. -->
-            <dt class={DT}>Date</dt>
-            <dd class={DD}>{formatDateTime(parsedBooking.start)}</dd>
-          {:else}
-            <dt class={DT}>Start</dt>
-            <dd class={DD}>{formatDateTime(parsedBooking.start)}</dd>
-            <dt class={DT}>End</dt>
-            <dd class={DD}>{formatDateTime(parsedBooking.end)}</dd>
-          {/if}
-          <dt class={DT}>Cinema</dt>
-          <dd class={DD}>{parsedBooking.cinema}</dd>
-          <dt class={DT}>Booking number</dt>
-          <dd class={DD}>{parsedBooking.bookingRef}</dd>
-        </dl>
-        <button type="button" class={`${BUTTON_PRIMARY} self-start`} onclick={handleConfirm}>
-          Confirm and log
-        </button>
-      </div>
-    {/if}
   </section>
 
   <p class={STATUS_TEXT} role="status">{status}</p>

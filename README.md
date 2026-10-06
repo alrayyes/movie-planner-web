@@ -38,9 +38,9 @@ the overview's filters, import/export, keyboard shortcuts) is covered at
 `/docs` on your own deployment, or locally via `bun run dev` — this
 README is the developer-facing setup, not the usage guide.
 
-**Status:** credentials, the calendar overview, logging (manual and Pathé
-email parsing), editing, bulk CSV/JSON import and export, and location
-management (media/venue picklists) are all built — see
+**Status:** credentials, the calendar overview, logging, editing, bulk
+CSV/JSON import and export, and location management (media/venue
+picklists) are all built — see
 [`openspec/changes/archive/2026-09-04-add-movie-planner-web-app/`](openspec/changes/archive/2026-09-04-add-movie-planner-web-app/)
 for the full design. The import/export JSON shape is documented as a
 [JSON Schema](public/schemas/movie-viewings.schema.json) — movie-planner's
