@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.21.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.20.0...movie-planner-web-v1.21.0) (2026-10-06)
+
+
+### Features
+
+* **cache:** clear the viewings cache and the service worker's cache ([f2d8398](https://github.com/alrayyes/movie-planner-web/commit/f2d8398959774a01c6032e2439f567ef71419f8e)), closes [#765](https://github.com/alrayyes/movie-planner-web/issues/765)
+* **ci:** classify which jobs a change covers ([7c09e88](https://github.com/alrayyes/movie-planner-web/commit/7c09e880915e9c8cd2e1fc222837c1cf04b16a0d)), closes [#727](https://github.com/alrayyes/movie-planner-web/issues/727)
+* **log:** stop parsing emails in the web app ([d2687dd](https://github.com/alrayyes/movie-planner-web/commit/d2687ddf63f1be09de86d27fb8f0e6b67e998ea9))
+* **log:** stop parsing emails in the web app ([7333676](https://github.com/alrayyes/movie-planner-web/commit/7333676e07c4f19cce2afa6c4623ec5fb129dcf7)), closes [#792](https://github.com/alrayyes/movie-planner-web/issues/792)
+* **settings:** add a button to clear this browser's local cache ([3f21d56](https://github.com/alrayyes/movie-planner-web/commit/3f21d56616c6a56e6f3947d2c0153a141d1acf7b))
+* **settings:** add a button to clear this browser's local cache ([fc5340a](https://github.com/alrayyes/movie-planner-web/commit/fc5340afb8dab1db4a9a18f6f5b31551353af1a6)), closes [#765](https://github.com/alrayyes/movie-planner-web/issues/765)
+* **test:** add Stryker mutation testing for src/lib ([#750](https://github.com/alrayyes/movie-planner-web/issues/750)) ([fefc0ad](https://github.com/alrayyes/movie-planner-web/commit/fefc0ad353cb0611fa917b9770562ca9218bfb57))
+
+
+### Bug Fixes
+
+* **caldav:** read and write viewing times as wall-clock times ([#757](https://github.com/alrayyes/movie-planner-web/issues/757)) ([2033eb5](https://github.com/alrayyes/movie-planner-web/commit/2033eb539c7bddfc352f7fc65c256484fe7795d3)), closes [#752](https://github.com/alrayyes/movie-planner-web/issues/752)
+* **ci:** generate Astro's types before the mutation job runs Stryker ([ab86986](https://github.com/alrayyes/movie-planner-web/commit/ab86986ed9c23deb0d8f53c0a736928e32c376e1))
+* **deps:** bump postal-mime from 3.0.1 to 4.0.0 in the bun-dependencies-major group ([8fe7a2a](https://github.com/alrayyes/movie-planner-web/commit/8fe7a2a385e75d133d7136602f6c549277f3c747))
+* **deps:** pin sharp 0.35.5 past GHSA-wq5f-xc86-pv6w ([f6942e8](https://github.com/alrayyes/movie-planner-web/commit/f6942e89b0b16e020c6c11de31b04c2f0bf4f679))
+* **deps:** pin sharp 0.35.5 past GHSA-wq5f-xc86-pv6w ([5be6447](https://github.com/alrayyes/movie-planner-web/commit/5be644727c9c13fe0ce35d04b63b94f91139f729)), closes [#794](https://github.com/alrayyes/movie-planner-web/issues/794)
+* **deps:** pin three transitive dependencies past their advisories ([ea5e5a5](https://github.com/alrayyes/movie-planner-web/commit/ea5e5a57b99aabef9f0270e02e7d0e6bb54b2427))
+* **deps:** pin three transitive dependencies past their advisories ([bd890a3](https://github.com/alrayyes/movie-planner-web/commit/bd890a31f1a5091cb079437e5cd5d361a9d6847b)), closes [#786](https://github.com/alrayyes/movie-planner-web/issues/786)
+* **export:** write a release year the import will take back ([0992c29](https://github.com/alrayyes/movie-planner-web/commit/0992c29dae7f5fd747401cb324c1b0502ce3bc77)), closes [#753](https://github.com/alrayyes/movie-planner-web/issues/753)
+* **ical:** read each TEXT escape once ([1834d21](https://github.com/alrayyes/movie-planner-web/commit/1834d21b7401ce9d8f6ad9c8e7c2b7c0e574fecf))
+* **ical:** read each TEXT escape once ([bae04ef](https://github.com/alrayyes/movie-planner-web/commit/bae04efbd55b73393253ea9b76169a6b1c24e7f2))
+* **import:** compare dates as the viewer's local date ([#760](https://github.com/alrayyes/movie-planner-web/issues/760)) ([f88dba3](https://github.com/alrayyes/movie-planner-web/commit/f88dba319df2e75a8077eef0f2023f37d8cf1c05))
+* **import:** validate rows the way the CLI and the schema do ([9e69578](https://github.com/alrayyes/movie-planner-web/commit/9e6957831d1086634d173dbbe565f7223ff758da))
+* **import:** validate rows the way the CLI and the schema do ([a7d26f1](https://github.com/alrayyes/movie-planner-web/commit/a7d26f1f9b32bb134355f1391c82295c2c874305)), closes [#753](https://github.com/alrayyes/movie-planner-web/issues/753)
+* **log:** write the same Cinema spelling from the Pathé path as the form ([c8c6931](https://github.com/alrayyes/movie-planner-web/commit/c8c69312724745cb4e1a7bac7c395daa05eeff75)), closes [#755](https://github.com/alrayyes/movie-planner-web/issues/755)
+* **medium:** group and match mediums whatever their casing ([cc23a4f](https://github.com/alrayyes/movie-planner-web/commit/cc23a4f17fdd78a73d4a1c16dad41dc872a5c4fd))
+* **medium:** group and match mediums whatever their casing ([5c50399](https://github.com/alrayyes/movie-planner-web/commit/5c50399c2daa935ff5d62a25b68f3bce054030f2)), closes [#755](https://github.com/alrayyes/movie-planner-web/issues/755)
+* **test:** run the e2e suite in a loopback-only network namespace ([73b0c1a](https://github.com/alrayyes/movie-planner-web/commit/73b0c1a9bcdf79b2b02446b5d320e8821cb5881e))
+* **test:** run the e2e suite in a loopback-only network namespace ([cf5187e](https://github.com/alrayyes/movie-planner-web/commit/cf5187e4b9891b4ae08f0860db110ad94b3e843e)), closes [#640](https://github.com/alrayyes/movie-planner-web/issues/640)
+
 ## [1.20.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.19.0...movie-planner-web-v1.20.0) (2026-10-03)
 
 
