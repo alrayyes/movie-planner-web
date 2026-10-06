@@ -55,21 +55,17 @@ describe("release.yml", () => {
   const release = workflows.find((w) => w.file === "release.yml");
   const steps = release?.doc.jobs["release-please"]?.steps ?? [];
 
-  test("runs release-please through Wandalen/wretry.action, pinned by full SHA", () => {
-    const wrapper = steps.find((s) => s.uses?.startsWith("Wandalen/wretry.action@"));
-    expect(wrapper?.uses).toMatch(/^Wandalen\/wretry\.action@[0-9a-f]{40}$/);
-    expect(release?.text).toMatch(/wretry\.action@[0-9a-f]{40} # v\d+\.\d+\.\d+/);
+  // Wandalen/wretry.action reports success with no output and never runs the
+  // action it wraps under GitHub's forced Node 20 to 24 runtime
+  // (Wandalen/wretry.action#193), so no release was cut while it was in place.
+  test("runs release-please directly, pinned by full SHA", () => {
+    const step = steps.find((s) => s.uses?.startsWith("googleapis/release-please-action@"));
+    expect(step?.uses).toMatch(/^googleapis\/release-please-action@[0-9a-f]{40}$/);
+    expect(release?.text).toMatch(/release-please-action@[0-9a-f]{40} # v\d+\.\d+\.\d+/);
   });
 
-  test("no bare release-please step is left", () => {
-    expect(steps.some((s) => s.uses?.startsWith("googleapis/release-please-action@"))).toBe(false);
-  });
-
-  test("the wrapped action is release-please, pinned by full SHA", () => {
-    const wrapper = steps.find((s) => s.uses?.startsWith("Wandalen/wretry.action@"));
-    const inputs = wrapper?.with as { action?: string; attempt_limit?: number | string };
-    expect(inputs.action).toMatch(/^googleapis\/release-please-action@[0-9a-f]{40}$/);
-    expect(Number(inputs.attempt_limit)).toBeGreaterThanOrEqual(2);
+  test("no wretry.action wrapper is left in the workflow", () => {
+    expect(release?.text).not.toMatch(/uses:\s*Wandalen\/wretry\.action/);
   });
 });
 
