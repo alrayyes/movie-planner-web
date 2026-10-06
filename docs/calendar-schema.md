@@ -66,8 +66,8 @@ X-TRAILER-URL               trailerUrl
 X-LAST-MODIFIED-BY          lastModifiedBy
 ```
 
-`X-LAST-MODIFIED-BY` is this app's own write attribution (#432,
-`web` | `cli`) rather than movie metadata — `client.ts`'s `putViewing`
+`X-LAST-MODIFIED-BY` is this app's own write attribution
+(`web` | `cli`) rather than movie metadata — `client.ts`'s `putViewing`
 always forces it to `web` before serializing, overriding whatever a
 caller passed. It's what the diff-on-sync activity log (see
 [`docs/activity.md`](../src/content/docs/docs/activity.md)) reads to
@@ -100,13 +100,13 @@ Three real shapes exist in the wild, all handled:
 
 1. **Date-only, all-day** (RFC 5545 §3.3.4 `DATE` value, no time
    component, no `DTEND`) — treated as midnight UTC of that date (unchanged
-   by #752, which only covers date-times).
+   by the floating-time change below, which only covers date-times).
 2. **Date and time, both `DTSTART` and `DTEND` present** — the common
    case for a manually logged or Pathé-imported viewing.
 3. **Date and time, `DTSTART` only, no `DTEND` at all** — a real
    `DATE-TIME` value with nothing to pair it with. `DTEND` is optional
    per RFC 5545; a `VEVENT` in this shape used to make this app throw
-   and silently drop the whole entry (see #278) — the fix defaults the
+   and silently drop the whole entry — the fix defaults the
    missing end to the start time, matching this app's own write path
    (`LogViewingForm.svelte`'s identical rule for a manually logged
    viewing with no end time given).
@@ -121,9 +121,9 @@ because the RFC requires it.
 
 Reading handles both forms. A floating time is that wall-clock time in the
 browser's own zone. A time with a trailing `Z` is the instant it names, which
-is what this app wrote before #752 and what other clients write, so those
-events keep their meaning. A `TZID` parameter isn't kept by the property
-parser, so that form reads as floating too.
+is what this app wrote before it switched to floating times and what other
+clients write, so those events keep their meaning. A `TZID` parameter isn't
+kept by the property parser, so that form reads as floating too.
 
 ## GEO is a native property, not escaped TEXT
 

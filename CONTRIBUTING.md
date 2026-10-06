@@ -95,9 +95,9 @@ bunx stryker run --mutate "src/lib/ui/heatmap.ts:70-90"
 
 `src/lib/ui/classes.ts` is left out: it's Tailwind class strings, and no unit
 test can tell a mutated one from the original. The inherited survivors are
-tracked in #749. The runner is
-`@hughescr/stryker-bun-runner`, which collects per-test coverage through bun's
-inspector, and Stryker itself needs Node 22 or newer.
+still being worked down, which is why CI mutates only changed lines. The
+runner is `@hughescr/stryker-bun-runner`, which collects per-test coverage
+through bun's inspector, and Stryker itself needs Node 22 or newer.
 
 ## Integration tests
 

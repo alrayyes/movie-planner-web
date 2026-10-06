@@ -13,11 +13,11 @@ each ticket say what must be true.
   viewings, and a "7 logged viewings" footer with a results-per-page select.
 - Model: `GEMINI_3_5_FLASH_LITE`
 
-| File                          | Used by                                       |
-| ----------------------------- | --------------------------------------------- |
-| `stitch-viewings-full.png`    | #679, #681                                    |
-| `stitch-viewings-table.png`   | #679 (row density, time format, medium badge) |
-| `stitch-activity-heatmap.png` | #681 (legend, fills the card)                 |
+| File                          | Used for                               |
+| ----------------------------- | -------------------------------------- |
+| `stitch-viewings-full.png`    | The whole Viewings page                |
+| `stitch-viewings-table.png`   | Row density, time format, medium badge |
+| `stitch-activity-heatmap.png` | The heatmap's legend, fills the card   |
 
 ## Not part of the design
 
