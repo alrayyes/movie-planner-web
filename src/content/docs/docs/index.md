@@ -18,8 +18,8 @@ optional OMDb key) and the developer setup.
 
 - **[Connecting your CalDAV server](/docs/connecting/)** — pointing the
   app at your calendar for the first time.
-- **[Logging a viewing](/docs/logging/)** — manually, or by pasting a
-  Pathé booking email.
+- **[Logging a viewing](/docs/logging/)** — from the form, or with the
+  command-line tool for a Pathé booking email.
 - **[The calendar overview](/docs/overview/)** — filtering, sorting, and
   the actions available on each row.
 - **[The viewing heatmap](/docs/heatmap/)** — a GitHub-contribution-style

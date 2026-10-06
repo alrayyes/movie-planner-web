@@ -5,7 +5,7 @@ import { mockCaldavServer } from "./support/mock-caldav";
 
 // #360/#400: TMDb enrichment, wired into every place this app already
 // attaches OMDb metadata — single-row refresh, bulk refresh, and both
-// initial-log entry points (manual form, Pathé-email confirm). TMDb only
+// initial-log entry point (the manual form). TMDb only
 // ever runs off an IMDb ID OMDb has already resolved, so every scenario
 // here sets up a confident (or picker-selected) OMDb match first.
 
@@ -328,101 +328,6 @@ test.describe("TMDb enrichment", () => {
       await page.locator("#log-date").fill("2026-01-01");
       await page.locator("#log-medium").selectOption("Cinema");
       await page.getByRole("button", { name: "Log viewing" }).click();
-
-      await expect(page.getByRole("status")).toHaveText("Logged.");
-      expect(tmdbCalls).toBe(0);
-      expect(server.creates).toHaveLength(1);
-      expect(server.creates[0]?.trailerUrl).toBeUndefined();
-      expect(server.creates[0]?.director).toBe("Denis Villeneuve");
-    });
-  });
-
-  test.describe("Pathé email log", () => {
-    const PATHE_EMAIL = `Booking Confirmation
-
-Dune: Part Two
-==============
-
-English, subtitled
-
-Wednesday 15/01/25, 19:30 Expected to end at 21:50
-
-Auditorium 3, Seat A12
-
-Pathé Tuschinski
-Reguliersbreestraat 26
-Amsterdam
-
-Booking number
-
-N°ABC123456
-`;
-
-    test("attaches TMDb data alongside a confident OMDb match when both keys are set", async ({
-      page,
-    }) => {
-      const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-      await page.goto("/");
-      await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
-      await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
-      await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-      await openOptionalIntegrations(page);
-      await page.locator("#omdb-api-key").fill("test-omdb-key");
-      await openOptionalIntegrations(page);
-      await page.locator("#tmdb-api-key").fill("test-tmdb-key");
-      await page.getByRole("button", { name: "Connect" }).click();
-      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
-      await page.goto("/log");
-
-      await page.route("https://www.omdbapi.com/**", async (route: Route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(OMDB_MATCH),
-        });
-      });
-      await tmdbFindRoute(page);
-      await tmdbMovieRoute(page, FULL_TMDB_RESPONSE);
-
-      await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
-      await page.getByRole("button", { name: "Parse" }).click();
-      await page.getByRole("button", { name: "Confirm and log" }).click();
-
-      await expect(page.getByRole("status")).toHaveText("Logged.");
-      expect(server.creates).toHaveLength(1);
-      expectFullTmdbFields(server.creates[0]);
-    });
-
-    test("logs successfully with no TMDb key set — OMDb only, exactly as before", async ({
-      page,
-    }) => {
-      const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-      await page.goto("/");
-      await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
-      await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
-      await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-      await openOptionalIntegrations(page);
-      await page.locator("#omdb-api-key").fill("test-omdb-key");
-      await page.getByRole("button", { name: "Connect" }).click();
-      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
-      await page.goto("/log");
-
-      await page.route("https://www.omdbapi.com/**", async (route: Route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(OMDB_MATCH),
-        });
-      });
-      let tmdbCalls = 0;
-      await page.route("https://api.themoviedb.org/**", async (route: Route) => {
-        tmdbCalls++;
-        await route.fulfill({ status: 200, body: "" });
-      });
-
-      await page.locator("#pathe-email-text").fill(PATHE_EMAIL);
-      await page.getByRole("button", { name: "Parse" }).click();
-      await page.getByRole("button", { name: "Confirm and log" }).click();
 
       await expect(page.getByRole("status")).toHaveText("Logged.");
       expect(tmdbCalls).toBe(0);

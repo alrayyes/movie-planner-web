@@ -12,7 +12,7 @@ through a build toolchain to find out how.
 
 The system SHALL render a documentation site at the `/docs` path,
 covering: connecting a CalDAV server (including the CORS requirement),
-logging a viewing (manual and Pathé email parsing), the calendar
+logging a viewing, the calendar
 overview and its filters/sorting/actions, the viewing heatmap, venues,
 the map, CSV/JSON import/export, and keyboard shortcuts.
 

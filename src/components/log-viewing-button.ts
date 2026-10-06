@@ -15,8 +15,7 @@ import { BUTTON_PRIMARY } from "../lib/ui/classes";
 // LogViewingWizard.svelte's own <dialog> in place (via
 // OPEN_LOG_VIEWING_WIZARD_EVENT) rather than navigating to a page, so a
 // <button> is the correct semantic element now, not just the design's
-// name for it. /log itself is unaffected and still reachable directly,
-// for the Pathé-booking-email flow this wizard doesn't cover.
+// name for it. /log itself is unaffected and still reachable directly.
 export class LogViewingButton extends HTMLElement {
   private readonly handleConnected = () => void this.render();
 

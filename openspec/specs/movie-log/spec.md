@@ -1,8 +1,9 @@
 ## Purpose
 
-Lets a visitor log a viewing from a form or a Pathé booking email,
-matching the CLI's `log` and `from-pathe-email` commands, with
-best-effort ratings enrichment.
+Lets a visitor log a viewing from a form, matching the CLI's `log`
+command, with best-effort ratings enrichment. The web app doesn't parse
+emails; the CLI's `from-pathe-email` command is how a booking email gets
+logged.
 
 ## Requirements
 
@@ -41,18 +42,6 @@ opened from.
 
 - **WHEN** a visitor opens the wizard from a page other than `/log` and successfully logs a viewing
 - **THEN** the system SHALL close the dialog and leave the visitor on that same page, not navigate to `/log`
-
-### Requirement: Pathé email parsing
-
-The system SHALL let a visitor paste or upload a Pathé booking
-confirmation email and SHALL parse title, date, times, cinema, and
-booking number from it, showing the parsed result for confirmation
-before writing.
-
-#### Scenario: Re-submitted booking confirmation
-
-- **WHEN** a visitor submits a Pathé confirmation email whose booking number matches an already-logged viewing
-- **THEN** the system SHALL update that existing entry instead of creating a duplicate
 
 ### Requirement: Best-effort OMDb enrichment
 

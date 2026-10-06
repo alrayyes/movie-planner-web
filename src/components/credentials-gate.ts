@@ -222,7 +222,7 @@ function optionalIntegrations(fields: HTMLElement[], open: boolean): HTMLDetails
 // #80: a checkbox, not the text-input labelledField shape — plus an
 // inline hint (this app's whole UI has no popover/tooltip mechanism, so
 // a plain caption line under the control is the "explain this" pattern
-// used everywhere else, e.g. the Pathé-email field's own label text).
+// used everywhere else).
 function omdbPausedField(checked: boolean): HTMLDivElement {
   const wrapper = document.createElement("div");
   wrapper.className = FIELD_WRAPPER;
