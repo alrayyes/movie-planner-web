@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.0...movie-planner-web-v1.21.1) (2026-10-08)
+
+
+### Performance Improvements
+
+* cache fingerprinted assets ([346ffd5](https://github.com/alrayyes/movie-planner-web/commit/346ffd522376aa44972bfc970d48e23c96e11a83))
+* cache fingerprinted assets ([418d22a](https://github.com/alrayyes/movie-planner-web/commit/418d22a3b795c23bee48e3274ba793a51476be43))
+
 ## [1.21.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.20.0...movie-planner-web-v1.21.0) (2026-10-06)
 
 
