@@ -82,3 +82,5 @@ Semgrep
 loopback
 namespaces?
 Stryker
+Cobertura
+JUnit
