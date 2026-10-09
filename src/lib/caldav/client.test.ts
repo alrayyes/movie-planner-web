@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { getCaldavSnapshotStore } from "../activity-log/snapshot-store";
+import { getActivityLogStore } from "../activity-log/store";
 import {
   createViewing,
   deleteViewing,
@@ -334,5 +336,247 @@ describe("sidecar picklists", () => {
 
     await updatePicklists(CONFIG, { media: ["cinema"], venues: [] });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// #749: pins the details the tests above can't tell apart from a lucky pass:
+// the exact URL, headers, bodies and error messages each call sends, that
+// every call validates its config first, and what reaches the activity log.
+interface Call {
+  url: string;
+  init: RequestInit;
+}
+
+function recordFetch(respond: (call: Call) => Response): Call[] {
+  const calls: Call[] = [];
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const call = { url: String(url), init };
+    calls.push(call);
+    return respond(call);
+  }) as unknown as typeof fetch;
+  return calls;
+}
+
+const AUTH = `Basic ${btoa("me:secret")}`;
+const INSECURE: CaldavConfig = { ...CONFIG, baseUrl: "http://caldav.example.com/" };
+const RANGE = { from: "2026-01-01T00:00:00.000Z", to: "2026-02-01T10:20:30.000Z" };
+
+describe("request details", () => {
+  test("adds the missing trailing slash to the base URL, and keeps an existing one", async () => {
+    const calls = recordFetch(() => new Response("", { status: 404 }));
+    await getViewing({ ...CONFIG, baseUrl: "https://caldav.example.com/cal" }, "a b");
+    await getViewing(CONFIG, "uid-1");
+    expect(calls.map((c) => c.url)).toEqual([
+      "https://caldav.example.com/cal/a%20b.ics",
+      "https://caldav.example.com/calendars/me/movies/uid-1.ics",
+    ]);
+  });
+
+  test("listViewings sends the calendar-query with compact UTC timestamps", async () => {
+    const calls = recordFetch(
+      () => new Response('<D:multistatus xmlns:D="DAV:"/>', { status: 207 }),
+    );
+    await listViewings(CONFIG, RANGE);
+    const headers = calls[0]?.init.headers as Record<string, string>;
+    expect(calls[0]?.url).toBe(CONFIG.baseUrl);
+    expect(headers).toEqual({
+      Authorization: AUTH,
+      Depth: "1",
+      "Content-Type": "application/xml; charset=utf-8",
+    });
+    const body = String(calls[0]?.init.body);
+    expect(body).toContain('<?xml version="1.0" encoding="utf-8" ?>');
+    expect(body).toContain("<C:calendar-query");
+    expect(body).toContain('<C:comp-filter name="VCALENDAR">');
+    expect(body).toContain('<C:comp-filter name="VEVENT">');
+    expect(body).toContain('<C:time-range start="20260101T000000Z" end="20260201T102030Z"/>');
+  });
+
+  test("listViewings reports a failing server with its action and status", async () => {
+    recordFetch(() => new Response("", { status: 503, statusText: "Unavailable" }));
+    const error = await listViewings(CONFIG, RANGE).catch((e) => e);
+    expect(error).toBeInstanceOf(CaldavRequestFailedError);
+    expect(error.message).toBe(
+      "listing events failed: the CalDAV server responded 503 Unavailable",
+    );
+    expect(error.status).toBe(503);
+  });
+
+  test("getViewing GETs with credentials, and names its action in a failure", async () => {
+    const calls = recordFetch(() => new Response("", { status: 500, statusText: "Boom" }));
+    const error = await getViewing(CONFIG, "uid-1").catch((e) => e);
+    expect(calls[0]?.init.method).toBe("GET");
+    expect(calls[0]?.init.headers).toEqual({ Authorization: AUTH });
+    expect(error.message).toBe("getting event failed: the CalDAV server responded 500 Boom");
+  });
+
+  test("createViewing PUTs a body with no leftover lines, and names its action in a failure", async () => {
+    const calls = recordFetch(() => new Response("", { status: 201 }));
+    await createViewing(CONFIG, VIEWING);
+    expect(calls[0]?.init.headers).toEqual({
+      Authorization: AUTH,
+      "Content-Type": "text/calendar; charset=utf-8",
+    });
+    expect(String(calls[0]?.init.body)).toContain("SUMMARY:Dune");
+    expect(String(calls[0]?.init.body)).not.toContain("Stryker");
+
+    recordFetch(() => new Response("", { status: 403, statusText: "Nope" }));
+    const error = await createViewing(CONFIG, VIEWING).catch((e) => e);
+    expect(error.message).toBe("saving event failed: the CalDAV server responded 403 Nope");
+  });
+
+  test("updateViewing carries nothing extra forward when the read fails", async () => {
+    const calls = recordFetch(({ init }) =>
+      init.method === "GET" ? new Response("", { status: 500 }) : new Response("", { status: 204 }),
+    );
+    await updateViewing(CONFIG, "uid-1", VIEWING);
+    expect(String(calls[1]?.init.body)).not.toContain("Stryker");
+    expect(String(calls[1]?.init.body)).toContain("SUMMARY:Dune");
+  });
+
+  test("deleteViewing sends credentials and names its action in a failure", async () => {
+    const calls = recordFetch(({ init }) =>
+      init.method === "GET"
+        ? new Response("", { status: 404 })
+        : new Response("", { status: 500, statusText: "Boom" }),
+    );
+    const error = await deleteViewing(CONFIG, "uid-1").catch((e) => e);
+    expect(calls[1]?.init.method).toBe("DELETE");
+    expect(calls[1]?.init.headers).toEqual({ Authorization: AUTH });
+    expect(error.message).toBe("deleting event failed: the CalDAV server responded 500 Boom");
+  });
+
+  test("getPicklists GETs the sidecar with credentials", async () => {
+    const calls = recordFetch(() => new Response("", { status: 404 }));
+    await getPicklists(CONFIG);
+    expect(calls[0]?.init.method).toBe("GET");
+    expect(calls[0]?.init.headers).toEqual({ Authorization: AUTH });
+  });
+
+  test("getPicklists ignores the body of a failing response", async () => {
+    const ical = serializePicklistsToVJournal({ media: ["cinema"], venues: [] });
+    recordFetch(() => new Response(ical, { status: 500 }));
+    expect(await getPicklists(CONFIG)).toEqual({ media: [], venues: [] });
+  });
+
+  test("updatePicklists PUTs with credentials and a calendar body, and names its action in a failure", async () => {
+    const calls = recordFetch(() => new Response("", { status: 204 }));
+    await updatePicklists(CONFIG, { media: ["cinema"], venues: [] });
+    expect(calls[0]?.init.headers).toEqual({
+      Authorization: AUTH,
+      "Content-Type": "text/calendar; charset=utf-8",
+    });
+    expect(String(calls[0]?.init.body)).toBe(
+      serializePicklistsToVJournal({ media: ["cinema"], venues: [] }),
+    );
+
+    recordFetch(() => new Response("", { status: 500, statusText: "Boom" }));
+    const error = await updatePicklists(CONFIG, { media: [], venues: [] }).catch((e) => e);
+    expect(error.message).toBe(
+      "saving the picklist sidecar failed: the CalDAV server responded 500 Boom",
+    );
+  });
+});
+
+describe("config validation", () => {
+  test("every call rejects an insecure base URL before any request", async () => {
+    const calls = recordFetch(() => new Response("", { status: 200 }));
+    const attempts = [
+      () => getViewing(INSECURE, "uid-1"),
+      () => createViewing(INSECURE, VIEWING),
+      () => updateViewing(INSECURE, "uid-1", VIEWING),
+      () => deleteViewing(INSECURE, "uid-1"),
+      () => getPicklists(INSECURE),
+      () => updatePicklists(INSECURE, { media: [], venues: [] }),
+    ];
+    for (const attempt of attempts) {
+      await expect(attempt()).rejects.toThrow(InvalidCaldavUrlError);
+    }
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe("activity log", () => {
+  let appended: Record<string, unknown>[];
+  let removed: string[];
+  let appendSpy: ReturnType<typeof spyOn>;
+  let removeSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    appended = [];
+    removed = [];
+    appendSpy = spyOn(getActivityLogStore(), "append").mockImplementation((async (
+      entry: Record<string, unknown>,
+    ) => {
+      appended.push(entry);
+    }) as never);
+    removeSpy = spyOn(getCaldavSnapshotStore(), "remove").mockImplementation((async (
+      uid: string,
+    ) => {
+      removed.push(uid);
+    }) as never);
+  });
+
+  afterEach(() => {
+    appendSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
+  test("createViewing logs a web-made create", async () => {
+    recordFetch(() => new Response("", { status: 201 }));
+    const created = await createViewing(CONFIG, VIEWING);
+    expect(appended).toHaveLength(1);
+    expect(appended[0]).toMatchObject({
+      action: "created",
+      uid: created.uid,
+      title: "Dune",
+      actor: "web",
+    });
+  });
+
+  test("updateViewing logs a web-made update with its changes", async () => {
+    const existing = serializeViewingToVEvent("uid-1", VIEWING);
+    recordFetch(({ init }) =>
+      init.method === "GET"
+        ? new Response(existing, { status: 200 })
+        : new Response("", { status: 204 }),
+    );
+    await updateViewing(CONFIG, "uid-1", { ...VIEWING, title: "Dune: Part Two" });
+    expect(appended).toHaveLength(1);
+    expect(appended[0]).toMatchObject({
+      action: "updated",
+      uid: "uid-1",
+      title: "Dune: Part Two",
+      actor: "web",
+    });
+    expect(appended[0]?.changes).toEqual([expect.objectContaining({ field: "title" })]);
+  });
+
+  test("updateViewing logs nothing when nothing changed", async () => {
+    const existing = serializeViewingToVEvent("uid-1", VIEWING);
+    recordFetch(({ init }) =>
+      init.method === "GET"
+        ? new Response(existing, { status: 200 })
+        : new Response("", { status: 204 }),
+    );
+    await updateViewing(CONFIG, "uid-1", VIEWING);
+    expect(appended).toHaveLength(0);
+  });
+
+  test("deleteViewing logs the title it read, and forgets the snapshot entry", async () => {
+    recordFetch(({ init }) =>
+      init.method === "GET"
+        ? new Response(serializeViewingToVEvent("uid-1", VIEWING), { status: 200 })
+        : new Response("", { status: 204 }),
+    );
+    await deleteViewing(CONFIG, "uid-1");
+    expect(appended).toHaveLength(1);
+    expect(appended[0]).toMatchObject({
+      action: "deleted",
+      uid: "uid-1",
+      title: "Dune",
+      actor: "web",
+    });
+    expect(removed).toEqual(["uid-1"]);
   });
 });
