@@ -311,3 +311,92 @@ describe("enrichWithTmdb", () => {
     expect(await enrichWithTmdb("test-tmdb-key", "tt1160419")).toBeUndefined();
   });
 });
+
+describe("lookupTmdbByImdbId: requests and edges", () => {
+  test("sends the api key on the movie request too", async () => {
+    let movieUrl: URL | undefined;
+    globalThis.fetch = (async (url: URL) => {
+      if (url.toString().includes("/find/")) {
+        return new Response(JSON.stringify({ movie_results: [{ id: 1 }] }));
+      }
+      movieUrl = url;
+      return new Response(JSON.stringify(MINIMAL_MOVIE_RESPONSE));
+    }) as unknown as typeof fetch;
+
+    await lookupTmdbByImdbId("test-tmdb-key", "tt1160419");
+
+    expect(movieUrl?.searchParams.get("api_key")).toBe("test-tmdb-key");
+  });
+
+  test("ignores a trailer that isn't marked official", async () => {
+    mockFindThenMovie({
+      ...MINIMAL_MOVIE_RESPONSE,
+      videos: { results: [{ key: "abc", site: "YouTube", type: "Trailer", official: false }] },
+    });
+
+    expect((await lookupTmdbByImdbId("k", "tt1"))?.trailerUrl).toBeUndefined();
+  });
+
+  test("ignores an official YouTube video that isn't a trailer", async () => {
+    mockFindThenMovie({
+      ...MINIMAL_MOVIE_RESPONSE,
+      videos: { results: [{ key: "abc", site: "YouTube", type: "Teaser", official: true }] },
+    });
+
+    expect((await lookupTmdbByImdbId("k", "tt1"))?.trailerUrl).toBeUndefined();
+  });
+
+  test("keeps only the five top-billed cast members", async () => {
+    mockFindThenMovie({
+      ...MINIMAL_MOVIE_RESPONSE,
+      credits: {
+        cast: ["F", "E", "D", "C", "B", "A"].map((name, i) => ({ name, order: 5 - i })),
+      },
+    });
+
+    expect((await lookupTmdbByImdbId("k", "tt1"))?.actors).toBe("A, B, C, D, E");
+  });
+
+  test("treats a negative budget or popularity as not entered", async () => {
+    mockFindThenMovie({ ...MINIMAL_MOVIE_RESPONSE, budget: -1, popularity: -2 });
+
+    const result = await lookupTmdbByImdbId("k", "tt1");
+
+    expect(result?.budget).toBeUndefined();
+    expect(result?.popularity).toBeUndefined();
+  });
+});
+
+describe("enrichWithTmdb: every field it has", () => {
+  test("passes each field through and nothing else", async () => {
+    mockFindThenMovie({
+      budget: 1000,
+      popularity: 7.5,
+      homepage: "https://example.com",
+      belongs_to_collection: { name: "Dune Collection" },
+      credits: { cast: [{ name: "Actor", order: 0 }] },
+      videos: { results: [{ key: "abc", site: "YouTube", type: "Trailer", official: true }] },
+      release_dates: {
+        results: [{ iso_3166_1: "US", release_dates: [{ certification: "PG-13" }] }],
+      },
+      keywords: { keywords: [{ name: "desert" }, { name: "spice" }] },
+    });
+
+    expect(await enrichWithTmdb("k", "tt1")).toEqual({
+      trailerUrl: "https://www.youtube.com/watch?v=abc",
+      collection: "Dune Collection",
+      certification: "PG-13",
+      keywords: "desert, spice",
+      budget: "1000",
+      popularity: "7.5",
+      actors: "Actor",
+      website: "https://example.com",
+    });
+  });
+
+  test("sets no key at all for a field TMDb lacks", async () => {
+    mockFindThenMovie(MINIMAL_MOVIE_RESPONSE);
+
+    expect(Object.keys((await enrichWithTmdb("k", "tt1")) ?? { x: 1 })).toEqual([]);
+  });
+});

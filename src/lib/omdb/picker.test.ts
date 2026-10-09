@@ -9,6 +9,33 @@ function candidate(title: string, year: string | undefined, imdbId: string): Omd
 
 // #628: default sort is newest-first; Title (A–Z) is the only other mode.
 describe("sortCandidates", () => {
+  test("puts a dated candidate first whichever side the yearless one starts on", () => {
+    const yearlessFirst = sortCandidates(
+      [candidate("None", undefined, "tt1"), candidate("Dated", "1999", "tt2")],
+      "year",
+    );
+    const datedFirst = sortCandidates(
+      [candidate("Dated", "1999", "tt2"), candidate("None", undefined, "tt1")],
+      "year",
+    );
+
+    expect(yearlessFirst.map((c) => c.title)).toEqual(["Dated", "None"]);
+    expect(datedFirst.map((c) => c.title)).toEqual(["Dated", "None"]);
+  });
+
+  test("keeps yearless candidates in OMDb's order, after the dated ones", () => {
+    const candidates = [
+      candidate("First", undefined, "tt1"),
+      candidate("Second", undefined, "tt2"),
+      candidate("Third", "1999", "tt3"),
+      candidate("Fourth", undefined, "tt4"),
+    ];
+
+    const result = sortCandidates(candidates, "year");
+
+    expect(result.map((c) => c.title)).toEqual(["Third", "First", "Second", "Fourth"]);
+  });
+
   test("sorts by year descending", () => {
     const candidates = [
       candidate("Resident Evil", "2002", "tt1"),
