@@ -208,6 +208,31 @@ jobs:
           files: coverage/junit-unit.xml,playwright-report/junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+      # Published reports (rules/published-reports.md): the site/reports/
+      # tree is assembled on every run so a broken conversion fails the pull
+      # request, and only a green push to main uploads and deploys it. A red
+      # test step skips these, so the published numbers always describe a green
+      # commit.
+      - name: assemble the reports
+        run: |
+          mkdir -p site/reports/tests site/reports/coverage
+          cp coverage/junit-unit.xml site/reports/tests/unit.xml
+          cp playwright-report/junit.xml site/reports/tests/e2e.xml
+          cp coverage/lcov.info site/reports/coverage/lcov.info
+          pipx run lcov_cobertura==2.1.1 coverage/lcov.info --output site/reports/coverage/coverage.xml
+          sudo apt-get install --no-install-recommends --yes lcov
+          genhtml coverage/lcov.info --output-directory site/reports/coverage --quiet
+          {
+            echo '<!doctype html><meta charset="utf-8"><title>movie-planner-web reports</title>'
+            echo "<h1>movie-planner-web reports</h1><p>Commit ${GITHUB_SHA} on $(date -u +%F).</p>"
+            echo '<ul><li><a href="coverage/">Coverage</a> (<a href="coverage/coverage.xml">Cobertura</a>, <a href="coverage/lcov.info">lcov</a>)</li>'
+            echo '<li>Tests: <a href="tests/unit.xml">unit</a>, <a href="tests/e2e.xml">e2e</a> (JUnit XML)</li></ul>'
+          } > site/reports/index.html
+      - name: upload the reports site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/
       # #195: tests/screenshots.spec.ts overwrites docs/screenshots/*.png
       # on every run — uploaded here so a reviewer can eyeball whether the
       # README's own checked-in copies (committed separately, since CI
@@ -238,6 +263,34 @@ jobs:
           path: ~/.config/.wrangler/logs/
           if-no-files-found: ignore
           retention-days: 7
+
+  # The repo's one Pages deployment: the reports the test job assembled, served
+  # at apis.ryankes.eu/movie-planner-web/reports/. The app itself deploys to
+  # Cloudflare, not here.
+  reports:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      # A deploy succeeds whether or not the URL serves the files, so fetch one
+      # and check what's in it. The retries cover the CDN catching up.
+      - name: check the live report
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          curl --fail --silent --show-error --location --retry 6 --retry-delay 10 \
+            --retry-all-errors --output coverage.xml "${PAGE_URL%/}/reports/coverage/coverage.xml"
+          grep -q '<coverage ' coverage.xml
 
   # Real Baikal in containers, not mocked fetch — the testing rule's
   # container/integration layer, catching what src/lib/caldav/*.test.ts's
