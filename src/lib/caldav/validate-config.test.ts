@@ -27,11 +27,24 @@ describe("validateCaldavConfig", () => {
     expect(() =>
       validateCaldavConfig({ baseUrl: "not a url", username: "me", password: "x" }),
     ).toThrow(InvalidCaldavUrlError);
+    expect(() =>
+      validateCaldavConfig({ baseUrl: "not a url", username: "me", password: "x" }),
+    ).toThrow('"not a url" is not a valid URL');
   });
 
   test("rejects a missing username", () => {
     expect(() =>
       validateCaldavConfig({ baseUrl: "https://caldav.example.com/", username: "", password: "x" }),
-    ).toThrow(InvalidCaldavUrlError);
+    ).toThrow("a CalDAV username is required");
+  });
+
+  test("says why an http:// URL is rejected", () => {
+    expect(() =>
+      validateCaldavConfig({
+        baseUrl: "http://caldav.example.com/",
+        username: "me",
+        password: "x",
+      }),
+    ).toThrow("the CalDAV base URL must use https://");
   });
 });

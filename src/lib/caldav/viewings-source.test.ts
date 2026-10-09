@@ -259,6 +259,223 @@ describe("listAllViewings", () => {
   });
 });
 
+// Spies on the signal's listener removal, to see that a settled wait detaches.
+function trackRemovals(signal: AbortSignal): string[] {
+  const removed: string[] = [];
+  const remove = signal.removeEventListener.bind(signal);
+  signal.removeEventListener = ((type: string, ...rest: unknown[]) => {
+    removed.push(type);
+    return (remove as (...args: unknown[]) => void)(type, ...rest);
+  }) as typeof signal.removeEventListener;
+  return removed;
+}
+
+describe("listAllViewings: edges", () => {
+  test("an abort while a cold load is waiting rejects with an AbortError named Aborted", async () => {
+    const store = fakeStore(null);
+    const net = deferredFetch();
+    const controller = new AbortController();
+
+    const pending = source(store, net.fetchAll).listAll(CONFIG, { signal: controller.signal });
+    await tick(); // the load is now waiting on the network
+    controller.abort();
+
+    const error = await pending.catch((e) => e);
+    expect(error).toBeInstanceOf(DOMException);
+    expect(error.name).toBe("AbortError");
+    expect(error.message).toBe("Aborted");
+  });
+
+  test("an already-aborted signal rejects with an AbortError named Aborted", async () => {
+    const store = fakeStore(null);
+    const net = deferredFetch();
+    const controller = new AbortController();
+    controller.abort();
+
+    const error = await source(store, net.fetchAll)
+      .listAll(CONFIG, { signal: controller.signal })
+      .catch((e) => e);
+    expect(error.message).toBe("Aborted");
+  });
+
+  test("a cold load with a live signal resolves and detaches its abort listener", async () => {
+    const store = fakeStore(null);
+    const net = deferredFetch();
+    const controller = new AbortController();
+    const removed = trackRemovals(controller.signal);
+
+    const pending = source(store, net.fetchAll).listAll(CONFIG, { signal: controller.signal });
+    await tick();
+    net.resolve([DUNE]);
+
+    expect(await pending).toEqual([DUNE]);
+    expect(removed).toEqual(["abort"]);
+  });
+
+  test("a failed cold load with a live signal rejects and detaches its abort listener", async () => {
+    const store = fakeStore(null);
+    const net = deferredFetch();
+    const controller = new AbortController();
+    const removed = trackRemovals(controller.signal);
+
+    const pending = source(store, net.fetchAll).listAll(CONFIG, { signal: controller.signal });
+    await tick();
+    net.reject(new Error("boom"));
+
+    await expect(pending).rejects.toThrow("boom");
+    expect(removed).toEqual(["abort"]);
+  });
+
+  test("notices when only some of several viewings changed", async () => {
+    const store = fakeStore([DUNE, ANORA]);
+    const net = deferredFetch();
+    const refreshed: LoggedViewing[][] = [];
+
+    await source(store, net.fetchAll).listAll(CONFIG, { onRefresh: (v) => refreshed.push(v) });
+    net.resolve([DUNE, { ...ANORA, venue: "Grand Vista" }]);
+    await tick();
+
+    expect(refreshed).toHaveLength(1);
+  });
+
+  test("drops a refresh that raced a local write even when it differs", async () => {
+    const store = fakeStore([DUNE]);
+    const net = deferredFetch();
+    const epoch = { value: 0 };
+    const refreshed: LoggedViewing[][] = [];
+
+    await source(store, net.fetchAll, epoch).listAll(CONFIG, {
+      onRefresh: (v) => refreshed.push(v),
+    });
+    epoch.value += 1;
+    net.resolve([DUNE, ANORA]);
+    await tick();
+
+    expect(refreshed).toEqual([]);
+    expect(store.saved).toEqual([]);
+  });
+
+  test("doesn't report a failed refresh once the caller's signal has aborted", async () => {
+    const store = fakeStore([DUNE]);
+    const net = deferredFetch();
+    const errors: unknown[] = [];
+    const controller = new AbortController();
+
+    await source(store, net.fetchAll).listAll(CONFIG, {
+      signal: controller.signal,
+      onRefreshError: (e) => errors.push(e),
+    });
+    controller.abort();
+    net.reject(new Error("401"));
+    await tick();
+
+    expect(errors).toEqual([]);
+  });
+});
+
+// Without crypto.subtle there's no account key, and requests are keyed by the
+// server and user instead.
+describe("without an account key", () => {
+  function keyless(fetchAll: (config: CaldavConfig) => Promise<LoggedViewing[]>) {
+    return createViewingsSource({
+      fetchAll,
+      store: fakeStore(null) as unknown as ViewingsCacheStore,
+      accountKey: async () => {
+        throw new Error("no crypto.subtle");
+      },
+      writeEpoch: () => 0,
+    });
+  }
+
+  test("callers for the same server and user share one request, and get the answer", async () => {
+    let calls = 0;
+    const s = keyless(async () => {
+      calls += 1;
+      return [DUNE];
+    });
+
+    const results = await Promise.all([s.listAll(CONFIG), s.fetchFresh(CONFIG)]);
+
+    expect(results).toEqual([[DUNE], [DUNE]]);
+    expect(calls).toBe(1);
+  });
+
+  test("callers for another user or server don't share a request", async () => {
+    let calls = 0;
+    const s = keyless(async () => {
+      calls += 1;
+      return [DUNE];
+    });
+
+    await Promise.all([
+      s.fetchFresh(CONFIG),
+      s.fetchFresh({ ...CONFIG, username: "someone-else" }),
+      s.fetchFresh({ ...CONFIG, baseUrl: "https://other.example.com/" }),
+    ]);
+
+    expect(calls).toBe(3);
+  });
+});
+
+describe("request bookkeeping", () => {
+  // The "slow" user is held at the account lookup, so the test decides when
+  // that call reaches the point of choosing a request to join.
+  function gated() {
+    const requests: ((v: LoggedViewing[]) => void)[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const slow = { ...CONFIG, username: "slow" };
+    const s = createViewingsSource({
+      fetchAll: () => new Promise<LoggedViewing[]>((resolve) => requests.push(resolve)),
+      store: fakeStore(null) as unknown as ViewingsCacheStore,
+      accountKey: async (config) => {
+        if (config.username === "slow") await gate;
+        return "account-1";
+      },
+      writeEpoch: () => 0,
+    });
+    return { s, requests, release, slow };
+  }
+
+  test("an older request finishing doesn't make a call miss the newer one", async () => {
+    const { s, requests, release, slow } = gated();
+
+    const q = s.fetchFresh(slow);
+    const a = s.fetchFresh(CONFIG);
+    await tick();
+    const b = s.fetchFresh(CONFIG); // starts a second request while the first is out
+    await tick();
+    expect(requests).toHaveLength(2);
+
+    requests[0]?.([DUNE]); // the older one finishes
+    await a;
+    release();
+    await tick();
+    expect(requests).toHaveLength(2); // q joined the newer request
+
+    requests[1]?.([ANORA]);
+    expect(await Promise.all([q, b])).toEqual([[ANORA], [ANORA]]);
+  });
+
+  test("a finished request is forgotten, so a late call starts its own", async () => {
+    const { s, requests, release, slow } = gated();
+
+    const q = s.fetchFresh(slow);
+    const r = s.fetchFresh(CONFIG);
+    await tick();
+    requests[0]?.([DUNE]);
+    await r;
+    release();
+    await tick();
+
+    expect(requests).toHaveLength(2);
+    requests[1]?.([ANORA]);
+    expect(await q).toEqual([ANORA]);
+  });
+});
+
 describe("fetchFreshViewings", () => {
   test("always goes to the network, even with a cache, and saves the result", async () => {
     const store = fakeStore([DUNE]);
