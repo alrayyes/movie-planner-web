@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CINEMA, mediumDisplay, mediumKey, sameMedium } from "./display";
+import { CINEMA, mediumDisplay, mediumHref, mediumKey, sameMedium } from "./display";
 
 // #600: the CLI never writes a medium property to CalDAV at all today, so
 // every CLI-logged viewing reaches this app with medium genuinely blank —
@@ -60,5 +60,11 @@ describe("mediumKey", () => {
 describe("CINEMA", () => {
   test("is the capitalised spelling the log form's default has always used", () => {
     expect(CINEMA).toBe("Cinema");
+  });
+});
+
+describe("mediumHref", () => {
+  test("links to the medium page with the medium encoded", () => {
+    expect(mediumHref("Blu-ray & more")).toBe("/medium?medium=Blu-ray%20%26%20more");
   });
 });

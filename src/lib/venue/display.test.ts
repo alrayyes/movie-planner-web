@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { venueDisplay } from "./display";
+import { venueDisplay, venueHref } from "./display";
 
 // #440: at least "Cinecenter", "De Munt", and a venue named "City" have a
 // full street address baked directly into the raw venue/LOCATION field
@@ -45,5 +45,17 @@ describe("venueDisplay", () => {
 
   test("city defaults to not being appended when omitted entirely", () => {
     expect(venueDisplay("Tuschinski")).toBe("Tuschinski");
+  });
+});
+
+describe("venueDisplay whitespace", () => {
+  test("trims stray spaces around the name before the first comma", () => {
+    expect(venueDisplay("  De Munt , Vijzelstraat 15")).toBe("De Munt");
+  });
+});
+
+describe("venueHref", () => {
+  test("links to the venue page with the venue encoded", () => {
+    expect(venueHref("De Munt, A&B")).toBe("/venue?venue=De%20Munt%2C%20A%26B");
   });
 });
