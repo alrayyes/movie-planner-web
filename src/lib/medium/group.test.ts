@@ -61,3 +61,23 @@ describe("groupMediums", () => {
     ]);
   });
 });
+
+describe("groupMediums edge cases", () => {
+  test("a listed spelling of the default medium doesn't replace Cinema's label", () => {
+    expect(groupMediums([], ["cinema"])).toEqual([{ medium: "Cinema", count: 0 }]);
+  });
+
+  test("the first listed spelling labels a medium listed twice", () => {
+    expect(groupMediums([], ["Netflix", "netflix"])).toEqual([
+      { medium: "Cinema", count: 0 },
+      { medium: "Netflix", count: 0 },
+    ]);
+  });
+
+  test("trims stray spaces from the label of an unlisted medium", () => {
+    expect(groupMediums([viewing("a", "  Streaming  ")], [])).toEqual([
+      { medium: "Streaming", count: 1 },
+      { medium: "Cinema", count: 0 },
+    ]);
+  });
+});

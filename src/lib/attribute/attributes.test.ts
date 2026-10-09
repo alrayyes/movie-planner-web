@@ -127,3 +127,30 @@ describe("ATTRIBUTES", () => {
     }
   });
 });
+
+describe("ATTRIBUTES labels and paths", () => {
+  test("every kind carries its own listing path, detail path and labels", () => {
+    const table = Object.fromEntries(
+      ATTRIBUTE_KINDS.map((kind) => [
+        kind,
+        [
+          ATTRIBUTES[kind].listingPath,
+          ATTRIBUTES[kind].detailPath,
+          ATTRIBUTES[kind].plural,
+          ATTRIBUTES[kind].singular,
+        ],
+      ]),
+    );
+    expect(table).toEqual({
+      director: ["/directors", "/director", "Directors", "Director"],
+      actor: ["/actors", "/actor", "Actors", "Actor"],
+      genre: ["/genres", "/genre", "Genres", "Genre"],
+      movieCountry: ["/movie-countries", "/movie-country", "Movie countries", "Movie country"],
+      movieLanguage: ["/movie-languages", "/movie-language", "Movie languages", "Movie language"],
+      rated: ["/rated", "/rating", "Ratings", "Rating"],
+      keyword: ["/keywords", "/keyword", "Keywords", "Keyword"],
+      releasedYear: ["/released-years", "/released-year", "Released years", "Released year"],
+      releasedMonth: ["/released-months", "/released-month", "Released months", "Released month"],
+    });
+  });
+});
