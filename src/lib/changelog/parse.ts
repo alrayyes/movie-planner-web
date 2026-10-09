@@ -75,6 +75,7 @@ export function parseChangelog(markdown: string): ChangelogRelease[] {
     const entryMatch = line.match(ENTRY_LINE) ?? line.match(ENTRY_LINE_MERGE_COMMIT);
     if (entryMatch && current && currentType) {
       const [, scope, description, prNumber, prUrl] = entryMatch;
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: both regexes capture every group non-empty, so this only narrows the types for noUncheckedIndexedAccess.
       if (!scope || !description || !prNumber || !prUrl) continue;
       if (INTERNAL_SCOPES.has(scope)) continue;
       current.entries.push({
@@ -105,6 +106,7 @@ export function parseChangelog(markdown: string): ChangelogRelease[] {
 export function compareReleasesNewestFirst(a: ChangelogRelease, b: ChangelogRelease): number {
   const aParts = a.version.split(".").map(Number);
   const bParts = b.version.split(".").map(Number);
+  // Stryker disable next-line EqualityOperator: at i === length both sides read as 0, so the extra pass never finds a difference.
   for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
     const diff = (bParts[i] ?? 0) - (aParts[i] ?? 0);
     if (diff !== 0) return diff;

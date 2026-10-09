@@ -15,7 +15,9 @@ describe("searchAddress", () => {
   test("returns candidates with a label and numeric coordinates on a match", async () => {
     globalThis.fetch = (async (url: URL) => {
       expect(url.toString()).toContain("nominatim.openstreetmap.org/search");
-      expect(url.toString()).toContain("q=Tuschinski");
+      expect(url.searchParams.get("q")).toBe("Tuschinski");
+      expect(url.searchParams.get("format")).toBe("json");
+      expect(url.searchParams.get("limit")).toBe("5");
       return new Response(
         JSON.stringify([
           {
@@ -85,5 +87,23 @@ describe("searchAddress", () => {
     const result = await searchAddress("query");
 
     expect(result).toEqual([{ label: "Elsewhere", lat: 5.0, lon: 5.0 }]);
+  });
+
+  test("fails soft on an HTTP error even when the body parses as results", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify([{ display_name: "Somewhere", lat: "1", lon: "2" }]), {
+        status: 503,
+      })) as unknown as typeof fetch;
+
+    expect(await searchAddress("Tuschinski")).toEqual([]);
+  });
+
+  test("drops a result with no display name at all", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify([{ lat: "1", lon: "2" }]), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    expect(await searchAddress("query")).toEqual([]);
   });
 });

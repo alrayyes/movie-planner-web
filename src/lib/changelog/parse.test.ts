@@ -204,7 +204,94 @@ describe("parseChangelog", () => {
   });
 });
 
+describe("parseChangelog strictness", () => {
+  const compare = "https://github.com/alrayyes/movie-planner-web/compare/a...b";
+  const head = `## [1.0.0](${compare}) (2026-01-01)\n### Features\n`;
+  const entry = (scope: string) =>
+    `* **${scope}:** did a thing ([#9](https://github.com/alrayyes/movie-planner-web/issues/9)) ([abc1234](https://github.com/alrayyes/movie-planner-web/commit/abc1234))`;
+  const merge = (sha: string, url: string) =>
+    `* **a:** did a thing ([${sha}](https://x.test/c/${sha})), closes [#9](${url})`;
+
+  test("drops every internal scope", () => {
+    for (const scope of [
+      "build",
+      "ci",
+      "deps",
+      "deps-dev",
+      "integration",
+      "lint",
+      "mechanics",
+      "release",
+      "test",
+      "tests",
+    ]) {
+      expect(parseChangelog(`${head}${entry(scope)}\n`)).toEqual([]);
+    }
+  });
+
+  test("types Features entries as features and Bug Fixes entries as fixes", () => {
+    const markdown = `${head}${entry("a")}\n\n### Bug Fixes\n\n${entry("b")}\n`;
+
+    expect(parseChangelog(markdown)[0]?.entries.map((e) => e.type)).toEqual(["feature", "fix"]);
+  });
+
+  test("ignores a version heading that does not start the line", () => {
+    expect(parseChangelog(`x ${head}${entry("a")}\n`)).toEqual([]);
+  });
+
+  test("ignores a version heading with a malformed date", () => {
+    const markdown = `## [1.0.0](${compare}) (2026-1-1)\n### Features\n${entry("a")}\n`;
+
+    expect(parseChangelog(markdown)).toEqual([]);
+  });
+
+  test("ignores a section heading that does not start the line", () => {
+    const markdown = `## [1.0.0](${compare}) (2026-01-01)\n#### Features\n${entry("a")}\n`;
+
+    expect(parseChangelog(markdown)).toEqual([]);
+  });
+
+  test("ignores a section other than Features or Bug Fixes", () => {
+    const markdown = `## [1.0.0](${compare}) (2026-01-01)\n### Documentation\n${entry("a")}\n`;
+
+    expect(parseChangelog(markdown)).toEqual([]);
+  });
+
+  test("ignores an entry line that does not start the line", () => {
+    expect(parseChangelog(`${head} ${entry("a")}\n`)).toEqual([]);
+  });
+
+  test("ignores an entry whose scope has uppercase letters or whose link is not https", () => {
+    const insecure = entry("a").replace("https://github.com", "http://github.com");
+
+    expect(parseChangelog(`${head}${entry("Abc")}\n`)).toEqual([]);
+    expect(parseChangelog(`${head}${insecure}\n`)).toEqual([]);
+  });
+
+  test("ignores a merge-commit entry with a short sha, a non-https link or a leading prefix", () => {
+    expect(parseChangelog(`${head}${merge("abc1234", "https://x.test/i/9")}\n`)).toHaveLength(1);
+    expect(parseChangelog(`${head}${merge("abc123", "https://x.test/i/9")}\n`)).toEqual([]);
+    expect(parseChangelog(`${head}${merge("ABC1234", "https://x.test/i/9")}\n`)).toEqual([]);
+    expect(parseChangelog(`${head}${merge("abc1234", "http://x.test/i/9")}\n`)).toEqual([]);
+    expect(parseChangelog(`${head} ${merge("abc1234", "https://x.test/i/9")}\n`)).toEqual([]);
+  });
+
+  test("omits a trailing release whose entries are all internal", () => {
+    const markdown = `## [2.0.0](${compare}) (2026-01-02)\n### Features\n${entry("a")}\n\n## [1.0.0](${compare}) (2026-01-01)\n### Features\n${entry("ci")}\n`;
+
+    expect(parseChangelog(markdown).map((r) => r.version)).toEqual(["2.0.0"]);
+  });
+});
+
 describe("compareReleasesNewestFirst", () => {
+  test("sorts a longer version above its shorter prefix", () => {
+    const releases = [release({ version: "1.0" }), release({ version: "1.0.1" })];
+
+    releases.sort(compareReleasesNewestFirst);
+
+    expect(releases.map((r) => r.version)).toEqual(["1.0.1", "1.0"]);
+  });
+
   test("sorts by version number, not the date string, when several releases share a date", () => {
     // #369's own bug: a plain date comparison leaves same-day releases
     // in whatever order the collection happened to return them, which
