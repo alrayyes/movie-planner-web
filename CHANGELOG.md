@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.2...movie-planner-web-v1.21.3) (2026-10-09)
+
+
+### Bug Fixes
+
+* **hooks:** lint only staged files with markdownlint ([0278171](https://github.com/alrayyes/movie-planner-web/commit/027817197f2b7f292b42a1cc1ab2c5f8405149d3))
+* **hooks:** lint only staged files with markdownlint ([e1de8e1](https://github.com/alrayyes/movie-planner-web/commit/e1de8e16feb8d1ab0fed6d5c6a3433f768e41381))
+
 ## [1.21.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.1...movie-planner-web-v1.21.2) (2026-10-09)
 
 
