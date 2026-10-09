@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.1...movie-planner-web-v1.21.2) (2026-10-09)
+
+
+### Performance Improvements
+
+* serve cached, compressed, non-blocking assets ([#802](https://github.com/alrayyes/movie-planner-web/issues/802)) ([20a5d1f](https://github.com/alrayyes/movie-planner-web/commit/20a5d1f57b1626c8b8665477c1c832831d21974f))
+
 ## [1.21.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.0...movie-planner-web-v1.21.1) (2026-10-08)
 
 
