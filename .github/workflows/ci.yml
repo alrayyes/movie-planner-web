@@ -226,13 +226,15 @@ jobs:
             echo '<!doctype html><meta charset="utf-8"><title>movie-planner-web reports</title>'
             echo "<h1>movie-planner-web reports</h1><p>Commit ${GITHUB_SHA} on $(date -u +%F).</p>"
             echo '<ul><li><a href="coverage/">Coverage</a> (<a href="coverage/coverage.xml">Cobertura</a>, <a href="coverage/lcov.info">lcov</a>)</li>'
-            echo '<li>Tests: <a href="tests/unit.xml">unit</a>, <a href="tests/e2e.xml">e2e</a> (JUnit XML)</li></ul>'
+            echo '<li>Tests: <a href="tests/unit.xml">unit</a>, <a href="tests/e2e.xml">e2e</a> (JUnit XML)</li>'
+            echo '<li><a href="lighthouse/">Lighthouse</a></li></ul>'
           } > site/reports/index.html
-      - name: upload the reports site
+      - name: upload the test and coverage reports
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          path: site/
+          name: reports-tests
+          path: site/reports/
       # #195: tests/screenshots.spec.ts overwrites docs/screenshots/*.png
       # on every run — uploaded here so a reviewer can eyeball whether the
       # README's own checked-in copies (committed separately, since CI
@@ -264,11 +266,48 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # The repo's one Pages deployment: the reports the test job assembled, served
-  # at apis.ryankes.eu/movie-planner-web/reports/. The app itself deploys to
-  # Cloudflare, not here.
+  # Lighthouse against the built site on the same server the tests use, so the
+  # delivery audits grade what Cloudflare would ship. Runs on pull requests as
+  # well, so a regression fails before the merge; only a push to main publishes.
+  lighthouse:
+    needs: changes
+    if: needs.changes.outputs.test == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - name: bun install
+        run: bun install --frozen-lockfile
+      - name: build
+        run: bun run build
+      - name: serve the build
+        run: |
+          bun run preview > wrangler.log 2>&1 &
+          curl --fail --silent --output /dev/null --retry 30 --retry-delay 2 --retry-connrefused http://localhost:4321/
+      - name: lighthouse
+        run: bun run lighthouse --out site/reports/lighthouse
+      - name: upload the wrangler log on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse-wrangler-log
+          path: wrangler.log
+          retention-days: 7
+      - name: upload the Lighthouse reports
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reports-lighthouse
+          path: site/reports/lighthouse/
+
+  # The repo's one Pages deployment: the reports the jobs above assembled,
+  # served at apis.ryankes.eu/movie-planner-web/reports/. The app itself
+  # deploys to Cloudflare, not here. A red job upstream publishes nothing.
   reports:
-    needs: test
+    needs: [test, lighthouse]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -279,18 +318,38 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: download the test and coverage reports
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: reports-tests
+          path: site/reports/
+      - name: download the Lighthouse reports
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: reports-lighthouse
+          path: site/reports/lighthouse/
+      - name: upload the site
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/
       - name: deploy to Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
       # A deploy succeeds whether or not the URL serves the files, so fetch one
-      # and check what's in it. The retries cover the CDN catching up.
-      - name: check the live report
+      # of each report and check what's in it. The retries cover the CDN
+      # catching up.
+      - name: check the live reports
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
-          curl --fail --silent --show-error --location --retry 6 --retry-delay 10 \
-            --retry-all-errors --output coverage.xml "${PAGE_URL%/}/reports/coverage/coverage.xml"
+          fetch() {
+            curl --fail --silent --show-error --location --retry 6 --retry-delay 10 \
+              --retry-all-errors --output "$2" "${PAGE_URL%/}/reports/$1"
+          }
+          fetch coverage/coverage.xml coverage.xml
           grep -q '<coverage ' coverage.xml
+          fetch lighthouse/home.report.json home.json
+          grep -q '"render-blocking-insight"' home.json
 
   # Real Baikal in containers, not mocked fetch — the testing rule's
   # container/integration layer, catching what src/lib/caldav/*.test.ts's
@@ -422,6 +481,7 @@ jobs:
         audit,
         security,
         test,
+        lighthouse,
         integration,
         mutation,
         prose,

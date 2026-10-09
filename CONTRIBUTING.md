@@ -61,7 +61,7 @@ bun run lint:prose           # vale
 bun run lint:mechanics       # ltex-cli-plus
 bun run lint:claude          # cclint on CLAUDE.md and .claude/settings*.json
 bun run mutation             # Stryker over all of src/lib: about nine minutes, scores about 50
-bun run lighthouse           # Lighthouse's cache, latency and render-blocking audits against a running `bun run preview`
+bun run lighthouse           # Lighthouse's cache, latency and render-blocking audits against a running `bun run preview`; add `--out <dir>` to keep the reports
 ```
 
 A job only runs when a file it covers changed. CI's `changes` job and the
