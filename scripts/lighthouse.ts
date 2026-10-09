@@ -13,7 +13,7 @@ try {
   const run = Bun.spawnSync(
     [
       "bunx",
-      "lighthouse",
+      "lighthouse@13.0.1",
       url,
       "--output=json",
       `--output-path=${output}`,

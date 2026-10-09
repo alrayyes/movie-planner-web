@@ -1,6 +1,7 @@
 // The Lighthouse 13 insight audits behind #799. Lighthouse CI 0.15 bundles
 // Lighthouse 12, which has none of these IDs, so scripts/lighthouse.ts runs
-// the pinned `lighthouse` and checks them here.
+// `lighthouse@13.0.1` through bunx, not as a devDependency (its tree carries
+// ten advisories `bun audit` fails on), and checks them here.
 //
 // network-dependency-tree-insight stays at warn: on a static page whose app
 // is a chain of ES modules it scores 0 with a 126 ms longest chain and no LCP
