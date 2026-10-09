@@ -57,8 +57,7 @@ import IconLetterboxd from "./icons/IconLetterboxd.svelte";
 import IconRottenTomatoes from "./icons/IconRottenTomatoes.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import PosterPlaceholder from "./PosterPlaceholder.svelte";
-// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
-import VenueMap, { type MapPin } from "./VenueMap.svelte";
+import type { MapPin } from "./VenueMap.svelte";
 
 // calendar-overview spec: the main screen — every logged viewing with full
 // metadata, filterable by date range and medium, scoped to the visitor's
@@ -1533,7 +1532,12 @@ getPicklists(config).then((picklists) => {
     visitor — a secondary visualization. -->
     <div class="mb-4">
       <h2 class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">Map</h2>
-      <VenueMap pins={mapPins} />
+      <!-- Leaflet and its CSS are ~45 KiB the page never runs until a
+      filter matches a located viewing, so they load on demand instead of
+      with the home page's first paint. -->
+      {#await import("./VenueMap.svelte") then { default: VenueMap }}
+        <VenueMap pins={mapPins} />
+      {/await}
     </div>
   {/if}
 </div>

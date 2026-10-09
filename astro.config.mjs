@@ -19,6 +19,11 @@ import { defineConfig } from "astro/config";
 // https://astro.build/config
 export default defineConfig({
   output: "static",
+  // The whole app shares one ~33 KiB Tailwind sheet, which as a <link> blocks
+  // every first render for a round trip. Inlining it costs that many bytes in
+  // each page's HTML, but those compress with the page and the sheet's own
+  // cache hit was never what made a first visit fast.
+  build: { inlineStylesheets: "always" },
   // #102: an Astro island for new components going forward (not a
   // rewrite of the existing vanilla Web Components, which coexist with
   // Svelte islands fine on the same page) — state changes drive the
