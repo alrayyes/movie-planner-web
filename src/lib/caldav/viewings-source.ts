@@ -44,6 +44,7 @@ function withSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (signal.aborted) return Promise.reject(abortError());
   return new Promise<T>((resolve, reject) => {
     const onAbort = () => reject(abortError());
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: an abort signal fires once, and the listener is removed when the promise settles, so `once` changes nothing observable.
     signal.addEventListener("abort", onAbort, { once: true });
     promise.then(
       (value) => {
@@ -92,6 +93,7 @@ export function createViewingsSource(deps: ViewingsSourceDeps) {
   ): Promise<Fetched> {
     const key = account ?? `${config.baseUrl}\n${config.username}`;
     const existing = newest.get(key);
+    // Stryker disable next-line EqualityOperator: startedAt and calledAt come from the same counter, so they are never equal.
     if (existing && existing.startedAt > calledAt) return existing.request;
 
     const startedAt = ++clock;
