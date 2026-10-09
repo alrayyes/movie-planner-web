@@ -43,6 +43,7 @@ export async function searchAddress(query: string): Promise<GeoCandidate[]> {
     const response = await fetch(url);
     if (!response.ok) return [];
     const data = (await response.json()) as NominatimResult[];
+    // Stryker disable next-line ConditionalExpression: a non-array body has no map(), so the TypeError lands in the catch below and returns the same [].
     if (!Array.isArray(data)) return [];
     return data
       .map((result) => ({
