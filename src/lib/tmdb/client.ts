@@ -96,8 +96,7 @@ function extractKeywords(keywords: TmdbKeyword[] | undefined): string | undefine
 const TOP_BILLED_CAST_LIMIT = 5;
 
 function extractActors(cast: TmdbCastMember[] | undefined): string | undefined {
-  if (!cast || cast.length === 0) return undefined;
-  const names = [...cast]
+  const names = [...(cast ?? [])]
     .sort((a, b) => a.order - b.order)
     .slice(0, TOP_BILLED_CAST_LIMIT)
     .map((c) => c.name);
@@ -108,7 +107,7 @@ function extractActors(cast: TmdbCastMember[] | undefined): string | undefined {
 // not by omitting the field — same "not entered" treatment OMDb's own
 // literal "N/A" gets in omdb/client.ts's field().
 function numericField(value: number | undefined): string | undefined {
-  return value && value > 0 ? String(value) : undefined;
+  return (value ?? 0) > 0 ? String(value) : undefined;
 }
 
 function toMetadata(data: TmdbMovieResponse): TmdbMetadata {
@@ -155,26 +154,22 @@ export async function enrichWithTmdb(
   imdbId: string | undefined,
 ): Promise<TmdbMetadata | undefined> {
   if (!apiKey || !imdbId) return undefined;
-  try {
-    // A network-level failure here (as opposed to a plain non-ok
-    // response, already handled inside lookupTmdbByImdbId) must never
-    // take down a call site's already-successful OMDb match with it —
-    // every caller runs this after OMDb has already resolved and
-    // written its own fields.
-    const metadata = await lookupTmdbByImdbId(apiKey, imdbId);
-    if (!metadata) return undefined;
+  // A network-level failure here (as opposed to a plain non-ok
+  // response, already handled inside lookupTmdbByImdbId) must never
+  // take down a call site's already-successful OMDb match with it —
+  // every caller runs this after OMDb has already resolved and
+  // written its own fields.
+  const metadata = await lookupTmdbByImdbId(apiKey, imdbId).catch(() => undefined);
+  if (!metadata) return undefined;
 
-    const fields: TmdbMetadata = {};
-    if (metadata.trailerUrl) fields.trailerUrl = metadata.trailerUrl;
-    if (metadata.collection) fields.collection = metadata.collection;
-    if (metadata.certification) fields.certification = metadata.certification;
-    if (metadata.keywords) fields.keywords = metadata.keywords;
-    if (metadata.budget) fields.budget = metadata.budget;
-    if (metadata.popularity) fields.popularity = metadata.popularity;
-    if (metadata.actors) fields.actors = metadata.actors;
-    if (metadata.website) fields.website = metadata.website;
-    return fields;
-  } catch {
-    return undefined;
-  }
+  const fields: TmdbMetadata = {};
+  if (metadata.trailerUrl) fields.trailerUrl = metadata.trailerUrl;
+  if (metadata.collection) fields.collection = metadata.collection;
+  if (metadata.certification) fields.certification = metadata.certification;
+  if (metadata.keywords) fields.keywords = metadata.keywords;
+  if (metadata.budget) fields.budget = metadata.budget;
+  if (metadata.popularity) fields.popularity = metadata.popularity;
+  if (metadata.actors) fields.actors = metadata.actors;
+  if (metadata.website) fields.website = metadata.website;
+  return fields;
 }

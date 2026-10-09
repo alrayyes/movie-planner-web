@@ -23,11 +23,13 @@ export function parseReleasedDate(released: string): ReleasedDateFilters | null 
   const match = released.match(/^(\d{1,2}) (\w{3}) (\d{4})$/);
   if (!match) return null;
   const [, day, monthName, year] = match;
+  // Stryker disable next-line StringLiteral: the regex above always captures the month, so the fallback only narrows the type.
   const monthIndex = MONTHS.indexOf(monthName ?? "");
   if (monthIndex === -1) return null;
   const pad = (n: number) => String(n).padStart(2, "0");
   const month = pad(monthIndex + 1);
   return {
+    // Stryker disable next-line StringLiteral: the regex above always captures the year, so the fallback only narrows the type.
     year: year ?? "",
     month: `${year}-${month}`,
     date: `${year}-${month}-${pad(Number(day))}`,

@@ -21,14 +21,10 @@ export function sortCandidates(candidates: OmdbCandidate[], sort: PickerSort): O
     sorted.sort((a, b) => a.title.localeCompare(b.title));
     return sorted;
   }
-  sorted.sort((a, b) => {
-    const yearA = parsedYear(a.year);
-    const yearB = parsedYear(b.year);
-    if (yearA === null && yearB === null) return 0;
-    if (yearA === null) return 1;
-    if (yearB === null) return -1;
-    return yearB - yearA;
-  });
+  // A candidate with no year ranks below every dated one and ties with other
+  // yearless ones, so the sort keeps their order.
+  const rank = (candidate: OmdbCandidate) => parsedYear(candidate.year) ?? Number.MIN_SAFE_INTEGER;
+  sorted.sort((a, b) => rank(b) - rank(a));
   return sorted;
 }
 

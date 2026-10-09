@@ -39,6 +39,7 @@ export async function syncCaldavActivityLog(
   deps: SyncDeps = {},
 ): Promise<void> {
   const fetchAllViewings =
+    // Stryker disable next-line ObjectLiteral: the default wiring needs the real viewings source; the tests inject their own.
     deps.fetchAllViewings ?? ((c) => fetchFreshViewings(c, { signal: deps.signal }));
   const store = deps.store ?? getCaldavSnapshotStore();
   const record = deps.record ?? recordActivity;

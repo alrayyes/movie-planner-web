@@ -52,6 +52,18 @@ describe("diffViewings", () => {
     expect(changes.some((c) => c.field === "lastModifiedBy")).toBe(false);
   });
 
+  test("treats an empty string, null and a missing value as the same absence", () => {
+    const before = { ...BEFORE, genre: "", country: null } as unknown as LoggedViewing;
+    expect(diffViewings(before, { ...BEFORE })).toEqual([]);
+  });
+
+  test("reports a field that goes from missing to a value, and from a value to missing", () => {
+    expect(diffViewings(BEFORE, { ...BEFORE, director: undefined })).toEqual([
+      { field: "director", before: "Some Stale Director", after: undefined },
+    ]);
+    expect(diffViewings({ ...BEFORE, genre: undefined }, { ...BEFORE, genre: "" })).toEqual([]);
+  });
+
   test("formats an object field (geo) as a comparable string", () => {
     const before: LoggedViewing = { ...BEFORE, geo: { lat: 1, lon: 2 } };
     const after: NewViewing = { ...BEFORE, geo: { lat: 3, lon: 4 } };
