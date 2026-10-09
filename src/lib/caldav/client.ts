@@ -29,7 +29,7 @@ function toIcalTimestamp(iso: string): string {
   return new Date(iso)
     .toISOString()
     .replace(/[-:]/g, "")
-    .replace(/\.\d{3}Z$/, "Z");
+    .replace(/\.\d{3}Z/, "Z");
 }
 
 async function assertOk(response: Response, action: string): Promise<void> {
@@ -252,7 +252,6 @@ export async function getPicklists(config: CaldavConfig): Promise<Picklists> {
     headers: { Authorization: authHeader(config) },
     cache: "no-store",
   });
-  if (response.status === 404) return parsePicklistsFromVJournal(null);
   if (!response.ok) return parsePicklistsFromVJournal(null);
 
   const raw = await readBoundedText(response);
