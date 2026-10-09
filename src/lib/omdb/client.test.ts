@@ -620,3 +620,161 @@ describe("searchOmdb", () => {
     expect(result.kind).toBe("match");
   });
 });
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
+describe("searchMovies: requests and edges", () => {
+  test("sends the title as s=, the year as y=, and no page on the first request", async () => {
+    const urls: URL[] = [];
+    globalThis.fetch = (async (url: URL) => {
+      urls.push(url);
+      return json({ Response: "True", Search: [{ imdbID: "tt1", Title: "Dune" }] });
+    }) as unknown as typeof fetch;
+
+    await searchMovies("key", "Dune", "2021");
+
+    expect(urls).toHaveLength(1);
+    expect(urls[0]?.searchParams.get("apikey")).toBe("key");
+    expect(urls[0]?.searchParams.get("s")).toBe("Dune");
+    expect(urls[0]?.searchParams.get("y")).toBe("2021");
+    expect(urls[0]?.searchParams.has("page")).toBe(false);
+  });
+
+  test("asks for page 2 by number when OMDb reports more results", async () => {
+    const urls: URL[] = [];
+    globalThis.fetch = (async (url: URL) => {
+      urls.push(url);
+      return json({
+        Response: "True",
+        totalResults: "15",
+        Search: [{ imdbID: `tt${urls.length}`, Title: "Dune" }],
+      });
+    }) as unknown as typeof fetch;
+
+    await searchMovies("key", "Dune");
+
+    expect(urls.map((u) => u.searchParams.get("page"))).toEqual([null, "2"]);
+  });
+
+  test("returns nothing when OMDb answers Response False, even with a Search array", async () => {
+    globalThis.fetch = (async () =>
+      json({
+        Response: "False",
+        Search: [{ imdbID: "tt1", Title: "Dune" }],
+      })) as unknown as typeof fetch;
+
+    expect(await searchMovies("key", "Dune")).toEqual([]);
+  });
+
+  test("stops paging when a later page answers Response False", async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls++;
+      return calls === 1
+        ? json({ Response: "True", totalResults: "30", Search: [{ imdbID: "tt1", Title: "A" }] })
+        : json({ Response: "False", Search: [{ imdbID: "tt2", Title: "B" }] });
+    }) as unknown as typeof fetch;
+
+    const result = await searchMovies("key", "A");
+
+    expect(result.map((r) => r.imdbId)).toEqual(["tt1"]);
+    expect(calls).toBe(2);
+  });
+
+  test("shows an empty title for a candidate OMDb sent without one", async () => {
+    globalThis.fetch = (async () =>
+      json({ Response: "True", Search: [{ imdbID: "tt1" }] })) as unknown as typeof fetch;
+
+    const [candidate] = await searchMovies("key", "x");
+
+    expect(candidate?.title).toBe("");
+  });
+});
+
+describe("lookupByImdbId: requests and edges", () => {
+  test("sends the id as i= and asks for the full plot", async () => {
+    let seen: URL | undefined;
+    globalThis.fetch = (async (url: URL) => {
+      seen = url;
+      return json({ Response: "True", imdbID: "tt1160419" });
+    }) as unknown as typeof fetch;
+
+    await lookupByImdbId("key", "tt1160419");
+
+    expect(seen?.searchParams.get("apikey")).toBe("key");
+    expect(seen?.searchParams.get("i")).toBe("tt1160419");
+    expect(seen?.searchParams.get("plot")).toBe("full");
+  });
+
+  test("returns null on an HTTP error", async () => {
+    globalThis.fetch = (async () =>
+      json({ Response: "True", imdbID: "tt1" }, 500)) as unknown as typeof fetch;
+
+    expect(await lookupByImdbId("key", "tt1")).toBeNull();
+  });
+});
+
+describe("searchOmdb: a pasted IMDb id", () => {
+  test("sends the id as i= and returns a match with its title, year and poster", async () => {
+    let seen: URL | undefined;
+    globalThis.fetch = (async (url: URL) => {
+      seen = url;
+      return json({
+        Response: "True",
+        imdbID: "tt1160419",
+        Title: "Dune",
+        Year: "2021",
+        Poster: "https://example.com/p.jpg",
+      });
+    }) as unknown as typeof fetch;
+
+    const outcome = await searchOmdb("key", "https://www.imdb.com/title/tt1160419/");
+
+    expect(seen?.searchParams.get("apikey")).toBe("key");
+    expect(seen?.searchParams.get("i")).toBe("tt1160419");
+    expect(outcome).toEqual({
+      kind: "match",
+      candidate: {
+        title: "Dune",
+        year: "2021",
+        imdbId: "tt1160419",
+        posterUrl: "https://example.com/p.jpg",
+      },
+    });
+  });
+
+  test("finds nothing on an HTTP error", async () => {
+    globalThis.fetch = (async () =>
+      json(
+        { Response: "True", imdbID: "tt1160419", Title: "Dune" },
+        500,
+      )) as unknown as typeof fetch;
+
+    expect(await searchOmdb("key", "tt1160419")).toEqual({ kind: "none" });
+  });
+
+  test("finds nothing when OMDb answers Response False", async () => {
+    globalThis.fetch = (async () =>
+      json({ Response: "False", imdbID: "tt1160419", Title: "Dune" })) as unknown as typeof fetch;
+
+    expect(await searchOmdb("key", "tt1160419")).toEqual({ kind: "none" });
+  });
+
+  test("finds nothing when the response carries no imdbID", async () => {
+    globalThis.fetch = (async () =>
+      json({ Response: "True", Title: "Dune" })) as unknown as typeof fetch;
+
+    expect(await searchOmdb("key", "tt1160419")).toEqual({ kind: "none" });
+  });
+
+  test("shows an empty title when OMDb sent none", async () => {
+    globalThis.fetch = (async () =>
+      json({ Response: "True", imdbID: "tt1160419" })) as unknown as typeof fetch;
+
+    const outcome = await searchOmdb("key", "tt1160419");
+
+    expect(outcome.kind === "match" && outcome.candidate.title).toBe("");
+  });
+});
