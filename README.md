@@ -199,6 +199,16 @@ works the same way.
 - [Design references](docs/design/README.md): the Stitch screens used for the
   October 2026 UI audit tickets.
 
+## Reports
+
+CI publishes the latest green `main` run's reports:
+[coverage](https://apis.ryankes.eu/movie-planner-web/reports/coverage/)
+([Cobertura XML](https://apis.ryankes.eu/movie-planner-web/reports/coverage/coverage.xml))
+and the JUnit XML for the
+[unit](https://apis.ryankes.eu/movie-planner-web/reports/tests/unit.xml) and
+[end-to-end](https://apis.ryankes.eu/movie-planner-web/reports/tests/e2e.xml)
+tests.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the toolchain, the hooks, and how

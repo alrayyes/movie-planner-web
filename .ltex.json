@@ -51,9 +51,9 @@
       "OMDb",
       "OMDb-derived",
       "OMDb-sourced",
-      "Pathé",
-      "Pathé-email",
-      "Pathé-imported",
+      "Path\u00e9",
+      "Path\u00e9-email",
+      "Path\u00e9-imported",
       "picklist",
       "picklists",
       "Playwright",
@@ -83,7 +83,9 @@
       "wrangler",
       "Fastmail",
       "WebAppPassword",
-      "Semgrep"
+      "Semgrep",
+      "Cobertura",
+      "JUnit"
     ]
   },
   "ltex.disabledRules": {
