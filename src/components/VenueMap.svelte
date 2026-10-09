@@ -1,6 +1,6 @@
 <script lang="ts">
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import leafletCssUrl from "leaflet/dist/leaflet.css?url";
 import { openStreetMapUrl } from "../lib/geo/links";
 
 // #262: real OpenStreetMap tiles, not the original bundled abstract
@@ -51,7 +51,8 @@ export interface MapPin {
 let { pins }: { pins: MapPin[] } = $props();
 
 let mapEl = $state<HTMLDivElement>();
-let map: L.Map | undefined;
+// Raw state: the pins effect below must re-run once the async mount sets it.
+let map = $state.raw<L.Map | undefined>();
 let markers: L.Marker[] = [];
 
 // The standard OSM tile server's own documented limits (§ Standard tile
@@ -113,8 +114,30 @@ function popupContent(pin: MapPin): HTMLElement {
 	return wrap;
 }
 
+// Imported as a plain stylesheet, Astro hoists Leaflet's CSS into the
+// <head> of every page whose bundle can reach this component, even one that
+// loads it lazily, and it then blocks that page's first render. Fetching it
+// here keeps it off pages that never show a map.
+let leafletCss: Promise<void> | undefined;
+function loadLeafletCss(): Promise<void> {
+	leafletCss ??= new Promise((resolve) => {
+		const link = document.createElement("link");
+		link.rel = "stylesheet";
+		link.href = leafletCssUrl;
+		// A failed stylesheet shouldn't leave the map unmounted.
+		link.onload = () => resolve();
+		link.onerror = () => resolve();
+		document.head.appendChild(link);
+	});
+	return leafletCss;
+}
+
 $effect(() => {
-	if (mapEl) mount(mapEl);
+	const el = mapEl;
+	if (!el) return;
+	loadLeafletCss().then(() => {
+		if (el.isConnected) mount(el);
+	});
 });
 
 // #8/#203: re-synced whenever `pins` changes, not set up once at

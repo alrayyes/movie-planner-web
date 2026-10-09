@@ -11,6 +11,7 @@
     "dev": "astro dev",
     "format": "biome check --write .",
     "format:check": "prettier --check \"**/*.{md,yml,yaml,astro}\"",
+    "lighthouse": "bun scripts/lighthouse.ts",
     "lint": "biome check .",
     "lint:claude": "./scripts/lint-claude.sh",
     "lint:md": "markdownlint-cli2",
