@@ -207,7 +207,9 @@ CI publishes the latest green `main` run's reports:
 and the JUnit XML for the
 [unit](https://apis.ryankes.eu/movie-planner-web/reports/tests/unit.xml) and
 [end-to-end](https://apis.ryankes.eu/movie-planner-web/reports/tests/e2e.xml)
-tests.
+tests, and the
+[Lighthouse reports](https://apis.ryankes.eu/movie-planner-web/reports/lighthouse/)
+for the home page and the docs.
 
 ## Contributing
 
