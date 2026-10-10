@@ -933,9 +933,9 @@ test.describe("movie details page", () => {
     await page.getByRole("link", { name: "Dune (2021)" }).click();
 
     await expect(page.getByText("Fri 22 Oct 2021")).toBeVisible();
-    await expect(page.getByRole("link", { name: "22" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Oct" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "2021" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "22", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Oct", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "2021", exact: true })).toHaveCount(0);
   });
 
   test("falls back to the raw value, with no day of week, for a Released value parseReleasedDate doesn't recognize", async ({
