@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.22.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.3...movie-planner-web-v1.22.0) (2026-10-10)
+
+
+### Features
+
+* screenshot every page for the README, refreshed on release ([6a4ff38](https://github.com/alrayyes/movie-planner-web/commit/6a4ff38f63f2eca9632d1d18b09d65cb7506ae83))
+* screenshot every page for the README, refreshed on release ([af6e6f5](https://github.com/alrayyes/movie-planner-web/commit/af6e6f5eb7efa28c7ea3aa6857da427977959c7b))
+
 ## [1.21.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.2...movie-planner-web-v1.21.3) (2026-10-09)
 
 
