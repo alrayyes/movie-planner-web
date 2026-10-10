@@ -16,7 +16,10 @@ import Layout from "../layouts/Layout.astro";
     , reading and writing straight to your own CalDAV calendar.
   </p>
   <div class="mt-6">
-    <credentials-gate></credentials-gate>
+    <!-- Empty until the script runs, then the connect form (about 750px tall
+         on a phone, 550px on desktop). Reserve that height so the footer
+         doesn't jump when it appears. -->
+    <credentials-gate class="block empty:min-h-[46rem] sm:empty:min-h-[34rem]"></credentials-gate>
   </div>
 </Layout>
 
