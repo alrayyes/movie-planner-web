@@ -62,6 +62,7 @@ bun run lint:mechanics       # ltex-cli-plus
 bun run lint:claude          # cclint on CLAUDE.md and .claude/settings*.json
 bun run mutation             # Stryker over all of src/lib: about nine minutes, scores about 50
 bun run lighthouse           # Lighthouse's cache, latency and render-blocking audits against a running `bun run preview`; add `--out <dir>` to keep the reports
+bun run screenshots          # every page's README picture, light and dark, into docs/screenshots/pages/
 ```
 
 A job only runs when a file it covers changed. CI's `changes` job and the
@@ -166,6 +167,20 @@ workflow, a UI feature worth a screenshot. Update whichever of them your
 change actually affects in the same pull request, the same rule as the
 README: a docs page or the about page that's gone stale costs the next
 visitor (or agent) more than the two extra lines would have.
+
+## README screenshots
+
+`bun run screenshots` takes one picture of every page, light and dark, from
+demo data (`tests/support/demo.ts`) with the browser's clock fixed, and
+`bun scripts/readme-gallery.ts` rewrites the README's gallery from the same
+list in `scripts/page-gallery.ts`. Normal test runs skip it, since it rewrites
+tracked files. You don't run either by hand for a release: the `screenshots`
+workflow does it on release-please's pull request and pushes one commit to
+it, so merging the release ships the new pictures.
+
+A page you add under `src/pages/` needs an entry in `scripts/page-gallery.ts`,
+or a place on its footer list if the footer links to it. A unit test fails
+until it has one.
 
 ## Commit messages
 

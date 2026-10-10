@@ -40,4 +40,14 @@ config:
     tables: false
     code_blocks: false
 
+  # The README's page gallery: <details> to fold it, <picture> to follow the
+  # reader's colour scheme. Markdown has no equivalent for either.
+  no-inline-html:
+    allowed_elements:
+      - details
+      - summary
+      - picture
+      - source
+      - img
+
 extends: "markdownlint/style/prettier"

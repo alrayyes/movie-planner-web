@@ -188,6 +188,406 @@ only tags versions — but that's this repo's own hosting choice, not a
 requirement of the app itself. Point any static host at `dist/` and it
 works the same way.
 
+## Screenshots
+
+Every page except the four the footer links to (About, Disclaimer, Privacy,
+and the changelog). Each comes in light and dark. They're drawn from demo
+data and regenerated for each release, so they match the version you're
+reading.
+
+<details>
+<summary>All pages</summary>
+
+<!-- screenshots:start -->
+
+### Overview
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/overview-dark.png">
+  <img
+    src="docs/screenshots/pages/overview-light.png"
+    alt="Overview"
+    width="640">
+</picture>
+
+### Connect a calendar
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/connect-dark.png">
+  <img
+    src="docs/screenshots/pages/connect-light.png"
+    alt="Connect a calendar"
+    width="640">
+</picture>
+
+### Log a viewing
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/log-dark.png">
+  <img
+    src="docs/screenshots/pages/log-light.png"
+    alt="Log a viewing"
+    width="640">
+</picture>
+
+### Import
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/import-dark.png">
+  <img
+    src="docs/screenshots/pages/import-light.png"
+    alt="Import"
+    width="640">
+</picture>
+
+### Settings
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/settings-dark.png">
+  <img
+    src="docs/screenshots/pages/settings-light.png"
+    alt="Settings"
+    width="640">
+</picture>
+
+### Activity
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/activity-dark.png">
+  <img
+    src="docs/screenshots/pages/activity-light.png"
+    alt="Activity"
+    width="640">
+</picture>
+
+### Calendar
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/calendar-dark.png">
+  <img
+    src="docs/screenshots/pages/calendar-light.png"
+    alt="Calendar"
+    width="640">
+</picture>
+
+### Missing data
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/missing-data-dark.png">
+  <img
+    src="docs/screenshots/pages/missing-data-light.png"
+    alt="Missing data"
+    width="640">
+</picture>
+
+### Venues
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/venues-dark.png">
+  <img
+    src="docs/screenshots/pages/venues-light.png"
+    alt="Venues"
+    width="640">
+</picture>
+
+### Venue
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/venue-dark.png">
+  <img
+    src="docs/screenshots/pages/venue-light.png"
+    alt="Venue"
+    width="640">
+</picture>
+
+### Mediums
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/mediums-dark.png">
+  <img
+    src="docs/screenshots/pages/mediums-light.png"
+    alt="Mediums"
+    width="640">
+</picture>
+
+### Medium
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/medium-dark.png">
+  <img
+    src="docs/screenshots/pages/medium-light.png"
+    alt="Medium"
+    width="640">
+</picture>
+
+### Directors
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/directors-dark.png">
+  <img
+    src="docs/screenshots/pages/directors-light.png"
+    alt="Directors"
+    width="640">
+</picture>
+
+### Director
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/director-dark.png">
+  <img
+    src="docs/screenshots/pages/director-light.png"
+    alt="Director"
+    width="640">
+</picture>
+
+### Actors
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/actors-dark.png">
+  <img
+    src="docs/screenshots/pages/actors-light.png"
+    alt="Actors"
+    width="640">
+</picture>
+
+### Actor
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/actor-dark.png">
+  <img
+    src="docs/screenshots/pages/actor-light.png"
+    alt="Actor"
+    width="640">
+</picture>
+
+### Genres
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/genres-dark.png">
+  <img
+    src="docs/screenshots/pages/genres-light.png"
+    alt="Genres"
+    width="640">
+</picture>
+
+### Genre
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/genre-dark.png">
+  <img
+    src="docs/screenshots/pages/genre-light.png"
+    alt="Genre"
+    width="640">
+</picture>
+
+### Movie countries
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/movie-countries-dark.png">
+  <img
+    src="docs/screenshots/pages/movie-countries-light.png"
+    alt="Movie countries"
+    width="640">
+</picture>
+
+### Movie country
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/movie-country-dark.png">
+  <img
+    src="docs/screenshots/pages/movie-country-light.png"
+    alt="Movie country"
+    width="640">
+</picture>
+
+### Movie languages
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/movie-languages-dark.png">
+  <img
+    src="docs/screenshots/pages/movie-languages-light.png"
+    alt="Movie languages"
+    width="640">
+</picture>
+
+### Movie language
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/movie-language-dark.png">
+  <img
+    src="docs/screenshots/pages/movie-language-light.png"
+    alt="Movie language"
+    width="640">
+</picture>
+
+### Ratings
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/rated-dark.png">
+  <img
+    src="docs/screenshots/pages/rated-light.png"
+    alt="Ratings"
+    width="640">
+</picture>
+
+### Rating
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/rating-dark.png">
+  <img
+    src="docs/screenshots/pages/rating-light.png"
+    alt="Rating"
+    width="640">
+</picture>
+
+### Keywords
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/keywords-dark.png">
+  <img
+    src="docs/screenshots/pages/keywords-light.png"
+    alt="Keywords"
+    width="640">
+</picture>
+
+### Keyword
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/keyword-dark.png">
+  <img
+    src="docs/screenshots/pages/keyword-light.png"
+    alt="Keyword"
+    width="640">
+</picture>
+
+### Released years
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/released-years-dark.png">
+  <img
+    src="docs/screenshots/pages/released-years-light.png"
+    alt="Released years"
+    width="640">
+</picture>
+
+### Released year
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/released-year-dark.png">
+  <img
+    src="docs/screenshots/pages/released-year-light.png"
+    alt="Released year"
+    width="640">
+</picture>
+
+### Released months
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/released-months-dark.png">
+  <img
+    src="docs/screenshots/pages/released-months-light.png"
+    alt="Released months"
+    width="640">
+</picture>
+
+### Released month
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/released-month-dark.png">
+  <img
+    src="docs/screenshots/pages/released-month-light.png"
+    alt="Released month"
+    width="640">
+</picture>
+
+### Movie details
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/movie-dark.png">
+  <img
+    src="docs/screenshots/pages/movie-light.png"
+    alt="Movie details"
+    width="640">
+</picture>
+
+### Shared viewings
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/shared-dark.png">
+  <img
+    src="docs/screenshots/pages/shared-light.png"
+    alt="Shared viewings"
+    width="640">
+</picture>
+
+<!-- screenshots:end -->
+
+</details>
+
 ## More documentation
 
 - [User guide](https://movie-planner.ryankes.eu/docs/): connecting a server,
