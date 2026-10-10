@@ -6,6 +6,9 @@
   // CalDAV and OMDb clients run in the browser (see astro.config.mjs), so
   // this Worker only serves the static build's assets.
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    // Serve the build's 404.html, with a 404 status, for any URL that matches
+    // no file. Without this Cloudflare answers with its own bare response.
+    "not_found_handling": "404-page"
   }
 }
