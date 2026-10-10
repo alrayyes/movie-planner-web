@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.22.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.22.0...movie-planner-web-v1.22.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* reserve the connect form's height on the home page ([fafc7b9](https://github.com/alrayyes/movie-planner-web/commit/fafc7b9761619d80e7c1fbb9185ee6b09c65e5bf))
+* reserve the connect form's height on the home page ([69d32e3](https://github.com/alrayyes/movie-planner-web/commit/69d32e3a36106f188ed7f1cc789273f35fd73228)), closes [#820](https://github.com/alrayyes/movie-planner-web/issues/820)
+
 ## [1.22.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.21.3...movie-planner-web-v1.22.0) (2026-10-10)
 
 
