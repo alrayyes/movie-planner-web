@@ -1,0 +1,75 @@
+# The README's page screenshots, refreshed on release. CI never commits to
+# main, but the release job may, so the pictures ride on the release pull
+# request: this pushes one commit to its branch, and merging the release
+# merges them.
+#
+# pull_request, not pull_request_target: release-please's branch lives on this
+# repo, never a fork, so there's no untrusted checkout to guard against.
+name: screenshots
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screenshots-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  LEFTHOOK: "0"
+
+jobs:
+  screenshots:
+    if: startsWith(github.head_ref, 'release-please--')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # RELEASE_TOKEN, not the default GITHUB_TOKEN: a push made with
+      # GITHUB_TOKEN doesn't start the checks the release pull request is
+      # waiting for, so the new commit would sit there with none.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.RELEASE_TOKEN }}
+      # This job's own commit comes back as a synchronize event. The pictures
+      # carry noise from run to run, so rebuilding them would add a commit
+      # every time: stop at our own.
+      - name: stop at our own commit
+        id: guard
+        run: |
+          if [ "$(git log -1 --format=%s)" = "docs: refresh the page screenshots" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          bun-version-file: package.json
+      - name: bun install
+        if: steps.guard.outputs.skip != 'true'
+        run: bun install --frozen-lockfile
+      - name: install playwright's browser
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          bunx playwright install chromium ||
+            (sleep 5 && bunx playwright install chromium)
+      - name: take the screenshots
+        if: steps.guard.outputs.skip != 'true'
+        run: bun run screenshots
+      - name: update the README gallery
+        if: steps.guard.outputs.skip != 'true'
+        run: bun scripts/readme-gallery.ts
+      - name: commit what changed
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          git add docs/screenshots/pages README.md
+          if git diff --cached --quiet; then
+            echo "screenshots are already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --message "docs: refresh the page screenshots"
+          git push

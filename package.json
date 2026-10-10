@@ -21,6 +21,7 @@
     "mutation": "stryker run",
     "prepare": "lefthook install || true",
     "preview": "wrangler dev --port 4321",
+    "screenshots": "SCREENSHOTS=1 ./scripts/in-private-network.sh playwright test tests/page-gallery.spec.ts",
     "sort-package-json": "sort-package-json",
     "sort-package-json:check": "sort-package-json --check",
     "test": "bun run test:unit && bun run test:e2e",

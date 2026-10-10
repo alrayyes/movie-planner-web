@@ -51,3 +51,28 @@ export const PADDINGTON = {
   posterUrl: POSTER_PADDINGTON,
   imdbId: "tt4979562",
 };
+
+// The same two viewings with the fields the attribute pages group by, so each
+// of their detail pages has something to show.
+export const DEMO_VIEWINGS = [
+  {
+    ...DUNE,
+    start: "2026-10-07T19:30:00.000Z",
+    end: "2026-10-07T22:00:00.000Z",
+    rated: "PG-13",
+    movieLanguage: "English",
+    movieCountry: "United States",
+    released: "01 Mar 2024",
+    keywords: "desert, sequel",
+  },
+  {
+    ...PADDINGTON,
+    start: "2026-09-20T18:00:00.000Z",
+    end: "2026-09-20T19:30:00.000Z",
+    rated: "PG",
+    movieLanguage: "English",
+    movieCountry: "United Kingdom",
+    released: "08 Nov 2024",
+    keywords: "bear, family",
+  },
+];

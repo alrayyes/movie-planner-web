@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  // The README gallery rewrites tracked images, so it only runs on request
+  // (`bun run screenshots`).
+  testIgnore: process.env.SCREENSHOTS ? undefined : ["**/page-gallery.spec.ts"],
   fullyParallel: true,
   // The default (one worker per core) crashes the shared `wrangler dev`
   // instance under concurrent load — confirmed by hand: reproducible
