@@ -19,9 +19,9 @@ import { venueHref } from "../src/lib/venue/display";
 // where the app does. tests/page-gallery.spec.ts fixes the browser's clock to it.
 export const GALLERY_NOW = "2026-10-10T12:00:00.000Z";
 
-// The pages the footer links to. They're text, so a picture of them says
-// nothing the page doesn't.
-export const FOOTER_ROUTES = ["about", "disclaimer", "privacy", "changelog"];
+// The pages the footer links to, and the 404 page nobody navigates to. They're
+// text, so a picture of them says nothing the page doesn't.
+export const FOOTER_ROUTES = ["about", "disclaimer", "privacy", "changelog", "404"];
 
 type Resolve = (viewings: LoggedViewing[]) => string | Promise<string>;
 
