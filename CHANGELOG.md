@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.23.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.22.1...movie-planner-web-v1.23.0) (2026-10-10)
+
+
+### Features
+
+* serve the app's own 404 page ([93fbe7c](https://github.com/alrayyes/movie-planner-web/commit/93fbe7c1555405df0c861ca662044d2f9be3a7cb))
+* serve the app's own 404 page ([3417547](https://github.com/alrayyes/movie-planner-web/commit/34175470995fd0b8e59dd1e67e26e02a842bc0c4)), closes [#823](https://github.com/alrayyes/movie-planner-web/issues/823)
+
 ## [1.22.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.22.0...movie-planner-web-v1.22.1) (2026-10-10)
 
 
