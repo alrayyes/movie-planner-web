@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.23.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.23.0...movie-planner-web-v1.23.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **perf:** preload the Inter font so the home page doesn't shift ([aa4fa9d](https://github.com/alrayyes/movie-planner-web/commit/aa4fa9dc53fb544f6c99ce8bc9c76cf9bf820daf))
+* **perf:** preload the Inter font so the home page doesn't shift ([eb0bd05](https://github.com/alrayyes/movie-planner-web/commit/eb0bd0581d20bf3956aae1bf0aca82cdf2e0c276)), closes [#826](https://github.com/alrayyes/movie-planner-web/issues/826)
+
 ## [1.23.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.22.1...movie-planner-web-v1.23.0) (2026-10-10)
 
 
