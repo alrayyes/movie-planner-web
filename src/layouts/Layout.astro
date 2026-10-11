@@ -8,6 +8,10 @@
 // way.
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 import { ClientRouter } from "astro:transitions";
+// #826: the font is referenced from the inlined CSS, so without a preload the
+// browser only finds it after parsing that, and text reflows when it swaps in.
+// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
+import interWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
 import SiteFooter from "../components/SiteFooter.astro";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
@@ -47,6 +51,13 @@ const { title, wide = false } = Astro.props;
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <link
+      rel="preload"
+      href={interWoff2}
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <ClientRouter />
     <script is:inline>
       // Runs before body paint, deliberately not a module (those defer)

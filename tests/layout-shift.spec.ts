@@ -35,3 +35,13 @@ for (const [name, width, height] of [
     expect(cls).toBeLessThan(GOOD);
   });
 }
+
+// #826: the font was only found once the inlined CSS parsed, so text reflowed
+// after first paint when it swapped in.
+test("preloads the Inter font so it doesn't swap in after first paint", async ({ page }) => {
+  await page.goto("/");
+  const preload = page.locator(
+    'head link[rel="preload"][as="font"][type="font/woff2"][crossorigin]',
+  );
+  await expect(preload).toHaveAttribute("href", /inter-latin-wght-normal.*\.woff2$/);
+});
