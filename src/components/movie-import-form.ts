@@ -153,6 +153,7 @@ export class MovieImportForm extends HTMLElement {
     this.mediumInput.className = INPUT;
     this.mediumInput.placeholder = "cinema";
     this.mediumInput.autocomplete = "off";
+    this.mediumInput.required = true;
     this.mediumInput.addEventListener("change", () => void this.processFile());
     this.mediumField.append(mediumLabel, this.mediumInput);
 
@@ -168,6 +169,9 @@ export class MovieImportForm extends HTMLElement {
       this.statusEl.textContent = check.error;
       this.reviewContainer?.replaceChildren();
       fileInput.value = "";
+      // Forget the previous file, so editing the medium can't bring it back.
+      this.fileText = "";
+      if (this.mediumField) this.mediumField.hidden = true;
       return;
     }
 
@@ -186,7 +190,7 @@ export class MovieImportForm extends HTMLElement {
     const letterboxd = !this.fileIsJson && detectCsvFormat(this.fileText) === "letterboxd-diary";
     if (letterboxd && !medium) {
       this.statusEl.textContent =
-        "This is a Letterboxd diary, which doesn't record where you watched. Enter a medium below (for example cinema or netflix).";
+        "This is a Letterboxd diary, which doesn't record where you watched. Enter a medium in the field above (for example cinema or netflix).";
       this.reviewContainer?.replaceChildren();
       return;
     }

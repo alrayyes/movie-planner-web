@@ -254,6 +254,7 @@ export interface CsvImportOptions {
 const LETTERBOXD_DIARY_HEADERS = ["Name", "Letterboxd URI", "Watched Date"];
 
 function csvHeader(text: string): string[] {
+  // Stryker disable next-line ArrayDeclaration: an empty file has no header, and any stand-in array still matches no column, so it reads as native either way.
   return (parseCsvLines(text)[0] ?? []).map((key) => key.trim());
 }
 

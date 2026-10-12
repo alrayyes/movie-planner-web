@@ -16,6 +16,9 @@ describe("detectCsvFormat", () => {
     expect(detectCsvFormat("title,date,medium\nDune,2026-01-01,cinema\n")).toBe("native");
     expect(detectCsvFormat("")).toBe("native");
   });
+  test("reads headers with stray spaces round them", () => {
+    expect(detectCsvFormat(" Name, Letterboxd URI , Watched Date\n")).toBe("letterboxd-diary");
+  });
   test("needs the watched date, since the diary Date is only when it was logged", () => {
     expect(detectCsvFormat("Date,Name,Year,Letterboxd URI,Rating\n")).toBe("native");
   });
@@ -36,6 +39,13 @@ describe("parseCsvImport on a Letterboxd diary", () => {
     expect(second?.row).toMatchObject({ title: "Anora", date: "2026-03-04", medium: "cinema" });
     expect(second?.row?.letterboxdRating).toBeUndefined();
     expect(second?.row?.notes).toBeUndefined();
+  });
+
+  test("copes with a diary that has no Tags column, and with blank tags", () => {
+    const noTags = "Name,Letterboxd URI,Watched Date\nHeat,u,1995-12-15\n";
+    expect(parseCsvImport(noTags, { medium: "tv" })[0]?.row?.notes).toBeUndefined();
+    const blank = "Name,Letterboxd URI,Watched Date,Tags\nHeat,u,1995-12-15, \n";
+    expect(parseCsvImport(blank, { medium: "tv" })[0]?.row?.notes).toBeUndefined();
   });
 
   test("reports a missing medium per row, as any other file does", () => {
