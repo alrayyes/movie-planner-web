@@ -1,4 +1,4 @@
-import { deleteViewing } from "./client";
+import { type DeleteOptions, deleteViewing } from "./client";
 import type { CaldavConfig, LoggedViewing } from "./types";
 import { clearViewingsCache } from "./viewings-cache";
 import { fetchFreshViewings } from "./viewings-source";
@@ -8,13 +8,15 @@ import { fetchFreshViewings } from "./viewings-source";
 // One failed delete doesn't stop the rest; the caller gets the counts.
 export interface PurgeCalendarDeps {
   listFresh: (config: CaldavConfig) => Promise<LoggedViewing[]>;
-  remove: (config: CaldavConfig, uid: string) => Promise<void>;
+  remove: (config: CaldavConfig, uid: string, options?: DeleteOptions) => Promise<void>;
   clearCache: () => Promise<void>;
 }
 
 export interface PurgeCalendarResult {
   deleted: number;
   failed: number;
+  // Why the first failure happened, so the visitor can act on it.
+  firstError?: string;
 }
 
 const DEFAULT_DEPS: PurgeCalendarDeps = {
@@ -23,9 +25,13 @@ const DEFAULT_DEPS: PurgeCalendarDeps = {
   clearCache: () => clearViewingsCache(),
 };
 
-// A few at a time: one by one is slow for hundreds of events, all at once would
-// open hundreds of connections to a visitor's own small server.
-const CONCURRENCY = 4;
+// Two at a time: one by one is slow for hundreds of events, and a visitor's own
+// small server (#840: a Baikal that took over 10 seconds per request) queues
+// more than that behind each other until they all time out.
+const CONCURRENCY = 2;
+// Longer than the 10 seconds a normal request gets, since a purge is the one
+// place a slow server is worth waiting on.
+const DELETE_TIMEOUT_MS = 30_000;
 
 export async function purgeCalendar(
   config: CaldavConfig,
@@ -38,15 +44,17 @@ export async function purgeCalendar(
   let done = 0;
   let deleted = 0;
   let failed = 0;
+  let firstError: string | undefined;
 
   async function worker() {
     while (next < total) {
-      const { uid } = viewings[next++] as LoggedViewing;
+      const { uid, title } = viewings[next++] as LoggedViewing;
       try {
-        await deps.remove(config, uid);
+        await deps.remove(config, uid, { title, timeoutMs: DELETE_TIMEOUT_MS });
         deleted++;
-      } catch {
+      } catch (error) {
         failed++;
+        firstError ??= error instanceof Error ? error.message : String(error);
       }
       onProgress(++done, total);
     }
@@ -54,5 +62,5 @@ export async function purgeCalendar(
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
 
   await deps.clearCache();
-  return { deleted, failed };
+  return { deleted, failed, firstError };
 }

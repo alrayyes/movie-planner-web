@@ -116,7 +116,7 @@ export class PurgeCalendarButton extends HTMLElement {
       progress.removeAttribute("value");
       announce("Deleting…");
       try {
-        const { deleted, failed } = await purgeCalendar(config, (done, total) => {
+        const { deleted, failed, firstError } = await purgeCalendar(config, (done, total) => {
           progress.max = total;
           progress.value = done;
           status.textContent = `Deleting ${done} of ${total}…`;
@@ -125,7 +125,7 @@ export class PurgeCalendarButton extends HTMLElement {
         announce(
           failed === 0
             ? `Deleted ${deleted} ${noun(deleted)}.`
-            : `Deleted ${deleted} ${noun(deleted)}. ${failed} could not be deleted; try again.`,
+            : `Deleted ${deleted} ${noun(deleted)}. ${failed} could not be deleted (${firstError}); try again.`,
         );
       } catch (error) {
         announce(error instanceof Error ? error.message : "Failed to purge the calendar.");
