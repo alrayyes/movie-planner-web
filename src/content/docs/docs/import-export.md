@@ -38,8 +38,8 @@ off for 1, 2, then 4 seconds.
 Export your data from Letterboxd (Settings, then Import & Export) and import
 its `diary.csv` here. The page spots it from its columns and asks for a medium,
 because a diary doesn't say where you watched. Each entry becomes a viewing on
-the date you watched it, with its year, your rating, your tags (as a note) and
-the Letterboxd link kept. There's no time of day in a diary, so viewings start
+the date you watched it. The year, the rating, the tags (as a note) and the
+Letterboxd link come along too. There's no time of day in a diary, so viewings start
 at midnight. Only the diary file works; `ratings.csv` has no watched date.
 
 ## Importing through the command-line tool instead
