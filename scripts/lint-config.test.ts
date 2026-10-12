@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 // #729: the lint config as linting.md and browser-compat.md describe it.
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -31,9 +31,12 @@ describe("biome.json", () => {
     expect(biome.linter.rules.nursery?.useBaseline).toBe("warn");
   });
 
-  test("its $schema matches the installed Biome version", () => {
-    const version = pkg.devDependencies["@biomejs/biome"];
-    expect(biome.$schema).toBe(`https://biomejs.dev/schemas/${version}/schema.json`);
+  // #837: a URL pinned to a version had to be edited by hand on every Biome
+  // bump, which failed Dependabot's pull request. The package ships its own
+  // schema, so pointing at that can't drift from what's installed.
+  test("its $schema is the schema file inside the installed Biome package", () => {
+    expect(biome.$schema).toBe("./node_modules/@biomejs/biome/configuration_schema.json");
+    expect(existsSync(new URL(`../${biome.$schema}`, import.meta.url))).toBe(true);
   });
 });
 
