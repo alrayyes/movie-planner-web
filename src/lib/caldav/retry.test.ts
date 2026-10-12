@@ -76,6 +76,13 @@ describe("retryWhenBusy without an injected sleep", () => {
 
 describe("parseRetryAfter", () => {
   test("reads multi-digit seconds", () => expect(parseRetryAfter("30")).toBe(30_000));
+  test("reads an HTTP date that begins with digits as a date, not seconds", () => {
+    const now = Date.parse("2026-10-12T10:00:00Z");
+    expect(parseRetryAfter("12 Oct 2026 10:00:07 GMT", now)).toBe(7000);
+  });
+  test("doesn't read seconds out of the end of other text", () => {
+    expect(parseRetryAfter("x3")).toBeUndefined();
+  });
   test("ignores surrounding spaces", () => expect(parseRetryAfter(" 3 ")).toBe(3000));
   test("measures an HTTP date against the clock when none is given", () => {
     const wait = parseRetryAfter(new Date(Date.now() + 5000).toUTCString());
