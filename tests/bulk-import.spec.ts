@@ -53,6 +53,53 @@ test.describe("CSV/JSON import", () => {
   });
 });
 
+test.describe("the import page before choosing a file", () => {
+  // #843
+  test("names the calendar it will write to, without the password", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    const form = page.locator("movie-import-form");
+    await expect(form).toContainText(CREDENTIALS["caldav-url"]);
+    await expect(form).toContainText("as me");
+    await expect(form).not.toContainText(CREDENTIALS["caldav-password"]);
+    await expect(form.getByRole("link", { name: "Download a sample CSV" })).toHaveAttribute(
+      "download",
+      "movie-planner-sample.csv",
+    );
+  });
+
+  test("turns away a file that isn't CSV or JSON, before reading it", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.locator("#import-file").setInputFiles({
+      name: "movies.ics",
+      mimeType: "text/calendar",
+      buffer: Buffer.from("BEGIN:VCALENDAR"),
+    });
+    await expect(page.getByRole("status")).toHaveText("movies.ics isn't a .csv or .json file.");
+    expect(server.creates).toHaveLength(0);
+  });
+
+  test("accepts a file dropped on the dropzone", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    const dataTransfer = await page.evaluateHandle((csv) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([csv], "movies.csv", { type: "text/csv" }));
+      return transfer;
+    }, CSV_TWO_MOVIES);
+    await page.locator("#import-file").locator("..").dispatchEvent("drop", { dataTransfer });
+    await expect(page.getByRole("row", { name: /Paddington/ }).first()).toBeVisible();
+  });
+
+  test("passes the axe-core scan with the dropzone", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
 test.describe("duplicate detection", () => {
   test("flags a row matching the existing calendar and requires confirmation", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [

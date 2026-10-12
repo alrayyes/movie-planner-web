@@ -16,7 +16,9 @@ vice versa.
 
 ## Importing
 
-The Import page accepts a CSV or JSON file of viewings. Before writing
+The Import page accepts a CSV or JSON file of viewings, up to 25 MB, chosen
+or dropped onto the page. It names the calendar it will write to, and links a
+sample CSV to start from. Before writing
 anything, it checks each row against both your existing calendar and the
 other rows already in the file, and flags likely duplicates (same title,
 close enough date) rather than importing them silently. A flagged row

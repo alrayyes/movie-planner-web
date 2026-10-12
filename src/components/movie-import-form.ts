@@ -1,6 +1,7 @@
 import type { LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
+import { SAMPLE_CSV, validateImportFile } from "../lib/movie-log/import-file";
 import { parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
 import {
   applyImportUpdate,
@@ -44,12 +45,35 @@ export class MovieImportForm extends HTMLElement {
 
   async connectedCallback() {
     this.credentials = await getCredentialsStore().get();
-    if (!this.credentials) {
-      throw new Error("<movie-import-form> requires stored credentials");
-    }
-
     this.className = "flex flex-col gap-4";
     this.innerHTML = "";
+    // #843: say which calendar rows will be written to, or that there isn't
+    // one yet. Never the password.
+    if (!this.credentials) {
+      const warning = document.createElement("p");
+      warning.setAttribute("role", "alert");
+      warning.className =
+        "rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200";
+      warning.append(
+        "No calendar is connected, so there's nowhere to import to. ",
+        Object.assign(document.createElement("a"), {
+          href: "/",
+          className: "font-medium underline",
+          textContent: "Connect your CalDAV calendar",
+        }),
+        " first.",
+      );
+      this.append(warning);
+      return;
+    }
+    const target = document.createElement("p");
+    target.className =
+      "rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
+    target.append("Importing into ");
+    const url = document.createElement("strong");
+    url.className = "break-all font-medium";
+    url.textContent = this.credentials.caldavUrl;
+    target.append(url, ` as ${this.credentials.caldavUsername}.`);
     this.statusEl = document.createElement("p");
     this.statusEl.className = STATUS_TEXT;
     this.statusEl.setAttribute("role", "status");
@@ -73,15 +97,53 @@ export class MovieImportForm extends HTMLElement {
     fileInput.id = "import-file";
     fileInput.accept = ".csv,.json,text/csv,application/json";
     fileInput.addEventListener("change", () => void this.handleFileSelected(fileInput));
-    fieldWrapper.append(label, fileInput);
+    // #843: the native input stays the keyboard and screen-reader path; the
+    // dashed box around it only adds drag and drop for a pointer.
+    const dropzone = document.createElement("div");
+    dropzone.className =
+      "flex flex-col gap-2 rounded-xl border-2 border-dashed border-slate-300 p-6 transition-colors dark:border-slate-600";
+    const hint = document.createElement("p");
+    hint.className = STATUS_TEXT;
+    hint.textContent = "Drop a file here, or choose one. CSV or JSON, up to 25 MB.";
+    const sample = document.createElement("a");
+    sample.className = "text-sm font-medium text-indigo-600 underline dark:text-indigo-400";
+    sample.href = `data:text/csv;charset=utf-8,${encodeURIComponent(SAMPLE_CSV)}`;
+    sample.download = "movie-planner-sample.csv";
+    sample.textContent = "Download a sample CSV";
+    dropzone.append(label, fileInput, hint, sample);
+    const highlight = (on: boolean) => {
+      dropzone.classList.toggle("border-indigo-500", on);
+      dropzone.classList.toggle("bg-indigo-50", on);
+    };
+    dropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      highlight(true);
+    });
+    dropzone.addEventListener("dragleave", () => highlight(false));
+    dropzone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      highlight(false);
+      const files = event.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+      fileInput.files = files;
+      fileInput.dispatchEvent(new Event("change"));
+    });
+    fieldWrapper.append(dropzone);
 
-    this.append(fieldWrapper, this.statusEl, this.reviewContainer);
+    this.append(target, fieldWrapper, this.statusEl, this.reviewContainer);
   }
 
   private async handleFileSelected(fileInput: HTMLInputElement) {
     if (!this.credentials || !this.statusEl) return;
     const file = fileInput.files?.[0];
     if (!file) return;
+    const check = validateImportFile(file);
+    if (!check.ok) {
+      this.statusEl.textContent = check.error;
+      this.reviewContainer?.replaceChildren();
+      fileInput.value = "";
+      return;
+    }
 
     this.statusEl.textContent = "Reading and checking for duplicates…";
     const text = await file.text();
