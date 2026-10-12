@@ -23,6 +23,8 @@ export class CaldavRequestFailedError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    // How long the server asked us to wait (Retry-After), when it said.
+    readonly retryAfterMs?: number,
   ) {
     super(message);
     this.name = "CaldavRequestFailedError";

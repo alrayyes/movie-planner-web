@@ -12,6 +12,7 @@ import {
   serializePicklistsToVJournal,
   serializeViewingToVEvent,
 } from "./ical";
+import { parseRetryAfter } from "./retry";
 import type { CaldavConfig, DateRange, LoggedViewing, NewViewing, Picklists } from "./types";
 import { validateCaldavConfig } from "./validate-config";
 import { cacheViewing, uncacheViewing } from "./viewings-cache";
@@ -37,6 +38,7 @@ async function assertOk(response: Response, action: string): Promise<void> {
     throw new CaldavRequestFailedError(
       `${action} failed: the CalDAV server responded ${response.status} ${response.statusText}`,
       response.status,
+      parseRetryAfter(response.headers.get("Retry-After")),
     );
   }
 }
