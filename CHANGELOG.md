@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.26.0...movie-planner-web-v1.27.0) (2026-10-12)
+
+
+### Features
+
+* **import:** read a Letterboxd diary.csv ([#850](https://github.com/alrayyes/movie-planner-web/issues/850)) ([58f21ba](https://github.com/alrayyes/movie-planner-web/commit/58f21bac43240a3e10d375f5adad07c8bc374720))
+
 ## [1.26.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.25.0...movie-planner-web-v1.26.0) (2026-10-12)
 
 
