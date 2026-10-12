@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.27.0...movie-planner-web-v1.28.0) (2026-10-12)
+
+
+### Features
+
+* **import:** read an IMDb ratings.csv ([#853](https://github.com/alrayyes/movie-planner-web/issues/853)) ([60276dc](https://github.com/alrayyes/movie-planner-web/commit/60276dcc5c724f4b6a6d2e94d0683d0a4e9b8f89))
+
 ## [1.27.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.26.0...movie-planner-web-v1.27.0) (2026-10-12)
 
 
