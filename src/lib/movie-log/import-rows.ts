@@ -260,7 +260,7 @@ function csvHeader(text: string): string[] {
 
 // #844: IMDb's ratings.csv. It records the day a title was rated, not watched,
 // which is the closest date it has.
-const IMDB_RATINGS_HEADERS = ["Const", "Title", "Date Rated"];
+const IMDB_RATINGS_HEADERS = ["Const", "Title", "Your Rating", "Date Rated"];
 
 export function detectCsvFormat(text: string): CsvFormat {
   const header = csvHeader(text);

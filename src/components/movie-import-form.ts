@@ -190,7 +190,11 @@ export class MovieImportForm extends HTMLElement {
     const format = this.fileIsJson ? "native" : detectCsvFormat(this.fileText);
     if (format !== "native" && !medium) {
       const source = format === "imdb-ratings" ? "an IMDb ratings export" : "a Letterboxd diary";
-      this.statusEl.textContent = `This is ${source}, which doesn't record where you watched. Enter a medium in the field above (for example cinema or netflix).`;
+      const dates =
+        format === "imdb-ratings"
+          ? " Each viewing's date will be the day you rated the title."
+          : "";
+      this.statusEl.textContent = `This is ${source}, which doesn't record where you watched. Enter a medium in the field above (for example cinema or netflix).${dates}`;
       this.reviewContainer?.replaceChildren();
       return;
     }

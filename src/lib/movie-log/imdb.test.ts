@@ -15,6 +15,9 @@ describe("detectCsvFormat on an IMDb ratings export", () => {
   test("needs the rating date, so a list export without it stays native", () => {
     expect(detectCsvFormat("Const,Title,URL,Year\n")).toBe("native");
   });
+  test("needs the visitor's own rating, so other IMDb lists aren't read as ratings", () => {
+    expect(detectCsvFormat("Const,Title,Date Rated,URL\n")).toBe("native");
+  });
   test("a Letterboxd diary is still a diary", () => {
     expect(detectCsvFormat("Name,Letterboxd URI,Watched Date\n")).toBe("letterboxd-diary");
   });

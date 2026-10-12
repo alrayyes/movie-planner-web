@@ -168,10 +168,12 @@ test.describe("an IMDb ratings export", () => {
       buffer: Buffer.from(IMDB_RATINGS),
     });
     await expect(page.getByRole("status")).toContainText("IMDb ratings export");
+    await expect(page.getByRole("status")).toContainText("the day you rated the title");
 
     await page.getByLabel("Medium for these viewings").fill("netflix");
     await page.getByLabel("Medium for these viewings").press("Tab");
     await expect(page.getByRole("row", { name: /Dune: Part Two/ }).first()).toBeVisible();
+    await expect(page.getByRole("row", { name: /2026-03-01/ })).toBeVisible();
     await page.getByRole("button", { name: "Import checked rows" }).click();
 
     await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 0, failed 0.");
