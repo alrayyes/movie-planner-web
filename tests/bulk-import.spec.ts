@@ -153,6 +153,32 @@ test.describe("a Letterboxd diary", () => {
   });
 });
 
+const IMDB_RATINGS = `Const,Your Rating,Date Rated,Title,Original Title,URL,Title Type,IMDb Rating,Runtime (mins),Year,Genres,Num Votes,Release Date,Directors
+tt15239678,9,2026-03-01,Dune: Part Two,Dune: Part Two,https://www.imdb.com/title/tt15239678/,movie,8.5,166,2024,"Action, Adventure, Drama",600000,2024-02-27,Denis Villeneuve
+`;
+
+test.describe("an IMDb ratings export", () => {
+  // #844
+  test("asks for a medium, then imports each rating on the day it was rated", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.locator("#import-file").setInputFiles({
+      name: "ratings.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(IMDB_RATINGS),
+    });
+    await expect(page.getByRole("status")).toContainText("IMDb ratings export");
+
+    await page.getByLabel("Medium for these viewings").fill("netflix");
+    await page.getByLabel("Medium for these viewings").press("Tab");
+    await expect(page.getByRole("row", { name: /Dune: Part Two/ }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 0, failed 0.");
+    expect(server.creates[0]).toMatchObject({ title: "Dune: Part Two", medium: "netflix" });
+  });
+});
+
 test.describe("a busy CalDAV server", () => {
   // #842: a 429 means "slow down", not "this row is bad".
   test("waits out a 429 and still imports the row", async ({ page }) => {

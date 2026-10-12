@@ -242,7 +242,7 @@ function parseCsvLines(text: string): string[][] {
   return rows;
 }
 
-export type CsvFormat = "native" | "letterboxd-diary";
+export type CsvFormat = "native" | "letterboxd-diary" | "imdb-ratings";
 
 export interface CsvImportOptions {
   // #844: foreign exports carry no medium, so the visitor chooses one for the file.
@@ -258,11 +258,33 @@ function csvHeader(text: string): string[] {
   return (parseCsvLines(text)[0] ?? []).map((key) => key.trim());
 }
 
+// #844: IMDb's ratings.csv. It records the day a title was rated, not watched,
+// which is the closest date it has.
+const IMDB_RATINGS_HEADERS = ["Const", "Title", "Date Rated"];
+
 export function detectCsvFormat(text: string): CsvFormat {
   const header = csvHeader(text);
-  return LETTERBOXD_DIARY_HEADERS.every((name) => header.includes(name))
-    ? "letterboxd-diary"
-    : "native";
+  const has = (names: string[]) => names.every((name) => header.includes(name));
+  if (has(LETTERBOXD_DIARY_HEADERS)) return "letterboxd-diary";
+  return has(IMDB_RATINGS_HEADERS) ? "imdb-ratings" : "native";
+}
+
+function imdbRecord(
+  raw: Record<string, string | undefined>,
+  medium: string | undefined,
+): Record<string, string | undefined> {
+  const rating = raw["Your Rating"]?.trim();
+  return {
+    title: raw.Title,
+    date: raw["Date Rated"],
+    medium,
+    release_year: raw.Year,
+    genre: raw.Genres,
+    director: raw.Directors,
+    imdb_url: raw.URL,
+    imdb_rating: raw["IMDb Rating"],
+    notes: rating ? `Your IMDb rating: ${rating}/10` : undefined,
+  };
 }
 
 function letterboxdRecord(
@@ -285,7 +307,7 @@ export function parseCsvImport(text: string, options: CsvImportOptions = {}): Pa
   const lines = parseCsvLines(text);
   // With no lines there are no data rows to map, so the header is never read.
   const header = lines[0] as string[];
-  const letterboxd = detectCsvFormat(text) === "letterboxd-diary";
+  const format = detectCsvFormat(text);
 
   return lines.slice(1).map((line, i) => {
     const raw: Record<string, string | undefined> = {};
@@ -294,6 +316,12 @@ export function parseCsvImport(text: string, options: CsvImportOptions = {}): Pa
     });
     // Row 1 is the header, so the first data row is 2 — matches the CLI's
     // own row numbering in its error/skip messages.
-    return rowFromRecord(i + 2, letterboxd ? letterboxdRecord(raw, options.medium) : raw);
+    const record =
+      format === "letterboxd-diary"
+        ? letterboxdRecord(raw, options.medium)
+        : format === "imdb-ratings"
+          ? imdbRecord(raw, options.medium)
+          : raw;
+    return rowFromRecord(i + 2, record);
   });
 }

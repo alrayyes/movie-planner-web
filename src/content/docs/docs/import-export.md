@@ -43,6 +43,14 @@ note) and the Letterboxd link come along too. There's no time of day in a
 diary, so viewings start at midnight. Only the diary file works; `ratings.csv`
 has no watched date.
 
+### Moving over from IMDb
+
+On IMDb, open your ratings, choose Export, and import the `ratings.csv` here.
+It works like a Letterboxd diary: the page asks for a medium. IMDb records the
+day you rated a title, not the day you watched it, so that is the date each
+viewing gets. The year, genres, director, IMDb's own score and your rating (as
+a note) come along. Change a date afterwards if the rating day was wrong.
+
 ## Importing through the command-line tool instead
 
 The [movie-planner command-line tool](https://github.com/alrayyes/movie-planner)
