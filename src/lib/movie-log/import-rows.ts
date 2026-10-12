@@ -110,8 +110,12 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
   const title = str(raw.title)?.trim();
   if (!title) return { rowNumber, error: "title is required" };
 
-  const medium = str(raw.medium)?.trim();
-  if (!medium) return { rowNumber, error: "medium is required" };
+  // #831: a viewing with no medium on the calendar exports a blank one, so a
+  // row carrying this app's own uid is read back as it was written. Any other
+  // row is a hand-written one and needs a medium, as the CLI's format does.
+  const uid = str(raw.uid);
+  const medium = str(raw.medium)?.trim() ?? "";
+  if (!medium && !uid) return { rowNumber, error: "medium is required" };
 
   const start = str(raw.start);
   if (start && Number.isNaN(new Date(start).getTime())) {
@@ -159,7 +163,7 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
       endTime,
       venue: str(raw.venue),
       imdbUrl: imdbUrlValue,
-      uid: str(raw.uid),
+      uid,
       start,
       end,
       director: str(raw.director),
