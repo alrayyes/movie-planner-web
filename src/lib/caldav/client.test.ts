@@ -288,6 +288,18 @@ describe("deleteViewing", () => {
     expect(requests).toEqual(["GET", "DELETE"]);
   });
 
+  // #842: a bulk import waits as long as the server asks before retrying.
+  test("carries the server's Retry-After on a 429", async () => {
+    globalThis.fetch = mock(async (_url: string, init?: RequestInit) =>
+      init?.method === "GET"
+        ? new Response("", { status: 404 })
+        : new Response("", { status: 429, headers: { "Retry-After": "7" } }),
+    ) as unknown as typeof fetch;
+    const error = await deleteViewing(CONFIG, "uid-1").catch((e) => e);
+    expect(error.status).toBe(429);
+    expect(error.retryAfterMs).toBe(7000);
+  });
+
   test("treats a 404 as already deleted rather than an error", async () => {
     globalThis.fetch = mock(
       async () => new Response("", { status: 404 }),

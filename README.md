@@ -66,6 +66,10 @@ by the other. The `/changelog` page's own data shape — parsed from
   Access-Control-Allow-Headers: Authorization, Content-Type, Depth
   ```
 
+  Optionally add `Access-Control-Expose-Headers: Retry-After`. When your server
+  answers a bulk import with 429 or 423, the browser can then read how long to
+  wait. Without it the import still backs off on its own schedule.
+
   Baikal (and sabre/dav generally) doesn't send these by default — add them
   at whatever sits in front of it (a reverse proxy like Caddy or nginx). A
   request without `Authorization` in the allowed headers, or without a

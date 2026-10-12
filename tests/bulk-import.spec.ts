@@ -100,6 +100,32 @@ test.describe("the import page before choosing a file", () => {
   });
 });
 
+test.describe("a busy CalDAV server", () => {
+  // #842: a 429 means "slow down", not "this row is bad".
+  test("waits out a 429 and still imports the row", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    let refused = 0;
+    await page.route(/\.ics$/, async (route) => {
+      if (route.request().method() === "PUT" && refused++ === 0) {
+        await route.fulfill({ status: 429, body: "" });
+        return;
+      }
+      await route.fallback();
+    });
+    await connect(page);
+    await page.locator("#import-file").setInputFiles({
+      name: "movies.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(CSV_TWO_MOVIES),
+    });
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Imported 2, skipped 0, failed 0.");
+    expect(server.creates).toHaveLength(2);
+    expect(refused).toBe(3);
+  });
+});
+
 test.describe("duplicate detection", () => {
   test("flags a row matching the existing calendar and requires confirmation", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [

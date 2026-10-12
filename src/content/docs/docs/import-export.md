@@ -25,6 +25,13 @@ close enough date) rather than importing them silently. A flagged row
 starts unchecked — you decide whether "Import anyway" is right for it —
 while every other row starts checked and ready to go.
 
+Rows are written one at a time, with a progress bar that reads "Importing 12
+of 148". If your calendar server answers that it's busy (a 423 or 429), the
+import waits and tries that row again, up to three more times, before it
+counts the row as failed. It waits as long as the server asks only if the
+server sends `Access-Control-Expose-Headers: Retry-After`; otherwise it backs
+off for 1, 2, then 4 seconds.
+
 ## Importing through the command-line tool instead
 
 The [movie-planner command-line tool](https://github.com/alrayyes/movie-planner)

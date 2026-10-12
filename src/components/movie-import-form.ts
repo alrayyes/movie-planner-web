@@ -1,14 +1,14 @@
 import type { LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
+
+import { executeImport, type ImportBatch } from "../lib/movie-log/execute-import";
 import { SAMPLE_CSV, validateImportFile } from "../lib/movie-log/import-file";
 import { parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
 import {
-  applyImportUpdate,
   fetchExistingForImportCheck,
   type ImportPlanEntry,
   type ImportUpdateEntry,
-  importRow,
   planImport,
   planUpdates,
 } from "../lib/movie-log/run-import";
@@ -314,24 +314,17 @@ export class MovieImportForm extends HTMLElement {
     updateCheckboxes: Map<string, HTMLInputElement>,
   ) {
     if (!this.credentials || !this.statusEl) return;
-    let imported = 0;
+    const credentials = this.credentials;
     let skipped = 0;
+
+    const creates = this.plan.filter((entry) => {
+      const checked = createCheckboxes.get(entry.rowNumber)?.checked;
+      if (!checked) skipped++;
+      return checked;
+    });
+
     let failed = 0;
-
-    for (const entry of this.plan) {
-      if (!createCheckboxes.get(entry.rowNumber)?.checked) {
-        skipped++;
-        continue;
-      }
-      try {
-        await importRow(this.credentials, entry.row);
-        imported++;
-      } catch {
-        failed++;
-      }
-    }
-
-    let updated = 0;
+    const updates: ImportBatch["updates"] = [];
     for (const entry of this.updates) {
       const current = this.existingByUid.get(entry.uid);
       if (!current) {
@@ -347,13 +340,23 @@ export class MovieImportForm extends HTMLElement {
         skipped++;
         continue;
       }
-      try {
-        await applyImportUpdate(this.credentials, current, entry, approvedFields);
-        updated++;
-      } catch {
-        failed++;
-      }
+      updates.push({ entry, current, approvedFields });
     }
+
+    const progress = document.createElement("progress");
+    progress.className = "w-full";
+    progress.setAttribute("aria-label", "Import progress");
+    // The button that was just pressed leaves with the review, so focus moves to the progress bar.
+    progress.tabIndex = -1;
+    this.reviewContainer?.replaceChildren(progress);
+    progress.focus();
+    const outcome = await executeImport(credentials, { creates, updates }, (done, total) => {
+      progress.max = total;
+      progress.value = done;
+      if (this.statusEl) this.statusEl.textContent = `Importing ${done} of ${total}…`;
+    });
+    const { imported, updated } = outcome;
+    failed += outcome.failed;
 
     const parts = [`Imported ${imported}`];
     if (this.updates.length > 0) parts.push(`updated ${updated}`);
