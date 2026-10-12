@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { DeleteOptions } from "./client";
 import { purgeCalendar } from "./purge-calendar";
 import type { CaldavConfig, LoggedViewing } from "./types";
 
@@ -15,15 +16,18 @@ const viewing = (uid: string): LoggedViewing => ({
 function deps(uids: string[], failing: string[] = []) {
   const removed: string[] = [];
   const progress: [number, number][] = [];
+  const calls: { uid: string; options?: DeleteOptions }[] = [];
   let cleared = 0;
   return {
+    calls,
     removed,
     progress,
     cleared: () => cleared,
     deps: {
       listFresh: async () => uids.map(viewing),
-      remove: async (_config: CaldavConfig, uid: string) => {
-        if (failing.includes(uid)) throw new Error("boom");
+      remove: async (_config: CaldavConfig, uid: string, options?: DeleteOptions) => {
+        calls.push({ uid, options });
+        if (failing.includes(uid)) throw new Error(`boom ${uid}`);
         removed.push(uid);
       },
       clearCache: async () => {
@@ -38,14 +42,29 @@ describe("purgeCalendar", () => {
     const d = deps(["a", "b", "c"]);
     const result = await purgeCalendar(CONFIG, () => {}, d.deps);
     expect(d.removed.sort()).toEqual(["a", "b", "c"]);
-    expect(result).toEqual({ deleted: 3, failed: 0 });
+    expect(result).toStrictEqual({ deleted: 3, failed: 0, firstError: undefined });
   });
 
   test("keeps going past a failure and counts it", async () => {
     const d = deps(["a", "b", "c"], ["b"]);
     const result = await purgeCalendar(CONFIG, () => {}, d.deps);
     expect(d.removed.sort()).toEqual(["a", "c"]);
-    expect(result).toEqual({ deleted: 2, failed: 1 });
+    expect(result).toEqual({ deleted: 2, failed: 1, firstError: "boom b" });
+  });
+
+  test("reports the first failure, not the last", async () => {
+    const d = deps(["a", "b", "c"], ["a", "c"]);
+    const result = await purgeCalendar(CONFIG, () => {}, d.deps);
+    expect(result).toEqual({ deleted: 1, failed: 2, firstError: "boom a" });
+  });
+
+  test("reports a failure that isn't an Error as text", async () => {
+    const d = deps(["a"]);
+    const result = await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      remove: () => Promise.reject("nope"),
+    });
+    expect(result).toEqual({ deleted: 0, failed: 1, firstError: "nope" });
   });
 
   test("reports progress as done of total after each delete", async () => {
@@ -64,7 +83,13 @@ describe("purgeCalendar", () => {
     expect(d.cleared()).toBe(1);
   });
 
-  test("never has more than four deletes in flight, and uses all four when it can", async () => {
+  test("hands each delete the title it listed and a timeout for a slow server", async () => {
+    const d = deps(["a"]);
+    await purgeCalendar(CONFIG, () => {}, d.deps);
+    expect(d.calls).toEqual([{ uid: "a", options: { title: "a", timeoutMs: 30_000 } }]);
+  });
+
+  test("never has more than two deletes in flight, and uses both when it can", async () => {
     let inFlight = 0;
     let peak = 0;
     const d = deps(Array.from({ length: 10 }, (_, i) => `u${i}`));
@@ -76,13 +101,13 @@ describe("purgeCalendar", () => {
         inFlight--;
       },
     });
-    expect(peak).toBe(4);
+    expect(peak).toBe(2);
   });
 
   test("starts no more workers than there are viewings", async () => {
     let inFlight = 0;
     let peak = 0;
-    const d = deps(["a", "b"]);
+    const d = deps(["a"]);
     await purgeCalendar(CONFIG, () => {}, {
       ...d.deps,
       remove: async () => {
@@ -91,7 +116,7 @@ describe("purgeCalendar", () => {
         inFlight--;
       },
     });
-    expect(peak).toBe(2);
+    expect(peak).toBe(1);
   });
 
   test("an empty calendar deletes nothing", async () => {
