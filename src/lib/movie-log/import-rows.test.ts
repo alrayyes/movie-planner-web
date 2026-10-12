@@ -466,6 +466,25 @@ describe("parseJsonImport, its own errors", () => {
   });
 });
 
+// #831: a viewing with no X-MEDIUM on the calendar exports with a blank medium,
+// and the whole export used to be refused on re-import.
+describe("a row from this app's own export with no medium", () => {
+  const parse = (fields: Record<string, unknown>) =>
+    parseJsonImport(JSON.stringify([{ title: "Dune", date: "2024-03-15", ...fields }]))[0];
+
+  test("is accepted when it carries a uid, and the medium stays blank", () => {
+    for (const medium of ["", undefined]) {
+      const parsed = parse({ uid: "abc", medium });
+      expect(parsed?.error).toBeUndefined();
+      expect(parsed?.row?.medium).toBe("");
+    }
+  });
+
+  test("is still refused without a uid", () => {
+    expect(parse({ medium: "" })?.error).toBe("medium is required");
+  });
+});
+
 describe("a row's fields, at their edges", () => {
   const row = (fields: Record<string, unknown>) =>
     parseJsonImport(

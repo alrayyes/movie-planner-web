@@ -9,10 +9,12 @@
     "row": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["title", "medium"],
+      "required": ["title"],
+      "if": { "not": { "required": ["uid"] } },
+      "then": { "required": ["medium"], "properties": { "medium": { "minLength": 1 } } },
       "properties": {
         "title": { "type": "string", "minLength": 1 },
-        "medium": { "type": "string", "minLength": 1 },
+        "medium": { "type": "string", "description": "Required, and not blank, unless the row carries a 'uid' (this app's own export): a viewing with no medium on the calendar exports a blank one." },
         "date": {
           "type": "string",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
