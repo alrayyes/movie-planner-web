@@ -62,5 +62,5 @@ export async function purgeCalendar(
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
 
   await deps.clearCache();
-  return firstError === undefined ? { deleted, failed } : { deleted, failed, firstError };
+  return { deleted, failed, firstError };
 }

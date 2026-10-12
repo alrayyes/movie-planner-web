@@ -42,7 +42,7 @@ describe("purgeCalendar", () => {
     const d = deps(["a", "b", "c"]);
     const result = await purgeCalendar(CONFIG, () => {}, d.deps);
     expect(d.removed.sort()).toEqual(["a", "b", "c"]);
-    expect(result).toEqual({ deleted: 3, failed: 0 });
+    expect(result).toStrictEqual({ deleted: 3, failed: 0, firstError: undefined });
   });
 
   test("keeps going past a failure and counts it", async () => {
@@ -50,6 +50,21 @@ describe("purgeCalendar", () => {
     const result = await purgeCalendar(CONFIG, () => {}, d.deps);
     expect(d.removed.sort()).toEqual(["a", "c"]);
     expect(result).toEqual({ deleted: 2, failed: 1, firstError: "boom b" });
+  });
+
+  test("reports the first failure, not the last", async () => {
+    const d = deps(["a", "b", "c"], ["a", "c"]);
+    const result = await purgeCalendar(CONFIG, () => {}, d.deps);
+    expect(result).toEqual({ deleted: 1, failed: 2, firstError: "boom a" });
+  });
+
+  test("reports a failure that isn't an Error as text", async () => {
+    const d = deps(["a"]);
+    const result = await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      remove: () => Promise.reject("nope"),
+    });
+    expect(result).toEqual({ deleted: 0, failed: 1, firstError: "nope" });
   });
 
   test("reports progress as done of total after each delete", async () => {
