@@ -10,7 +10,11 @@ import {
   updatePicklists,
   updateViewing,
 } from "./client";
-import { CaldavRequestFailedError, InvalidCaldavUrlError } from "./errors";
+import {
+  CaldavRequestFailedError,
+  CaldavRequestTimeoutError,
+  InvalidCaldavUrlError,
+} from "./errors";
 import { serializePicklistsToVJournal, serializeViewingToVEvent } from "./ical";
 import type { CaldavConfig, NewViewing } from "./types";
 
@@ -290,6 +294,33 @@ describe("deleteViewing", () => {
     ) as unknown as typeof fetch;
     await expect(deleteViewing(CONFIG, "already-gone")).resolves.toBeUndefined();
   });
+
+  // #840: a caller that already has the title (the purge, from its listing)
+  // skips the read, so each delete is one request to a slow server, not two.
+  test("sends only the DELETE when the caller supplies the title", async () => {
+    const requests: string[] = [];
+    globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
+      requests.push(init?.method ?? "GET");
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+
+    await deleteViewing(CONFIG, "uid-1", { title: "Dune" });
+    expect(requests).toEqual(["DELETE"]);
+  });
+
+  test("gives up on the DELETE after the timeout the caller asked for", async () => {
+    globalThis.fetch = mock(
+      (_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+    ) as unknown as typeof fetch;
+
+    const error = await deleteViewing(CONFIG, "uid-1", { title: "Dune", timeoutMs: 20 }).catch(
+      (e) => e,
+    );
+    expect(error).toBeInstanceOf(CaldavRequestTimeoutError);
+  });
 });
 
 describe("sidecar picklists", () => {
@@ -561,6 +592,12 @@ describe("activity log", () => {
     );
     await updateViewing(CONFIG, "uid-1", VIEWING);
     expect(appended).toHaveLength(0);
+  });
+
+  test("deleteViewing logs the title the caller supplied", async () => {
+    recordFetch(() => new Response("", { status: 204 }));
+    await deleteViewing(CONFIG, "uid-1", { title: "Anora" });
+    expect(appended[0]).toMatchObject({ action: "deleted", uid: "uid-1", title: "Anora" });
   });
 
   test("deleteViewing logs the title it read, and forgets the snapshot entry", async () => {

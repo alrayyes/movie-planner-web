@@ -201,24 +201,41 @@ export async function updateViewing(
   return updated;
 }
 
-export async function deleteViewing(config: CaldavConfig, uid: string): Promise<void> {
+export interface DeleteOptions {
+  // #840: a caller that already has the title (the purge, from its listing)
+  // passes it, which skips the read below and makes the delete one request.
+  title?: string;
+  timeoutMs?: number;
+}
+
+export async function deleteViewing(
+  config: CaldavConfig,
+  uid: string,
+  options: DeleteOptions = {},
+): Promise<void> {
   validateCaldavConfig(config);
 
   // Best-effort, same reasoning as updateViewing's own read above — a
   // delete shouldn't fail just because grabbing the title for the
   // activity log couldn't read the resource first.
-  let title: string | undefined;
-  try {
-    const raw = await fetchRawViewing(config, uid);
-    if (raw !== null) title = parseVEventToViewing(raw).title;
-  } catch {
-    // Best-effort.
+  let title = options.title;
+  if (title === undefined) {
+    try {
+      const raw = await fetchRawViewing(config, uid);
+      if (raw !== null) title = parseVEventToViewing(raw).title;
+    } catch {
+      // Best-effort.
+    }
   }
 
-  const response = await boundedFetch(resourceUrl(config, uid), {
-    method: "DELETE",
-    headers: { Authorization: authHeader(config) },
-  });
+  const response = await boundedFetch(
+    resourceUrl(config, uid),
+    {
+      method: "DELETE",
+      headers: { Authorization: authHeader(config) },
+    },
+    { timeoutMs: options.timeoutMs },
+  );
   if (response.status === 404) {
     // Already gone on the server; make sure the cached copy agrees.
     await uncacheViewing(config, uid);
