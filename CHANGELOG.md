@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.24.0...movie-planner-web-v1.24.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **settings:** make the purge one request per viewing and say why one failed ([e377a7a](https://github.com/alrayyes/movie-planner-web/commit/e377a7a9ce4eb1ed1cbd38c0f16c1598a780b990))
+* **settings:** make the purge one request per viewing and say why one failed ([f1fdd45](https://github.com/alrayyes/movie-planner-web/commit/f1fdd4557045ae05b4c8f9ebe09e15ed0a0d4d23)), closes [#840](https://github.com/alrayyes/movie-planner-web/issues/840)
+
 ## [1.24.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.23.2...movie-planner-web-v1.24.0) (2026-10-12)
 
 
