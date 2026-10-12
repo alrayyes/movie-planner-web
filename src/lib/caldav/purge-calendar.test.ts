@@ -64,6 +64,36 @@ describe("purgeCalendar", () => {
     expect(d.cleared()).toBe(1);
   });
 
+  test("never has more than four deletes in flight, and uses all four when it can", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const d = deps(Array.from({ length: 10 }, (_, i) => `u${i}`));
+    await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      remove: async () => {
+        peak = Math.max(peak, ++inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight--;
+      },
+    });
+    expect(peak).toBe(4);
+  });
+
+  test("starts no more workers than there are viewings", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const d = deps(["a", "b"]);
+    await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      remove: async () => {
+        peak = Math.max(peak, ++inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight--;
+      },
+    });
+    expect(peak).toBe(2);
+  });
+
   test("an empty calendar deletes nothing", async () => {
     const d = deps([]);
     expect(await purgeCalendar(CONFIG, () => {}, d.deps)).toEqual({ deleted: 0, failed: 0 });
