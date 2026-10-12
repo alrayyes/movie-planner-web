@@ -49,7 +49,7 @@ On IMDb, open your ratings, choose Export, and import the `ratings.csv` here.
 It works like a Letterboxd diary: the page asks for a medium. IMDb records the
 day you rated a title, not the day you watched it, so that is the date each
 viewing gets. The year, genres, director, IMDb's own score and your rating (as
-a note) come along. Change a date afterwards if the rating day was wrong.
+a note) come along. Change a date afterward if the rating day was wrong.
 
 ## Importing through the command-line tool instead
 
