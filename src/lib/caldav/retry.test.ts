@@ -66,7 +66,22 @@ describe("retryWhenBusy", () => {
   });
 });
 
+describe("retryWhenBusy without an injected sleep", () => {
+  test("really waits the requested time", async () => {
+    const started = Date.now();
+    await retryWhenBusy(flaky([busy(429, 30)]).fn);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(25);
+  });
+});
+
 describe("parseRetryAfter", () => {
+  test("reads multi-digit seconds", () => expect(parseRetryAfter("30")).toBe(30_000));
+  test("ignores surrounding spaces", () => expect(parseRetryAfter(" 3 ")).toBe(3000));
+  test("measures an HTTP date against the clock when none is given", () => {
+    const wait = parseRetryAfter(new Date(Date.now() + 5000).toUTCString());
+    expect(wait).toBeGreaterThan(3000);
+    expect(wait).toBeLessThanOrEqual(5000);
+  });
   test("reads seconds", () => expect(parseRetryAfter("3")).toBe(3000));
   test("reads an HTTP date relative to now", () => {
     const now = Date.parse("2026-10-12T10:00:00Z");

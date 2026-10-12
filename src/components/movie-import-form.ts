@@ -283,7 +283,10 @@ export class MovieImportForm extends HTMLElement {
     const progress = document.createElement("progress");
     progress.className = "w-full";
     progress.setAttribute("aria-label", "Import progress");
+    // The button that was just pressed leaves with the review, so focus moves to the progress bar.
+    progress.tabIndex = -1;
     this.reviewContainer?.replaceChildren(progress);
+    progress.focus();
     const outcome = await executeImport(credentials, { creates, updates }, (done, total) => {
       progress.max = total;
       progress.value = done;

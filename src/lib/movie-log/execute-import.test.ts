@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { CaldavRequestFailedError } from "../caldav/errors";
 import type { Credentials } from "../credentials/types";
 import { type ExecuteImportDeps, executeImport } from "./execute-import";
@@ -117,5 +117,48 @@ describe("executeImport", () => {
     );
     expect(seen).toEqual([]);
     expect(result).toEqual({ imported: 0, updated: 0, failed: 0 });
+  });
+});
+
+describe("executeImport with the real writers", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+  const credentials = {
+    caldavUrl: "https://c.example/cal/",
+    caldavUsername: "me",
+    caldavPassword: "pw",
+  } as Credentials;
+
+  test("creates and updates through CalDAV PUTs", async () => {
+    const puts: string[] = [];
+    globalThis.fetch = mock(async (url: string, init?: RequestInit) => {
+      if (init?.method === "PUT") puts.push(url);
+      return new Response("", { status: init?.method === "GET" ? 404 : 201 });
+    }) as unknown as typeof fetch;
+
+    await executeImport(
+      credentials,
+      {
+        creates: [create(1)],
+        updates: [
+          {
+            entry: { rowNumber: 2, uid: "u1", title: "Dune", changes: [] },
+            current: {
+              uid: "u1",
+              title: "Dune",
+              start: "2026-01-01T19:00:00.000Z",
+              end: "2026-01-01T21:00:00.000Z",
+              medium: "cinema",
+            },
+            approvedFields: new Set(),
+          },
+        ],
+      },
+      () => {},
+    );
+    expect(puts).toHaveLength(2);
+    expect(puts[1]).toContain("/cal/u1.ics");
   });
 });
