@@ -110,6 +110,49 @@ test.describe("the import page before choosing a file", () => {
   });
 });
 
+const LETTERBOXD_DIARY = `Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date
+2026-03-02,Dune: Part Two,2024,https://boxd.it/abc1,4.5,,"imax, epic",2026-03-01
+2026-03-05,Anora,2024,https://boxd.it/abc2,,Yes,,2026-03-04
+`;
+
+test.describe("a Letterboxd diary", () => {
+  // #844
+  test("asks for a medium, then imports each entry on the date it was watched", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.locator("#import-file").setInputFiles({
+      name: "diary.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(LETTERBOXD_DIARY),
+    });
+    await expect(page.getByRole("status")).toContainText("Letterboxd diary");
+    await expect(page.getByRole("row", { name: /Anora/ })).toHaveCount(0);
+
+    await page.getByLabel("Medium for these viewings").fill("cinema");
+    await page.getByLabel("Medium for these viewings").press("Tab");
+    await expect(page.getByRole("row", { name: /Anora/ }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Imported 2, skipped 0, failed 0.");
+    expect(server.creates.map((v) => v.title).sort()).toEqual(["Anora", "Dune: Part Two"]);
+    expect(server.creates.every((v) => v.medium === "cinema")).toBe(true);
+  });
+
+  test("doesn't ask for a medium on this app's own format", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.locator("#import-file").setInputFiles({
+      name: "movies.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(CSV_TWO_MOVIES),
+    });
+    await expect(page.getByRole("row", { name: /Paddington/ }).first()).toBeVisible();
+    await expect(page.getByLabel("Medium for these viewings")).toBeHidden();
+  });
+});
+
 test.describe("a busy CalDAV server", () => {
   // #842: a 429 means "slow down", not "this row is bad".
   test("waits out a 429 and still imports the row", async ({ page }) => {

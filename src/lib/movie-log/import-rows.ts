@@ -242,10 +242,50 @@ function parseCsvLines(text: string): string[][] {
   return rows;
 }
 
-export function parseCsvImport(text: string): ParsedRow[] {
+export type CsvFormat = "native" | "letterboxd-diary";
+
+export interface CsvImportOptions {
+  // #844: foreign exports carry no medium, so the visitor chooses one for the file.
+  medium?: string;
+}
+
+// #844: Letterboxd's diary.csv. `Date` there is when the entry was logged;
+// `Watched Date` is when the film was seen, so that is the one required.
+const LETTERBOXD_DIARY_HEADERS = ["Name", "Letterboxd URI", "Watched Date"];
+
+function csvHeader(text: string): string[] {
+  // Stryker disable next-line ArrayDeclaration: an empty file has no header, and any stand-in array still matches no column, so it reads as native either way.
+  return (parseCsvLines(text)[0] ?? []).map((key) => key.trim());
+}
+
+export function detectCsvFormat(text: string): CsvFormat {
+  const header = csvHeader(text);
+  return LETTERBOXD_DIARY_HEADERS.every((name) => header.includes(name))
+    ? "letterboxd-diary"
+    : "native";
+}
+
+function letterboxdRecord(
+  raw: Record<string, string | undefined>,
+  medium: string | undefined,
+): Record<string, string | undefined> {
+  const tags = raw.Tags?.trim();
+  return {
+    title: raw.Name,
+    date: raw["Watched Date"],
+    medium,
+    release_year: raw.Year,
+    letterboxd_url: raw["Letterboxd URI"],
+    letterboxd_rating: raw.Rating,
+    notes: tags ? `Tags: ${tags}` : undefined,
+  };
+}
+
+export function parseCsvImport(text: string, options: CsvImportOptions = {}): ParsedRow[] {
   const lines = parseCsvLines(text);
   // With no lines there are no data rows to map, so the header is never read.
   const header = lines[0] as string[];
+  const letterboxd = detectCsvFormat(text) === "letterboxd-diary";
 
   return lines.slice(1).map((line, i) => {
     const raw: Record<string, string | undefined> = {};
@@ -254,6 +294,6 @@ export function parseCsvImport(text: string): ParsedRow[] {
     });
     // Row 1 is the header, so the first data row is 2 — matches the CLI's
     // own row numbering in its error/skip messages.
-    return rowFromRecord(i + 2, raw);
+    return rowFromRecord(i + 2, letterboxd ? letterboxdRecord(raw, options.medium) : raw);
   });
 }
