@@ -33,6 +33,15 @@ counts the row as failed. It waits as long as the server asks only if the
 server sends `Access-Control-Expose-Headers: Retry-After`; otherwise it backs
 off for 1, 2, then 4 seconds.
 
+### Moving over from Letterboxd
+
+Export your data from Letterboxd (Settings, then Import & Export) and import
+its `diary.csv` here. The page spots it from its columns and asks for a medium,
+because a diary doesn't say where you watched. Each entry becomes a viewing on
+the date you watched it, with its year, your rating, your tags (as a note) and
+the Letterboxd link kept. There's no time of day in a diary, so viewings start
+at midnight. Only the diary file works; `ratings.csv` has no watched date.
+
 ## Importing through the command-line tool instead
 
 The [movie-planner command-line tool](https://github.com/alrayyes/movie-planner)

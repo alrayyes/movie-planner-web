@@ -3,7 +3,7 @@ import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { executeImport, type ImportBatch } from "../lib/movie-log/execute-import";
 import { SAMPLE_CSV, validateImportFile } from "../lib/movie-log/import-file";
-import { parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
+import { detectCsvFormat, parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
 import {
   fetchExistingForImportCheck,
   type ImportPlanEntry,
@@ -13,6 +13,7 @@ import {
 } from "../lib/movie-log/run-import";
 import {
   BUTTON_PRIMARY,
+  INPUT,
   LABEL,
   SECTION_HEADING,
   STATUS_TEXT,
@@ -40,6 +41,10 @@ export class MovieImportForm extends HTMLElement {
   private plan: ImportPlanEntry[] = [];
   private updates: ImportUpdateEntry[] = [];
   private existingByUid = new Map<string, LoggedViewing>();
+  private fileText = "";
+  private fileIsJson = false;
+  private mediumField: HTMLElement | undefined;
+  private mediumInput: HTMLInputElement | undefined;
   private parseErrors: { rowNumber: number; error?: string }[] = [];
 
   async connectedCallback() {
@@ -135,7 +140,23 @@ export class MovieImportForm extends HTMLElement {
     });
     fieldWrapper.append(dropzone);
 
-    this.append(target, fieldWrapper, this.statusEl, this.reviewContainer);
+    this.mediumField = document.createElement("div");
+    this.mediumField.hidden = true;
+    this.mediumField.className = "flex flex-col gap-1";
+    const mediumLabel = document.createElement("label");
+    mediumLabel.className = LABEL;
+    mediumLabel.htmlFor = "import-medium";
+    mediumLabel.textContent = "Medium for these viewings";
+    this.mediumInput = document.createElement("input");
+    this.mediumInput.id = "import-medium";
+    this.mediumInput.type = "text";
+    this.mediumInput.className = INPUT;
+    this.mediumInput.placeholder = "cinema";
+    this.mediumInput.autocomplete = "off";
+    this.mediumInput.addEventListener("change", () => void this.processFile());
+    this.mediumField.append(mediumLabel, this.mediumInput);
+
+    this.append(target, fieldWrapper, this.mediumField, this.statusEl, this.reviewContainer);
   }
 
   private async handleFileSelected(fileInput: HTMLInputElement) {
@@ -151,10 +172,27 @@ export class MovieImportForm extends HTMLElement {
     }
 
     this.statusEl.textContent = "Reading and checking for duplicates…";
-    const text = await file.text();
-    const parsed = file.name.toLowerCase().endsWith(".json")
-      ? parseJsonImport(text)
-      : parseCsvImport(text);
+    this.fileText = await file.text();
+    this.fileIsJson = file.name.toLowerCase().endsWith(".json");
+    // #844: a Letterboxd diary has no medium, so the visitor says what to use.
+    const needsMedium = !this.fileIsJson && detectCsvFormat(this.fileText) === "letterboxd-diary";
+    if (this.mediumField) this.mediumField.hidden = !needsMedium;
+    await this.processFile();
+  }
+
+  private async processFile() {
+    if (!this.credentials || !this.statusEl) return;
+    const medium = this.mediumInput?.value.trim();
+    const letterboxd = !this.fileIsJson && detectCsvFormat(this.fileText) === "letterboxd-diary";
+    if (letterboxd && !medium) {
+      this.statusEl.textContent =
+        "This is a Letterboxd diary, which doesn't record where you watched. Enter a medium below (for example cinema or netflix).";
+      this.reviewContainer?.replaceChildren();
+      return;
+    }
+    const parsed = this.fileIsJson
+      ? parseJsonImport(this.fileText)
+      : parseCsvImport(this.fileText, { medium });
     this.parseErrors = parsed.filter((r) => r.error);
 
     try {
