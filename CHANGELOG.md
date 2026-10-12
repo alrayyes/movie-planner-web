@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.23.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.23.1...movie-planner-web-v1.23.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* **import:** accept an exported row with no medium ([e7b5102](https://github.com/alrayyes/movie-planner-web/commit/e7b51025d649e6df17acc13fc04090325c1d73c8))
+* **import:** accept an exported row with no medium ([39485e4](https://github.com/alrayyes/movie-planner-web/commit/39485e4ad22cef068eea7d149fa9a08f99361449)), closes [#831](https://github.com/alrayyes/movie-planner-web/issues/831)
+* **perf:** reserve the site nav's height so the home page doesn't shift ([aa1f07d](https://github.com/alrayyes/movie-planner-web/commit/aa1f07d006f0c3b745241d854604fa281ad4d38b))
+* **perf:** reserve the site nav's height so the home page doesn't shift ([d51d04a](https://github.com/alrayyes/movie-planner-web/commit/d51d04ae2e0d0b86339e952ab0534a88d201bd62)), closes [#829](https://github.com/alrayyes/movie-planner-web/issues/829)
+
 ## [1.23.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.23.0...movie-planner-web-v1.23.1) (2026-10-11)
 
 
