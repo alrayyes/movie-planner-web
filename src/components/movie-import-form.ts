@@ -1,7 +1,6 @@
 import type { LoggedViewing, NewViewing } from "../lib/caldav/types";
 import { getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
-
 import { executeImport, type ImportBatch } from "../lib/movie-log/execute-import";
 import { SAMPLE_CSV, validateImportFile } from "../lib/movie-log/import-file";
 import { parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
@@ -112,14 +111,20 @@ export class MovieImportForm extends HTMLElement {
     sample.textContent = "Download a sample CSV";
     dropzone.append(label, fileInput, hint, sample);
     const highlight = (on: boolean) => {
-      dropzone.classList.toggle("border-indigo-500", on);
-      dropzone.classList.toggle("bg-indigo-50", on);
+      // A ring, not a border colour: the base border already has light and dark
+      // colours, and which of two border classes wins is the stylesheet's order.
+      dropzone.classList.toggle("ring-2", on);
+      dropzone.classList.toggle("ring-indigo-500", on);
     };
     dropzone.addEventListener("dragover", (event) => {
       event.preventDefault();
       highlight(true);
     });
-    dropzone.addEventListener("dragleave", () => highlight(false));
+    dropzone.addEventListener("dragleave", (event) => {
+      // Moving onto a child of the box also fires dragleave; the drag is still over it.
+      if (event.relatedTarget instanceof Node && dropzone.contains(event.relatedTarget)) return;
+      highlight(false);
+    });
     dropzone.addEventListener("drop", (event) => {
       event.preventDefault();
       highlight(false);

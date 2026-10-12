@@ -15,6 +15,7 @@ describe("validateImportFile", () => {
       error: "movies.ics isn't a .csv or .json file.",
     });
     expect(validateImportFile({ name: "csv", size: 10 })).toMatchObject({ ok: false });
+    expect(validateImportFile({ name: "a.csv.txt", size: 10 })).toMatchObject({ ok: false });
   });
 
   test("accepts a file of exactly 25 MB and rejects one byte more", () => {

@@ -68,6 +68,16 @@ test.describe("the import page before choosing a file", () => {
     );
   });
 
+  test("says there's nowhere to import to when no calendar is connected", async ({ page }) => {
+    await page.goto("/import");
+    const alert = page.locator("movie-import-form").getByRole("alert");
+    await expect(alert).toContainText("No calendar is connected");
+    await expect(alert.getByRole("link", { name: "Connect your CalDAV calendar" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+  });
+
   test("turns away a file that isn't CSV or JSON, before reading it", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
     await connect(page);
