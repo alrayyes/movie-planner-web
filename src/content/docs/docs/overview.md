@@ -107,6 +107,16 @@ removes the copy too, along with your sign-in. Export and import always read
 from the server itself, never from the copy, and so does the activity log's
 check for changes made elsewhere.
 
+## Starting over
+
+Settings has a "Danger zone" with a "Purge calendar" button. It deletes every
+viewing on your CalDAV calendar, on the server, and it can't be undone. Your
+venue and medium lists stay. It isn't the same as clearing the local cache,
+which only removes this browser's copy. Export your viewings first if you
+might want them back. The button asks you to type DELETE before it works, shows
+its progress, and says at the end how many viewings it deleted and how many it
+couldn't. If some failed, run it again.
+
 ## Sharing a single viewing
 
 "Share" on a viewing's own details page generates a link to just that

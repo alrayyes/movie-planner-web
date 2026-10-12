@@ -26,6 +26,16 @@ import Layout from "../layouts/Layout.astro";
       <purge-cache-button></purge-cache-button>
     </div>
   </div>
+  <!-- #835: deletes every viewing on the calendar itself, so it sits apart
+  from the harmless controls in Data above. -->
+  <div class="mt-10">
+    <h2 class="text-lg font-semibold text-red-700 dark:text-red-400">
+      Danger zone
+    </h2>
+    <div class="mt-3">
+      <purge-calendar-button></purge-calendar-button>
+    </div>
+  </div>
   <!-- #436: Import and Activity moved here from the top nav — both are
   inherently low-frequency (Import is an occasional bulk operation;
   Activity is explicitly "a debugging aid, not a permanent record" per
@@ -113,4 +123,5 @@ import Layout from "../layouts/Layout.astro";
   import "../components/credentials-settings-form";
   import "../components/export-json-button";
   import "../components/purge-cache-button";
+  import "../components/purge-calendar-button";
 </script>
