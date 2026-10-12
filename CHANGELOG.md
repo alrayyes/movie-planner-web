@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.25.0...movie-planner-web-v1.26.0) (2026-10-12)
+
+
+### Features
+
+* **import:** add a dropzone, name the target calendar and offer a sample CSV ([#848](https://github.com/alrayyes/movie-planner-web/issues/848)) ([b955c96](https://github.com/alrayyes/movie-planner-web/commit/b955c96b301cdeea5ddd3a314bdacf904bd19a4b))
+
 ## [1.25.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.24.1...movie-planner-web-v1.25.0) (2026-10-12)
 
 
