@@ -2,8 +2,11 @@ import { expect, test } from "@playwright/test";
 
 // Lighthouse scored the home page's layout shift at 0.84: <credentials-gate>
 // was empty until its script ran, then grew by the whole connect form and
-// shoved the footer down. 0.1 is the "good" threshold Lighthouse grades by.
-const GOOD = 0.1;
+// shoved the footer down. 0.1 is the "good" threshold Lighthouse grades by, but
+// the page has no reason to shift at all: <site-nav> was empty until its script
+// ran too, pushing <main> down by the height of the nav (0.063 on a phone), so
+// the bar is near zero.
+const GOOD = 0.01;
 
 for (const [name, width, height] of [
   ["phone", 412, 823],

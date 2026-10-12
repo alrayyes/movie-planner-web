@@ -58,7 +58,10 @@ import LogViewingWizard from "./LogViewingWizard.svelte";
     <theme-toggle></theme-toggle>
   </div>
 </header>
-<site-nav></site-nav>
+<!-- Empty until the script runs, then a one-line nav (20px of links, 16px
+padding, 1px border, 24px margin). Reserve that height so <main> doesn't
+jump down when it appears. -->
+<site-nav class="block empty:min-h-[3.8125rem]"></site-nav>
 <LogViewingWizard client:only="svelte" />
 
 <script>
