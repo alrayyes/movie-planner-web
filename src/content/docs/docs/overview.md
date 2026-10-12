@@ -115,7 +115,8 @@ venue and medium lists stay. It isn't the same as clearing the local cache,
 which only removes this browser's copy. Export your viewings first if you
 might want them back. The button asks you to type DELETE before it works, shows
 its progress, and says at the end how many viewings it deleted and how many it
-couldn't. If some failed, run it again.
+couldn't, with the server's reason for the first failure. If some failed, run
+it again.
 
 ## Sharing a single viewing
 
