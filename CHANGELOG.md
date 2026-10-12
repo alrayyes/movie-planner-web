@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.24.1...movie-planner-web-v1.25.0) (2026-10-12)
+
+
+### Features
+
+* **import:** show progress and wait out a 423 or 429 when importing ([#846](https://github.com/alrayyes/movie-planner-web/issues/846)) ([008e2ba](https://github.com/alrayyes/movie-planner-web/commit/008e2babf45993a5f3ccc88d8b32e3f65a7ce0a7))
+
 ## [1.24.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.24.0...movie-planner-web-v1.24.1) (2026-10-12)
 
 
