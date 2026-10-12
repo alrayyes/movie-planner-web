@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.24.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.23.2...movie-planner-web-v1.24.0) (2026-10-12)
+
+
+### Features
+
+* **settings:** add a button that purges every viewing from the calendar ([#836](https://github.com/alrayyes/movie-planner-web/issues/836)) ([44ab01a](https://github.com/alrayyes/movie-planner-web/commit/44ab01aac9aa1188ca67a20426ec31c2d6c32d47))
+
+
+### Bug Fixes
+
+* **lint:** point biome.json's $schema at the installed package ([657faff](https://github.com/alrayyes/movie-planner-web/commit/657faff15be1fe6804200e90503e4fa255a91189))
+* **lint:** point biome.json's $schema at the installed package ([8e6e52d](https://github.com/alrayyes/movie-planner-web/commit/8e6e52dde0314135a3d87c63c8162bfb8ce5514e)), closes [#837](https://github.com/alrayyes/movie-planner-web/issues/837)
+
 ## [1.23.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.23.1...movie-planner-web-v1.23.2) (2026-10-12)
 
 
