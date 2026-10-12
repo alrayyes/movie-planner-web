@@ -179,7 +179,7 @@ export class MovieImportForm extends HTMLElement {
     this.fileText = await file.text();
     this.fileIsJson = file.name.toLowerCase().endsWith(".json");
     // #844: a Letterboxd diary has no medium, so the visitor says what to use.
-    const needsMedium = !this.fileIsJson && detectCsvFormat(this.fileText) === "letterboxd-diary";
+    const needsMedium = !this.fileIsJson && detectCsvFormat(this.fileText) !== "native";
     if (this.mediumField) this.mediumField.hidden = !needsMedium;
     await this.processFile();
   }
@@ -187,10 +187,14 @@ export class MovieImportForm extends HTMLElement {
   private async processFile() {
     if (!this.credentials || !this.statusEl) return;
     const medium = this.mediumInput?.value.trim();
-    const letterboxd = !this.fileIsJson && detectCsvFormat(this.fileText) === "letterboxd-diary";
-    if (letterboxd && !medium) {
-      this.statusEl.textContent =
-        "This is a Letterboxd diary, which doesn't record where you watched. Enter a medium in the field above (for example cinema or netflix).";
+    const format = this.fileIsJson ? "native" : detectCsvFormat(this.fileText);
+    if (format !== "native" && !medium) {
+      const source = format === "imdb-ratings" ? "an IMDb ratings export" : "a Letterboxd diary";
+      const dates =
+        format === "imdb-ratings"
+          ? " Each viewing's date will be the day you rated the title."
+          : "";
+      this.statusEl.textContent = `This is ${source}, which doesn't record where you watched. Enter a medium in the field above (for example cinema or netflix).${dates}`;
       this.reviewContainer?.replaceChildren();
       return;
     }
