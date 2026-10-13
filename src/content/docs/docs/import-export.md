@@ -51,6 +51,10 @@ day you rated a title, not the day you watched it, so that is the date each
 viewing gets. The year, genres, director, IMDb's own score and your rating (as
 a note) come along. Change a date afterward if the rating day was wrong.
 
+IMDb also rates TV series, episodes and games. The preview lists those among
+the rows that can't be imported, saying what each one is, and only the films
+are imported.
+
 ## Importing through the command-line tool instead
 
 The [movie-planner command-line tool](https://github.com/alrayyes/movie-planner)

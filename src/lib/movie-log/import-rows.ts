@@ -253,6 +253,8 @@ export interface CsvImportOptions {
 // `Watched Date` is when the film was seen, so that is the one required.
 const LETTERBOXD_DIARY_HEADERS = ["Name", "Letterboxd URI", "Watched Date"];
 
+// #851: trim() is also what drops a byte-order mark from the first column's
+// name, as U+FEFF counts as whitespace to it. Header lookups must keep trimming.
 function csvHeader(text: string): string[] {
   // Stryker disable next-line ArrayDeclaration: an empty file has no header, and any stand-in array still matches no column, so it reads as native either way.
   return (parseCsvLines(text)[0] ?? []).map((key) => key.trim());
@@ -267,6 +269,29 @@ export function detectCsvFormat(text: string): CsvFormat {
   const has = (names: string[]) => names.every((name) => header.includes(name));
   if (has(LETTERBOXD_DIARY_HEADERS)) return "letterboxd-diary";
   return has(IMDB_RATINGS_HEADERS) ? "imdb-ratings" : "native";
+}
+
+// #851: ratings.csv also lists series, episodes and games. IMDb spells the
+// `Title Type` as a code ("tvMiniSeries") in some exports and as a display name
+// ("TV Mini Series") in others, so the type is compared lowercased with spaces,
+// dashes and underscores removed. Only these known non-films are turned away,
+// per row; any other type, or none, is read as a film, so an unfamiliar one
+// never blocks a whole file.
+const IMDB_NOT_FILM_NAMES = new Map([
+  ["tvseries", "a TV series"],
+  ["tvminiseries", "a TV miniseries"],
+  ["tvepisode", "a TV episode"],
+  ["videogame", "a video game"],
+  ["podcastseries", "a podcast"],
+  ["podcastepisode", "a podcast episode"],
+  ["musicvideo", "a music video"],
+]);
+
+function imdbNotAMovie(raw: Record<string, string | undefined>): string | undefined {
+  const type = raw["Title Type"];
+  if (!type) return undefined;
+  const name = IMDB_NOT_FILM_NAMES.get(type.toLowerCase().replace(/[\s_-]/g, ""));
+  return name && `"${(raw.Title ?? "").trim()}" is ${name} on IMDb, not a movie`;
 }
 
 function imdbRecord(
@@ -316,6 +341,8 @@ export function parseCsvImport(text: string, options: CsvImportOptions = {}): Pa
     });
     // Row 1 is the header, so the first data row is 2 — matches the CLI's
     // own row numbering in its error/skip messages.
+    const notAMovie = format === "imdb-ratings" ? imdbNotAMovie(raw) : undefined;
+    if (notAMovie) return { rowNumber: i + 2, error: notAMovie };
     const record =
       format === "letterboxd-diary"
         ? letterboxdRecord(raw, options.medium)
