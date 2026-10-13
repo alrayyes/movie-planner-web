@@ -33,34 +33,58 @@ const CONCURRENCY = 2;
 // place a slow server is worth waiting on.
 const DELETE_TIMEOUT_MS = 30_000;
 
+// #859: a delete that answers success can still leave the viewing on the
+// server (a 404 on a path that isn't the event's reads as "already gone"), so
+// the purge asks the server what is left. It deletes again while that list
+// shrinks, up to this many passes, and reports whatever the server still lists.
+const MAX_PASSES = 3;
+
+function stillListed(count: number): string {
+  return count === 1
+    ? "The server still lists 1 viewing after deleting it."
+    : `The server still lists ${count} viewings after deleting them.`;
+}
+
 export async function purgeCalendar(
   config: CaldavConfig,
   onProgress: (done: number, total: number) => void,
   deps: PurgeCalendarDeps = DEFAULT_DEPS,
 ): Promise<PurgeCalendarResult> {
-  const viewings = await deps.listFresh(config);
-  const total = viewings.length;
-  let next = 0;
-  let done = 0;
-  let deleted = 0;
-  let failed = 0;
+  let viewings = await deps.listFresh(config);
+  const initial = viewings.length;
   let firstError: string | undefined;
 
-  async function worker() {
-    while (next < total) {
-      const { uid, title } = viewings[next++] as LoggedViewing;
-      try {
-        await deps.remove(config, uid, { title, timeoutMs: DELETE_TIMEOUT_MS });
-        deleted++;
-      } catch (error) {
-        failed++;
-        firstError ??= error instanceof Error ? error.message : String(error);
+  async function deletePass(batch: LoggedViewing[]) {
+    const total = batch.length;
+    let next = 0;
+    let done = 0;
+    async function worker() {
+      while (next < total) {
+        const { uid, title } = batch[next++] as LoggedViewing;
+        try {
+          await deps.remove(config, uid, { title, timeoutMs: DELETE_TIMEOUT_MS });
+        } catch (error) {
+          firstError ??= error instanceof Error ? error.message : String(error);
+        }
+        onProgress(++done, total);
       }
-      onProgress(++done, total);
     }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
   }
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
 
-  await deps.clearCache();
-  return { deleted, failed, firstError };
+  try {
+    for (let pass = 0; pass < MAX_PASSES && viewings.length > 0; pass++) {
+      const before = viewings.length;
+      await deletePass(viewings);
+      viewings = await deps.listFresh(config);
+      if (viewings.length >= before) break;
+    }
+  } finally {
+    // The deletes happened whatever listing again did, so the copy this
+    // browser holds is stale either way.
+    await deps.clearCache();
+  }
+  const failed = viewings.length;
+  if (failed > 0) firstError ??= stillListed(failed);
+  return { deleted: initial - failed, failed, firstError };
 }
