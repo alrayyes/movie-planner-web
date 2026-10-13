@@ -19,6 +19,7 @@ import {
   updatePicklists,
   updateViewing,
 } from "../../src/lib/caldav/client";
+import { SIDECAR_UID } from "../../src/lib/caldav/ical";
 import type { CaldavConfig, NewViewing } from "../../src/lib/caldav/types";
 
 const CONFIG: CaldavConfig = {
@@ -28,6 +29,17 @@ const CONFIG: CaldavConfig = {
   username: process.env.BAIKAL_CALDAV_USERNAME ?? "moviewatcher",
   password: process.env.BAIKAL_CALDAV_PASSWORD ?? "testpassword123",
 };
+
+// The picklist sidecar lives in the calendar and survives a run. A test that
+// expects it empty has to remove it first, and leave it removed.
+async function removeSidecar(): Promise<void> {
+  const response = await fetch(`${CONFIG.baseUrl}${encodeURIComponent(SIDECAR_UID)}.ics`, {
+    method: "DELETE",
+    headers: { Authorization: `Basic ${btoa(`${CONFIG.username}:${CONFIG.password}`)}` },
+  });
+  // 404 is a calendar that never had one.
+  expect([204, 404]).toContain(response.status);
+}
 
 beforeAll(() => {
   // Caddy terminates TLS for this container with its own internal
@@ -79,17 +91,22 @@ describe("caldav client against a real Baikal instance", () => {
   }, 20_000);
 
   test("round-trips the location-management sidecar picklists", async () => {
-    expect(await getPicklists(CONFIG)).toEqual({ media: [], venues: [] });
+    await removeSidecar();
+    try {
+      expect(await getPicklists(CONFIG)).toEqual({ media: [], venues: [] });
 
-    await updatePicklists(CONFIG, {
-      media: ["cinema", "netflix"],
-      venues: [{ name: "Grand Vista Cinema" }],
-    });
+      await updatePicklists(CONFIG, {
+        media: ["cinema", "netflix"],
+        venues: [{ name: "Grand Vista Cinema" }],
+      });
 
-    expect(await getPicklists(CONFIG)).toEqual({
-      media: ["cinema", "netflix"],
-      venues: [{ name: "Grand Vista Cinema" }],
-    });
+      expect(await getPicklists(CONFIG)).toEqual({
+        media: ["cinema", "netflix"],
+        venues: [{ name: "Grand Vista Cinema" }],
+      });
+    } finally {
+      await removeSidecar();
+    }
   }, 20_000);
 });
 
