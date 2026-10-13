@@ -78,3 +78,87 @@ describe("a CSV that starts with a byte-order mark", () => {
     expect(parseCsvImport(text)[0]?.row?.title).toBe("Heat");
   });
 });
+
+describe("parseCsvImport on IMDb rows that aren't movies", () => {
+  const HEADER = "Const,Your Rating,Date Rated,Title,URL,Title Type\n";
+  const parse = (type: string, title = "Severance") =>
+    parseCsvImport(`${HEADER}tt1,8,2026-03-01,${title},,${type}\n`, { medium: "tv" })[0];
+
+  test("refuses a series, miniseries, episode, game or podcast and says what it is", () => {
+    expect(parse("tvSeries")?.error).toBe('"Severance" is a TV series on IMDb, not a movie');
+    expect(parse("tvMiniSeries")?.error).toBe(
+      '"Severance" is a TV miniseries on IMDb, not a movie',
+    );
+    expect(parse("tvEpisode")?.error).toBe('"Severance" is a TV episode on IMDb, not a movie');
+    expect(parse("videoGame")?.error).toBe('"Severance" is a video game on IMDb, not a movie');
+    expect(parse("podcastSeries")?.error).toBe('"Severance" is a podcast on IMDb, not a movie');
+    expect(parse("podcastEpisode")?.error).toBe(
+      '"Severance" is a podcast episode on IMDb, not a movie',
+    );
+    expect(parse("musicVideo")?.error).toBe('"Severance" is a music video on IMDb, not a movie');
+  });
+
+  test("reads the display names IMDb's own site uses just the same", () => {
+    expect(parse("TV Series")?.error).toBe('"Severance" is a TV series on IMDb, not a movie');
+    expect(parse("TV Mini Series")?.error).toBe(
+      '"Severance" is a TV miniseries on IMDb, not a movie',
+    );
+    expect(parse("Video Game")?.error).toBe('"Severance" is a video game on IMDb, not a movie');
+    expect(parse("tv-series")?.error).toBe('"Severance" is a TV series on IMDb, not a movie');
+    expect(parse("TV_Episode")?.error).toBe('"Severance" is a TV episode on IMDb, not a movie');
+  });
+
+  test("keeps every film, whichever way the type is spelled", () => {
+    for (const type of [
+      "movie",
+      "Movie",
+      "tvMovie",
+      "TV Movie",
+      "short",
+      "tvShort",
+      "video",
+      "tvSpecial",
+    ]) {
+      expect(parse(type)?.error).toBeUndefined();
+      expect(parse(type)?.row?.title).toBe("Severance");
+    }
+  });
+
+  test("imports a type it doesn't know rather than blocking the file", () => {
+    expect(parse("somethingNew")?.row?.title).toBe("Severance");
+    expect(parse("constructor")?.row?.title).toBe("Severance");
+    expect(parse("toString")?.row?.title).toBe("Severance");
+  });
+
+  test("ignores stray spaces round the type and the title", () => {
+    expect(parse(" tvSeries ", "  Severance ")?.error).toBe(
+      '"Severance" is a TV series on IMDb, not a movie',
+    );
+    expect(parse("movie ")?.row?.title).toBe("Severance");
+  });
+
+  test("reads a row whose Title Type is blank, or whose column is missing", () => {
+    expect(parse("")?.row?.title).toBe("Severance");
+    const text = "Const,Your Rating,Date Rated,Title,URL\ntt1,8,2026-03-01,Heat,\n";
+    expect(parseCsvImport(text, { medium: "tv" })[0]?.row?.title).toBe("Heat");
+  });
+
+  test("only an IMDb ratings export is filtered by it", () => {
+    const text = "title,date,medium,Title Type\nSeverance,2026-03-01,tv,tvSeries\n";
+    expect(parseCsvImport(text)[0]?.row?.title).toBe("Severance");
+  });
+
+  test("names the title as empty when a short row never reaches it", () => {
+    const text = "Const,Your Rating,Date Rated,Title Type,Title\ntt1,8,2026-03-01,tvSeries\n";
+    expect(parseCsvImport(text, { medium: "tv" })[0]?.error).toBe(
+      '"" is a TV series on IMDb, not a movie',
+    );
+  });
+
+  test("a bad row doesn't stop the good ones after it", () => {
+    const text = `${HEADER}tt1,8,2026-03-01,Severance,,tvSeries\ntt2,7,2026-03-02,Heat,,movie\n`;
+    const [bad, good] = parseCsvImport(text, { medium: "tv" });
+    expect(bad?.rowNumber).toBe(2);
+    expect(good?.row?.title).toBe("Heat");
+  });
+});
