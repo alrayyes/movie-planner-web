@@ -6,6 +6,7 @@ import {
   deleteViewing,
   getPicklists,
   getViewing,
+  listViewingResources,
   listViewings,
   updatePicklists,
   updateViewing,
@@ -332,6 +333,153 @@ describe("deleteViewing", () => {
       (e) => e,
     );
     expect(error).toBeInstanceOf(CaldavRequestTimeoutError);
+  });
+});
+
+// #859: an event another client stored under its own filename isn't at
+// `<uid>.ics`, and a DELETE there answers 404, which reads as "already gone".
+// The listing says where each event is, so the purge deletes there.
+describe("deleting at the address the server listed", () => {
+  const BASE_PATH = "/calendars/me/movies/";
+
+  test("DELETEs the given address, resolved against the calendar's own origin", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+
+    await deleteViewing(CONFIG, "uid-1", {
+      title: "Dune",
+      href: `${BASE_PATH}some-other-name.ics`,
+    });
+
+    expect(urls).toEqual(["https://caldav.example.com/calendars/me/movies/some-other-name.ics"]);
+  });
+
+  test("never sends the credentials to another origin the server names", async () => {
+    const calls: { url: string; auth: string | null }[] = [];
+    globalThis.fetch = mock(async (url: string, init?: RequestInit) => {
+      calls.push({ url, auth: new Headers(init?.headers).get("Authorization") });
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+
+    await deleteViewing(CONFIG, "uid-1", { title: "Dune", href: "https://evil.example/x.ics" });
+
+    expect(calls.map((c) => c.url)).toEqual([
+      "https://caldav.example.com/calendars/me/movies/uid-1.ics",
+    ]);
+  });
+
+  test("won't delete outside the calendar it was configured for", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+
+    await deleteViewing(CONFIG, "uid-1", { title: "Dune", href: "/calendars/someone-else/x.ics" });
+    await deleteViewing(CONFIG, "uid-2", {
+      title: "Dune",
+      href: `${BASE_PATH}../someone-else/x.ics`,
+    });
+
+    expect(urls).toEqual([
+      "https://caldav.example.com/calendars/me/movies/uid-1.ics",
+      "https://caldav.example.com/calendars/me/movies/uid-2.ics",
+    ]);
+  });
+
+  test("a foreign origin is refused even when it reuses the calendar's own path", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+
+    await deleteViewing(CONFIG, "uid-1", {
+      title: "Dune",
+      href: "https://evil.example/calendars/me/movies/x.ics",
+    });
+
+    expect(urls).toEqual(["https://caldav.example.com/calendars/me/movies/uid-1.ics"]);
+  });
+
+  test("reads a calendar address written without its trailing slash", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+    const noSlash = { ...CONFIG, baseUrl: "https://caldav.example.com/calendars/me/movies" };
+
+    await deleteViewing(noSlash, "uid-1", { title: "Dune", href: `${BASE_PATH}elsewhere.ics` });
+    // A sibling that only shares the calendar's name as a prefix is not inside it.
+    await deleteViewing(noSlash, "uid-2", {
+      title: "Dune",
+      href: "/calendars/me/movies-evil/x.ics",
+    });
+
+    expect(urls).toEqual([
+      "https://caldav.example.com/calendars/me/movies/elsewhere.ics",
+      "https://caldav.example.com/calendars/me/movies/uid-2.ics",
+    ]);
+  });
+
+  test("never deletes the calendar itself, however the address is written", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+    const collections = [
+      "./",
+      BASE_PATH,
+      `${BASE_PATH}.`,
+      `${BASE_PATH}a/..`,
+      BASE_PATH.slice(0, -1),
+      `${BASE_PATH}sub/`,
+    ];
+
+    for (const [i, href] of collections.entries()) {
+      await deleteViewing(CONFIG, `uid-${i}`, { title: "Dune", href });
+    }
+
+    expect(urls).toEqual(
+      collections.map((_, i) => `https://caldav.example.com/calendars/me/movies/uid-${i}.ics`),
+    );
+  });
+
+  test("falls back to the uid for an address it can't read", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+
+    await deleteViewing(CONFIG, "uid-1", { title: "Dune", href: "http://[" });
+
+    expect(urls).toEqual(["https://caldav.example.com/calendars/me/movies/uid-1.ics"]);
+  });
+
+  test("listViewingResources returns each viewing with its address", async () => {
+    const ical = serializeViewingToVEvent("uid-1", VIEWING);
+    globalThis.fetch = mock(
+      async () =>
+        new Response(
+          `<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:response><D:href>${BASE_PATH}elsewhere.ics</D:href><D:propstat><D:prop><C:calendar-data>${ical}</C:calendar-data></D:prop></D:propstat></D:response></D:multistatus>`,
+          { status: 207 },
+        ),
+    ) as unknown as typeof fetch;
+
+    const found = await listViewingResources(CONFIG, {
+      from: "2025-01-01T00:00:00.000Z",
+      to: "2027-01-01T00:00:00.000Z",
+    });
+
+    expect(found.map((f) => [f.href, f.viewing.uid])).toEqual([
+      [`${BASE_PATH}elsewhere.ics`, "uid-1"],
+    ]);
   });
 });
 

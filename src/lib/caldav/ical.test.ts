@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   extractUnknownProperties,
+  parseEventResourcesFromMultistatus,
   parsePicklistsFromVJournal,
   parseVEventToViewing,
   parseViewingsFromMultistatus,
@@ -746,5 +747,101 @@ describe("TEXT values with backslashes", () => {
       "END:VEVENT",
     ].join("\r\n");
     expect(parseVEventToViewing(raw).notes).toBe(String.raw`a\xb`);
+  });
+});
+
+// #859: the server says where each event lives. The app used to assume
+// `<uid>.ics`, which an event another client stored under its own filename
+// doesn't satisfy.
+describe("parseEventResourcesFromMultistatus", () => {
+  const ical = (uid: string, title: string) =>
+    [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `SUMMARY:${title}`,
+      "DTSTART:20260906T190000Z",
+      "DTEND:20260906T210000Z",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+  const response = (href: string, data: string, prefix = "D", dataPrefix = "C") =>
+    `<${prefix}:response><${prefix}:href>${href}</${prefix}:href><${prefix}:propstat><${prefix}:prop><${dataPrefix}:calendar-data>${data}</${dataPrefix}:calendar-data></${prefix}:prop></${prefix}:propstat></${prefix}:response>`;
+  const multistatus = (...responses: string[]) =>
+    `<?xml version="1.0"?><D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">${responses.join("")}</D:multistatus>`;
+
+  test("pairs each event with the address the server gave it", () => {
+    const xml = multistatus(
+      response("/cal/some-other-name.ics", ical("uid-a", "Dune")),
+      response("/cal/uid-b.ics", ical("uid-b", "Heat")),
+    );
+    const found = parseEventResourcesFromMultistatus(xml);
+    expect(found.map((f) => [f.href, f.viewing.uid, f.viewing.title])).toEqual([
+      ["/cal/some-other-name.ics", "uid-a", "Dune"],
+      ["/cal/uid-b.ics", "uid-b", "Heat"],
+    ]);
+  });
+
+  test("reads other namespace prefixes, and none", () => {
+    const xml = multistatus(
+      response("/cal/a.ics", ical("a", "A"), "d", "cal"),
+      response("/cal/b.ics", ical("b", "B"), "ns0", "ns1"),
+    );
+    expect(parseEventResourcesFromMultistatus(xml).map((f) => f.href)).toEqual([
+      "/cal/a.ics",
+      "/cal/b.ics",
+    ]);
+  });
+
+  test("decodes the entities in an address", () => {
+    const xml = multistatus(response("/cal/a&amp;b.ics", ical("a", "A")));
+    expect(parseEventResourcesFromMultistatus(xml)[0]?.href).toBe("/cal/a&b.ics");
+  });
+
+  test("skips a resource that isn't an event, without shifting the others' addresses", () => {
+    const xml = multistatus(
+      response("/cal/one.ics", ical("one", "One")),
+      response(
+        "/cal/sidecar.ics",
+        "BEGIN:VCALENDAR\r\nBEGIN:VJOURNAL\r\nEND:VJOURNAL\r\nEND:VCALENDAR",
+      ),
+      response("/cal/three.ics", ical("three", "Three")),
+    );
+    expect(parseEventResourcesFromMultistatus(xml).map((f) => [f.href, f.viewing.uid])).toEqual([
+      ["/cal/one.ics", "one"],
+      ["/cal/three.ics", "three"],
+    ]);
+  });
+
+  test("reads elements that carry attributes", () => {
+    const xml = `<multistatus xmlns="DAV:"><D:response xmlns:D="DAV:" id="r1"><D:href xml:id="h">/cal/a.ics</D:href><D:propstat><D:prop><C:calendar-data content-type="text/calendar" xmlns:C="urn:ietf:params:xml:ns:caldav">${ical("a", "A")}</C:calendar-data></D:prop></D:propstat></D:response></multistatus>`;
+    const found = parseEventResourcesFromMultistatus(xml);
+    expect(found.map((f) => [f.href, f.viewing.uid])).toEqual([["/cal/a.ics", "a"]]);
+  });
+
+  test("reads a response with no namespace prefix at all", () => {
+    const xml = `<multistatus xmlns="DAV:"><response><href>/cal/a.ics</href><propstat><prop><calendar-data>${ical("a", "A")}</calendar-data></prop></propstat></response></multistatus>`;
+    const found = parseEventResourcesFromMultistatus(xml);
+    expect(found.map((f) => [f.href, f.viewing.uid])).toEqual([["/cal/a.ics", "a"]]);
+  });
+
+  test("trims whitespace round an address, including line breaks", () => {
+    const xml = multistatus(response("\n    /cal/with space.ics \n", ical("a", "A")));
+    expect(parseEventResourcesFromMultistatus(xml)[0]?.href).toBe("/cal/with space.ics");
+  });
+
+  test("keeps an event whose response has no address, without one", () => {
+    const xml = multistatus(
+      `<D:response><D:propstat><D:prop><C:calendar-data>${ical("x", "X")}</C:calendar-data></D:prop></D:propstat></D:response>`,
+    );
+    const found = parseEventResourcesFromMultistatus(xml);
+    expect(found).toHaveLength(1);
+    expect(found[0]?.href).toBeUndefined();
+    expect(found[0]?.viewing.uid).toBe("x");
+  });
+
+  test("keeps an event whose address is empty, without one", () => {
+    const xml = multistatus(response("  ", ical("x", "X")));
+    expect(parseEventResourcesFromMultistatus(xml)[0]?.href).toBeUndefined();
   });
 });
