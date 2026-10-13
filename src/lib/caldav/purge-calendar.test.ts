@@ -244,6 +244,39 @@ describe("purgeCalendar", () => {
     ]);
   });
 
+  // Another client can add events while the purge runs. They are not ones this
+  // purge listed, so they neither count as deleted nor as failed.
+  test("never reports a negative count when events appear while it runs", async () => {
+    const d = deps(["a", "b"]);
+    let listings = 0;
+    const result = await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      listFresh: async () => {
+        listings++;
+        return listings === 1 ? [viewing("a"), viewing("b")] : ["c", "d", "e"].map(viewing);
+      },
+    });
+    expect(result).toEqual({ deleted: 2, failed: 0 });
+  });
+
+  test("counts only what it listed first as failed when new events appear beside it", async () => {
+    const d = deps(["a", "b"], [], ["b"]);
+    let listings = 0;
+    const result = await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      listFresh: async () => {
+        listings++;
+        const listed = await d.deps.listFresh();
+        return listings === 1 ? listed : [...listed, viewing("new")];
+      },
+    });
+    expect(result).toEqual({
+      deleted: 1,
+      failed: 1,
+      firstError: "The server still lists 1 viewing after deleting it.",
+    });
+  });
+
   test("an empty calendar deletes nothing", async () => {
     const d = deps([]);
     expect(await purgeCalendar(CONFIG, () => {}, d.deps)).toEqual({ deleted: 0, failed: 0 });

@@ -119,7 +119,9 @@ couldn't, with the server's reason for the first failure. It deletes each
 event at the address your server listed for it, then asks the server what is
 left and deletes again while that list shrinks, so an event another app stored
 under its own filename goes too. Anything the server still lists after that is
-counted as failed, not deleted. If some failed, run it again.
+counted as failed, not deleted. It only sees what the app lists everywhere
+else, from 15 years back to a year ahead, so an event dated outside that window
+stays. If some failed, run it again.
 
 ## Sharing a single viewing
 

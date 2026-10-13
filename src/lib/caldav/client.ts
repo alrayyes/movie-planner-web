@@ -234,14 +234,20 @@ export interface DeleteOptions {
 // The address the server listed, only if it is inside the calendar this app
 // was pointed at: the request carries the visitor's credentials, so a listing
 // can't send them to another origin or have the app delete outside the
-// calendar. Anything else falls back to the uid's own address.
+// calendar, and never the calendar itself. Anything else falls back to the
+// uid's own address.
 function deleteUrl(config: CaldavConfig, uid: string, href: string | undefined): string {
   const fallback = resourceUrl(config, uid);
   if (!href) return fallback;
   try {
     const base = new URL(config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`);
     const target = new URL(href, base);
-    const inside = target.origin === base.origin && target.pathname.startsWith(base.pathname);
+    // An event inside the calendar, not the calendar or a folder in it. The base
+    // path ends in a slash, so a path under it that doesn't is deeper than it.
+    const inside =
+      target.origin === base.origin &&
+      target.pathname.startsWith(base.pathname) &&
+      !target.pathname.endsWith("/");
     return inside ? target.toString() : fallback;
   } catch {
     return fallback;

@@ -426,6 +426,30 @@ describe("deleting at the address the server listed", () => {
     ]);
   });
 
+  test("never deletes the calendar itself, however the address is written", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = mock(async (url: string) => {
+      urls.push(url);
+      return new Response("", { status: 204 });
+    }) as unknown as typeof fetch;
+    const collections = [
+      "./",
+      BASE_PATH,
+      `${BASE_PATH}.`,
+      `${BASE_PATH}a/..`,
+      BASE_PATH.slice(0, -1),
+      `${BASE_PATH}sub/`,
+    ];
+
+    for (const [i, href] of collections.entries()) {
+      await deleteViewing(CONFIG, `uid-${i}`, { title: "Dune", href });
+    }
+
+    expect(urls).toEqual(
+      collections.map((_, i) => `https://caldav.example.com/calendars/me/movies/uid-${i}.ics`),
+    );
+  });
+
   test("falls back to the uid for an address it can't read", async () => {
     const urls: string[] = [];
     globalThis.fetch = mock(async (url: string) => {

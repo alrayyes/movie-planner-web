@@ -3,9 +3,6 @@ import { importCheckRange } from "./range";
 import type { CaldavConfig } from "./types";
 import { clearViewingsCache } from "./viewings-cache";
 
-// #835: deletes every viewing on the visitor's calendar, for starting over.
-// The picklist sidecar (venues, mediums) isn't a viewing and is left alone.
-// One failed delete doesn't stop the rest; the caller gets the counts.
 // What the purge needs to know about each event: which one, and where the
 // server listed it (#859).
 export interface PurgeTarget {
@@ -14,6 +11,11 @@ export interface PurgeTarget {
   href?: string;
 }
 
+// #835: deletes every viewing on the visitor's calendar, for starting over.
+// The picklist sidecar (venues, mediums) isn't a viewing and is left alone.
+// One failed delete doesn't stop the rest; the caller gets the counts.
+// Only what the app lists is purged: the same window the other pages read
+// (importCheckRange), so an event outside it is never seen.
 export interface PurgeCalendarDeps {
   listFresh: (config: CaldavConfig) => Promise<PurgeTarget[]>;
   remove: (config: CaldavConfig, uid: string, options?: DeleteOptions) => Promise<void>;
@@ -66,6 +68,9 @@ export async function purgeCalendar(
 ): Promise<PurgeCalendarResult> {
   let viewings = await deps.listFresh(config);
   const initial = viewings.length;
+  // Another client can add events while this runs. Only what was listed first
+  // counts, so a late arrival is neither deleted nor failed in the totals.
+  const listedFirst = new Set(viewings.map((v) => v.uid));
   let firstError: string | undefined;
 
   async function deletePass(batch: PurgeTarget[]) {
@@ -98,7 +103,7 @@ export async function purgeCalendar(
     // browser holds is stale either way.
     await deps.clearCache();
   }
-  const failed = viewings.length;
+  const failed = viewings.filter((v) => listedFirst.has(v.uid)).length;
   if (failed > 0) firstError ??= stillListed(failed);
   return { deleted: initial - failed, failed, firstError };
 }
