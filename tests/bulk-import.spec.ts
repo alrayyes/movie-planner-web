@@ -181,6 +181,82 @@ test.describe("an IMDb ratings export", () => {
   });
 });
 
+const IMDB_WITH_SERIES = `${IMDB_RATINGS}tt11280740,10,2026-03-02,Severance,Severance,https://www.imdb.com/title/tt11280740/,tvSeries,8.7,,2022,Drama,500000,2022-02-18,
+tt0944947,9,2026-03-03,Game of Thrones,Game of Thrones,https://www.imdb.com/title/tt0944947/,TV Series,9.2,,2011,Drama,2000000,2011-04-17,
+`;
+
+test.describe("an IMDb ratings export with TV series in it", () => {
+  test("counts them as skipped, not failed, and still imports the films", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    await page.locator("#import-file").setInputFiles({
+      name: "ratings.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(IMDB_WITH_SERIES),
+    });
+    await page.getByLabel("Medium for these viewings").fill("netflix");
+    await page.getByLabel("Medium for these viewings").press("Tab");
+
+    const status = page.getByRole("status");
+    await expect(status).toContainText("2 skipped (not films)");
+    await expect(status).not.toContainText("failed to parse");
+    // Neutral and folded away, not a red error list.
+    const skipped = page.locator("details", { hasText: "2 skipped (not films)" });
+    await expect(skipped.getByText("Severance")).toBeHidden();
+    await skipped.getByText("2 skipped (not films)").click();
+    await expect(
+      skipped.getByText('Row 3: "Severance" is a TV series on IMDb, not a movie'),
+    ).toBeVisible();
+    await expect(
+      skipped.getByText('Row 4: "Game of Thrones" is a TV series on IMDb, not a movie'),
+    ).toBeVisible();
+
+    const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(scan.violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+    await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 0, failed 0.");
+    expect(server.creates).toHaveLength(1);
+  });
+
+  test("still reports a malformed row as a failure beside the skipped ones", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    const withBadDate = `${IMDB_WITH_SERIES}tt1,5,not-a-date,Heat,,movie\n`;
+    await page.locator("#import-file").setInputFiles({
+      name: "ratings.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(withBadDate),
+    });
+    await page.getByLabel("Medium for these viewings").fill("netflix");
+    await page.getByLabel("Medium for these viewings").press("Tab");
+
+    await expect(page.getByRole("status")).toContainText(
+      "1 new row(s), 2 skipped (not films), 1 failed to parse",
+    );
+    await expect(page.getByText('Row 5: not a valid date: "not-a-date"')).toBeVisible();
+  });
+
+  test("offers nothing to import, and no error, when every row is skipped", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+    const onlySeries = IMDB_WITH_SERIES.split("\n")
+      .filter((l) => !l.includes(",movie,"))
+      .join("\n");
+    await page.locator("#import-file").setInputFiles({
+      name: "ratings.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(onlySeries),
+    });
+    await page.getByLabel("Medium for these viewings").fill("netflix");
+    await page.getByLabel("Medium for these viewings").press("Tab");
+
+    await expect(page.getByRole("status")).toContainText("2 skipped (not films)");
+    await expect(page.getByRole("status")).toContainText("nothing to import");
+    await expect(page.getByRole("button", { name: "Import checked rows" })).toBeHidden();
+  });
+});
+
 test.describe("a busy CalDAV server", () => {
   // #842: a 429 means "slow down", not "this row is bad".
   test("waits out a 429 and still imports the row", async ({ page }) => {
