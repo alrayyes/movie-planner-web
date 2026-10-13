@@ -114,8 +114,9 @@ bun run test:integration        # the actual tests, against that real instance
 bun run test:integration:down   # tear down
 ```
 
-Run it as often as you like against the same containers: a test that needs a
-starting state sets it up itself, so nothing has to be reset in between.
+Run it as often as you like against the same containers. A test that needs a
+starting state sets it up itself, and the others work with whatever is already
+there, so nothing has to be reset in between.
 
 Not part of `bun run test` or the default pre-push hook — it needs Docker,
 which the rest of the suite doesn't, and CI runs it as its own `integration`

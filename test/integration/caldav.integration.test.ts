@@ -32,13 +32,12 @@ const CONFIG: CaldavConfig = {
 
 // The picklist sidecar lives in the calendar and survives a run. A test that
 // expects it empty has to remove it first, and leave it removed.
-async function removeSidecar(): Promise<void> {
+async function removeSidecar(): Promise<number> {
   const response = await fetch(`${CONFIG.baseUrl}${encodeURIComponent(SIDECAR_UID)}.ics`, {
     method: "DELETE",
     headers: { Authorization: `Basic ${btoa(`${CONFIG.username}:${CONFIG.password}`)}` },
   });
-  // 404 is a calendar that never had one.
-  expect([204, 404]).toContain(response.status);
+  return response.status;
 }
 
 beforeAll(() => {
@@ -91,7 +90,8 @@ describe("caldav client against a real Baikal instance", () => {
   }, 20_000);
 
   test("round-trips the location-management sidecar picklists", async () => {
-    await removeSidecar();
+    // 404 is a calendar that never had one.
+    expect([204, 404]).toContain(await removeSidecar());
     try {
       expect(await getPicklists(CONFIG)).toEqual({ media: [], venues: [] });
 
@@ -105,7 +105,8 @@ describe("caldav client against a real Baikal instance", () => {
         venues: [{ name: "Grand Vista Cinema" }],
       });
     } finally {
-      await removeSidecar();
+      // Best effort and unasserted: a failure here must not hide the test's own.
+      await removeSidecar().catch(() => undefined);
     }
   }, 20_000);
 });
