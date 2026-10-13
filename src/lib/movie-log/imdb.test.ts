@@ -52,3 +52,29 @@ describe("parseCsvImport on an IMDb ratings export", () => {
     expect(parseCsvImport(RATINGS)[0]?.error).toBe("medium is required");
   });
 });
+
+describe("a CSV that starts with a byte-order mark", () => {
+  // Excel and some exporters prefix one; it would otherwise ride on the first
+  // column's name and hide the format.
+  const BOM = String.fromCharCode(0xfeff);
+
+  test("an IMDb export is still recognised and read", () => {
+    expect(detectCsvFormat(BOM + RATINGS)).toBe("imdb-ratings");
+    expect(parseCsvImport(BOM + RATINGS, { medium: "tv" })[0]?.row?.title).toBe("Dune: Part Two");
+  });
+
+  test("a Letterboxd diary is still recognised", () => {
+    const diary = `${BOM}Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date\n`;
+    expect(detectCsvFormat(diary)).toBe("letterboxd-diary");
+  });
+
+  test("a native file keeps its title column", () => {
+    const text = `${BOM}title,date,medium\nHeat,2026-03-01,tv\n`;
+    expect(parseCsvImport(text)[0]?.row?.title).toBe("Heat");
+  });
+
+  test("a quoted first header is still read", () => {
+    const text = `${BOM}"title",date,medium\nHeat,2026-03-01,tv\n`;
+    expect(parseCsvImport(text)[0]?.row?.title).toBe("Heat");
+  });
+});

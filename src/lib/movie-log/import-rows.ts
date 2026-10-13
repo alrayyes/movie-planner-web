@@ -253,6 +253,8 @@ export interface CsvImportOptions {
 // `Watched Date` is when the film was seen, so that is the one required.
 const LETTERBOXD_DIARY_HEADERS = ["Name", "Letterboxd URI", "Watched Date"];
 
+// #851: trim() is also what drops a byte-order mark from the first column's
+// name, as U+FEFF counts as whitespace to it. Header lookups must keep trimming.
 function csvHeader(text: string): string[] {
   // Stryker disable next-line ArrayDeclaration: an empty file has no header, and any stand-in array still matches no column, so it reads as native either way.
   return (parseCsvLines(text)[0] ?? []).map((key) => key.trim());
