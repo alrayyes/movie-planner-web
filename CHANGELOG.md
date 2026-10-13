@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.30.0...movie-planner-web-v1.30.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **purge:** delete each event at the address the server listed ([#862](https://github.com/alrayyes/movie-planner-web/issues/862)) ([d8ed5b5](https://github.com/alrayyes/movie-planner-web/commit/d8ed5b53ded7f7e0b5953a12d78da4e5a0c9c883)), closes [#859](https://github.com/alrayyes/movie-planner-web/issues/859)
+
 ## [1.30.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.29.0...movie-planner-web-v1.30.0) (2026-10-13)
 
 
