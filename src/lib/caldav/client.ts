@@ -4,7 +4,9 @@ import { recordActivity } from "../activity-log/store";
 import { boundedFetch, readBoundedText } from "./bounded-fetch";
 import { CaldavRequestFailedError } from "./errors";
 import {
+  type EventResource,
   extractUnknownProperties,
+  parseEventResourcesFromMultistatus,
   parsePicklistsFromVJournal,
   parseVEventToViewing,
   parseViewingsFromMultistatus,
@@ -43,11 +45,11 @@ async function assertOk(response: Response, action: string): Promise<void> {
   }
 }
 
-export async function listViewings(
+async function reportViewings(
   config: CaldavConfig,
   range: DateRange,
-  options: { signal?: AbortSignal } = {},
-): Promise<LoggedViewing[]> {
+  options: { signal?: AbortSignal },
+): Promise<string> {
   validateCaldavConfig(config);
 
   const body = `<?xml version="1.0" encoding="utf-8" ?>
@@ -86,8 +88,24 @@ export async function listViewings(
   );
   await assertOk(response, "listing events");
 
-  const xml = await readBoundedText(response);
-  return parseViewingsFromMultistatus(xml);
+  return readBoundedText(response);
+}
+
+export async function listViewings(
+  config: CaldavConfig,
+  range: DateRange,
+  options: { signal?: AbortSignal } = {},
+): Promise<LoggedViewing[]> {
+  return parseViewingsFromMultistatus(await reportViewings(config, range, options));
+}
+
+// #859: the same listing, with the address the server gave each event.
+export async function listViewingResources(
+  config: CaldavConfig,
+  range: DateRange,
+  options: { signal?: AbortSignal } = {},
+): Promise<EventResource[]> {
+  return parseEventResourcesFromMultistatus(await reportViewings(config, range, options));
 }
 
 // Raw, unparsed — shared by getViewing (parses it) and updateViewing
@@ -208,6 +226,26 @@ export interface DeleteOptions {
   // passes it, which skips the read below and makes the delete one request.
   title?: string;
   timeoutMs?: number;
+  // #859: where the server listed the event. An event another client stored
+  // under its own filename isn't at `<uid>.ics`, and a DELETE there answers 404.
+  href?: string;
+}
+
+// The address the server listed, only if it is inside the calendar this app
+// was pointed at: the request carries the visitor's credentials, so a listing
+// can't send them to another origin or have the app delete outside the
+// calendar. Anything else falls back to the uid's own address.
+function deleteUrl(config: CaldavConfig, uid: string, href: string | undefined): string {
+  const fallback = resourceUrl(config, uid);
+  if (!href) return fallback;
+  try {
+    const base = new URL(config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`);
+    const target = new URL(href, base);
+    const inside = target.origin === base.origin && target.pathname.startsWith(base.pathname);
+    return inside ? target.toString() : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export async function deleteViewing(
@@ -231,7 +269,7 @@ export async function deleteViewing(
   }
 
   const response = await boundedFetch(
-    resourceUrl(config, uid),
+    deleteUrl(config, uid, options.href),
     {
       method: "DELETE",
       headers: { Authorization: authHeader(config) },

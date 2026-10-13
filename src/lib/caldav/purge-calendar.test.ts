@@ -229,6 +229,21 @@ describe("purgeCalendar", () => {
     expect(listings).toBe(1);
   });
 
+  test("hands each delete the address the server listed for it", async () => {
+    const d = deps(["a", "b"]);
+    await purgeCalendar(CONFIG, () => {}, {
+      ...d.deps,
+      listFresh: async () => [
+        { uid: "a", title: "a", href: "/cal/elsewhere.ics" },
+        { uid: "b", title: "b" },
+      ],
+    });
+    expect(d.calls.map((c) => [c.uid, c.options?.href])).toEqual([
+      ["a", "/cal/elsewhere.ics"],
+      ["b", undefined],
+    ]);
+  });
+
   test("an empty calendar deletes nothing", async () => {
     const d = deps([]);
     expect(await purgeCalendar(CONFIG, () => {}, d.deps)).toEqual({ deleted: 0, failed: 0 });

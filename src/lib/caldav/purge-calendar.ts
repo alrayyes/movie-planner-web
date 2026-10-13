@@ -1,13 +1,21 @@
-import { type DeleteOptions, deleteViewing } from "./client";
-import type { CaldavConfig, LoggedViewing } from "./types";
+import { type DeleteOptions, deleteViewing, listViewingResources } from "./client";
+import { importCheckRange } from "./range";
+import type { CaldavConfig } from "./types";
 import { clearViewingsCache } from "./viewings-cache";
-import { fetchFreshViewings } from "./viewings-source";
 
 // #835: deletes every viewing on the visitor's calendar, for starting over.
 // The picklist sidecar (venues, mediums) isn't a viewing and is left alone.
 // One failed delete doesn't stop the rest; the caller gets the counts.
+// What the purge needs to know about each event: which one, and where the
+// server listed it (#859).
+export interface PurgeTarget {
+  uid: string;
+  title: string;
+  href?: string;
+}
+
 export interface PurgeCalendarDeps {
-  listFresh: (config: CaldavConfig) => Promise<LoggedViewing[]>;
+  listFresh: (config: CaldavConfig) => Promise<PurgeTarget[]>;
   remove: (config: CaldavConfig, uid: string, options?: DeleteOptions) => Promise<void>;
   clearCache: () => Promise<void>;
 }
@@ -19,8 +27,14 @@ export interface PurgeCalendarResult {
   firstError?: string;
 }
 
+// Straight from the server, never the cache, with each event's address.
+export async function listPurgeTargets(config: CaldavConfig): Promise<PurgeTarget[]> {
+  const found = await listViewingResources(config, importCheckRange());
+  return found.map(({ href, viewing }) => ({ uid: viewing.uid, title: viewing.title, href }));
+}
+
 const DEFAULT_DEPS: PurgeCalendarDeps = {
-  listFresh: fetchFreshViewings,
+  listFresh: listPurgeTargets,
   remove: deleteViewing,
   clearCache: () => clearViewingsCache(),
 };
@@ -54,15 +68,15 @@ export async function purgeCalendar(
   const initial = viewings.length;
   let firstError: string | undefined;
 
-  async function deletePass(batch: LoggedViewing[]) {
+  async function deletePass(batch: PurgeTarget[]) {
     const total = batch.length;
     let next = 0;
     let done = 0;
     async function worker() {
       while (next < total) {
-        const { uid, title } = batch[next++] as LoggedViewing;
+        const { uid, title, href } = batch[next++] as PurgeTarget;
         try {
-          await deps.remove(config, uid, { title, timeoutMs: DELETE_TIMEOUT_MS });
+          await deps.remove(config, uid, { title, href, timeoutMs: DELETE_TIMEOUT_MS });
         } catch (error) {
           firstError ??= error instanceof Error ? error.message : String(error);
         }

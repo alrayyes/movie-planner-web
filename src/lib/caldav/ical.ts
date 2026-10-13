@@ -493,6 +493,38 @@ export function parseViewingsFromMultistatus(xml: string): LoggedViewing[] {
   return viewings;
 }
 
+// #859: each event with the address the server listed it at. Responses are
+// taken one at a time, so an unreadable one drops out without shifting the
+// addresses of the ones after it, and an event with no readable address is
+// kept rather than lost.
+export interface EventResource {
+  // Absent when the response carries none; the caller then uses the uid's own
+  // address, as it did before this was read at all.
+  href?: string;
+  viewing: LoggedViewing;
+}
+
+export function parseEventResourcesFromMultistatus(xml: string): EventResource[] {
+  const found: EventResource[] = [];
+  for (const response of xml.matchAll(/<[^:>]*:?response[\s>][\s\S]*?<\/[^:>]*:?response>/g)) {
+    // Stryker disable next-line OptionalChaining: group 1 always takes part in a match, so `?.trim()` and `.trim()` read the same.
+    const href = /<[^:>]*:?href[^>]*>([\s\S]*?)<\/[^:>]*:?href>/.exec(response[0])?.[1]?.trim();
+    const data = /<[^:>]*:?calendar-data[^>]*>([\s\S]*?)<\/[^:>]*:?calendar-data>/.exec(
+      response[0],
+    )?.[1];
+    if (data === undefined) continue;
+    try {
+      found.push({
+        href: href ? decodeXmlEntities(href) : undefined,
+        viewing: parseVEventToViewing(decodeXmlEntities(data)),
+      });
+    } catch {
+      // Not a well-formed VEVENT, as in parseViewingsFromMultistatus above.
+    }
+  }
+  return found;
+}
+
 function decodeXmlEntities(value: string): string {
   return value
     .replace(/&lt;/g, "<")
