@@ -51,9 +51,9 @@ day you rated a title, not the day you watched it, so that is the date each
 viewing gets. The year, genres, director, IMDb's own score and your rating (as
 a note) come along. Change a date afterward if the rating day was wrong.
 
-IMDb also rates TV series, episodes and games. The preview lists those among
-the rows that can't be imported, saying what each one is, and only the films
-are imported.
+IMDb also rates TV series, episodes and games. Those aren't imported. The
+preview counts them as skipped, not failed, and a folded-away list says what
+each one is.
 
 ## Importing through the command-line tool instead
 

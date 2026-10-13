@@ -46,6 +46,7 @@ export class MovieImportForm extends HTMLElement {
   private mediumField: HTMLElement | undefined;
   private mediumInput: HTMLInputElement | undefined;
   private parseErrors: { rowNumber: number; error?: string }[] = [];
+  private skippedRows: { rowNumber: number; skipped?: string }[] = [];
 
   async connectedCallback() {
     this.credentials = await getCredentialsStore().get();
@@ -202,6 +203,7 @@ export class MovieImportForm extends HTMLElement {
       ? parseJsonImport(this.fileText)
       : parseCsvImport(this.fileText, { medium });
     this.parseErrors = parsed.filter((r) => r.error);
+    this.skippedRows = parsed.filter((r) => r.skipped);
 
     try {
       const existing = await fetchExistingForImportCheck(this.credentials);
@@ -211,8 +213,11 @@ export class MovieImportForm extends HTMLElement {
       this.renderReview();
       const parts = [`${this.plan.length} new row(s)`];
       if (this.updates.length > 0) parts.push(`${this.updates.length} existing entry update(s)`);
+      if (this.skippedRows.length > 0) parts.push(`${this.skippedRows.length} skipped (not films)`);
       if (this.parseErrors.length > 0) parts.push(`${this.parseErrors.length} failed to parse`);
-      this.statusEl.textContent = `${parts.join(", ")} ready to review.`;
+      const nothingToImport =
+        this.skippedRows.length > 0 && this.plan.length === 0 && this.updates.length === 0;
+      this.statusEl.textContent = `${parts.join(", ")}${nothingToImport ? "; nothing to import." : " ready to review."}`;
     } catch (error) {
       this.statusEl.textContent =
         error instanceof Error ? error.message : "Failed to check for duplicates.";
@@ -234,6 +239,8 @@ export class MovieImportForm extends HTMLElement {
       this.reviewContainer.appendChild(errorList);
     }
 
+    this.renderSkippedList();
+
     const createCheckboxes = this.renderCreateTable();
     const updateCheckboxes = this.renderUpdateSection();
 
@@ -248,6 +255,25 @@ export class MovieImportForm extends HTMLElement {
       () => void this.runImport(createCheckboxes, updateCheckboxes),
     );
     this.reviewContainer.appendChild(importButton);
+  }
+
+  // #855: expected leftovers, not faults, so neutral and folded away.
+  private renderSkippedList() {
+    if (!this.reviewContainer || this.skippedRows.length === 0) return;
+    const details = document.createElement("details");
+    details.className = "text-sm text-slate-600 dark:text-slate-400";
+    const summary = document.createElement("summary");
+    summary.className = "cursor-pointer";
+    summary.textContent = `${this.skippedRows.length} skipped (not films)`;
+    const list = document.createElement("ul");
+    list.className = "mt-2 list-inside list-disc";
+    for (const { rowNumber, skipped } of this.skippedRows) {
+      const li = document.createElement("li");
+      li.textContent = `Row ${rowNumber}: ${skipped}`;
+      list.appendChild(li);
+    }
+    details.append(summary, list);
+    this.reviewContainer.appendChild(details);
   }
 
   private renderCreateTable(): Map<number, HTMLInputElement> {

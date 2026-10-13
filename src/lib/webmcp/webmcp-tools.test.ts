@@ -441,6 +441,16 @@ describe("import_viewings", () => {
     expect(puts).toEqual([]);
   });
 
+  test("counts an IMDb series as skipped and says what it is", async () => {
+    const data =
+      "Const,Your Rating,Date Rated,Title,URL,Title Type\ntt1,8,2026-03-01,Severance,,tvSeries\n";
+    const result = await call("import_viewings", { format: "csv", data });
+    expect(text(result)).toBe(
+      'Imported: created 0, updated 0, skipped 1.\nrow 2: "Severance" is a TV series on IMDb, not a movie',
+    );
+    expect(puts).toEqual([]);
+  });
+
   test("reports input that isn't the format it claims", async () => {
     const result = await call("import_viewings", { format: "json", data: "not json" });
     expect(text(result)).toBe("Imported: created 0, updated 0, skipped 1.\nrow 1: not valid JSON");

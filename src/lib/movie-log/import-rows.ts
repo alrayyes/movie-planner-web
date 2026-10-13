@@ -57,6 +57,9 @@ export interface ParsedRow {
   rowNumber: number;
   row?: ImportRow;
   error?: string;
+  // #855: why a well-formed row was left out on purpose (an IMDb series, say).
+  // Unlike `error` it isn't a fault in the file, and the form shows it apart.
+  skipped?: string;
 }
 
 // Not anchored: isCalendarDate compares what it prints with the whole value, so
@@ -342,7 +345,7 @@ export function parseCsvImport(text: string, options: CsvImportOptions = {}): Pa
     // Row 1 is the header, so the first data row is 2 — matches the CLI's
     // own row numbering in its error/skip messages.
     const notAMovie = format === "imdb-ratings" ? imdbNotAMovie(raw) : undefined;
-    if (notAMovie) return { rowNumber: i + 2, error: notAMovie };
+    if (notAMovie) return { rowNumber: i + 2, skipped: notAMovie };
     const record =
       format === "letterboxd-diary"
         ? letterboxdRecord(raw, options.medium)

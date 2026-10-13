@@ -68,6 +68,9 @@ export function registerImportViewingsTool(): void {
           if (parsed.error) {
             skipped++;
             details.push(`row ${parsed.rowNumber}: ${parsed.error}`);
+          } else if (parsed.skipped) {
+            skipped++;
+            details.push(`row ${parsed.rowNumber}: ${parsed.skipped}`);
           }
         }
 
