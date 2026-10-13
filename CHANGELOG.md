@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.28.0...movie-planner-web-v1.29.0) (2026-10-13)
+
+
+### Features
+
+* **import:** skip non-film rows in an IMDb ratings export ([#856](https://github.com/alrayyes/movie-planner-web/issues/856)) ([d20bbc7](https://github.com/alrayyes/movie-planner-web/commit/d20bbc716d0deadeaa4c9a5e674b458871c541bb)), closes [#851](https://github.com/alrayyes/movie-planner-web/issues/851)
+
 ## [1.28.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.27.0...movie-planner-web-v1.28.0) (2026-10-12)
 
 
