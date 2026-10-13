@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.29.0...movie-planner-web-v1.30.0) (2026-10-13)
+
+
+### Features
+
+* **import:** show skipped IMDb rows apart from failed ones ([#858](https://github.com/alrayyes/movie-planner-web/issues/858)) ([367dbac](https://github.com/alrayyes/movie-planner-web/commit/367dbacbbae1e80f739b592e6b8e28dad13d5e1c)), closes [#855](https://github.com/alrayyes/movie-planner-web/issues/855)
+
 ## [1.29.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.28.0...movie-planner-web-v1.29.0) (2026-10-13)
 
 
