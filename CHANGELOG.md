@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.31.1...movie-planner-web-v1.31.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **omdb:** refresh an entry from its own IMDb ID, not by looking the title up ([#882](https://github.com/alrayyes/movie-planner-web/issues/882)) ([fcd918e](https://github.com/alrayyes/movie-planner-web/commit/fcd918e75fb5371ef9a324ee9f378fdddaffe517))
+
 ## [1.31.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.31.0...movie-planner-web-v1.31.1) (2026-10-14)
 
 

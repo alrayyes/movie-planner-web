@@ -43,30 +43,41 @@ const missing = $derived(viewings.filter((v) => v.venue && !v.geo).length);
 async function find() {
 	phase = "searching";
 	message = "";
-	proposals = await proposeMaps(viewings, {
-		onProgress: (done, total) => {
-			progress = `Looking up venue ${done} of ${total}…`;
-		},
-	});
-	ticked = Object.fromEntries(proposals.map((p) => [p.venue, p.source !== "none"]));
-	phase = "review";
+	try {
+		proposals = await proposeMaps(viewings, {
+			onProgress: (done, total) => {
+				progress = `Looking up venue ${done} of ${total}…`;
+			},
+		});
+		ticked = Object.fromEntries(proposals.map((p) => [p.venue, p.source !== "none"]));
+		phase = "review";
+	} catch (error) {
+		message = error instanceof Error ? error.message : "The lookup failed.";
+		phase = "idle";
+	}
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 async function apply() {
-	const approved = proposals
-		.filter((p) => ticked[p.venue] && p.match)
-		.map((p) => ({ venue: p.venue, geo: { lat: p.match?.lat ?? 0, lon: p.match?.lon ?? 0 } }));
+	const approved = proposals.flatMap((p) =>
+		ticked[p.venue] && p.match
+			? [{ venue: p.venue, geo: { lat: p.match.lat, lon: p.match.lon } }]
+			: [],
+	);
 	phase = "applying";
-	const { updated, failed } = await applyMaps(viewings, approved, {
-		update: (uid, viewing) => updateViewing(config, uid, viewing),
-		onProgress: (done, total) => {
-			progress = `Updating viewing ${done} of ${total}…`;
-		},
-	});
-	message = `Updated ${updated} viewing${updated === 1 ? "" : "s"}${failed ? `, ${failed} failed` : ""}.`;
+	try {
+		const { updated, failed } = await applyMaps(viewings, approved, {
+			update: (uid, viewing) => updateViewing(config, uid, viewing),
+			onProgress: (done, total) => {
+				progress = `Updating viewing ${done} of ${total}…`;
+			},
+		});
+		message = `Updated ${updated} viewing${updated === 1 ? "" : "s"}${failed ? `, ${failed} failed` : ""}.`;
+		onApplied();
+	} catch (error) {
+		message = error instanceof Error ? error.message : "The update failed.";
+	}
 	phase = "done";
-	onApplied();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
@@ -92,9 +103,7 @@ function cancel() {
           Find missing maps
         </button>
       </div>
-    {:else if phase === "searching" || phase === "applying"}
-      <p class={STATUS_TEXT} role="status">{progress}</p>
-    {:else}
+    {:else if phase === "review"}
       <div class={TABLE_WRAP}>
         <table class={TABLE}>
           <thead class="bg-slate-50 dark:bg-slate-900/40">
@@ -119,11 +128,11 @@ function cancel() {
                 <td class={TD}>{proposal.venue}</td>
                 <td class={TD}>
                   {#if proposal.source === "none"}
-                    Nothing found
+                    Nothing found, or the lookup failed
                   {:else if proposal.source === "viewing"}
                     Already known from another viewing
                   {:else}
-                    {proposal.match?.label}
+                    {proposal.match?.label} ({proposal.match?.lat}, {proposal.match?.lon})
                   {/if}
                 </td>
                 <td class={TD}>{proposal.count}</td>
@@ -138,8 +147,10 @@ function cancel() {
       </div>
     {/if}
 
-    {#if message}
-      <p class={STATUS_TEXT} role="status">{message}</p>
-    {/if}
+    <!-- One live region that is always in the page, so a screen reader hears
+    the progress and the result as the text changes. -->
+    <p class={STATUS_TEXT} role="status">
+      {phase === "searching" || phase === "applying" ? progress : message}
+    </p>
   </section>
 {/if}
