@@ -100,9 +100,11 @@ function formatGeo(geo: { lat: number; lon: number }): string {
   return `${geo.lat}, ${geo.lon}`;
 }
 
-function parseGeo(text: string): { lat: number; lon: number } {
+function parseGeo(text: string): { lat: number; lon: number } | undefined {
   const [lat, lon] = text.split(",").map(Number);
-  return { lat: lat as number, lon: lon as number };
+  return Number.isFinite(lat) && Number.isFinite(lon)
+    ? { lat: lat as number, lon: lon as number }
+    : undefined;
 }
 
 export interface FieldChange {
@@ -239,7 +241,8 @@ export async function applyImportUpdate(
   for (const change of entry.changes) {
     if (approvedFields.has(change.field)) {
       if (change.field === "geo") {
-        updated.geo = parseGeo(change.newValue);
+        // A pair that doesn't parse is skipped, never written as NaN.
+        updated.geo = parseGeo(change.newValue) ?? updated.geo;
       } else {
         // #8/#203: NewViewing has a non-string `geo` field, handled above, but
         // it's enough to break a direct `as` (no longer a sufficient

@@ -305,8 +305,6 @@ describe("planImport compares dates as the viewer's local date", () => {
   });
 });
 
-// Every comparable field is reported under its own label, which the review
-// page shows the visitor as the name of the checkbox.
 // #870: a uid match whose event has lost its venue coordinates offers them back.
 describe("planUpdates and the venue's coordinates", () => {
   const base: LoggedViewing = {
@@ -347,6 +345,8 @@ describe("planUpdates and the venue's coordinates", () => {
   });
 });
 
+// Every comparable field is reported under its own label, which the review
+// page shows the visitor as the name of the checkbox.
 describe("planUpdates labels every comparable field", () => {
   const labels: [keyof ImportRow & keyof NewViewing, string][] = [
     ["title", "Title"],
@@ -575,6 +575,43 @@ describe("writing to the calendar", () => {
       );
       expect(unfold(puts[1]?.body ?? "")).not.toContain("GEO:");
     });
+
+    test("negative and fractional coordinates are written as given", async () => {
+      const entry = {
+        rowNumber: 2,
+        uid: "u",
+        title: "Dune",
+        changes: [{ field: "geo", label: "Coordinates", newValue: "-33.87, 151.21" }],
+      } as const;
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...entry, changes: [...entry.changes] },
+        new Set<keyof NewViewing>(["geo"]),
+      );
+      expect(unfold(puts[0]?.body ?? "")).toContain("GEO:-33.87;151.21");
+    });
+
+    test.each(["x", "5", "5, x", ""])(
+      "a malformed pair %p leaves the event's own coordinates alone",
+      async (newValue) => {
+        const entry = {
+          rowNumber: 2,
+          uid: "u",
+          title: "Dune",
+          changes: [{ field: "geo", label: "Coordinates", newValue }],
+        } as const;
+        await applyImportUpdate(
+          CREDENTIALS,
+          { ...current, geo: { lat: 1, lon: 2 } },
+          { ...entry, changes: [...entry.changes] },
+          new Set<keyof NewViewing>(["geo"]),
+        );
+        const body = unfold(puts[0]?.body ?? "");
+        expect(body).toContain("GEO:1;2");
+        expect(body).not.toContain("NaN");
+      },
+    );
 
     test("approving nothing writes the entry back unchanged", async () => {
       await applyImportUpdate(
