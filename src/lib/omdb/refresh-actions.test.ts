@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { serializeViewingToVEvent } from "../caldav/ical";
 import type { CaldavConfig, NewViewing } from "../caldav/types";
-import { refreshAllMetadata, refreshMetadata } from "./refresh-actions";
+import { applyOmdbCandidate, refreshAllMetadata, refreshMetadata } from "./refresh-actions";
 
 const CONFIG: CaldavConfig = {
   baseUrl: "https://caldav.example.com/calendars/me/movies/",
@@ -131,6 +131,83 @@ describe("refreshMetadata", () => {
     expect(result.kind).toBe("refreshed");
     const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
     expect(String(put?.[1]?.body)).toContain("A desert planet.");
+  });
+
+  // #881: OMDb answers N/A for what it doesn't have, which parses to undefined,
+  // and spreading that over the entry used to blank a value already there.
+  test("keeps a value OMDb has no answer for instead of blanking it", async () => {
+    const partial: NewViewing = {
+      ...VIEWING,
+      imdbId: "tt1160419",
+      posterUrl: "https://example.com/dune.jpg",
+      director: "Denis Villeneuve",
+    };
+    const fetchMock = routeFetch({
+      caldavGet: () => new Response(serializeViewingToVEvent("uid-1", partial), { status: 200 }),
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbSearchByTitle: () =>
+        new Response(
+          JSON.stringify({
+            Response: "True",
+            Director: "N/A",
+            Plot: "A desert planet.",
+            Poster: "https://example.com/dune.jpg",
+            imdbID: "tt1160419",
+          }),
+          { status: 200 },
+        ),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await refreshMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      viewing: { ...partial, uid: "uid-1" },
+    });
+
+    const body = String(fetchMock.mock.calls.find(([, init]) => init?.method === "PUT")?.[1]?.body);
+    expect(body).toContain("Denis Villeneuve");
+    expect(body).toContain("A desert planet.");
+  });
+
+  test("the picker's choice and the bulk refresh keep what OMDb has no answer for too", async () => {
+    const partial: NewViewing = { ...VIEWING, director: "Denis Villeneuve" };
+    const omdb = () =>
+      new Response(
+        JSON.stringify({
+          Response: "True",
+          Director: "N/A",
+          Plot: "A desert planet.",
+          imdbID: "tt1160419",
+        }),
+        { status: 200 },
+      );
+    const fetchMock = routeFetch({
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: omdb,
+      omdbSearchByTitle: omdb,
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await applyOmdbCandidate({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      current: { ...partial, uid: "uid-1" },
+      candidate: { imdbId: "tt1160419", title: "Dune", year: "2021" },
+    });
+    await refreshAllMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      targets: [{ ...partial, uid: "uid-1" }],
+      onProgress: () => {},
+    });
+
+    const puts = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT");
+    expect(puts).toHaveLength(2);
+    for (const [, init] of puts) {
+      expect(String(init?.body)).toContain("Denis Villeneuve");
+      expect(String(init?.body)).toContain("A desert planet.");
+    }
   });
 
   // movie-editing spec: "Calendar entry re-checked before calling OMDb" +

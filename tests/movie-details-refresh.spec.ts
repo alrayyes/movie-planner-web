@@ -97,6 +97,30 @@ test.describe("refreshing a movie from its own page", () => {
     expect(server.updates[0]?.trailerUrl).toBe("https://www.youtube.com/watch?v=abc123");
   });
 
+  test("says it is up to date, and never calls OMDb, when nothing is missing", async ({ page }) => {
+    const complete = {
+      ...PARTIAL,
+      director: "Denis Villeneuve",
+      actors: "Timothée Chalamet",
+      genre: "Drama",
+      synopsis: "A desert planet.",
+    };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [complete]);
+    await connect(page);
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.locator("#movie-status")).toHaveText("Already up to date.");
+    expect(omdbCalls).toBe(0);
+    expect(server.updates).toHaveLength(0);
+  });
+
   test("a match chosen from Search OMDb gets its trailer too", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [PARTIAL]);
     await connect(page);
