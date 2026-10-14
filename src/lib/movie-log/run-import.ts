@@ -4,6 +4,7 @@ import { fetchFreshViewings } from "../caldav/viewings-source";
 import type { Credentials } from "../credentials/types";
 import { isLikelyDuplicateTitle } from "./duplicates";
 import { localDateAndTime } from "./export-viewings";
+import { EXTRA_FIELDS, type ExtraField } from "./extra-fields";
 import type { ImportRow, ParsedRow } from "./import-rows";
 
 export interface ImportPlanEntry {
@@ -196,6 +197,10 @@ function configFromCredentials(credentials: Credentials): CaldavConfig {
   };
 }
 
+function pickExtraFields(row: ImportRow): Partial<Record<ExtraField, string>> {
+  return Object.fromEntries(Object.values(EXTRA_FIELDS).map((field) => [field, row[field]]));
+}
+
 export async function importRow(credentials: Credentials, row: ImportRow): Promise<void> {
   // #69: the exported format supplies full ISO instants directly —
   // using those (rather than reconstructing from date + startTime/
@@ -227,6 +232,7 @@ export async function importRow(credentials: Credentials, row: ImportRow): Promi
     letterboxdUrl: row.letterboxdUrl,
     letterboxdRating: row.letterboxdRating,
     notes: row.notes,
+    ...pickExtraFields(row),
   };
   await createViewing(configFromCredentials(credentials), viewing);
 }
