@@ -171,6 +171,30 @@ test.describe("refreshing a movie from its own page", () => {
     expect(server.updates).toHaveLength(0);
   });
 
+  // #888: OMDb refusing the request is not "no match".
+  test("says OMDb isn't answering, rather than that it has no match, when it refuses", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [PARTIAL]);
+    await connect(page);
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False", Error: "Request limit reached!" }),
+      });
+    });
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.getByRole("alert")).toContainText(
+      "OMDb refused the request: Request limit reached!",
+    );
+    await expect(page.locator("#movie-status")).not.toHaveText(/no match/);
+    expect(server.updates).toHaveLength(0);
+  });
+
   test("a match chosen from Search OMDb gets its trailer too", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [PARTIAL]);
     await connect(page);
@@ -242,7 +266,7 @@ test.describe("refreshing a movie from its own page", () => {
               },
             ],
           }
-        : { Response: "False", Error: "Request limit reached!" };
+        : { Response: "False", Error: "Incorrect IMDb ID." };
       await route.fulfill({
         status: 200,
         contentType: "application/json",

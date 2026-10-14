@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { extractImdbId, lookupByImdbId, lookupMovie, searchMovies, searchOmdb } from "./client";
+import {
+  extractImdbId,
+  lookupByImdbId,
+  lookupMovie,
+  OmdbUnavailableError,
+  searchMovies,
+  searchOmdb,
+} from "./client";
 
 let originalFetch: typeof fetch;
 
@@ -134,12 +141,6 @@ describe("lookupMovie", () => {
     expect(await lookupMovie("test-key", "Not A Real Movie")).toBeNull();
   });
 
-  test("returns null on a non-ok response rather than throwing", async () => {
-    globalThis.fetch = (async () => new Response("", { status: 401 })) as unknown as typeof fetch;
-
-    expect(await lookupMovie("bad-key", "Dune")).toBeNull();
-  });
-
   test("omits fields OMDb reports as N/A", async () => {
     globalThis.fetch = (async () =>
       new Response(
@@ -264,12 +265,6 @@ describe("searchMovies", () => {
       })) as unknown as typeof fetch;
 
     expect(await searchMovies("test-key", "Not A Real Movie")).toEqual([]);
-  });
-
-  test("returns an empty array on a non-ok response rather than throwing", async () => {
-    globalThis.fetch = (async () => new Response("", { status: 401 })) as unknown as typeof fetch;
-
-    expect(await searchMovies("bad-key", "Dune")).toEqual([]);
   });
 
   test("drops a candidate with no imdbID rather than an unselectable entry", async () => {
@@ -707,13 +702,6 @@ describe("lookupByImdbId: requests and edges", () => {
     expect(seen?.searchParams.get("i")).toBe("tt1160419");
     expect(seen?.searchParams.get("plot")).toBe("full");
   });
-
-  test("returns null on an HTTP error", async () => {
-    globalThis.fetch = (async () =>
-      json({ Response: "True", imdbID: "tt1" }, 500)) as unknown as typeof fetch;
-
-    expect(await lookupByImdbId("key", "tt1")).toBeNull();
-  });
 });
 
 describe("searchOmdb: a pasted IMDb id", () => {
@@ -745,16 +733,6 @@ describe("searchOmdb: a pasted IMDb id", () => {
     });
   });
 
-  test("finds nothing on an HTTP error", async () => {
-    globalThis.fetch = (async () =>
-      json(
-        { Response: "True", imdbID: "tt1160419", Title: "Dune" },
-        500,
-      )) as unknown as typeof fetch;
-
-    expect(await searchOmdb("key", "tt1160419")).toEqual({ kind: "none" });
-  });
-
   test("finds nothing when OMDb answers Response False", async () => {
     globalThis.fetch = (async () =>
       json({ Response: "False", imdbID: "tt1160419", Title: "Dune" })) as unknown as typeof fetch;
@@ -776,5 +754,125 @@ describe("searchOmdb: a pasted IMDb id", () => {
     const outcome = await searchOmdb("key", "tt1160419");
 
     expect(outcome.kind === "match" && outcome.candidate.title).toBe("");
+  });
+});
+
+// #888: OMDb refusing or failing is not "no match". A caller has to be able to
+// tell them apart, or a quota error reads as a title that doesn't exist.
+async function failureOf(call: () => Promise<unknown>): Promise<OmdbUnavailableError> {
+  try {
+    await call();
+  } catch (error) {
+    return error as OmdbUnavailableError;
+  }
+  throw new Error("expected the call to throw");
+}
+
+describe("OMDb unavailable", () => {
+  const calls: [string, () => Promise<unknown>][] = [
+    ["lookupMovie", () => lookupMovie("key", "Dune")],
+    ["lookupMovie with a year", () => lookupMovie("key", "Dune", "2021")],
+    ["searchMovies", () => searchMovies("key", "Dune")],
+    ["lookupByImdbId", () => lookupByImdbId("key", "tt1160419")],
+    ["searchOmdb by title", () => searchOmdb("key", "Dune")],
+    ["searchOmdb by IMDb ID", () => searchOmdb("key", "tt1160419")],
+  ];
+
+  describe.each(calls)("%s", (_name, call) => {
+    test.each([401, 429, 500, 503])("throws OmdbUnavailableError on HTTP %d", async (status) => {
+      globalThis.fetch = (async () => new Response("", { status })) as unknown as typeof fetch;
+
+      const failure = await failureOf(call);
+
+      expect(failure).toBeInstanceOf(OmdbUnavailableError);
+      expect(failure.status).toBe(status);
+    });
+
+    test("throws OmdbUnavailableError on a network failure", async () => {
+      globalThis.fetch = (async () => {
+        throw new TypeError("network error");
+      }) as unknown as typeof fetch;
+
+      const failure = await failureOf(call);
+
+      expect(failure).toBeInstanceOf(OmdbUnavailableError);
+      expect(failure.status).toBeUndefined();
+    });
+
+    test.each(["Request limit reached!", "Invalid API key!", "No API key provided."])(
+      "throws OmdbUnavailableError when OMDb answers %p in a 200",
+      async (message) => {
+        globalThis.fetch = (async () =>
+          json({ Response: "False", Error: message })) as unknown as typeof fetch;
+
+        expect(await call().catch((error) => error)).toBeInstanceOf(OmdbUnavailableError);
+      },
+    );
+
+    test.each(["Movie not found!", "Incorrect IMDb ID.", "Too many results."])(
+      "still reports no match when OMDb answers %p",
+      async (message) => {
+        globalThis.fetch = (async () =>
+          json({ Response: "False", Error: message })) as unknown as typeof fetch;
+
+        const result = await call();
+
+        expect([null, [], { kind: "none" }] as unknown[]).toContainEqual(result);
+      },
+    );
+  });
+
+  test("the error says what happened", async () => {
+    globalThis.fetch = (async () => new Response("", { status: 429 })) as unknown as typeof fetch;
+    const failure = await failureOf(() => lookupMovie("key", "Dune"));
+    expect(failure.name).toBe("OmdbUnavailableError");
+    expect(failure.message).toBe("OMDb isn't answering (HTTP 429). Try again in a moment.");
+  });
+
+  test("a 200 answer with a quota message says so", async () => {
+    globalThis.fetch = (async () =>
+      json({ Response: "False", Error: "Request limit reached!" })) as unknown as typeof fetch;
+    const failure = await failureOf(() => lookupMovie("key", "Dune"));
+    expect(failure.message).toBe("OMDb refused the request: Request limit reached!");
+  });
+});
+
+describe("OMDb unavailable: edges", () => {
+  test("an answer that isn't JSON counts as unavailable, not as a crash", async () => {
+    globalThis.fetch = (async () =>
+      new Response("<html>", { status: 200 })) as unknown as typeof fetch;
+
+    const failure = await failureOf(() => lookupMovie("key", "Dune"));
+
+    expect(failure).toBeInstanceOf(OmdbUnavailableError);
+    expect(failure.message).toBe("OMDb isn't answering. Try again in a moment.");
+  });
+
+  test("a later search page that is refused keeps the candidates already found", async () => {
+    let page = 0;
+    globalThis.fetch = (async () => {
+      page++;
+      if (page === 1) {
+        return json({
+          Response: "True",
+          totalResults: "25",
+          Search: [{ Title: "Dune", Year: "2021", imdbID: "tt1160419" }],
+        });
+      }
+      return new Response("", { status: 429 });
+    }) as unknown as typeof fetch;
+
+    const found = await searchMovies("key", "Dune");
+
+    expect(found.map((c) => c.imdbId)).toEqual(["tt1160419"]);
+    expect(page).toBe(2);
+  });
+
+  test("the first search page being refused is not hidden", async () => {
+    globalThis.fetch = (async () => new Response("", { status: 429 })) as unknown as typeof fetch;
+
+    expect(await searchMovies("key", "Dune").catch((error) => error)).toBeInstanceOf(
+      OmdbUnavailableError,
+    );
   });
 });
