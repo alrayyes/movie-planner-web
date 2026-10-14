@@ -43,12 +43,13 @@ import Layout from "../layouts/Layout.astro";
       >
         Nominatim
       </a>
-      , OpenStreetMap's free geocoder — only when you use that search field,
-      never automatically. Any map showing a located venue loads map tiles from
-      OpenStreetMap directly, which does happen automatically whenever such a
-      map is on screen. Neither service ever receives your CalDAV or OMDb
-      credentials — Nominatim sees only the address text you type, and the tile
-      provider sees only the map area being viewed.
+      , OpenStreetMap's free geocoder — only when you use that search field or
+      press "Find missing maps" on the Venues page, never automatically. Any map
+      showing a located venue loads map tiles from OpenStreetMap directly, which
+      does happen automatically whenever such a map is on screen. Neither
+      service ever receives your CalDAV or OMDb credentials — Nominatim sees
+      only the address text you type, or the venue names you ask it to look up,
+      and the tile provider sees only the map area being viewed.
     </p>
   </div>
 </Layout>
