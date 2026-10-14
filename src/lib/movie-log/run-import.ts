@@ -169,11 +169,7 @@ function configFromCredentials(credentials: Credentials): CaldavConfig {
 }
 
 function pickExtraFields(row: ImportRow): Partial<Record<ExtraField, string>> {
-  const picked: Partial<Record<ExtraField, string>> = {};
-  for (const field of Object.values(EXTRA_FIELDS)) {
-    if (row[field] !== undefined) picked[field] = row[field];
-  }
-  return picked;
+  return Object.fromEntries(Object.values(EXTRA_FIELDS).map((field) => [field, row[field]]));
 }
 
 export async function importRow(credentials: Credentials, row: ImportRow): Promise<void> {

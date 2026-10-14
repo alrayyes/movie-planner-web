@@ -446,7 +446,7 @@ describe("writing to the calendar", () => {
     awards: "Won 6 Oscars",
     trailerUrl: "https://example.com/trailer",
     collection: "Dune Collection",
-    certification: "12",
+    certification: "NL-12",
     keywords: "desert, spice",
     budget: "$165,000,000",
     popularity: "88.1",
