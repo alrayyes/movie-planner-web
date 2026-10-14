@@ -8,6 +8,7 @@ import { isOmdbComplete, type MissingOmdbField, missingOmdbFields } from "../lib
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
 	applyOmdbCandidate,
+	bulkRefreshMessage,
 	noMatchMessage,
 	type RefreshResult,
 	refreshAllMetadata,
@@ -270,7 +271,7 @@ async function handleRefreshAll() {
 	actionError = "";
 	actionStatusText = `Refreshing 0 of ${targets.length}…`;
 	try {
-		const { refreshed, misses } = await refreshAllMetadata({
+		const result = await refreshAllMetadata({
 			config,
 			omdbApiKey,
 			tmdbApiKey,
@@ -280,10 +281,7 @@ async function handleRefreshAll() {
 			},
 		});
 		await load();
-		actionStatusText =
-			misses > 0
-				? `Refreshed ${refreshed} of ${targets.length} (${misses} had no OMDb match or failed).`
-				: `Refreshed ${refreshed} of ${targets.length}.`;
+		actionStatusText = bulkRefreshMessage(result, targets.length);
 	} finally {
 		refreshingAll = false;
 	}

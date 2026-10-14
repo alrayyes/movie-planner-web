@@ -14,6 +14,7 @@ import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
 	applyOmdbCandidate,
+	bulkRefreshMessage,
 	noMatchMessage,
 	refreshAllMetadata,
 	refreshMetadata,
@@ -798,7 +799,7 @@ async function handleRefreshAll() {
 		// #575: the per-viewing lookup/update loop lives in
 		// lib/omdb/refresh-actions.ts now, shared with the missing-data
 		// overview's own bulk refresh.
-		const { refreshed, misses } = await refreshAllMetadata({
+		const result = await refreshAllMetadata({
 			config,
 			omdbApiKey,
 			tmdbApiKey,
@@ -809,10 +810,7 @@ async function handleRefreshAll() {
 		});
 
 		await reload({ silent: true });
-		actionStatusText =
-			misses > 0
-				? `Refreshed ${refreshed} of ${targets.length} (${misses} had no OMDb match or failed).`
-				: `Refreshed ${refreshed} of ${targets.length}.`;
+		actionStatusText = bulkRefreshMessage(result, targets.length);
 	} finally {
 		refreshingAll = false;
 	}
