@@ -12,6 +12,8 @@ import ConnectLink from "./ConnectLink.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
+import RefreshMaps from "./RefreshMaps.svelte";
+// biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import VenueMap from "./VenueMap.svelte";
 
 // #99: every venue the visitor has ever logged a viewing at, or added
@@ -66,6 +68,11 @@ interface VenueInfo {
 // A field missing from every viewing at that venue is simply left off,
 // same "omit, don't guess" rule the other maps already follow.
 let venueInfos = $state<VenueInfo[]>([]);
+// #869: what "Refresh maps" looks at and writes to, and where to write it.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let loadedViewings = $state<LoggedViewing[]>([]);
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let caldavConfig = $state<CaldavConfig | null>(null);
 // #146: the exact range that produced the counts currently on screen.
 // A venue link needs to carry this so the overview it lands on shows
 // the same viewings the count was drawn from, rather than falling back
@@ -184,7 +191,9 @@ async function load() {
 		// background refresh differs. The picklist is a small live fetch the
 		// refresh waits for, since it can finish first.
 		const picklists = getPicklists(config);
+		caldavConfig = config;
 		const apply = (venues: VenueEntry[], viewings: LoggedViewing[]) => {
+			loadedViewings = viewings;
 			// #452: a picklist entry now carries its own city/country/geo
 			// directly — seeded here so a venue with zero viewings (still
 			// worth showing, #99's own scenario) can be grouped/pinned from
@@ -253,6 +262,10 @@ reloadOnBfcacheRestore(() => void load());
   {/if}
   {#if loadError}
     <ErrorToast message={loadError} onDismiss={() => (loadError = "")} />
+  {/if}
+
+  {#if caldavConfig}
+    <RefreshMaps viewings={loadedViewings} config={caldavConfig} onApplied={() => void load()} />
   {/if}
 
   {#snippet venueTable(list: VenueInfo[])}
