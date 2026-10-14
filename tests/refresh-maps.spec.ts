@@ -178,6 +178,11 @@ test.describe("Refresh maps on the Venues page", () => {
 
     await expect(page.getByRole("cell", { name: /Lookup failed/ })).toHaveCount(2);
     await expect(page.getByRole("cell", { name: /Nothing found/ })).toHaveCount(0);
+    // Nothing to write for a venue that wasn't looked up: unticked and disabled.
+    for (const box of await page.getByRole("checkbox").all()) {
+      await expect(box).not.toBeChecked();
+      await expect(box).toBeDisabled();
+    }
     expect(requests).toBe(1);
   });
 

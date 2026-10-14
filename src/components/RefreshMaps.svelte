@@ -49,7 +49,7 @@ async function find() {
 				progress = `Looking up venue ${done} of ${total}…`;
 			},
 		});
-		ticked = Object.fromEntries(proposals.map((p) => [p.venue, p.source !== "none"]));
+		ticked = Object.fromEntries(proposals.map((p) => [p.venue, p.match !== undefined]));
 		phase = "review";
 	} catch (error) {
 		message = error instanceof Error ? error.message : "The lookup failed.";

@@ -212,6 +212,11 @@ test.describe("structured venue picklist", () => {
     await page.locator("#log-add-venue-geo-search").fill("Grand Vista Cinema");
 
     await expect(page.getByRole("alert").filter({ hasText: "address lookup" })).toBeVisible();
+
+    // Closing the dialog and opening it again starts clean, with no stale alert.
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "address lookup" })).toHaveCount(0);
   });
 
   test("adding a new venue with just a name works — every other field, including the address search, is optional", async ({

@@ -126,6 +126,7 @@ function chooseGeo(candidate: GeoCandidate) {
 	chosenGeo = { lat: candidate.lat, lon: candidate.lon };
 	chosenGeoLabel = candidate.label;
 	geoCandidates = [];
+	geoError = "";
 	geoQuery = "";
 }
 
@@ -143,6 +144,7 @@ function resetForm() {
 	newCountry = "";
 	geoQuery = "";
 	geoCandidates = [];
+	geoError = "";
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
 	selectedMissingVenues = new Set();
@@ -158,6 +160,7 @@ function startAddVenue() {
 	newCountry = "";
 	geoQuery = "";
 	geoCandidates = [];
+	geoError = "";
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
 	selectedMissingVenues = new Set();
