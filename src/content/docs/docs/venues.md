@@ -62,3 +62,17 @@ page](/privacy) for the full picture, including what OpenStreetMap and
 Nominatim do and don't see. Your CalDAV and OMDb credentials are never
 part of either request. A viewing's own details page shows the same
 kind of map too, already centred on that one venue.
+
+## Refreshing missing maps
+
+A map needs coordinates on the viewing itself. If viewings lost theirs —
+an import from a file exported before location was included, say, or a
+venue typed in free-form — the Venues page shows a "Refresh maps"
+section. "Find missing maps" looks each such venue up on
+[Nominatim](https://nominatim.org/), about a second per venue, and lists
+what it found: the place it matched and how many viewings are affected.
+Nothing is written yet. Clear the box on any match that looks wrong, then "Update
+viewings" saves the coordinates onto those viewings. A viewing that
+already has coordinates is never changed, and a venue where another
+viewing already has them reuses those without a lookup. Nothing is looked
+up until you press the button.
