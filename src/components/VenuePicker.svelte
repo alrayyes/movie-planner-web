@@ -131,6 +131,11 @@ function onGeoQueryInput() {
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function chooseGeo(candidate: GeoCandidate) {
+	// #902: a search still in flight, or still waiting out the debounce, is no
+	// longer wanted once a result has been picked.
+	runGeoSearch.cancel();
+	latestSearch.cancel();
+	geoSearching = false;
 	chosenGeo = { lat: candidate.lat, lon: candidate.lon };
 	chosenGeoLabel = candidate.label;
 	geoCandidates = [];
@@ -144,7 +149,9 @@ function chooseGeo(candidate: GeoCandidate) {
 // resetAddMediumDialog and the Search OMDb dialog's resetSearchDialog.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function resetForm() {
-	// A search still in flight when the dialog closes must not write into the next one.
+	// A search still in flight, or still waiting out the debounce, when the dialog
+	// closes must not write into the next one (#894, #902).
+	runGeoSearch.cancel();
 	latestSearch.cancel();
 	geoSearching = false;
 	editingVenue = false;

@@ -284,6 +284,77 @@ test.describe("structured venue picklist", () => {
     await expect(page.getByRole("button", { name: "Old result" })).toHaveCount(0);
   });
 
+  // #902: a search that is no longer wanted leaves no trace.
+  test("picking a result drops a search still in flight", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });
+    await connect(page);
+    const queries: string[] = [];
+    let answerLater: () => void = () => {};
+    const laterMayAnswer = new Promise<void>((resolve) => {
+      answerLater = resolve;
+    });
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      const q = new URL(route.request().url()).searchParams.get("q") ?? "";
+      queries.push(q);
+      if (q === "amst") await laterMayAnswer;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([{ display_name: `Result for ${q}`, lat: "1", lon: "2" }]),
+      });
+    });
+    await page.goto("/log");
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-geo-search").fill("ams");
+    await page.getByRole("button", { name: "Result for ams" }).waitFor();
+    await page.locator("#log-add-venue-geo-search").fill("amst");
+    await expect.poll(() => queries).toEqual(["ams", "amst"]);
+
+    // The first list is still on screen while the newer search is out; pick from it.
+    await page.getByRole("button", { name: "Result for ams" }).click();
+    await expect(page.getByText("Location set: Result for ams")).toBeVisible();
+    await expect(page.getByText("Searching…")).toHaveCount(0);
+
+    const landed = page.waitForResponse((r) => r.url().includes("q=amst&"));
+    answerLater();
+    await landed;
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    await expect(page.getByRole("button", { name: "Result for amst" })).toHaveCount(0);
+    await expect(page.getByText("Searching…")).toHaveCount(0);
+  });
+
+  test("closing the dialog before the debounce fires starts no search, and reopening is clean", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });
+    await connect(page);
+    const queries: string[] = [];
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      queries.push(new URL(route.request().url()).searchParams.get("q") ?? "");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([{ display_name: "Late result", lat: "1", lon: "2" }]),
+      });
+    });
+    await page.goto("/log");
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-geo-search").fill("ams");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    // Past the 400 ms debounce, with the dialog closed.
+    await page.clock.runFor(1000);
+    expect(queries).toEqual([]);
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await expect(page.getByRole("button", { name: "Late result" })).toHaveCount(0);
+    await expect(page.getByText("Searching…")).toHaveCount(0);
+    await expect(page.getByRole("alert").filter({ hasText: "address lookup" })).toHaveCount(0);
+  });
+
   // #873: a refused address search is not "no results".
   test("says so when the address search can't be reached", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });

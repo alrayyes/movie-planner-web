@@ -32,4 +32,40 @@ describe("debounce", () => {
 
     expect(fn).toHaveBeenCalledTimes(2);
   });
+
+  // #902: closing a dialog must be able to drop a call that has not fired yet.
+  test("cancel drops a pending call", async () => {
+    const fn = mock((_value: string) => {});
+    const debounced = debounce(fn, 20);
+
+    debounced("pending");
+    debounced.cancel();
+    await wait(40);
+
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  test("cancel with nothing pending does nothing, and the next call still fires", async () => {
+    const fn = mock((_value: string) => {});
+    const debounced = debounce(fn, 20);
+
+    expect(() => debounced.cancel()).not.toThrow();
+    debounced("later");
+    await wait(40);
+
+    expect(fn).toHaveBeenCalledWith("later");
+  });
+
+  test("a call made after a cancel fires normally", async () => {
+    const fn = mock((_value: string) => {});
+    const debounced = debounce(fn, 20);
+
+    debounced("dropped");
+    debounced.cancel();
+    debounced("kept");
+    await wait(40);
+
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith("kept");
+  });
 });
