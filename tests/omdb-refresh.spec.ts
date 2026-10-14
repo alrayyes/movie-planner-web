@@ -169,6 +169,10 @@ test.describe("refreshing OMDb metadata from the overview", () => {
           ...DUNE,
           imdbId: "tt1160419",
           posterUrl: "https://example.com/dune-poster.jpg",
+          director: "Denis Villeneuve",
+          actors: "Timothée Chalamet",
+          genre: "Drama",
+          synopsis: "A desert planet.",
         }),
       });
     });
