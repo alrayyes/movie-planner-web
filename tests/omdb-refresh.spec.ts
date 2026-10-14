@@ -225,6 +225,9 @@ test.describe("refreshing OMDb metadata from the overview", () => {
       ...DUNE,
       imdbId: "tt1160419",
       posterUrl: "https://example.com/dune-poster.jpg",
+      actors: "Timothée Chalamet",
+      genre: "Drama",
+      synopsis: "A desert planet.",
     };
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       alreadyFullyMatched,
@@ -448,6 +451,9 @@ test.describe("refreshing OMDb metadata from the overview", () => {
       ...DUNE,
       imdbId: "tt1160419",
       posterUrl: "https://example.com/dune-poster.jpg",
+      actors: "Timothée Chalamet",
+      genre: "Drama",
+      synopsis: "A desert planet.",
     };
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [already, PADDINGTON]);
     await connect(page, "test-omdb-key");
@@ -476,6 +482,46 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     expect(server.updates[0]?.title).toBe("Paddington");
   });
 
+  // #896: a poster and an IMDb ID used to be enough to leave an entry out of the
+  // bulk refresh, whatever else it was missing.
+  test("refresh all includes a title that has a poster and an IMDb ID but no director or synopsis", async ({
+    page,
+  }) => {
+    const partial = {
+      uid: "glass-onion-uid",
+      title: "Glass Onion",
+      start: ONE_MONTH_AGO.toISOString(),
+      end: new Date(ONE_MONTH_AGO.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      medium: "netflix",
+      imdbId: "tt24734444",
+      posterUrl: "https://example.com/glass-onion.jpg",
+    };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [partial]);
+    await connect(page, "test-omdb-key");
+    const asked: string[] = [];
+    page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      asked.push(new URL(route.request().url()).searchParams.get("i") ?? "");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "Rian Johnson",
+          Plot: "A detective at a private island.",
+          imdbID: "tt24734444",
+          Poster: "https://example.com/glass-onion.jpg",
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    expect(asked).toEqual(["tt24734444"]);
+    expect(server.updates[0]?.director).toBe("Rian Johnson");
+    expect(server.updates[0]?.synopsis).toBe("A detective at a private island.");
+  });
+
   test("no Refresh all control appears when every title on the page already has matched metadata", async ({
     page,
   }) => {
@@ -483,6 +529,9 @@ test.describe("refreshing OMDb metadata from the overview", () => {
       ...DUNE,
       imdbId: "tt1160419",
       posterUrl: "https://example.com/dune-poster.jpg",
+      actors: "Timothée Chalamet",
+      genre: "Drama",
+      synopsis: "A desert planet.",
     };
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [already]);
     await connect(page, "test-omdb-key");
@@ -656,6 +705,9 @@ test.describe("refreshing OMDb metadata from the overview", () => {
           body: JSON.stringify({
             Response: "True",
             Director: "Some Director",
+            Actors: "Some Actor",
+            Genre: "Drama",
+            Plot: "A plot.",
             Poster: "https://example.com/poster.jpg",
             imdbID: "tt0000000",
             Ratings: [],
