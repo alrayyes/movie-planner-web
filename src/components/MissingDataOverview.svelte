@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { accountKeyFor } from "../lib/caldav/viewings-cache";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -15,11 +16,7 @@ import {
 	refreshAllMetadata,
 	refreshMetadata,
 } from "../lib/omdb/refresh-actions";
-import {
-	attemptsAccount,
-	browserStorage,
-	createRefreshAttempts,
-} from "../lib/omdb/refresh-attempts";
+import { browserStorage, createRefreshAttempts } from "../lib/omdb/refresh-attempts";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -271,7 +268,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey || !config) return;
 	// #898: titles OMDb already answered without completing are left out.
-	const attempts = createRefreshAttempts(browserStorage(), attemptsAccount(config));
+	const attempts = createRefreshAttempts(browserStorage(), await accountKeyFor(config));
 	const { targets, skipped } = planBulkRefresh(
 		currentPageItems.map((g) => g.viewing).filter((v) => !isOmdbComplete(v)),
 		attempts.wasTried,

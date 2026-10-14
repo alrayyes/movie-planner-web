@@ -636,7 +636,10 @@ describe("refreshAllMetadata and what stays incomplete", () => {
       ["done", "partial", "noplot"],
     );
     expect(result.refreshed).toBe(3);
-    expect(result.stillIncomplete).toEqual(["uid-partial", "uid-noplot"]);
+    expect(result.stillIncomplete).toEqual([
+      { uid: "uid-partial", imdbId: "partial" },
+      { uid: "uid-noplot", imdbId: "noplot" },
+    ]);
   });
 
   test("does not list a title OMDb had no answer for, or one that is now complete", async () => {
@@ -682,7 +685,7 @@ describe("refreshAllMetadata and what stays incomplete", () => {
 describe("planBulkRefresh", () => {
   test("leaves out titles already tried and counts them", () => {
     const entries = [{ uid: "a" }, { uid: "b" }, { uid: "c" }];
-    const plan = planBulkRefresh(entries, (uid) => uid === "b");
+    const plan = planBulkRefresh(entries, ({ uid }) => uid === "b");
     expect(plan.targets).toEqual([{ uid: "a" }, { uid: "c" }]);
     expect(plan.skipped).toBe(1);
   });

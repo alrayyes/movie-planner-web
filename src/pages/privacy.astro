@@ -28,6 +28,14 @@ import Layout from "../layouts/Layout.astro";
       data described below.
     </p>
     <p>
+      The same storage also holds a short note of which titles OMDb answered for
+      but couldn't fully fill in (no poster or plot for them), so that "Refresh
+      all metadata" doesn't ask OMDb about them again every time. It holds a
+      title's calendar ID and IMDb ID and a date, under a key made from a hash
+      of the calendar address and user name, never the credentials themselves.
+      It expires after 30 days, and clearing the site data removes it.
+    </p>
+    <p>
       Every CalDAV and OMDb request this site makes goes directly from your
       browser to the servers you pointed it at — there's no proxy, relay, or
       analytics service of any kind in between. Clearing your browser's site

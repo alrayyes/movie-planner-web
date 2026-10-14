@@ -2,6 +2,7 @@
 import { syncCaldavActivityLog } from "../lib/activity-log/sync";
 import { deleteViewing, getPicklists, listViewings } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { accountKeyFor } from "../lib/caldav/viewings-cache";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { filterViewings } from "../lib/movie-log/filter-viewings";
 import { movieHref } from "../lib/movie-log/movie-link";
@@ -20,11 +21,7 @@ import {
 	refreshAllMetadata,
 	refreshMetadata,
 } from "../lib/omdb/refresh-actions";
-import {
-	attemptsAccount,
-	browserStorage,
-	createRefreshAttempts,
-} from "../lib/omdb/refresh-attempts";
+import { browserStorage, createRefreshAttempts } from "../lib/omdb/refresh-attempts";
 import { parseReleasedDate } from "../lib/omdb/released-date";
 import { ACTIVE_FILTER_LABEL_EVENT, activeFilterLabel } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
@@ -797,7 +794,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey) return;
 	// #898: titles OMDb already answered without completing are left out.
-	const attempts = createRefreshAttempts(browserStorage(), attemptsAccount(config));
+	const attempts = createRefreshAttempts(browserStorage(), await accountKeyFor(config));
 	const { targets, skipped } = planBulkRefresh(
 		currentPageItems.filter((v) => !isOmdbComplete(v)),
 		attempts.wasTried,

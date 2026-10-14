@@ -13,6 +13,18 @@ interface AttemptStorage {
   setItem(key: string, value: string): void;
 }
 
+// What OMDb was asked about. A title whose IMDb ID has changed since (the visitor
+// picked another film) is a different question, so the marker no longer applies.
+export interface TriedTitle {
+  uid: string;
+  imdbId?: string;
+}
+
+interface Marker {
+  at: number;
+  imdbId?: string;
+}
+
 export function createRefreshAttempts(
   storage: AttemptStorage | undefined,
   account: string,
@@ -20,19 +32,21 @@ export function createRefreshAttempts(
 ) {
   const key = KEY_PREFIX + account;
 
-  function read(): Record<string, number> {
+  function read(): Record<string, Marker> {
     try {
       // Stryker disable next-line StringLiteral: an empty default makes JSON.parse throw and the catch below returns {} anyway.
       const parsed: unknown = JSON.parse(storage?.getItem(key) ?? "{}");
-      return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-        ? (parsed as Record<string, number>)
-        : {};
+      return parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, Marker>) : {};
     } catch {
       return {};
     }
   }
 
-  function write(record: Record<string, number>) {
+  function current(marker: Marker | undefined): marker is Marker {
+    return typeof marker?.at === "number" && now() - marker.at < RETRY_AFTER_MS;
+  }
+
+  function write(record: Record<string, Marker>) {
     try {
       storage?.setItem(key, JSON.stringify(record));
     } catch {
@@ -41,20 +55,18 @@ export function createRefreshAttempts(
   }
 
   return {
-    wasTried(uid: string): boolean {
-      const at = read()[uid];
-      return typeof at === "number" && now() - at < RETRY_AFTER_MS;
+    wasTried({ uid, imdbId }: TriedTitle): boolean {
+      const marker = read()[uid];
+      return current(marker) && marker.imdbId === imdbId;
     },
-    record(uids: readonly string[]): void {
-      if (uids.length === 0) return;
-      const record = read();
-      for (const uid of uids) record[uid] = now();
-      write(record);
-    },
-    forget(uid: string): void {
-      const record = read();
-      delete record[uid];
-      write(record);
+    record(titles: readonly TriedTitle[]): void {
+      if (titles.length === 0) return;
+      // Markers past the window are dropped here, so the store can't grow without bound.
+      const kept = Object.fromEntries(
+        Object.entries(read()).filter(([, marker]) => current(marker)),
+      );
+      for (const { uid, imdbId } of titles) kept[uid] = { at: now(), imdbId };
+      write(kept);
     },
   };
 }
@@ -67,8 +79,4 @@ export function browserStorage(): AttemptStorage | undefined {
     // Blocked site data: carry on without a store.
   }
   return undefined;
-}
-
-export function attemptsAccount(config: { baseUrl: string; username: string }): string {
-  return `${config.baseUrl}|${config.username}`;
 }
