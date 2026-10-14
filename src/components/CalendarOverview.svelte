@@ -14,6 +14,7 @@ import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
 	applyOmdbCandidate,
+	noMatchMessage,
 	refreshAllMetadata,
 	refreshMetadata,
 } from "../lib/omdb/refresh-actions";
@@ -717,7 +718,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 				showOmdbPicker(result.current, result.candidates);
 				break;
 			case "no-match":
-				actionStatusText = "OMDb had no match for this title.";
+				actionStatusText = noMatchMessage(result);
 				break;
 		}
 	} catch (error) {

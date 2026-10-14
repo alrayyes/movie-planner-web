@@ -34,7 +34,7 @@ import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/li
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
-import { applyOmdbCandidate, refreshMetadata } from "../lib/omdb/refresh-actions";
+import { applyOmdbCandidate, noMatchMessage, refreshMetadata } from "../lib/omdb/refresh-actions";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { releasedDayOfWeek } from "../lib/omdb/released-date";
 import { encodeSharedState, type SharedState, toSharedViewing } from "../lib/share/encode";
@@ -393,7 +393,7 @@ async function handleRefresh(current: LoggedViewing) {
 				? "Refreshed."
 				: result.kind === "already-up-to-date"
 					? "Already up to date."
-					: "OMDb had no match for this title.";
+					: noMatchMessage(result);
 	} catch (error) {
 		errorMessage = error instanceof Error ? error.message : "Failed to refresh metadata.";
 	}

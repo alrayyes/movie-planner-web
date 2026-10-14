@@ -121,6 +121,56 @@ test.describe("refreshing a movie from its own page", () => {
     expect(server.updates).toHaveLength(0);
   });
 
+  // #881: a hand-corrected match survives a refresh.
+  test("refreshes an entry from its own IMDb ID rather than looking its title up again", async ({
+    page,
+  }) => {
+    const chosen = { ...PARTIAL, imdbId: "tt0087182", posterUrl: "https://example.com/1984.jpg" };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [chosen]);
+    await connect(page);
+    const asked: string[] = [];
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      asked.push(url.searchParams.get("i") ?? `title:${url.searchParams.get("t")}`);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ...OMDB_FULL, Director: "David Lynch", imdbID: "tt0087182" }),
+      });
+    });
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.locator("#movie-status")).toHaveText("Refreshed.");
+    expect(asked).toEqual(["tt0087182"]);
+    expect(server.updates[0]?.imdbId).toBe("tt0087182");
+    expect(server.updates[0]?.director).toBe("David Lynch");
+  });
+
+  test("points to Search OMDb when OMDb has nothing for the entry's own IMDb ID", async ({
+    page,
+  }) => {
+    const chosen = { ...PARTIAL, imdbId: "tt0087182" };
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [chosen]);
+    await connect(page);
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False", Error: "Incorrect IMDb ID." }),
+      });
+    });
+    await page.getByRole("link", { name: "Dune (2021)" }).click();
+
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+
+    await expect(page.locator("#movie-status")).toHaveText(
+      "OMDb has nothing for IMDb ID tt0087182. Use Search OMDb to pick another match.",
+    );
+    expect(server.updates).toHaveLength(0);
+  });
+
   test("a match chosen from Search OMDb gets its trailer too", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [PARTIAL]);
     await connect(page);
