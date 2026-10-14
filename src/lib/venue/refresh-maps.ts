@@ -1,6 +1,6 @@
 import { retryWhenBusy } from "../caldav/retry";
 import type { LoggedViewing, NewViewing } from "../caldav/types";
-import { type GeoCandidate, searchAddress } from "../geo/nominatim";
+import { type GeoCandidate, GeocoderUnavailableError, searchAddress } from "../geo/nominatim";
 
 // #869: restores the coordinates a venue's viewings lost (an import from before
 // #867, a venue typed in free-form). The maps plot a viewing's own GEO, not the
@@ -17,7 +17,9 @@ export interface MapProposal {
   count: number;
   // "viewing": another viewing at the venue already had them. "lookup": the
   // geocoder's first hit. "none": nothing found, nothing will be written.
-  source: "viewing" | "lookup" | "none";
+  // "failed": the geocoder refused or was down (#873), so this venue wasn't
+  // looked up, and nor was any after it.
+  source: "viewing" | "lookup" | "none" | "failed";
   match?: GeoCandidate;
 }
 
@@ -48,26 +50,35 @@ export async function proposeMaps(
 
   const proposals: MapProposal[] = [];
   let requested = false;
+  // Set by the first refusal or outage; the rest of the run sends nothing more.
+  let geocoderDown = false;
   const lookup = async (query: string): Promise<GeoCandidate | undefined> => {
     if (requested) await sleep(REQUEST_GAP_MS);
     requested = true;
-    // searchAddress fails soft, so a lookup that finds nothing is just empty.
     return (await search(query))[0];
   };
 
   for (const [venue, { missing, known }] of todo) {
     if (known) {
       proposals.push({ venue, count: missing, source: "viewing", match: { label: "", ...known } });
+    } else if (geocoderDown) {
+      proposals.push({ venue, count: missing, source: "failed" });
     } else {
       // A venue is "Name, street, postcode city, country". The geocoder knows
       // the address, rarely the cinema's name, so the second try drops it.
       const address = venue.includes(",") ? venue.slice(venue.indexOf(",") + 1).trim() : "";
-      const match = (await lookup(venue)) ?? (address ? await lookup(address) : undefined);
-      proposals.push(
-        match
-          ? { venue, count: missing, source: "lookup", match }
-          : { venue, count: missing, source: "none" },
-      );
+      try {
+        const match = (await lookup(venue)) ?? (address ? await lookup(address) : undefined);
+        proposals.push(
+          match
+            ? { venue, count: missing, source: "lookup", match }
+            : { venue, count: missing, source: "none" },
+        );
+      } catch (error) {
+        if (!(error instanceof GeocoderUnavailableError)) throw error;
+        geocoderDown = true;
+        proposals.push({ venue, count: missing, source: "failed" });
+      }
     }
     onProgress?.(proposals.length, todo.length);
   }
