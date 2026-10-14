@@ -24,6 +24,19 @@ export function hasOmdbMetadata(viewing: Pick<LoggedViewing, "imdbId" | "posterU
   return Boolean(viewing.imdbId && viewing.posterUrl);
 }
 
+// #877: "Refresh metadata" is a request the visitor made, so it only answers
+// "already up to date" when a match, a poster and everything OMDb fills in are
+// all there. hasOmdbMetadata above stays the looser test the bulk "refresh all"
+// selection uses (an entry with a match and poster isn't a target for it).
+export function isOmdbComplete(
+  viewing: Pick<
+    LoggedViewing,
+    "imdbId" | "posterUrl" | "director" | "actors" | "genre" | "synopsis"
+  >,
+): boolean {
+  return hasOmdbMetadata(viewing) && missingOmdbFields(viewing).length === 0;
+}
+
 // #575: the missing-data overview's per-field diagnostic — which of the
 // fields a correctly-matched viewing should almost always have are
 // actually absent. "imdbMatch" is its own entry, independent of

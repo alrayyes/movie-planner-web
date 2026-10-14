@@ -2,7 +2,7 @@ import { getViewing, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../caldav/types";
 import { enrichWithTmdb } from "../tmdb/client";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "./client";
-import { hasOmdbMetadata } from "./metadata";
+import { isOmdbComplete } from "./metadata";
 
 // #575: the per-row/bulk refresh and disambiguation-picker logic, shared
 // between CalendarOverview.svelte and the missing-data overview
@@ -34,7 +34,7 @@ export async function refreshMetadata(params: RefreshMetadataParams): Promise<Re
   // copy, not the possibly-stale `viewing` argument.
   const current = (await getViewing(config, viewing.uid)) ?? viewing;
   // "Already matched elsewhere since the list loaded"
-  if (hasOmdbMetadata(current)) {
+  if (isOmdbComplete(current)) {
     return { kind: "already-up-to-date" };
   }
 

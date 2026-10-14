@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { hasOmdbMetadata, missingOmdbFields } from "./metadata";
+import { hasOmdbMetadata, isOmdbComplete, missingOmdbFields } from "./metadata";
 
 describe("hasOmdbMetadata", () => {
   // #113: a CLI-logged entry gets imdbId for free by parsing its own
@@ -91,4 +91,28 @@ describe("missingOmdbFields", () => {
       }),
     ).toEqual([]);
   });
+});
+
+// #877: a refresh the visitor asks for has to run when the entry has a match and
+// a poster but is still missing what OMDb would fill in.
+describe("isOmdbComplete", () => {
+  const complete = {
+    imdbId: "tt1160419",
+    posterUrl: "https://example.com/p.jpg",
+    director: "Denis Villeneuve",
+    actors: "Timothée Chalamet",
+    genre: "Drama",
+    synopsis: "A desert planet.",
+  };
+
+  test("a matched entry with every field is complete", () => {
+    expect(isOmdbComplete(complete)).toBe(true);
+  });
+
+  test.each(["imdbId", "posterUrl", "director", "actors", "genre", "synopsis"] as const)(
+    "an entry missing its %s is not complete",
+    (field) => {
+      expect(isOmdbComplete({ ...complete, [field]: undefined })).toBe(false);
+    },
+  );
 });

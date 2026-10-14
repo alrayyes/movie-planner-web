@@ -68,11 +68,15 @@ const NO_MATCH = JSON.stringify({ Response: "False" });
 
 describe("refreshMetadata", () => {
   // movie-editing spec: "Already matched elsewhere since the list loaded"
-  test("skips the OMDb call when the freshly-fetched entry already has an imdbId and poster", async () => {
+  test("skips the OMDb call when the freshly-fetched entry already has everything OMDb would fill in", async () => {
     const matched: NewViewing = {
       ...VIEWING,
       imdbId: "tt1160419",
       posterUrl: "https://example.com/dune.jpg",
+      director: "Denis Villeneuve",
+      actors: "Timothée Chalamet",
+      genre: "Drama",
+      synopsis: "A desert planet.",
     };
     const fetchMock = routeFetch({
       caldavGet: () => new Response(serializeViewingToVEvent("uid-1", matched), { status: 200 }),
@@ -90,6 +94,43 @@ describe("refreshMetadata", () => {
     expect(
       fetchMock.mock.calls.every(([u]) => new URL(u.toString()).hostname === "caldav.example.com"),
     ).toBe(true);
+  });
+
+  // #877: a poster and an IMDb ID used to be enough to say "already up to date",
+  // which left a director, actors, genre or synopsis that were never filled in
+  // out of reach of the refresh button.
+  test("still calls OMDb when the entry has a poster and an imdbId but no synopsis", async () => {
+    const partial: NewViewing = {
+      ...VIEWING,
+      imdbId: "tt1160419",
+      posterUrl: "https://example.com/dune.jpg",
+    };
+    const fetchMock = routeFetch({
+      caldavGet: () => new Response(serializeViewingToVEvent("uid-1", partial), { status: 200 }),
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbSearchByTitle: () =>
+        new Response(
+          JSON.stringify({
+            Response: "True",
+            Director: "Denis Villeneuve",
+            Plot: "A desert planet.",
+            Poster: "https://example.com/dune.jpg",
+            imdbID: "tt1160419",
+          }),
+          { status: 200 },
+        ),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await refreshMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      viewing: { ...partial, uid: "uid-1" },
+    });
+
+    expect(result.kind).toBe("refreshed");
+    const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(String(put?.[1]?.body)).toContain("A desert planet.");
   });
 
   // movie-editing spec: "Calendar entry re-checked before calling OMDb" +
