@@ -4,7 +4,7 @@ import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
-import { hasOmdbMetadata, type MissingOmdbField, missingOmdbFields } from "../lib/omdb/metadata";
+import { isOmdbComplete, type MissingOmdbField, missingOmdbFields } from "../lib/omdb/metadata";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
 	applyOmdbCandidate,
@@ -189,7 +189,7 @@ let actionError = $state("");
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const showRefreshAll = $derived(
-	omdbActive && currentPageItems.some((g) => !hasOmdbMetadata(g.viewing)),
+	omdbActive && currentPageItems.some((g) => !isOmdbComplete(g.viewing)),
 );
 
 function showOmdbPicker(
@@ -262,7 +262,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey || !config) return;
-	const targets = currentPageItems.map((g) => g.viewing).filter((v) => !hasOmdbMetadata(v));
+	const targets = currentPageItems.map((g) => g.viewing).filter((v) => !isOmdbComplete(v));
 	if (targets.length === 0) return;
 
 	refreshingAll = true;

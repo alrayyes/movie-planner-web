@@ -28,19 +28,13 @@ import {
 import { resolveBackHref } from "../lib/movie-log/movie-link";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { youtubeEmbedUrl } from "../lib/movie-log/youtube";
-import {
-	lookupByImdbId,
-	lookupMovie,
-	type OmdbCandidate,
-	searchMovies,
-	searchOmdb,
-} from "../lib/omdb/client";
+import { type OmdbCandidate, searchOmdb } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
-import { hasOmdbMetadata } from "../lib/omdb/metadata";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
+import { applyOmdbCandidate, refreshMetadata } from "../lib/omdb/refresh-actions";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { releasedDayOfWeek } from "../lib/omdb/released-date";
 import { encodeSharedState, type SharedState, toSharedViewing } from "../lib/share/encode";
@@ -111,6 +105,7 @@ function toDatetimeLocal(iso: string): string {
 
 let config = $state<CaldavConfig | undefined>();
 let omdbApiKey = $state<string | undefined>();
+let tmdbApiKey = $state<string | undefined>();
 let omdbPaused = $state(false);
 // #80: a key alone isn't enough — a visitor can pause lookups to stay
 // under OMDb's daily rate limit without clearing the stored key.
@@ -383,37 +378,22 @@ async function handleRefresh(current: LoggedViewing) {
 	if (!config || !omdbActive || !omdbApiKey) return;
 	errorMessage = "";
 	try {
-		// #91: re-check the calendar entry itself first — it may have been
-		// matched elsewhere (the CLI's own sync, another tab/device) since
-		// this page loaded, and only what's still actually missing from it
-		// should ever reach OMDb. Everything below reads and writes on top
-		// of this fresh copy, not the possibly-stale argument.
-		const fresh = (await getViewing(config, current.uid)) ?? current;
-		if (hasOmdbMetadata(fresh)) {
-			await load();
-			statusText = "Already up to date.";
+		// #877: the shared refresh (also behind the missing-data page) re-reads
+		// the calendar entry, only says "up to date" when nothing is missing,
+		// and fetches TMDb's trailer and keywords along with OMDb's fields.
+		const result = await refreshMetadata({ config, omdbApiKey, tmdbApiKey, viewing: current });
+		if (result.kind === "needs-picker") {
+			// #49: no single confident match — offer a disambiguation picker.
+			showOmdbPicker(result.current, result.candidates, "refresh");
 			return;
 		}
-		const metadata = await lookupMovie(
-			omdbApiKey,
-			fresh.title,
-			new Date(fresh.start).getFullYear().toString(),
-		);
-		if (metadata) {
-			await updateViewing(config, fresh.uid, { ...fresh, ...metadata });
-			await load();
-			statusText = "Refreshed.";
-			return;
-		}
-		// #49: no single confident match — offer a disambiguation picker if
-		// OMDb's search has candidates, rather than reporting no match
-		// outright.
-		const candidates = await searchMovies(omdbApiKey, fresh.title);
-		if (candidates.length > 0) {
-			showOmdbPicker(fresh, candidates, "refresh");
-			return;
-		}
-		statusText = "OMDb had no match for this title.";
+		await load();
+		statusText =
+			result.kind === "refreshed"
+				? "Refreshed."
+				: result.kind === "already-up-to-date"
+					? "Already up to date."
+					: "OMDb had no match for this title.";
 	} catch (error) {
 		errorMessage = error instanceof Error ? error.message : "Failed to refresh metadata.";
 	}
@@ -432,12 +412,16 @@ async function selectOmdbCandidate(current: LoggedViewing, candidate: OmdbCandid
 	if (!config || !omdbApiKey) return;
 	errorMessage = "";
 	try {
-		const metadata = await lookupByImdbId(omdbApiKey, candidate.imdbId);
-		if (metadata) {
-			await updateViewing(config, current.uid, { ...current, ...metadata });
-		}
+		const result = await applyOmdbCandidate({
+			config,
+			omdbApiKey,
+			tmdbApiKey,
+			current,
+			candidate,
+		});
 		await load();
-		statusText = "Refreshed.";
+		// #877: a failed lookup used to read "Refreshed." with nothing changed.
+		statusText = result.kind === "refreshed" ? "Refreshed." : "OMDb had no details for that match.";
 	} catch (error) {
 		errorMessage = error instanceof Error ? error.message : "Failed to attach the selected match.";
 	} finally {
@@ -627,6 +611,7 @@ async function init() {
 		password: credentials.caldavPassword,
 	};
 	omdbApiKey = credentials.omdbApiKey;
+	tmdbApiKey = credentials.tmdbApiKey;
 	omdbPaused = credentials.omdbPaused ?? false;
 	await load();
 	// #298: the overview's own Edit icon links straight here with
