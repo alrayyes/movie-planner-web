@@ -101,10 +101,11 @@ function formatGeo(geo: { lat: number; lon: number }): string {
 }
 
 function parseGeo(text: string): { lat: number; lon: number } | undefined {
-  const [lat, lon] = text.split(",").map(Number);
-  return Number.isFinite(lat) && Number.isFinite(lon)
-    ? { lat: lat as number, lon: lon as number }
-    : undefined;
+  const parts = text.split(",").map((part) => part.trim());
+  // Number("") is 0, so a blank half has to be refused before it is read.
+  if (parts.length !== 2 || parts.some((part) => part === "")) return undefined;
+  const [lat, lon] = parts.map(Number) as [number, number];
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : undefined;
 }
 
 export interface FieldChange {

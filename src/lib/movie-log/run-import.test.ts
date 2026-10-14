@@ -592,7 +592,7 @@ describe("writing to the calendar", () => {
       expect(unfold(puts[0]?.body ?? "")).toContain("GEO:-33.87;151.21");
     });
 
-    test.each(["x", "5", "5, x", ""])(
+    test.each(["x", "5", "5, x", "", "5, ", ", 5", "1, 2, 3"])(
       "a malformed pair %p leaves the event's own coordinates alone",
       async (newValue) => {
         const entry = {
@@ -603,12 +603,12 @@ describe("writing to the calendar", () => {
         } as const;
         await applyImportUpdate(
           CREDENTIALS,
-          { ...current, geo: { lat: 1, lon: 2 } },
+          { ...current, geo: { lat: 7, lon: 8 } },
           { ...entry, changes: [...entry.changes] },
           new Set<keyof NewViewing>(["geo"]),
         );
         const body = unfold(puts[0]?.body ?? "");
-        expect(body).toContain("GEO:1;2");
+        expect(body).toContain("GEO:7;8");
         expect(body).not.toContain("NaN");
       },
     );
