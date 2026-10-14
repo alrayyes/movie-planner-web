@@ -155,6 +155,37 @@ test.describe("Refresh maps on the Venues page", () => {
     await expect(page.getByRole("button", { name: "Find missing maps" })).toBeEnabled();
   });
 
+  // #873: Nominatim refusing a request is not "no such place", and the run
+  // stops sending requests it has already been refused.
+  test("says the lookup failed, and stops asking, when Nominatim refuses", async ({ page }) => {
+    let requests = 0;
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      requests++;
+      await route.fulfill({
+        status: 429,
+        headers: { "access-control-allow-origin": "*" },
+        body: "",
+      });
+    });
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      viewing("a", "Dune", "First, Street 1, Amsterdam"),
+      viewing("b", "Alien", "Second, Street 2, Amsterdam"),
+    ]);
+    await connect(page);
+    await page.goto("/venues");
+
+    await page.getByRole("button", { name: "Find missing maps" }).click();
+
+    await expect(page.getByRole("cell", { name: /Lookup failed/ })).toHaveCount(2);
+    await expect(page.getByRole("cell", { name: /Nothing found/ })).toHaveCount(0);
+    // Nothing to write for a venue that wasn't looked up: unticked and disabled.
+    for (const box of await page.getByRole("checkbox").all()) {
+      await expect(box).not.toBeChecked();
+      await expect(box).toBeDisabled();
+    }
+    expect(requests).toBe(1);
+  });
+
   test("isn't offered when every venue already has coordinates", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [
       viewing("a", "Dune", VENUE, { lat: 1, lon: 2 }),

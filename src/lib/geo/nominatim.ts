@@ -27,9 +27,17 @@ interface NominatimResult {
 // script-set User-Agent header outright rather than sending it.
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
-// #8/#203: fails soft on any error (network failure, non-2xx, malformed
-// body) — same "let the visitor continue without coordinates" stance
-// design.md already commits to for OMDb-style best-effort lookups.
+// #873: Nominatim refusing a request (429 is its usage-policy limit), being down
+// or unreachable is not "no such place". It throws, so a caller can say the
+// lookup failed instead of reporting nothing found. A genuine empty result is
+// still an empty list.
+export class GeocoderUnavailableError extends Error {
+  constructor(readonly status?: number) {
+    super(status ? `The address lookup failed (HTTP ${status}).` : "The address lookup failed.");
+    this.name = "GeocoderUnavailableError";
+  }
+}
+
 export async function searchAddress(query: string): Promise<GeoCandidate[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
@@ -39,23 +47,28 @@ export async function searchAddress(query: string): Promise<GeoCandidate[]> {
   url.searchParams.set("format", "json");
   url.searchParams.set("limit", "5");
 
+  let response: Response;
   try {
-    const response = await fetch(url);
-    if (!response.ok) return [];
-    const data = (await response.json()) as NominatimResult[];
-    // Stryker disable next-line ConditionalExpression: a non-array body has no map(), so the TypeError lands in the catch below and returns the same [].
-    if (!Array.isArray(data)) return [];
-    return data
-      .map((result) => ({
-        label: result.display_name ?? "",
-        lat: Number(result.lat),
-        lon: Number(result.lon),
-      }))
-      .filter(
-        (candidate) =>
-          candidate.label && Number.isFinite(candidate.lat) && Number.isFinite(candidate.lon),
-      );
+    response = await fetch(url);
   } catch {
-    return [];
+    throw new GeocoderUnavailableError();
   }
+  if (!response.ok) throw new GeocoderUnavailableError(response.status);
+  let data: NominatimResult[];
+  try {
+    data = (await response.json()) as NominatimResult[];
+  } catch {
+    throw new GeocoderUnavailableError();
+  }
+  if (!Array.isArray(data)) throw new GeocoderUnavailableError();
+  return data
+    .map((result) => ({
+      label: result.display_name ?? "",
+      lat: Number(result.lat),
+      lon: Number(result.lon),
+    }))
+    .filter(
+      (candidate) =>
+        candidate.label && Number.isFinite(candidate.lat) && Number.isFinite(candidate.lon),
+    );
 }
