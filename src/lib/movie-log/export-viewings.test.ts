@@ -27,7 +27,43 @@ const VIEWING = {
   notes: "Watched with Sam",
 };
 
+const LOCATED = {
+  ...VIEWING,
+  city: "Amsterdam",
+  country: "Netherlands",
+  streetAddress: "Kinkerstraat 1",
+  postalCode: "1053 AA",
+  geo: { lat: 52.36, lon: 4.87 },
+};
+
 describe("exportViewingsToJson", () => {
+  // #867: without these a re-imported viewing has no GEO and every map goes.
+  test("writes the venue's location, and a round trip through the parser keeps it", () => {
+    const [row] = JSON.parse(exportViewingsToJson([LOCATED]));
+    expect(row).toMatchObject({
+      city: "Amsterdam",
+      country: "Netherlands",
+      street_address: "Kinkerstraat 1",
+      postal_code: "1053 AA",
+      latitude: 52.36,
+      longitude: 4.87,
+    });
+    const parsed = parseJsonImport(exportViewingsToJson([LOCATED]))[0]?.row;
+    expect(parsed).toMatchObject({
+      city: "Amsterdam",
+      country: "Netherlands",
+      streetAddress: "Kinkerstraat 1",
+      postalCode: "1053 AA",
+      geo: { lat: 52.36, lon: 4.87 },
+    });
+  });
+
+  test("leaves the location out for a viewing that has none", () => {
+    const [row] = JSON.parse(exportViewingsToJson([VIEWING]));
+    expect(row.latitude).toBeUndefined();
+    expect(row.longitude).toBeUndefined();
+  });
+
   test("uses the CLI's own canonical snake_case field names for OMDb-derived fields", () => {
     const [row] = JSON.parse(exportViewingsToJson([VIEWING]));
     expect(row.director).toBe("Denis Villeneuve");

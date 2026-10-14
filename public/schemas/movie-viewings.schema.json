@@ -29,6 +29,18 @@
           "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"
         },
         "venue": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "street_address": { "type": "string" },
+        "postal_code": { "type": "string" },
+        "latitude": {
+          "type": ["number", "string"],
+          "description": "The venue's latitude, -90 to 90. Needs longitude too. Without the pair a viewing has no map."
+        },
+        "longitude": {
+          "type": ["number", "string"],
+          "description": "The venue's longitude, -180 to 180."
+        },
         "imdb_url": { "type": "string", "format": "uri" },
         "uid": {
           "type": "string",
