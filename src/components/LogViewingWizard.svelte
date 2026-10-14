@@ -257,6 +257,7 @@ function resetWizard() {
 	venue = "";
 	formError = "";
 	skippedNotice = "";
+	loggedViewing = undefined;
 	pickerArea?.replaceChildren();
 }
 
@@ -345,7 +346,11 @@ function goBack() {
 // logManualViewing's own preselectedOmdb branch). Closes the wizard once
 // the visitor resolves it, pick or dismiss, rather than leaving a modal
 // open with nothing left to do.
-let lastLoggedUid = "";
+// #900: the viewing just logged, while its picker is showing. Set, the form gives
+// way to the picker (a second click on Log viewing would log it twice), and the
+// pick is written on top of this, not in place of it.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let loggedViewing = $state<LoggedViewing | undefined>();
 
 function showOmdbPicker(candidates: OmdbCandidate[]) {
 	if (!pickerArea || !credentials) return;
@@ -362,7 +367,13 @@ function showOmdbPicker(candidates: OmdbCandidate[]) {
 					);
 					if (metadata) {
 						const tmdbFields = await enrichWithTmdb(activeCredentials.tmdbApiKey, metadata.imdbId);
-						await updateViewing(caldavConfig(), lastLoggedUid, { ...metadata, ...tmdbFields });
+						if (loggedViewing) {
+							await updateViewing(caldavConfig(), loggedViewing.uid, {
+								...loggedViewing,
+								...metadata,
+								...tmdbFields,
+							});
+						}
 					}
 				} catch (error) {
 					formError =
@@ -402,7 +413,7 @@ async function handleSubmit() {
 		);
 		await learnFromViewing(loggedMedium, loggedVenue);
 		if (result.omdbCandidates?.length) {
-			lastLoggedUid = result.viewing.uid;
+			loggedViewing = result.viewing;
 			showOmdbPicker(result.omdbCandidates);
 		} else if (result.omdbSkippedBecause) {
 			skippedNotice = `Logged without metadata. ${result.omdbSkippedBecause}`;
@@ -475,6 +486,8 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
           Close
         </button>
       </div>
+    {:else if loggedViewing}
+      <p class={STATUS_TEXT}>Logged. Pick the matching title to add its details.</p>
     {:else if step === 1}
       <div class="flex flex-col gap-3">
         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Find the movie</h2>

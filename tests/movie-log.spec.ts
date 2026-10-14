@@ -618,6 +618,61 @@ test.describe("log a viewing wizard (header button)", () => {
     await expect(dialog.getByRole("combobox", { name: "Medium" })).toBeVisible();
   });
 
+  // #900: after logging with candidates to choose from, the form gives way to the
+  // picker, and picking one keeps everything that was logged.
+  test("after logging with candidates to choose from, only the picker is left, and the pick keeps the logged viewing", async ({
+    page,
+  }) => {
+    const server = await connectOnCurrentPage(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      const body = url.searchParams.get("i")
+        ? {
+            Response: "True",
+            Director: "David Lynch",
+            imdbID: "tt0087182",
+            Ratings: [],
+          }
+        : url.searchParams.get("s")
+          ? {
+              Response: "True",
+              Search: [
+                { Title: "Dune", Year: "1984", imdbID: "tt0087182", Poster: "N/A" },
+                { Title: "Dune", Year: "2021", imdbID: "tt1160419", Poster: "N/A" },
+              ],
+            }
+          : { Response: "False", Error: "Movie not found!" };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    });
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Dune");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+
+    const picker = dialog.getByLabel("Choose the matching title");
+    await expect(picker).toBeVisible();
+    // Logged already: no way to log it a second time from here.
+    await expect(dialog.getByRole("button", { name: "Log viewing" })).toHaveCount(0);
+    expect(server.creates).toHaveLength(1);
+
+    await picker.getByRole("button", { name: "Dune (1984)" }).click();
+    await expect(dialog).toBeHidden();
+    await expect.poll(() => server.updates.length).toBe(1);
+    expect(server.updates[0]?.director).toBe("David Lynch");
+    // What was logged is still there after the pick.
+    expect(server.updates[0]?.title).toBe("Dune");
+    expect(server.updates[0]?.medium).toBe("Cinema");
+    expect(server.updates[0]?.start).toBeTruthy();
+    expect(server.creates).toHaveLength(1);
+  });
+
   // #893
   test("logs the viewing and keeps the dialog open to say why when OMDb refuses", async ({
     page,
