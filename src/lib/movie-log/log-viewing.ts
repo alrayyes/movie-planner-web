@@ -1,7 +1,6 @@
 import { createViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
-import { CINEMA } from "../medium/display";
 import {
   lookupMovie,
   type MovieMetadata,
