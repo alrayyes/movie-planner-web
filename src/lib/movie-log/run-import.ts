@@ -214,10 +214,10 @@ export async function applyImportUpdate(
   const updated: NewViewing = { ...current };
   for (const change of entry.changes) {
     if (approvedFields.has(change.field)) {
-      // #8/#203: NewViewing gained a non-string `geo` field, which this
-      // cast never actually targets — import rows have no geo column —
-      // but it's enough to break the direct `as` (no longer a
-      // sufficient structural overlap), hence the `unknown` hop.
+      // #8/#203: NewViewing has a non-string `geo` field, which `change.field`
+      // never names (the comparable fields are all strings), but it's enough
+      // to break a direct `as` (no longer a sufficient structural overlap),
+      // hence the `unknown` hop.
       (updated as unknown as Record<string, string>)[change.field] = change.newValue;
     }
   }
