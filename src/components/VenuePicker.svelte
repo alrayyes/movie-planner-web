@@ -11,6 +11,7 @@ import {
 	STATUS_TEXT,
 } from "../lib/ui/classes";
 import { debounce } from "../lib/ui/debounce";
+import { createLatest } from "../lib/ui/latest";
 import type { MissingVenue } from "../lib/venue/backfill";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay } from "../lib/venue/display";
@@ -97,7 +98,11 @@ const selectedEntry = $derived(picklists.venues.find((entry) => entry.name === v
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const formPrefix = $derived(editingVenue ? "edit-venue" : "add-venue");
 
+// #894: the debounce delays when a search starts, not when it ends, so two can be
+// in flight at once. Only the newest one's outcome is shown.
+const latestSearch = createLatest();
 const runGeoSearch = debounce(async (query: string) => {
+	const ticket = latestSearch.next();
 	if (!query.trim()) {
 		geoCandidates = [];
 		geoError = "";
@@ -107,9 +112,12 @@ const runGeoSearch = debounce(async (query: string) => {
 	geoSearching = true;
 	geoError = "";
 	try {
-		geoCandidates = await searchAddress(query);
+		const found = await searchAddress(query);
+		if (!latestSearch.isLatest(ticket)) return;
+		geoCandidates = found;
 	} catch (error) {
 		if (!(error instanceof GeocoderUnavailableError)) throw error;
+		if (!latestSearch.isLatest(ticket)) return;
 		geoCandidates = [];
 		geoError = "The address lookup isn't answering right now. Try again in a moment.";
 	}
@@ -136,6 +144,9 @@ function chooseGeo(candidate: GeoCandidate) {
 // resetAddMediumDialog and the Search OMDb dialog's resetSearchDialog.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 function resetForm() {
+	// A search still in flight when the dialog closes must not write into the next one.
+	latestSearch.cancel();
+	geoSearching = false;
 	editingVenue = false;
 	newName = "";
 	newStreet = "";

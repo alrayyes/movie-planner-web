@@ -195,6 +195,46 @@ test.describe("structured venue picklist", () => {
     expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
   });
 
+  // #894: two searches can be in flight at once; the one for what was typed last
+  // is the one whose results show, whichever answers last.
+  test("shows the results for the last thing typed even when an older search answers later", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });
+    await connect(page);
+    const queries: string[] = [];
+    let answerOlder: () => void = () => {};
+    const olderMayAnswer = new Promise<void>((resolve) => {
+      answerOlder = resolve;
+    });
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      const q = new URL(route.request().url()).searchParams.get("q") ?? "";
+      queries.push(q);
+      if (q === "ams") await olderMayAnswer;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([
+          { display_name: q === "ams" ? "Old result" : "New result", lat: "1", lon: "2" },
+        ]),
+      });
+    });
+    await page.goto("/log");
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-geo-search").fill("ams");
+    await expect.poll(() => queries).toEqual(["ams"]);
+    await page.locator("#log-add-venue-geo-search").fill("amsterdam");
+    await expect(page.getByRole("button", { name: "New result" })).toBeVisible();
+
+    answerOlder();
+    // The older answer lands now and must not replace the newer results.
+    await expect.poll(() => queries).toEqual(["ams", "amsterdam"]);
+    await expect(page.getByRole("button", { name: "New result" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Old result" })).toHaveCount(0);
+  });
+
   // #873: a refused address search is not "no results".
   test("says so when the address search can't be reached", async ({ page }) => {
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });
