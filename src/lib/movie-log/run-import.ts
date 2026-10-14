@@ -88,7 +88,26 @@ const COMPARABLE_FIELDS: { field: keyof NewViewing; label: string }[] = [
   { field: "ratingImdb", label: "IMDb rating" },
   { field: "ratingRottenTomatoes", label: "Rotten Tomatoes rating" },
   { field: "ratingMetacritic", label: "Metacritic rating" },
+  // #870: the venue's location, so a re-import can restore what an event lost.
+  { field: "city", label: "City" },
+  { field: "country", label: "Country" },
+  { field: "streetAddress", label: "Street address" },
+  { field: "postalCode", label: "Postal code" },
 ];
+
+// A review row shows a string, so coordinates travel as "lat, lon" and are
+// read back the same way when the change is applied.
+function formatGeo(geo: { lat: number; lon: number }): string {
+  return `${geo.lat}, ${geo.lon}`;
+}
+
+function parseGeo(text: string): { lat: number; lon: number } | undefined {
+  const parts = text.split(",").map((part) => part.trim());
+  // Number("") is 0, so a blank half has to be refused before it is read.
+  if (parts.length !== 2 || parts.some((part) => part === "")) return undefined;
+  const [lat, lon] = parts.map(Number) as [number, number];
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : undefined;
+}
 
 export interface FieldChange {
   field: keyof NewViewing;
@@ -126,6 +145,16 @@ export function planUpdates(rows: ParsedRow[], existing: LoggedViewing[]): Impor
       if (typeof newValue !== "string" || newValue === "") continue;
       const oldValue = current[field as keyof LoggedViewing] as string | undefined;
       if (newValue !== oldValue) changes.push({ field, label, oldValue, newValue });
+    }
+    const { geo } = row;
+    const known = current.geo;
+    if (geo && (known === undefined || known.lat !== geo.lat || known.lon !== geo.lon)) {
+      changes.push({
+        field: "geo",
+        label: "Coordinates",
+        oldValue: known ? formatGeo(known) : undefined,
+        newValue: formatGeo(geo),
+      });
     }
     if (row.start && row.start !== current.start) {
       changes.push({
@@ -220,11 +249,15 @@ export async function applyImportUpdate(
   const updated: NewViewing = { ...current };
   for (const change of entry.changes) {
     if (approvedFields.has(change.field)) {
-      // #8/#203: NewViewing has a non-string `geo` field, which `change.field`
-      // never names (the comparable fields are all strings), but it's enough
-      // to break a direct `as` (no longer a sufficient structural overlap),
-      // hence the `unknown` hop.
-      (updated as unknown as Record<string, string>)[change.field] = change.newValue;
+      if (change.field === "geo") {
+        // A pair that doesn't parse is skipped, never written as NaN.
+        updated.geo = parseGeo(change.newValue) ?? updated.geo;
+      } else {
+        // #8/#203: NewViewing has a non-string `geo` field, handled above, but
+        // it's enough to break a direct `as` (no longer a sufficient
+        // structural overlap), hence the `unknown` hop.
+        (updated as unknown as Record<string, string>)[change.field] = change.newValue;
+      }
     }
   }
   await updateViewing(configFromCredentials(credentials), entry.uid, updated);
