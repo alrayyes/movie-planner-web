@@ -1,5 +1,6 @@
 import type { LoggedViewing } from "../caldav/types";
 import { imdbUrl } from "../omdb/links";
+import { writeExtraFields } from "./extra-fields";
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -71,6 +72,7 @@ export function exportViewingsToJson(viewings: LoggedViewing[]): string {
       letterboxd_url: v.letterboxdUrl,
       letterboxd_rating: v.letterboxdRating,
       notes: v.notes,
+      ...writeExtraFields(v),
     };
   });
   return JSON.stringify(rows, null, 2);

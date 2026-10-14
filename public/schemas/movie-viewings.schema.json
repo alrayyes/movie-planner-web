@@ -69,7 +69,28 @@
         "booking_ref": { "type": "string" },
         "letterboxd_url": { "type": "string", "format": "uri" },
         "letterboxd_rating": { "type": "string" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "synopsis": { "type": "string" },
+        "row": { "type": "string" },
+        "seat": { "type": "string" },
+        "rated": { "type": "string" },
+        "runtime": { "type": "string" },
+        "movie_language": { "type": "string" },
+        "movie_country": { "type": "string" },
+        "metascore": { "type": "string" },
+        "imdb_votes": { "type": "string" },
+        "dvd": { "type": "string" },
+        "box_office": { "type": "string" },
+        "production": { "type": "string" },
+        "website": { "type": "string", "format": "uri" },
+        "released": { "type": "string" },
+        "awards": { "type": "string" },
+        "trailer_url": { "type": "string", "format": "uri" },
+        "collection": { "type": "string" },
+        "certification": { "type": "string" },
+        "keywords": { "type": "string" },
+        "budget": { "type": "string" },
+        "popularity": { "type": "string" }
       }
     }
   }
