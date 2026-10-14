@@ -21,10 +21,26 @@ function definedFields<T extends object>(fields: T | undefined): Partial<T> {
   ) as Partial<T>;
 }
 
+// #881: an entry that already has an IMDb ID is asked about by that ID. Looking
+// its title up again could swap a match the visitor chose for another film.
+function lookupFor(omdbApiKey: string, viewing: LoggedViewing) {
+  return viewing.imdbId
+    ? lookupByImdbId(omdbApiKey, viewing.imdbId)
+    : lookupMovie(omdbApiKey, viewing.title, new Date(viewing.start).getFullYear().toString());
+}
+
+// #881: for an entry that has an IMDb ID the dead end is the ID, not the title,
+// and the picker that used to offer a way out never opens, so say where it is.
+export function noMatchMessage({ imdbId }: { imdbId?: string }): string {
+  return imdbId
+    ? `OMDb has nothing for IMDb ID ${imdbId}. Use Search OMDb to pick another match.`
+    : "OMDb had no match for this title.";
+}
+
 export type RefreshResult =
   | { kind: "already-up-to-date" }
   | { kind: "refreshed"; viewing: LoggedViewing }
-  | { kind: "no-match" }
+  | { kind: "no-match"; imdbId?: string }
   | { kind: "needs-picker"; candidates: OmdbCandidate[]; current: LoggedViewing };
 
 interface RefreshMetadataParams {
@@ -47,11 +63,7 @@ export async function refreshMetadata(params: RefreshMetadataParams): Promise<Re
     return { kind: "already-up-to-date" };
   }
 
-  const metadata = await lookupMovie(
-    omdbApiKey,
-    current.title,
-    new Date(current.start).getFullYear().toString(),
-  );
+  const metadata = await lookupFor(omdbApiKey, current);
   if (metadata) {
     const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
     const updated = await updateViewing(config, current.uid, {
@@ -61,6 +73,9 @@ export async function refreshMetadata(params: RefreshMetadataParams): Promise<Re
     });
     return { kind: "refreshed", viewing: updated };
   }
+
+  // An entry with its own ID has no better match to offer: OMDb has nothing for it.
+  if (current.imdbId) return { kind: "no-match", imdbId: current.imdbId };
 
   // "No confident match on refresh": a picker when OMDb's search has
   // candidates, otherwise a plain no-match report.
@@ -121,11 +136,7 @@ export async function refreshAllMetadata(
   let misses = 0;
   for (const viewing of targets) {
     try {
-      const metadata = await lookupMovie(
-        omdbApiKey,
-        viewing.title,
-        new Date(viewing.start).getFullYear().toString(),
-      );
+      const metadata = await lookupFor(omdbApiKey, viewing);
       if (metadata) {
         const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
         await updateViewing(config, viewing.uid, {

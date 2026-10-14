@@ -8,6 +8,7 @@ import { isOmdbComplete, type MissingOmdbField, missingOmdbFields } from "../lib
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
 	applyOmdbCandidate,
+	noMatchMessage,
 	type RefreshResult,
 	refreshAllMetadata,
 	refreshMetadata,
@@ -249,7 +250,7 @@ async function handleRefresh(viewing: LoggedViewing) {
 				showOmdbPicker(result.current, result);
 				break;
 			case "no-match":
-				actionStatusText = "OMDb had no match for this title.";
+				actionStatusText = noMatchMessage(result);
 				break;
 		}
 	} catch (error) {
