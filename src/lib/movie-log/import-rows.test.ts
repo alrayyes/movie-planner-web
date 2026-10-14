@@ -563,6 +563,20 @@ describe("parseJsonImport venue location (#867)", () => {
     });
   });
 
+  test("accepts the coordinates at the edge of the range", () => {
+    expect(parse({ latitude: 90, longitude: 180 })?.row?.geo).toEqual({ lat: 90, lon: 180 });
+    expect(parse({ latitude: -90, longitude: -180 })?.row?.geo).toEqual({ lat: -90, lon: -180 });
+  });
+
+  test("a blank or whitespace-only coordinate counts as not given", () => {
+    expect(parse({ latitude: "  ", longitude: "" })?.row?.geo).toBeUndefined();
+    expect(parse({ latitude: "  ", longitude: "" })?.error).toBeUndefined();
+    expect(parse({ latitude: " 52.36 ", longitude: " 4.87 " })?.row?.geo).toEqual({
+      lat: 52.36,
+      lon: 4.87,
+    });
+  });
+
   test("a file without location fields imports as before", () => {
     expect(parse({})?.row?.geo).toBeUndefined();
   });
@@ -572,6 +586,10 @@ describe("parseJsonImport venue location (#867)", () => {
     [{ latitude: 91, longitude: 4 }],
     [{ latitude: 52, longitude: 181 }],
     [{ latitude: 52 }],
+    [{ longitude: 4 }],
+    [{ latitude: -91, longitude: 4 }],
+    [{ latitude: 52, longitude: -181 }],
+    [{ latitude: 52, longitude: "abc" }],
   ])("refuses a bad coordinate pair %o", (extra) => {
     const result = parse(extra);
     expect(result?.row).toBeUndefined();
