@@ -57,6 +57,29 @@ test.describe("manual log form", () => {
     expect(server.creates[0]?.medium).toBe("Netflix");
   });
 
+  // #893: logging works with OMDb down, and says why no metadata was added.
+  test("logs the viewing and says OMDb didn't answer when OMDb refuses", async ({ page }) => {
+    const server = await connect(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "False", Error: "Request limit reached!" }),
+      });
+    });
+
+    await page.locator("#log-title").fill("Paddington");
+    await page.locator("#log-date").fill("2026-02-01");
+    await page.locator("#log-medium").selectOption("Cinema");
+    await page.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(page.getByRole("status")).toHaveText(
+      "Logged without metadata. OMDb refused the request: Request limit reached!",
+    );
+    expect(server.creates).toHaveLength(1);
+    expect(server.creates[0]?.title).toBe("Paddington");
+  });
+
   test("logs with just a date — start and end time are both optional", async ({ page }) => {
     const server = await connect(page);
 
@@ -593,6 +616,62 @@ test.describe("log a viewing wizard (header button)", () => {
     await dialog.getByRole("button", { name: "Next" }).click();
     await expect(page.locator("#wizard-date")).toBeVisible();
     await expect(dialog.getByRole("combobox", { name: "Medium" })).toBeVisible();
+  });
+
+  // #893
+  test("logs the viewing and keeps the dialog open to say why when OMDb refuses", async ({
+    page,
+  }) => {
+    const server = await connectOnCurrentPage(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({ status: 429, body: "" });
+    });
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+
+    await expect(dialog.getByRole("status")).toHaveText(
+      "Logged without metadata. OMDb isn't answering (HTTP 429). Try again in a moment.",
+    );
+    const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(scan.violations).toEqual([]);
+
+    // The form is gone: the only thing left is the way out, so no second log.
+    await expect(dialog.getByRole("button", { name: "Log viewing" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
+    expect(server.creates).toHaveLength(1);
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
+
+    // Reopening starts clean, with no notice left over, also after Escape.
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    await expect(dialog.getByRole("status")).toHaveText("");
+    await expect(page.locator("#wizard-title")).toBeVisible();
+  });
+
+  test("Escape closes the notice and the next opening is clean", async ({ page }) => {
+    await connectOnCurrentPage(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({ status: 429, body: "" });
+    });
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+    await expect(dialog.getByRole("status")).toContainText("Logged without metadata.");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+
+    await expect(dialog.getByRole("status")).toHaveText("");
+    await expect(page.locator("#wizard-title")).toBeVisible();
   });
 
   test("searching OMDb and picking a candidate carries the exact match into step two", async ({

@@ -135,6 +135,61 @@ describe("logManualViewing", () => {
     expect(result.omdbCandidates).toBeUndefined();
   });
 
+  // #893: logging must not depend on OMDb, but the visitor should be told why no
+  // metadata was added when OMDb refused, not left to think the title had none.
+  test.each([
+    [429, "OMDb isn't answering (HTTP 429). Try again in a moment."],
+    [401, "OMDb isn't answering (HTTP 401). Try again in a moment."],
+  ])("says why metadata was skipped when OMDb answers HTTP %d", async (status, message) => {
+    globalThis.fetch = (async (input: URL | string) =>
+      new URL(input.toString()).host === "www.omdbapi.com"
+        ? new Response("", { status })
+        : new Response("", { status: 201 })) as unknown as typeof fetch;
+
+    const result = await logManualViewing({ ...BASE, omdbApiKey: "k" }, VIEWING);
+
+    expect(result.viewing.title).toBe("Dune");
+    expect(result.omdbSkippedBecause).toBe(message);
+  });
+
+  test("says why when OMDb answers a quota refusal in a 200", async () => {
+    route({ omdb: () => ({ Response: "False", Error: "Request limit reached!" }) });
+
+    const result = await logManualViewing({ ...BASE, omdbApiKey: "k" }, VIEWING);
+
+    expect(result.omdbSkippedBecause).toBe("OMDb refused the request: Request limit reached!");
+  });
+
+  test("says why when OMDb can't be reached at all", async () => {
+    globalThis.fetch = (async (input: URL | string) => {
+      if (new URL(input.toString()).host === "www.omdbapi.com") throw new Error("offline");
+      return new Response("", { status: 201 });
+    }) as unknown as typeof fetch;
+
+    const result = await logManualViewing({ ...BASE, omdbApiKey: "k" }, VIEWING);
+
+    expect(result.omdbSkippedBecause).toBe("OMDb isn't answering. Try again in a moment.");
+  });
+
+  test("says nothing when OMDb simply has no match, has a match, or isn't in use", async () => {
+    route({ omdb: () => ({ Response: "False", Error: "Movie not found!" }) });
+    expect(
+      (await logManualViewing({ ...BASE, omdbApiKey: "k" }, VIEWING)).omdbSkippedBecause,
+    ).toBeUndefined();
+
+    route({ omdb: () => OMDB_MATCH });
+    expect(
+      (await logManualViewing({ ...BASE, omdbApiKey: "k" }, VIEWING)).omdbSkippedBecause,
+    ).toBeUndefined();
+
+    route({});
+    expect((await logManualViewing(BASE, VIEWING)).omdbSkippedBecause).toBeUndefined();
+    expect(
+      (await logManualViewing({ ...BASE, omdbApiKey: "k", omdbPaused: true }, VIEWING))
+        .omdbSkippedBecause,
+    ).toBeUndefined();
+  });
+
   test("attaches a preselected OMDb match without searching again, plus TMDb's fields", async () => {
     route({ tmdb: (url) => (url.pathname.includes("/find/") ? TMDB_FIND : TMDB_MOVIE) });
 
