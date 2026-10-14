@@ -99,7 +99,9 @@ test.describe("Refresh maps on the Venues page", () => {
     await expect(page.getByRole("cell", { name: /Nothing found/ })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Use the match for Nowhere" })).toBeDisabled();
     await page.getByRole("button", { name: "Update viewings" }).click();
-    await expect(page.getByText("Updated 0 viewings.")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Refresh maps" }).getByRole("status")).toHaveText(
+      "Updated 0 viewings.",
+    );
     expect(server.updates).toHaveLength(0);
   });
 
@@ -120,8 +122,37 @@ test.describe("Refresh maps on the Venues page", () => {
     await expect(page.getByRole("cell", { name: "Somewhere (52.36, 4.88)" })).toBeVisible();
     await page.getByRole("checkbox", { name: `Use the match for ${VENUE}` }).uncheck();
     await page.getByRole("button", { name: "Update viewings" }).click();
-    await expect(page.getByText("Updated 0 viewings.")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Refresh maps" }).getByRole("status")).toHaveText(
+      "Updated 0 viewings.",
+    );
     expect(server.updates).toHaveLength(0);
+  });
+
+  test("reports a refused write and leaves the section usable", async ({ page }) => {
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([{ display_name: "Somewhere", lat: "52.36", lon: "4.88" }]),
+      });
+    });
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [viewing("a", "Dune", VENUE)]);
+    await connect(page);
+    // The server refuses the write, after the app has read the entry back.
+    await page.route(`${CREDENTIALS["caldav-url"]}a.ics`, async (route) => {
+      if (route.request().method() !== "PUT") return route.fallback();
+      await route.fulfill({ status: 500, body: "" });
+    });
+    await page.goto("/venues");
+
+    await page.getByRole("button", { name: "Find missing maps" }).click();
+    await page.getByRole("button", { name: "Update viewings" }).click();
+
+    await expect(page.getByRole("region", { name: "Refresh maps" }).getByRole("status")).toHaveText(
+      "Updated 0 viewings, 1 failed.",
+    );
+    await expect(page.getByRole("button", { name: "Find missing maps" })).toBeEnabled();
   });
 
   test("isn't offered when every venue already has coordinates", async ({ page }) => {
