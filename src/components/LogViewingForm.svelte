@@ -417,7 +417,10 @@ async function handleManualSubmit(event: SubmitEvent) {
 			},
 			selectedOmdbMatch,
 		);
-		status = "Logged.";
+		// #893: logged either way; say why when OMDb couldn't add metadata.
+		status = result.omdbSkippedBecause
+			? `Logged without metadata. ${result.omdbSkippedBecause}`
+			: "Logged.";
 		title = "";
 		date = "";
 		startTime = "";
