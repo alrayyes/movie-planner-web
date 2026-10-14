@@ -51,6 +51,13 @@ export function exportViewingsToJson(viewings: LoggedViewing[]): string {
       end: v.end,
       medium: v.medium,
       venue: v.venue,
+      // #867: the venue's location, flat so a CSV header can carry it too.
+      city: v.city,
+      country: v.country,
+      street_address: v.streetAddress,
+      postal_code: v.postalCode,
+      latitude: v.geo?.lat,
+      longitude: v.geo?.lon,
       director: v.director,
       actors: v.actors,
       genre: v.genre,

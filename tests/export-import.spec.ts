@@ -177,6 +177,36 @@ test.describe("importing the exported format", () => {
     expect(omdbCalls).toBe(0);
   });
 
+  // #867: an export's venue location survives the round trip, so the maps
+  // are still there in the calendar it is imported into.
+  test("re-importing an export keeps the venue's location", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+    await connect(page);
+
+    await page.goto("/import");
+    await page.locator("#import-file").setInputFiles({
+      name: "export.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify([
+          {
+            ...DUNE_EXPORT_ROW,
+            city: "Amsterdam",
+            country: "Netherlands",
+            latitude: 52.36,
+            longitude: 4.87,
+          },
+        ]),
+      ),
+    });
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+
+    await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 0, failed 0.");
+    expect(server.creates[0]?.geo).toEqual({ lat: 52.36, lon: 4.87 });
+    expect(server.creates[0]?.city).toBe("Amsterdam");
+    expect(server.creates[0]?.country).toBe("Netherlands");
+  });
+
   test("a minimal-format file (no uid, no OMDb fields) keeps working exactly as before", async ({
     page,
   }) => {

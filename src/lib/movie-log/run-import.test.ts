@@ -421,6 +421,29 @@ describe("writing to the calendar", () => {
       expect(body).toContain("Denis Villeneuve");
     });
 
+    // #867: without these the created event had no GEO and every map went.
+    test("writes the venue's location onto the created entry", async () => {
+      await importRow(CREDENTIALS, {
+        title: "Dune",
+        date: "2026-01-01",
+        medium: "cinema",
+        start: "2026-01-01T19:00:00.000Z",
+        end: "2026-01-01T21:30:00.000Z",
+        venue: "Odeon",
+        city: "Amsterdam",
+        country: "Netherlands",
+        streetAddress: "Kinkerstraat 1",
+        postalCode: "1053 AA",
+        geo: { lat: 52.36, lon: 4.87 },
+      });
+      const body = unfold(puts[0]?.body ?? "");
+      expect(body).toContain("GEO:52.36;4.87");
+      expect(body).toContain("X-CITY:Amsterdam");
+      expect(body).toContain("X-COUNTRY:Netherlands");
+      expect(body).toContain("X-STREET-ADDRESS:Kinkerstraat 1");
+      expect(body).toContain("X-POSTAL-CODE:1053 AA");
+    });
+
     test("builds start and end from date and times when there are no instants", async () => {
       await importRow(CREDENTIALS, {
         title: "Dune",
