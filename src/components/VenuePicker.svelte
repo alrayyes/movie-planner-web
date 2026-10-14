@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Picklists, VenueEntry } from "../lib/caldav/types";
-import { type GeoCandidate, searchAddress } from "../lib/geo/nominatim";
+import { type GeoCandidate, GeocoderUnavailableError, searchAddress } from "../lib/geo/nominatim";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
 	BUTTON_PRIMARY,
@@ -78,6 +78,10 @@ let geoQuery = $state("");
 let geoCandidates = $state<GeoCandidate[]>([]);
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let geoSearching = $state(false);
+// #873: set when Nominatim refused or was unreachable, so "nothing shown" isn't
+// read as "no such place".
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let geoError = $state("");
 let chosenGeo = $state<{ lat: number; lon: number } | undefined>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let chosenGeoLabel = $state("");
@@ -96,11 +100,19 @@ const formPrefix = $derived(editingVenue ? "edit-venue" : "add-venue");
 const runGeoSearch = debounce(async (query: string) => {
 	if (!query.trim()) {
 		geoCandidates = [];
+		geoError = "";
 		geoSearching = false;
 		return;
 	}
 	geoSearching = true;
-	geoCandidates = await searchAddress(query);
+	geoError = "";
+	try {
+		geoCandidates = await searchAddress(query);
+	} catch (error) {
+		if (!(error instanceof GeocoderUnavailableError)) throw error;
+		geoCandidates = [];
+		geoError = "The address lookup isn't answering right now. Try again in a moment.";
+	}
 	geoSearching = false;
 }, 400);
 
@@ -114,6 +126,7 @@ function chooseGeo(candidate: GeoCandidate) {
 	chosenGeo = { lat: candidate.lat, lon: candidate.lon };
 	chosenGeoLabel = candidate.label;
 	geoCandidates = [];
+	geoError = "";
 	geoQuery = "";
 }
 
@@ -131,6 +144,7 @@ function resetForm() {
 	newCountry = "";
 	geoQuery = "";
 	geoCandidates = [];
+	geoError = "";
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
 	selectedMissingVenues = new Set();
@@ -146,6 +160,7 @@ function startAddVenue() {
 	newCountry = "";
 	geoQuery = "";
 	geoCandidates = [];
+	geoError = "";
 	chosenGeo = undefined;
 	chosenGeoLabel = "";
 	selectedMissingVenues = new Set();
@@ -390,6 +405,9 @@ title/fields swapping on editingVenue. -->
       />
       {#if geoSearching}
         <p class={STATUS_TEXT}>Searching…</p>
+      {/if}
+      {#if geoError}
+        <p class={STATUS_TEXT} role="alert">{geoError}</p>
       {/if}
       {#if geoCandidates.length > 0}
         <ul class="flex flex-col gap-1">
