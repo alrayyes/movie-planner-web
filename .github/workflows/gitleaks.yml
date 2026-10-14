@@ -33,6 +33,10 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.26"
+          # Go is only here to install the binary. setup-go caches by default
+          # and looks for a go.mod, which this repo doesn't have, so it warned
+          # "Restore cache failed" on every run (#886).
+          cache: false
       - name: Install gitleaks
         # The module's import path is zricethezav/gitleaks; gitleaks/gitleaks
         # is only where the repository lives on GitHub. No project Go
