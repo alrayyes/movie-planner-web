@@ -31,6 +31,32 @@ export const EXTRA_FIELDS = {
 
 export type ExtraField = (typeof EXTRA_FIELDS)[keyof typeof EXTRA_FIELDS];
 
+// #879: what the import's review step calls each one. Typed over ExtraField, so
+// a field added to the table above doesn't compile until it has a label here.
+export const EXTRA_LABELS = {
+  synopsis: "Synopsis",
+  row: "Row",
+  seat: "Seat",
+  rated: "Rated",
+  runtime: "Runtime",
+  movieLanguage: "Movie language",
+  movieCountry: "Movie country",
+  metascore: "Metascore",
+  imdbVotes: "IMDb votes",
+  dvd: "DVD release",
+  boxOffice: "Box office",
+  production: "Production",
+  website: "Website",
+  released: "Released",
+  awards: "Awards",
+  trailerUrl: "Trailer URL",
+  collection: "Collection",
+  certification: "Certification",
+  keywords: "Keywords",
+  budget: "Budget",
+  popularity: "Popularity",
+} as const satisfies Record<ExtraField, string>;
+
 // A value off a file row, for each extra field it actually has as text.
 export function readExtraFields(raw: Record<string, unknown>): Partial<Record<ExtraField, string>> {
   const found: Partial<Record<ExtraField, string>> = {};
