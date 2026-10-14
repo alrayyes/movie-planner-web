@@ -287,6 +287,33 @@ test.describe("updating an existing entry by uid", () => {
     expect(server.updates[0]?.actors).toBe("Timothée Chalamet, Zendaya");
   });
 
+  // #870: the calendar it came from lost its coordinates; the review offers them back.
+  test("offers the venue's coordinates back when the existing event lacks them", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.goto("/import");
+    await page.locator("#import-file").setInputFiles({
+      name: "export.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify([{ ...DUNE_EXPORT_ROW, latitude: 52.36, longitude: 4.87 }]),
+      ),
+    });
+
+    await expect(page.getByLabel("Changes for Dune")).toContainText("Coordinates:");
+    await expect(page.getByLabel("Changes for Dune")).toContainText("52.36, 4.87");
+
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+    await expect(page.getByRole("status")).toHaveText(
+      "Imported 0, updated 1, skipped 0, failed 0.",
+    );
+    expect(server.updates[0]?.geo).toEqual({ lat: 52.36, lon: 4.87 });
+    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
+  });
+
   test("a uid match with no actual differences makes no request at all", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
