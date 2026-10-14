@@ -108,7 +108,7 @@ describe("refreshMetadata", () => {
     const fetchMock = routeFetch({
       caldavGet: () => new Response(serializeViewingToVEvent("uid-1", partial), { status: 200 }),
       caldavPut: () => new Response("", { status: 201 }),
-      omdbSearchByTitle: () =>
+      omdbById: () =>
         new Response(
           JSON.stringify({
             Response: "True",
@@ -145,7 +145,7 @@ describe("refreshMetadata", () => {
     const fetchMock = routeFetch({
       caldavGet: () => new Response(serializeViewingToVEvent("uid-1", partial), { status: 200 }),
       caldavPut: () => new Response("", { status: 201 }),
-      omdbSearchByTitle: () =>
+      omdbById: () =>
         new Response(
           JSON.stringify({
             Response: "True",
@@ -168,6 +168,97 @@ describe("refreshMetadata", () => {
     const body = String(fetchMock.mock.calls.find(([, init]) => init?.method === "PUT")?.[1]?.body);
     expect(body).toContain("Denis Villeneuve");
     expect(body).toContain("A desert planet.");
+  });
+
+  // #881: a match the visitor chose, or corrected by hand, is what a refresh asks
+  // OMDb about. Looking the title up again could swap it for another film.
+  test("looks the entry up by its own IMDb ID, not by title, and keeps that ID", async () => {
+    const chosen: NewViewing = { ...VIEWING, imdbId: "tt0087182", year: "1984" };
+    const asked: string[] = [];
+    const fetchMock = routeFetch({
+      caldavGet: () => new Response(serializeViewingToVEvent("uid-1", chosen), { status: 200 }),
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: (id) => {
+        asked.push(id);
+        return new Response(
+          JSON.stringify({
+            Response: "True",
+            Director: "David Lynch",
+            Poster: "https://example.com/dune-1984.jpg",
+            imdbID: "tt0087182",
+          }),
+          { status: 200 },
+        );
+      },
+      omdbSearchByTitle: () => {
+        throw new Error("must not look the title up");
+      },
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await refreshMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      viewing: { ...chosen, uid: "uid-1" },
+    });
+
+    expect(result.kind).toBe("refreshed");
+    expect(asked).toEqual(["tt0087182"]);
+    const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(String(put?.[1]?.body)).toContain("tt0087182");
+    expect(String(put?.[1]?.body)).toContain("David Lynch");
+  });
+
+  test("reports no match, without trying the title, when OMDb has nothing for the entry's own ID", async () => {
+    const chosen: NewViewing = { ...VIEWING, imdbId: "tt0087182" };
+    const fetchMock = routeFetch({
+      caldavGet: () => new Response(serializeViewingToVEvent("uid-1", chosen), { status: 200 }),
+      omdbById: () => new Response(NO_MATCH, { status: 200 }),
+      omdbSearchByTitle: () => {
+        throw new Error("must not look the title up");
+      },
+      omdbSearchList: () => {
+        throw new Error("must not search");
+      },
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await refreshMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      viewing: { ...chosen, uid: "uid-1" },
+    });
+
+    expect(result.kind).toBe("no-match");
+  });
+
+  test("refresh all also goes by the entry's own IMDb ID", async () => {
+    const chosen: NewViewing = { ...VIEWING, imdbId: "tt0087182" };
+    const asked: string[] = [];
+    const fetchMock = routeFetch({
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: (id) => {
+        asked.push(id);
+        return new Response(
+          JSON.stringify({ Response: "True", Director: "David Lynch", imdbID: "tt0087182" }),
+          { status: 200 },
+        );
+      },
+      omdbSearchByTitle: () => {
+        throw new Error("must not look the title up");
+      },
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await refreshAllMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      targets: [{ ...chosen, uid: "uid-1" }],
+      onProgress: () => {},
+    });
+
+    expect(result).toEqual({ refreshed: 1, misses: 0 });
+    expect(asked).toEqual(["tt0087182"]);
   });
 
   test("the picker's choice and the bulk refresh keep what OMDb has no answer for too", async () => {
