@@ -637,6 +637,9 @@ test.describe("log a viewing wizard (header button)", () => {
     await expect(dialog.getByRole("status")).toHaveText(
       "Logged without metadata. OMDb isn't answering (HTTP 429). Try again in a moment.",
     );
+    const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(scan.violations).toEqual([]);
+
     // The form is gone: the only thing left is the way out, so no second log.
     await expect(dialog.getByRole("button", { name: "Log viewing" })).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
