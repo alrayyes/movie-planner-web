@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { CaldavRequestFailedError } from "../caldav/errors";
 import type { LoggedViewing } from "../caldav/types";
-import type { GeoCandidate } from "../geo/nominatim";
+import { type GeoCandidate, GeocoderUnavailableError } from "../geo/nominatim";
 import { applyMaps, proposeMaps } from "./refresh-maps";
 
 const VENUE = "City, Kleine-Gartmanplantsoen 15-19, 1017 RP Amsterdam, Netherlands";
@@ -98,6 +98,44 @@ describe("proposeMaps", () => {
     });
     // One: 2 requests, Two: 2 requests -> 3 gaps of 1.1 s.
     expect(sleeps).toEqual([1100, 1100, 1100]);
+  });
+
+  // #873: Nominatim refusing or failing is not "no match", and carrying on would
+  // keep sending requests it has already said no to.
+  test("stops at the first failed lookup and marks the rest as not looked up", async () => {
+    const queries: string[] = [];
+    const search = async (q: string) => {
+      queries.push(q);
+      if (q.startsWith("Two")) throw new GeocoderUnavailableError(429);
+      return [HIT];
+    };
+    const result = await proposeMaps(
+      [
+        viewing("a", "One"),
+        viewing("a2", "One"),
+        viewing("a3", "One"),
+        viewing("b", "Two"),
+        viewing("b2", "Two"),
+        viewing("c", "Three"),
+      ],
+      { search, sleep: noSleep },
+    );
+    expect(result.map((p) => [p.venue, p.source])).toEqual([
+      ["One", "lookup"],
+      ["Two", "failed"],
+      ["Three", "failed"],
+    ]);
+    // One, then the failing Two; Three is never asked.
+    expect(queries).toEqual(["One", "Two"]);
+  });
+
+  test("an error that isn't the geocoder being unavailable is not swallowed", async () => {
+    const search = async () => {
+      throw new Error("a bug");
+    };
+    await expect(proposeMaps([viewing("a", "One")], { search, sleep: noSleep })).rejects.toThrow(
+      "a bug",
+    );
   });
 
   test("orders by number of viewings, most first, and reports progress", async () => {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { searchAddress } from "./nominatim";
+import { GeocoderUnavailableError, searchAddress } from "./nominatim";
 
 let originalFetch: typeof fetch;
 
@@ -48,18 +48,38 @@ describe("searchAddress", () => {
     expect(await searchAddress("a venue that doesn't exist anywhere")).toEqual([]);
   });
 
-  test("fails soft (empty array, no throw) on an HTTP error", async () => {
-    globalThis.fetch = (async () => new Response("", { status: 503 })) as unknown as typeof fetch;
+  // #873: a refusal or an outage is not "no such place", so the caller has to be
+  // able to tell them apart.
+  test.each([429, 500, 503])("throws GeocoderUnavailableError on an HTTP %d", async (status) => {
+    globalThis.fetch = (async () => new Response("", { status })) as unknown as typeof fetch;
 
-    expect(await searchAddress("Tuschinski")).toEqual([]);
+    const failure = await searchAddress("Tuschinski").catch((error) => error);
+
+    expect(failure).toBeInstanceOf(GeocoderUnavailableError);
+    expect(failure.status).toBe(status);
+    expect(failure.name).toBe("GeocoderUnavailableError");
+    expect(failure.message).toBe(`The address lookup failed (HTTP ${status}).`);
   });
 
-  test("fails soft (empty array, no throw) on a network failure", async () => {
+  test("throws GeocoderUnavailableError on a network failure", async () => {
     globalThis.fetch = (async () => {
       throw new TypeError("network error");
     }) as unknown as typeof fetch;
 
-    expect(await searchAddress("Tuschinski")).toEqual([]);
+    const failure = await searchAddress("Tuschinski").catch((error) => error);
+
+    expect(failure).toBeInstanceOf(GeocoderUnavailableError);
+    expect(failure.status).toBeUndefined();
+    expect(failure.message).toBe("The address lookup failed.");
+  });
+
+  test("throws GeocoderUnavailableError when the body is not a list", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: "x" }), { status: 200 })) as unknown as typeof fetch;
+
+    expect(await searchAddress("Tuschinski").catch((error) => error)).toBeInstanceOf(
+      GeocoderUnavailableError,
+    );
   });
 
   test("returns an empty array for a blank query without calling out", async () => {
@@ -87,15 +107,6 @@ describe("searchAddress", () => {
     const result = await searchAddress("query");
 
     expect(result).toEqual([{ label: "Elsewhere", lat: 5.0, lon: 5.0 }]);
-  });
-
-  test("fails soft on an HTTP error even when the body parses as results", async () => {
-    globalThis.fetch = (async () =>
-      new Response(JSON.stringify([{ display_name: "Somewhere", lat: "1", lon: "2" }]), {
-        status: 503,
-      })) as unknown as typeof fetch;
-
-    expect(await searchAddress("Tuschinski")).toEqual([]);
   });
 
   test("drops a result with no display name at all", async () => {
