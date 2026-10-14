@@ -547,3 +547,34 @@ describe("a row's fields, at their edges", () => {
     expect(row({ release_year: 2021.5 })?.error).toBe('release_year is not a valid year: "2021.5"');
   });
 });
+
+describe("parseJsonImport venue location (#867)", () => {
+  const base = { title: "Dune", date: "2026-01-01", medium: "cinema" };
+  const parse = (extra: object) => parseJsonImport(JSON.stringify([{ ...base, ...extra }]))[0];
+
+  test("reads latitude and longitude, given as numbers or as CSV-style strings", () => {
+    expect(parse({ latitude: 52.36, longitude: 4.87 })?.row?.geo).toEqual({
+      lat: 52.36,
+      lon: 4.87,
+    });
+    expect(parse({ latitude: "52.36", longitude: "4.87" })?.row?.geo).toEqual({
+      lat: 52.36,
+      lon: 4.87,
+    });
+  });
+
+  test("a file without location fields imports as before", () => {
+    expect(parse({})?.row?.geo).toBeUndefined();
+  });
+
+  test.each([
+    [{ latitude: "abc", longitude: 4 }],
+    [{ latitude: 91, longitude: 4 }],
+    [{ latitude: 52, longitude: 181 }],
+    [{ latitude: 52 }],
+  ])("refuses a bad coordinate pair %o", (extra) => {
+    const result = parse(extra);
+    expect(result?.row).toBeUndefined();
+    expect(result?.error).toMatch(/latitude|longitude/);
+  });
+});

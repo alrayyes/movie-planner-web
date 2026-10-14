@@ -21,6 +21,12 @@ export interface ImportRow {
   startTime?: string; // HH:MM
   endTime?: string; // HH:MM
   venue?: string;
+  // #867: the venue's location, as this app's own export writes it.
+  city?: string;
+  country?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  geo?: { lat: number; lon: number };
   imdbUrl?: string;
   // Present only when this app's own "Export as JSON" wrote it — what
   // lets run-import.ts's planUpdates recognise "this row is a
@@ -109,6 +115,32 @@ function releaseYear(value: unknown): { year?: string; error?: string } {
   return { year: text };
 }
 
+// #867: latitude and longitude come as a pair, in range. JSON hands in numbers,
+// CSV strings. Undefined when both are blank, an error message otherwise.
+function coordinates(
+  latitude: unknown,
+  longitude: unknown,
+): { geo?: { lat: number; lon: number }; error?: string } {
+  const read = (value: unknown): number | undefined => {
+    if (typeof value === "number") return value;
+    const text = str(value)?.trim();
+    return text ? Number(text) : undefined;
+  };
+  const lat = read(latitude);
+  const lon = read(longitude);
+  if (lat === undefined && lon === undefined) return {};
+  if (lat === undefined || lon === undefined) {
+    return { error: "latitude and longitude must both be given" };
+  }
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    return { error: `latitude is not a valid coordinate: "${String(latitude)}"` };
+  }
+  if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
+    return { error: `longitude is not a valid coordinate: "${String(longitude)}"` };
+  }
+  return { geo: { lat, lon } };
+}
+
 function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedRow {
   const title = str(raw.title)?.trim();
   if (!title) return { rowNumber, error: "title is required" };
@@ -150,6 +182,9 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
   const year = releaseYear(raw.release_year);
   if (year.error) return { rowNumber, error: year.error };
 
+  const location = coordinates(raw.latitude, raw.longitude);
+  if (location.error) return { rowNumber, error: location.error };
+
   const imdbUrlValue = str(raw.imdb_url);
   // #79's ical.ts parses the same shape out of a CLI-authored
   // DESCRIPTION line — this is that same link-to-bare-ID extraction,
@@ -165,6 +200,11 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
       startTime,
       endTime,
       venue: str(raw.venue),
+      city: str(raw.city),
+      country: str(raw.country),
+      streetAddress: str(raw.street_address),
+      postalCode: str(raw.postal_code),
+      geo: location.geo,
       imdbUrl: imdbUrlValue,
       uid,
       start,
