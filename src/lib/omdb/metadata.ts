@@ -26,8 +26,9 @@ export function hasOmdbMetadata(viewing: Pick<LoggedViewing, "imdbId" | "posterU
 
 // #877: "Refresh metadata" is a request the visitor made, so it only answers
 // "already up to date" when a match, a poster and everything OMDb fills in are
-// all there. hasOmdbMetadata above stays the looser test the bulk "refresh all"
-// selection uses (an entry with a match and poster isn't a target for it).
+// all there. The overview's and the missing-data page's "refresh all" pick their
+// targets with it too (#896); hasOmdbMetadata above is the narrower "is it
+// matched at all" test.
 export function isOmdbComplete(
   viewing: Pick<
     LoggedViewing,
