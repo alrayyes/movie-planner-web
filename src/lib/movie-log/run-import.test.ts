@@ -357,8 +357,6 @@ describe("planUpdates and the venue's coordinates", () => {
   });
 });
 
-// Every comparable field is reported under its own label, which the review
-// page shows the visitor as the name of the checkbox.
 // #879: the synopsis, seat and OMDb extras an export now carries are compared too,
 // driven from the same table so a new field is covered without touching this list.
 describe("planUpdates and the extra fields", () => {
@@ -402,6 +400,15 @@ describe("planUpdates and the extra fields", () => {
     ).toEqual([]);
   });
 
+  test("an empty value in the file leaves the event's own alone", () => {
+    expect(
+      planUpdates(
+        [exportedRow(2, { uid: "u", synopsis: "" })],
+        [{ ...existing, synopsis: "kept" }],
+      ),
+    ).toEqual([]);
+  });
+
   test("a row identical to the event proposes nothing", () => {
     expect(
       planUpdates(
@@ -412,6 +419,8 @@ describe("planUpdates and the extra fields", () => {
   });
 });
 
+// Every comparable field is reported under its own label, which the review
+// page shows the visitor as the name of the checkbox.
 describe("planUpdates labels every comparable field", () => {
   const labels: [keyof ImportRow & keyof NewViewing, string][] = [
     ["title", "Title"],
