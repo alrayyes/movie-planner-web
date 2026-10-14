@@ -224,6 +224,29 @@ test.describe("missing-data overview", () => {
     expect(server.updates[0]?.uid).toBe(MISSING_POSTER.uid);
   });
 
+  // #877: an entry with a match and a poster that lacks only a genre or synopsis
+  // used to be left out of "Refresh all metadata", so an imported calendar
+  // couldn't be repaired in one go.
+  test("Refresh all metadata includes an entry that has a poster but is missing another field", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [MISSING_GENRE]);
+    await connect(page, "test-omdb-key");
+    await page.goto("/missing-data");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "True", imdbID: "tt1160419", Genre: "Drama" }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    expect(server.updates[0]?.genre).toBe("Drama");
+  });
+
   test("paginates a large result set", async ({ page }) => {
     const many = Array.from({ length: 26 }, (_, i) =>
       viewing(`missing-genre-${i}`, `Missing Genre ${i}`, { ...OMDB_FIELDS, genre: undefined }),

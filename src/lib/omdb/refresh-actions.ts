@@ -2,7 +2,7 @@ import { getViewing, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../caldav/types";
 import { enrichWithTmdb } from "../tmdb/client";
 import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "./client";
-import { hasOmdbMetadata } from "./metadata";
+import { isOmdbComplete } from "./metadata";
 
 // #575: the per-row/bulk refresh and disambiguation-picker logic, shared
 // between CalendarOverview.svelte and the missing-data overview
@@ -11,6 +11,15 @@ import { hasOmdbMetadata } from "./metadata";
 // scenario here mirrors the movie-editing capability spec's own
 // requirements verbatim — this module, not either component, is now the
 // one place those scenarios are implemented.
+
+// #881: OMDb and TMDb leave out what they don't have, and a spread copies an
+// explicit `undefined` over the value already on the entry. Only what a lookup
+// actually returned is laid over it.
+function definedFields<T extends object>(fields: T | undefined): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(fields ?? {}).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+}
 
 export type RefreshResult =
   | { kind: "already-up-to-date" }
@@ -34,7 +43,7 @@ export async function refreshMetadata(params: RefreshMetadataParams): Promise<Re
   // copy, not the possibly-stale `viewing` argument.
   const current = (await getViewing(config, viewing.uid)) ?? viewing;
   // "Already matched elsewhere since the list loaded"
-  if (hasOmdbMetadata(current)) {
+  if (isOmdbComplete(current)) {
     return { kind: "already-up-to-date" };
   }
 
@@ -47,8 +56,8 @@ export async function refreshMetadata(params: RefreshMetadataParams): Promise<Re
     const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
     const updated = await updateViewing(config, current.uid, {
       ...current,
-      ...metadata,
-      ...tmdbFields,
+      ...definedFields(metadata),
+      ...definedFields(tmdbFields),
     });
     return { kind: "refreshed", viewing: updated };
   }
@@ -81,8 +90,8 @@ export async function applyOmdbCandidate(
   const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
   const updated = await updateViewing(config, current.uid, {
     ...current,
-    ...metadata,
-    ...tmdbFields,
+    ...definedFields(metadata),
+    ...definedFields(tmdbFields),
   });
   return { kind: "refreshed", viewing: updated };
 }
@@ -119,7 +128,11 @@ export async function refreshAllMetadata(
       );
       if (metadata) {
         const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
-        await updateViewing(config, viewing.uid, { ...viewing, ...metadata, ...tmdbFields });
+        await updateViewing(config, viewing.uid, {
+          ...viewing,
+          ...definedFields(metadata),
+          ...definedFields(tmdbFields),
+        });
         refreshed++;
       } else {
         misses++;
