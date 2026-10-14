@@ -127,8 +127,10 @@ function cancel() {
                 </td>
                 <td class={TD}>{proposal.venue}</td>
                 <td class={TD}>
-                  {#if proposal.source === "none"}
-                    Nothing found, or the lookup failed
+                  {#if proposal.source === "failed"}
+                    Lookup failed. Nominatim isn't answering; try again in a moment.
+                  {:else if proposal.source === "none"}
+                    Nothing found
                   {:else if proposal.source === "viewing"}
                     Already known from another viewing
                   {:else}

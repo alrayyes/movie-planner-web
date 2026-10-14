@@ -195,6 +195,25 @@ test.describe("structured venue picklist", () => {
     expect(server.creates[0]?.geo).toEqual({ lat: 52.3665062, lon: 4.8947073 });
   });
 
+  // #873: a refused address search is not "no results".
+  test("says so when the address search can't be reached", async ({ page }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });
+    await connect(page);
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      await route.fulfill({
+        status: 429,
+        headers: { "access-control-allow-origin": "*" },
+        body: "",
+      });
+    });
+    await page.goto("/log");
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-geo-search").fill("Grand Vista Cinema");
+
+    await expect(page.getByRole("alert").filter({ hasText: "address lookup" })).toBeVisible();
+  });
+
   test("adding a new venue with just a name works — every other field, including the address search, is optional", async ({
     page,
   }) => {
