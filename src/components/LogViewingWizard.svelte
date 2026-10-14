@@ -385,6 +385,8 @@ function showOmdbPicker(candidates: OmdbCandidate[]) {
 			() => dialogEl?.close(),
 		),
 	);
+	// The button that was focused is gone; move focus to the picker.
+	pickerArea.querySelector<HTMLButtonElement>("button")?.focus();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
@@ -487,7 +489,7 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
         </button>
       </div>
     {:else if loggedViewing}
-      <p class={STATUS_TEXT}>Logged. Pick the matching title to add its details.</p>
+      <!-- Only the picker (below) is left; its sentence is in the live region. -->
     {:else if step === 1}
       <div class="flex flex-col gap-3">
         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Find the movie</h2>
@@ -610,7 +612,9 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
     {/if}
     <!-- One live region that is always in the dialog, so a screen reader
     hears the notice when its text appears (#893). -->
-    <p class={STATUS_TEXT} role="status">{skippedNotice}</p>
+    <p class={STATUS_TEXT} role="status">
+      {skippedNotice || (loggedViewing ? "Logged. Pick the matching title to add its details." : "")}
+    </p>
     <div bind:this={pickerArea}></div>
   </div>
   {/if}
