@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.32.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.31.2...movie-planner-web-v1.32.0) (2026-10-14)
+
+
+### Features
+
+* **import:** offer the synopsis, seat and OMDb extras back on a uid match ([#889](https://github.com/alrayyes/movie-planner-web/issues/889)) ([92ac418](https://github.com/alrayyes/movie-planner-web/commit/92ac418116f9ebc7b15afe173aeffea0519812f1))
+
+
+### Bug Fixes
+
+* **geo:** tell a failed address lookup from no match ([#892](https://github.com/alrayyes/movie-planner-web/issues/892)) ([ee94261](https://github.com/alrayyes/movie-planner-web/commit/ee942612488f14c3739893ea06dfa55df5aeb776))
+* **omdb:** tell OMDb refusing a request from OMDb having no match ([#891](https://github.com/alrayyes/movie-planner-web/issues/891)) ([0718982](https://github.com/alrayyes/movie-planner-web/commit/0718982b255cfd8137d9ae48e0f55906e0e864f2)), closes [#888](https://github.com/alrayyes/movie-planner-web/issues/888)
+
 ## [1.31.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.31.1...movie-planner-web-v1.31.2) (2026-10-14)
 
 
