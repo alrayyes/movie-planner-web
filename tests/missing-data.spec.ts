@@ -247,6 +247,39 @@ test.describe("missing-data overview", () => {
     expect(server.updates[0]?.genre).toBe("Drama");
   });
 
+  // #888: a refused lookup would be refused again for every title after it.
+  test("Refresh all metadata stops, and says why, when OMDb refuses", async ({ page }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      viewing("one-uid", "One", { ...OMDB_FIELDS, genre: undefined, imdbId: undefined }),
+      viewing("two-uid", "Two", { ...OMDB_FIELDS, genre: undefined, imdbId: undefined }),
+      viewing("three-uid", "Three", { ...OMDB_FIELDS, genre: undefined, imdbId: undefined }),
+    ]);
+    await connect(page, "test-omdb-key");
+    await page.goto("/missing-data");
+    const asked: string[] = [];
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      const title = new URL(route.request().url()).searchParams.get("t") ?? "";
+      asked.push(title);
+      const body =
+        asked.length === 1
+          ? { Response: "True", imdbID: "tt1", Genre: "Drama" }
+          : { Response: "False", Error: "Request limit reached!" };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toContainText(
+      "Stopped after 1 of 3 (1 refreshed): OMDb refused the request: Request limit reached!",
+    );
+    expect(asked).toHaveLength(2);
+    expect(server.updates).toHaveLength(1);
+  });
+
   test("paginates a large result set", async ({ page }) => {
     const many = Array.from({ length: 26 }, (_, i) =>
       viewing(`missing-genre-${i}`, `Missing Genre ${i}`, { ...OMDB_FIELDS, genre: undefined }),
