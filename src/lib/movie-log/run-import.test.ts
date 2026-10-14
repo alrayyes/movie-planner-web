@@ -3,6 +3,7 @@ import { parseVEventToViewing } from "../caldav/ical";
 import type { LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
 import { exportViewingsToJson } from "./export-viewings";
+import { EXTRA_FIELDS, EXTRA_LABELS } from "./extra-fields";
 import { type ImportRow, type ParsedRow, parseJsonImport } from "./import-rows";
 import { applyImportUpdate, importRow, planImport, planUpdates, toIsoDateTime } from "./run-import";
 
@@ -353,6 +354,68 @@ describe("planUpdates and the venue's coordinates", () => {
 
   test("a row without coordinates leaves the event's own alone", () => {
     expect(planUpdates([row()], [{ ...base, geo: { lat: 1, lon: 2 } }])).toEqual([]);
+  });
+});
+
+// #879: the synopsis, seat and OMDb extras an export now carries are compared too,
+// driven from the same table so a new field is covered without touching this list.
+describe("planUpdates and the extra fields", () => {
+  const existing: LoggedViewing = {
+    uid: "u",
+    title: "Dune",
+    start: "2026-01-01T19:00:00.000Z",
+    end: "2026-01-01T21:30:00.000Z",
+    medium: "cinema",
+  };
+
+  test.each(Object.values(EXTRA_FIELDS))("%s is proposed when the event lacks it", (field) => {
+    const [entry] = planUpdates(
+      [exportedRow(2, { uid: "u", [field]: "from the file" })],
+      [existing],
+    );
+    expect(entry?.changes).toEqual([
+      { field, label: EXTRA_LABELS[field], oldValue: undefined, newValue: "from the file" },
+    ]);
+  });
+
+  test("the labels read as words, not field names", () => {
+    expect(EXTRA_LABELS.synopsis).toBe("Synopsis");
+    expect(EXTRA_LABELS.trailerUrl).toBe("Trailer URL");
+    expect(EXTRA_LABELS.movieLanguage).toBe("Movie language");
+  });
+
+  test("a changed value shows the old one", () => {
+    const [entry] = planUpdates(
+      [exportedRow(2, { uid: "u", synopsis: "new" })],
+      [{ ...existing, synopsis: "old" }],
+    );
+    expect(entry?.changes).toEqual([
+      { field: "synopsis", label: "Synopsis", oldValue: "old", newValue: "new" },
+    ]);
+  });
+
+  test("a row that leaves an extra field out leaves the event's own alone", () => {
+    expect(
+      planUpdates([exportedRow(2, { uid: "u" })], [{ ...existing, synopsis: "kept" }]),
+    ).toEqual([]);
+  });
+
+  test("an empty value in the file leaves the event's own alone", () => {
+    expect(
+      planUpdates(
+        [exportedRow(2, { uid: "u", synopsis: "" })],
+        [{ ...existing, synopsis: "kept" }],
+      ),
+    ).toEqual([]);
+  });
+
+  test("a row identical to the event proposes nothing", () => {
+    expect(
+      planUpdates(
+        [exportedRow(2, { uid: "u", synopsis: "same", seat: "12" })],
+        [{ ...existing, synopsis: "same", seat: "12" }],
+      ),
+    ).toEqual([]);
   });
 });
 

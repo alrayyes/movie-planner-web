@@ -314,6 +314,41 @@ test.describe("updating an existing entry by uid", () => {
     expect(server.updates[0]?.director).toBe("Denis Villeneuve");
   });
 
+  // #879: the synopsis and the other extras an export carries can be restored too.
+  test("offers the synopsis and trailer back when the existing event lacks them", async ({
+    page,
+  }) => {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+
+    await page.goto("/import");
+    await page.locator("#import-file").setInputFiles({
+      name: "export.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify([
+          {
+            ...DUNE_EXPORT_ROW,
+            synopsis: "A desert planet.",
+            trailer_url: "https://example.com/t",
+          },
+        ]),
+      ),
+    });
+
+    const block = page.getByLabel("Changes for Dune");
+    await expect(block).toContainText("Synopsis:");
+    await expect(block).toContainText("Trailer URL:");
+
+    await page.getByRole("button", { name: "Import checked rows" }).click();
+    await expect(page.getByRole("status")).toHaveText(
+      "Imported 0, updated 1, skipped 0, failed 0.",
+    );
+    expect(server.updates[0]?.synopsis).toBe("A desert planet.");
+    expect(server.updates[0]?.trailerUrl).toBe("https://example.com/t");
+    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
+  });
+
   test("a uid match with no actual differences makes no request at all", async ({ page }) => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
