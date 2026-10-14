@@ -13,8 +13,9 @@
 // other. See public/schemas/movie-viewings.schema.json for the full
 // shape.
 import { localDateAndTime } from "./export-viewings";
+import { type ExtraField, readExtraFields } from "./extra-fields";
 
-export interface ImportRow {
+export interface ImportRow extends Partial<Record<ExtraField, string>> {
   title: string;
   date: string; // YYYY-MM-DD
   medium: string;
@@ -222,6 +223,7 @@ function rowFromRecord(rowNumber: number, raw: Record<string, unknown>): ParsedR
       letterboxdUrl: str(raw.letterboxd_url),
       letterboxdRating: str(raw.letterboxd_rating),
       notes: str(raw.notes),
+      ...readExtraFields(raw),
     },
   };
 }

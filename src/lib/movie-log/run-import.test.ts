@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { parseVEventToViewing } from "../caldav/ical";
 import type { LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
-import type { ImportRow, ParsedRow } from "./import-rows";
+import { exportViewingsToJson } from "./export-viewings";
+import { type ImportRow, type ParsedRow, parseJsonImport } from "./import-rows";
 import { applyImportUpdate, importRow, planImport, planUpdates, toIsoDateTime } from "./run-import";
 
 function row(rowNumber: number, title: string, date: string): ParsedRow {
@@ -399,6 +401,83 @@ describe("writing to the calendar", () => {
   });
 
   const unfold = (ics: string) => ics.replace(/\r?\n[ \t]/g, "");
+
+  // #871: `Required<LoggedViewing>` stops compiling when a field is added to the
+  // type, so a new field can't be forgotten here. lastModifiedBy is who last
+  // saved the event, which the app stamps itself, so it isn't carried over.
+  const FULL: Required<Omit<LoggedViewing, "uid" | "lastModifiedBy">> = {
+    title: "Dune Part One",
+    start: "2026-01-01T19:00:00.000Z",
+    end: "2026-01-01T21:30:00.000Z",
+    medium: "cinema",
+    venue: "Odeon Amsterdam",
+    city: "Amsterdam",
+    country: "Netherlands",
+    streetAddress: "Kinkerstraat 1",
+    postalCode: "1053 AA",
+    director: "Denis Villeneuve",
+    actors: "Timothée Chalamet, Zendaya",
+    ratingImdb: "8.0",
+    ratingRottenTomatoes: "83%",
+    ratingMetacritic: "74",
+    genre: "Science Fiction",
+    year: "2021",
+    posterUrl: "https://example.com/poster.jpg",
+    imdbId: "tt1160419",
+    synopsis: "A boy's family is given stewardship of a desert planet.",
+    bookingRef: "ABC123",
+    row: "F",
+    seat: "12",
+    letterboxdUrl: "https://letterboxd.com/film/dune-2021/",
+    letterboxdRating: "4.2",
+    notes: "Watched with Sam",
+    geo: { lat: 52.36, lon: 4.87 },
+    rated: "PG-13",
+    runtime: "155 min",
+    movieLanguage: "English",
+    movieCountry: "United States",
+    metascore: "75",
+    imdbVotes: "700,000",
+    dvd: "2022-01-11",
+    boxOffice: "$108,000,000",
+    production: "Legendary Pictures",
+    website: "https://example.com/dune",
+    released: "2021-10-22",
+    awards: "Won 6 Oscars",
+    trailerUrl: "https://example.com/trailer",
+    collection: "Dune Collection",
+    certification: "NL-12",
+    keywords: "desert, spice",
+    budget: "$165,000,000",
+    popularity: "88.1",
+  };
+
+  test("a viewing with every field survives export and import into an empty calendar", async () => {
+    const exported = exportViewingsToJson([{ uid: "u", ...FULL }]);
+    const parsed = parseJsonImport(exported)[0]?.row;
+    expect(parsed).toBeDefined();
+    await importRow(CREDENTIALS, parsed as ImportRow);
+    const { start: _start, end: _end, ...rest } = FULL;
+    expect(parseVEventToViewing(unfold(puts[0]?.body ?? ""))).toMatchObject(rest);
+  });
+
+  test("a file without the extra fields imports without writing any of them", async () => {
+    const exported = JSON.stringify([
+      { title: "Dune", date: "2026-01-01", medium: "cinema", start_time: "19:00" },
+    ]);
+    await importRow(CREDENTIALS, parseJsonImport(exported)[0]?.row as ImportRow);
+    const body = unfold(puts[0]?.body ?? "");
+    for (const property of [
+      "X-SYNOPSIS",
+      "X-ROW",
+      "X-SEAT",
+      "X-RATED",
+      "X-TRAILER-URL",
+      "X-BUDGET",
+    ]) {
+      expect(body).not.toContain(property);
+    }
+  });
 
   describe("importRow", () => {
     test("creates an entry from the row's exported instants", async () => {
