@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { serializeViewingToVEvent } from "../caldav/ical";
 import type { CaldavConfig, NewViewing } from "../caldav/types";
+import { OmdbUnavailableError } from "./client";
 import {
   applyOmdbCandidate,
+  bulkRefreshMessage,
   noMatchMessage,
   refreshAllMetadata,
   refreshMetadata,
@@ -302,6 +304,75 @@ describe("refreshMetadata", () => {
     expect(asked).toEqual(["tt0087182"]);
   });
 
+  // #888: OMDb refusing a lookup is not "no match".
+  test("a refused lookup throws instead of reporting no match", async () => {
+    const fetchMock = routeFetch({
+      caldavGet: () => new Response(serializeViewingToVEvent("uid-1", VIEWING), { status: 200 }),
+      omdbSearchByTitle: () => new Response("", { status: 429 }),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(
+      refreshMetadata({
+        config: CONFIG,
+        omdbApiKey: "test-key",
+        viewing: { ...VIEWING, uid: "uid-1" },
+      }),
+    ).rejects.toBeInstanceOf(OmdbUnavailableError);
+  });
+
+  test("a refused lookup for a picked match throws too", async () => {
+    const fetchMock = routeFetch({ omdbById: () => new Response("", { status: 429 }) });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(
+      applyOmdbCandidate({
+        config: CONFIG,
+        omdbApiKey: "test-key",
+        current: { ...VIEWING, uid: "uid-1" },
+        candidate: { imdbId: "tt1160419", title: "Dune" },
+      }),
+    ).rejects.toBeInstanceOf(OmdbUnavailableError);
+  });
+
+  test("the bulk refresh stops at the first refused lookup and says why", async () => {
+    const asked: string[] = [];
+    const fetchMock = routeFetch({
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbSearchByTitle: (title) => {
+        asked.push(title);
+        return title === "Second"
+          ? new Response(JSON.stringify({ Response: "False", Error: "Request limit reached!" }), {
+              status: 200,
+            })
+          : new Response(JSON.stringify({ Response: "True", Director: "X", imdbID: "tt1" }), {
+              status: 200,
+            });
+      },
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const progress: number[] = [];
+
+    const result = await refreshAllMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      targets: ["First", "Second", "Third"].map((title, i) => ({
+        ...VIEWING,
+        title,
+        uid: `uid-${i}`,
+      })),
+      onProgress: (refreshed, misses) => progress.push(refreshed + misses),
+    });
+
+    expect(asked).toEqual(["First", "Second"]);
+    expect(result).toEqual({
+      refreshed: 1,
+      misses: 0,
+      stoppedBecause: "OMDb refused the request: Request limit reached!",
+    });
+    expect(progress).toEqual([1]);
+  });
+
   test("the picker's choice and the bulk refresh keep what OMDb has no answer for too", async () => {
     const partial: NewViewing = { ...VIEWING, director: "Denis Villeneuve" };
     const omdb = () =>
@@ -460,13 +531,16 @@ describe("refreshAllMetadata", () => {
 
   // movie-editing spec: "Some titles have no match" — one failure doesn't
   // abort the rest of the batch.
-  test("a lookup failure for one target doesn't stop the rest of the batch", async () => {
-    let calls = 0;
-    globalThis.fetch = mock(async (url: string | URL) => {
+  // #888: a lookup OMDb refuses stops the run (see above); a write the calendar
+  // refuses for one title is that title's problem alone.
+  test("a calendar write failure for one target doesn't stop the rest of the batch", async () => {
+    let writes = 0;
+    globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
       const u = new URL(url.toString());
-      if (u.hostname === "caldav.example.com") return new Response("", { status: 201 });
-      calls++;
-      if (calls === 1) throw new Error("network blip");
+      if (u.hostname === "caldav.example.com") {
+        const refused = init?.method === "PUT" && ++writes === 1;
+        return new Response("", { status: refused ? 500 : 201 });
+      }
       return new Response(
         JSON.stringify({
           Response: "True",
@@ -488,5 +562,30 @@ describe("refreshAllMetadata", () => {
     });
 
     expect(result).toEqual({ refreshed: 1, misses: 1 });
+  });
+});
+
+describe("bulkRefreshMessage", () => {
+  test("counts what was refreshed", () => {
+    expect(bulkRefreshMessage({ refreshed: 3, misses: 0 }, 3)).toBe("Refreshed 3 of 3.");
+  });
+
+  test("mentions the misses", () => {
+    expect(bulkRefreshMessage({ refreshed: 2, misses: 1 }, 3)).toBe(
+      "Refreshed 2 of 3 (1 had no OMDb match or failed).",
+    );
+  });
+
+  test("says how far a stopped run got, and why", () => {
+    expect(
+      bulkRefreshMessage(
+        {
+          refreshed: 2,
+          misses: 1,
+          stoppedBecause: "OMDb refused the request: Request limit reached!",
+        },
+        10,
+      ),
+    ).toBe("Stopped after 3 of 10 (2 refreshed): OMDb refused the request: Request limit reached!");
   });
 });

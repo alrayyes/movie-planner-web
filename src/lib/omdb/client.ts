@@ -73,6 +73,7 @@ interface OmdbResponse {
   BoxOffice?: string;
   Production?: string;
   Website?: string;
+  Error?: string;
 }
 
 interface OmdbSearchResult {
@@ -84,6 +85,7 @@ interface OmdbSearchResult {
 
 interface OmdbSearchResponse {
   Response: "True" | "False";
+  Error?: string;
   Search?: OmdbSearchResult[];
   totalResults?: string;
 }
@@ -135,6 +137,50 @@ function toMetadata(data: OmdbResponse): MovieMetadata {
   };
 }
 
+// #888: OMDb refusing a request (401 for a bad key, 429 or a "Request limit
+// reached!" body for the daily quota), being down or unreachable is not "no
+// match". It throws, so a caller can say the lookup failed instead of treating a
+// quota error as a title that doesn't exist. OMDb's own "Movie not found!" and
+// the like stay ordinary no-match answers.
+export class OmdbUnavailableError extends Error {
+  constructor(
+    readonly status?: number,
+    refusal?: string,
+  ) {
+    super(
+      refusal
+        ? `OMDb refused the request: ${refusal}`
+        : status
+          ? `OMDb isn't answering (HTTP ${status}). Try again in a moment.`
+          : "OMDb isn't answering. Try again in a moment.",
+    );
+    this.name = "OmdbUnavailableError";
+  }
+}
+
+// The 200-with-an-error answers that mean "not now", not "not found".
+const REFUSAL = /api key|limit/i;
+
+async function getJson<T extends { Response?: string; Error?: string }>(url: URL): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw new OmdbUnavailableError();
+  }
+  if (!response.ok) throw new OmdbUnavailableError(response.status);
+  let data: T;
+  try {
+    data = (await response.json()) as T;
+  } catch {
+    throw new OmdbUnavailableError();
+  }
+  if (data.Error && REFUSAL.test(data.Error)) {
+    throw new OmdbUnavailableError(undefined, data.Error);
+  }
+  return data;
+}
+
 async function search(apiKey: string, title: string, year: string | undefined) {
   const url = new URL("https://www.omdbapi.com/");
   url.searchParams.set("apikey", apiKey);
@@ -144,9 +190,7 @@ async function search(apiKey: string, title: string, year: string | undefined) {
   // worth showing on the details page.
   url.searchParams.set("plot", "full");
 
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = (await response.json()) as OmdbResponse;
+  const data = await getJson<OmdbResponse>(url);
   return data.Response === "True" ? data : null;
 }
 
@@ -175,16 +219,14 @@ async function searchPage(
   title: string,
   page: number,
   year?: string,
-): Promise<OmdbSearchResponse | null> {
+): Promise<OmdbSearchResponse> {
   const url = new URL("https://www.omdbapi.com/");
   url.searchParams.set("apikey", apiKey);
   url.searchParams.set("s", title);
   if (year) url.searchParams.set("y", year);
   if (page > 1) url.searchParams.set("page", String(page));
 
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  return (await response.json()) as OmdbSearchResponse;
+  return getJson<OmdbSearchResponse>(url);
 }
 
 // #49: when `lookupMovie` finds no single confident match, this is what
@@ -202,14 +244,17 @@ export async function searchMovies(
   year?: string,
 ): Promise<OmdbCandidate[]> {
   const first = await searchPage(apiKey, title, 1, year);
-  if (!first || first.Response !== "True" || !first.Search) return [];
+  if (first.Response !== "True" || !first.Search) return [];
 
   const results = [...first.Search];
   const totalResults = Number(first.totalResults ?? results.length);
   const pagesAvailable = Math.min(MAX_SEARCH_PAGES, Math.ceil(totalResults / 10));
 
   for (let page = 2; page <= pagesAvailable; page++) {
-    const data = await searchPage(apiKey, title, page, year);
+    // A later page that fails (the quota running out mid-search) keeps what the
+    // first pages already found, rather than throwing it away. getJson only ever
+    // throws OmdbUnavailableError.
+    const data = await searchPage(apiKey, title, page, year).catch(() => undefined);
     if (!data || data.Response !== "True" || !data.Search) break;
     results.push(...data.Search);
   }
@@ -236,9 +281,7 @@ export async function lookupByImdbId(
   url.searchParams.set("i", imdbId);
   url.searchParams.set("plot", "full");
 
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = (await response.json()) as OmdbResponse;
+  const data = await getJson<OmdbResponse>(url);
   return data.Response === "True" ? toMetadata(data) : null;
 }
 
@@ -265,9 +308,7 @@ async function lookupCandidateByImdbId(
   url.searchParams.set("apikey", apiKey);
   url.searchParams.set("i", imdbId);
 
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = (await response.json()) as OmdbResponse;
+  const data = await getJson<OmdbResponse>(url);
   if (data.Response !== "True" || !data.imdbID) return null;
 
   return {

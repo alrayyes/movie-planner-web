@@ -1,7 +1,13 @@
 import { getViewing, updateViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing } from "../caldav/types";
 import { enrichWithTmdb } from "../tmdb/client";
-import { lookupByImdbId, lookupMovie, type OmdbCandidate, searchMovies } from "./client";
+import {
+  lookupByImdbId,
+  lookupMovie,
+  type OmdbCandidate,
+  OmdbUnavailableError,
+  searchMovies,
+} from "./client";
 import { isOmdbComplete } from "./metadata";
 
 // #575: the per-row/bulk refresh and disambiguation-picker logic, shared
@@ -130,7 +136,7 @@ interface RefreshAllParams {
 // nobody to answer it.
 export async function refreshAllMetadata(
   params: RefreshAllParams,
-): Promise<{ refreshed: number; misses: number }> {
+): Promise<{ refreshed: number; misses: number; stoppedBecause?: string }> {
   const { config, omdbApiKey, tmdbApiKey, targets, onProgress } = params;
   let refreshed = 0;
   let misses = 0;
@@ -148,10 +154,31 @@ export async function refreshAllMetadata(
       } else {
         misses++;
       }
-    } catch {
+    } catch (error) {
+      // #888: OMDb refusing a request (the daily quota, a bad key) would be
+      // refused again for every title after it, so the run stops there and says
+      // why instead of counting the rest as titles with no match.
+      if (error instanceof OmdbUnavailableError) {
+        return { refreshed, misses, stoppedBecause: error.message };
+      }
       misses++;
     }
     onProgress(refreshed, misses, targets.length);
   }
   return { refreshed, misses };
+}
+
+// What the page says when a bulk refresh is over, shared by the overview and the
+// missing-data page. A run OMDb stopped (#888) says how far it got and why.
+export function bulkRefreshMessage(
+  result: { refreshed: number; misses: number; stoppedBecause?: string },
+  total: number,
+): string {
+  const { refreshed, misses, stoppedBecause } = result;
+  if (stoppedBecause) {
+    return `Stopped after ${refreshed + misses} of ${total} (${refreshed} refreshed): ${stoppedBecause}`;
+  }
+  return misses > 0
+    ? `Refreshed ${refreshed} of ${total} (${misses} had no OMDb match or failed).`
+    : `Refreshed ${refreshed} of ${total}.`;
 }
