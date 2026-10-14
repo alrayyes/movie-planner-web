@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { serializeViewingToVEvent } from "../caldav/ical";
 import type { CaldavConfig, NewViewing } from "../caldav/types";
-import { applyOmdbCandidate, refreshAllMetadata, refreshMetadata } from "./refresh-actions";
+import {
+  applyOmdbCandidate,
+  noMatchMessage,
+  refreshAllMetadata,
+  refreshMetadata,
+} from "./refresh-actions";
 
 const CONFIG: CaldavConfig = {
   baseUrl: "https://caldav.example.com/calendars/me/movies/",
@@ -229,7 +234,43 @@ describe("refreshMetadata", () => {
       viewing: { ...chosen, uid: "uid-1" },
     });
 
-    expect(result.kind).toBe("no-match");
+    expect(result).toEqual({ kind: "no-match", imdbId: "tt0087182" });
+  });
+
+  // #113: a CLI-logged entry has an IMDb ID from its description and nothing else.
+  test("a bare IMDb ID from the CLI gets its poster through the by-ID lookup", async () => {
+    const bare: NewViewing = { ...VIEWING, imdbId: "tt1160419" };
+    const fetchMock = routeFetch({
+      caldavGet: () => new Response(serializeViewingToVEvent("uid-1", bare), { status: 200 }),
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: () =>
+        new Response(
+          JSON.stringify({
+            Response: "True",
+            Poster: "https://example.com/dune.jpg",
+            imdbID: "tt1160419",
+          }),
+          { status: 200 },
+        ),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await refreshMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      viewing: { ...bare, uid: "uid-1" },
+    });
+
+    expect(result.kind).toBe("refreshed");
+    const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(String(put?.[1]?.body)).toContain("https://example.com/dune.jpg");
+  });
+
+  test("says the ID is the problem when an entry with an ID has no match, and the title when it has none", () => {
+    expect(noMatchMessage({ imdbId: "tt0087182" })).toBe(
+      "OMDb has nothing for IMDb ID tt0087182. Use Search OMDb to pick another match.",
+    );
+    expect(noMatchMessage({})).toBe("OMDb had no match for this title.");
   });
 
   test("refresh all also goes by the entry's own IMDb ID", async () => {

@@ -29,10 +29,18 @@ function lookupFor(omdbApiKey: string, viewing: LoggedViewing) {
     : lookupMovie(omdbApiKey, viewing.title, new Date(viewing.start).getFullYear().toString());
 }
 
+// #881: for an entry that has an IMDb ID the dead end is the ID, not the title,
+// and the picker that used to offer a way out never opens, so say where it is.
+export function noMatchMessage({ imdbId }: { imdbId?: string }): string {
+  return imdbId
+    ? `OMDb has nothing for IMDb ID ${imdbId}. Use Search OMDb to pick another match.`
+    : "OMDb had no match for this title.";
+}
+
 export type RefreshResult =
   | { kind: "already-up-to-date" }
   | { kind: "refreshed"; viewing: LoggedViewing }
-  | { kind: "no-match" }
+  | { kind: "no-match"; imdbId?: string }
   | { kind: "needs-picker"; candidates: OmdbCandidate[]; current: LoggedViewing };
 
 interface RefreshMetadataParams {
@@ -67,7 +75,7 @@ export async function refreshMetadata(params: RefreshMetadataParams): Promise<Re
   }
 
   // An entry with its own ID has no better match to offer: OMDb has nothing for it.
-  if (current.imdbId) return { kind: "no-match" };
+  if (current.imdbId) return { kind: "no-match", imdbId: current.imdbId };
 
   // "No confident match on refresh": a picker when OMDb's search has
   // candidates, otherwise a plain no-match report.
