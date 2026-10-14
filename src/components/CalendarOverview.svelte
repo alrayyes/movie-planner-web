@@ -16,9 +16,15 @@ import {
 	applyOmdbCandidate,
 	bulkRefreshMessage,
 	noMatchMessage,
+	planBulkRefresh,
 	refreshAllMetadata,
 	refreshMetadata,
 } from "../lib/omdb/refresh-actions";
+import {
+	attemptsAccount,
+	browserStorage,
+	createRefreshAttempts,
+} from "../lib/omdb/refresh-attempts";
 import { parseReleasedDate } from "../lib/omdb/released-date";
 import { ACTIVE_FILTER_LABEL_EVENT, activeFilterLabel } from "../lib/ui/active-filter";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
@@ -790,8 +796,16 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey) return;
-	const targets = currentPageItems.filter((v) => !isOmdbComplete(v));
-	if (targets.length === 0) return;
+	// #898: titles OMDb already answered without completing are left out.
+	const attempts = createRefreshAttempts(browserStorage(), attemptsAccount(config));
+	const { targets, skipped } = planBulkRefresh(
+		currentPageItems.filter((v) => !isOmdbComplete(v)),
+		attempts.wasTried,
+	);
+	if (targets.length === 0) {
+		if (skipped > 0) actionStatusText = bulkRefreshMessage({ refreshed: 0, misses: 0 }, 0, skipped);
+		return;
+	}
 
 	refreshingAll = true;
 	actionError = "";
@@ -809,9 +823,10 @@ async function handleRefreshAll() {
 				actionStatusText = `Refreshing ${currentRefreshed + currentMisses} of ${total}…`;
 			},
 		});
+		attempts.record(result.stillIncomplete);
 
 		await reload({ silent: true });
-		actionStatusText = bulkRefreshMessage(result, targets.length);
+		actionStatusText = bulkRefreshMessage(result, targets.length, skipped);
 	} finally {
 		refreshingAll = false;
 	}

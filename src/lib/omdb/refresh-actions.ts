@@ -134,23 +134,31 @@ interface RefreshAllParams {
 // picker on an unconfident match — an ambiguous title is counted as a
 // miss, same as today's bulk refresh, since a picker mid-batch has
 // nobody to answer it.
-export async function refreshAllMetadata(
-  params: RefreshAllParams,
-): Promise<{ refreshed: number; misses: number; stoppedBecause?: string }> {
+export async function refreshAllMetadata(params: RefreshAllParams): Promise<{
+  refreshed: number;
+  misses: number;
+  stoppedBecause?: string;
+  stillIncomplete: string[];
+}> {
   const { config, omdbApiKey, tmdbApiKey, targets, onProgress } = params;
   let refreshed = 0;
   let misses = 0;
+  // #898: titles OMDb answered for that are still incomplete afterwards, so the
+  // caller can stop sending them on every press.
+  const stillIncomplete: string[] = [];
   for (const viewing of targets) {
     try {
       const metadata = await lookupFor(omdbApiKey, viewing);
       if (metadata) {
         const tmdbFields = await enrichWithTmdb(tmdbApiKey, metadata.imdbId);
-        await updateViewing(config, viewing.uid, {
+        const updated = {
           ...viewing,
           ...definedFields(metadata),
           ...definedFields(tmdbFields),
-        });
+        };
+        await updateViewing(config, viewing.uid, updated);
         refreshed++;
+        if (!isOmdbComplete(updated)) stillIncomplete.push(viewing.uid);
       } else {
         misses++;
       }
@@ -159,13 +167,31 @@ export async function refreshAllMetadata(
       // refused again for every title after it, so the run stops there and says
       // why instead of counting the rest as titles with no match.
       if (error instanceof OmdbUnavailableError) {
-        return { refreshed, misses, stoppedBecause: error.message };
+        return { refreshed, misses, stoppedBecause: error.message, stillIncomplete };
       }
       misses++;
     }
     onProgress(refreshed, misses, targets.length);
   }
-  return { refreshed, misses };
+  return { refreshed, misses, stillIncomplete };
+}
+
+// #898: which of the incomplete titles a bulk refresh should send. One OMDb already
+// answered without completing is left out until the retry window passes; a
+// refresh of that title on its own always asks.
+export function planBulkRefresh<T extends { uid: string }>(
+  incomplete: readonly T[],
+  wasTried: (uid: string) => boolean,
+): { targets: T[]; skipped: number } {
+  const targets = incomplete.filter((entry) => !wasTried(entry.uid));
+  return { targets, skipped: incomplete.length - targets.length };
+}
+
+export function skippedNote(skipped: number): string {
+  if (skipped === 0) return "";
+  return skipped === 1
+    ? " 1 title was left out: OMDb already answered without completing it. Refresh it on its own to ask again."
+    : ` ${skipped} titles were left out: OMDb already answered without completing them. Refresh them on their own to ask again.`;
 }
 
 // What the page says when a bulk refresh is over, shared by the overview and the
@@ -173,12 +199,16 @@ export async function refreshAllMetadata(
 export function bulkRefreshMessage(
   result: { refreshed: number; misses: number; stoppedBecause?: string },
   total: number,
+  skipped = 0,
 ): string {
   const { refreshed, misses, stoppedBecause } = result;
+  if (total === 0 && skipped > 0) return `Nothing sent to OMDb.${skippedNote(skipped)}`;
   if (stoppedBecause) {
-    return `Stopped after ${refreshed + misses} of ${total} (${refreshed} refreshed): ${stoppedBecause}`;
+    return `Stopped after ${refreshed + misses} of ${total} (${refreshed} refreshed): ${stoppedBecause}${skippedNote(skipped)}`;
   }
-  return misses > 0
-    ? `Refreshed ${refreshed} of ${total} (${misses} had no OMDb match or failed).`
-    : `Refreshed ${refreshed} of ${total}.`;
+  return (
+    (misses > 0
+      ? `Refreshed ${refreshed} of ${total} (${misses} had no OMDb match or failed).`
+      : `Refreshed ${refreshed} of ${total}.`) + skippedNote(skipped)
+  );
 }
