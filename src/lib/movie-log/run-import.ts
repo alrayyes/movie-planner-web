@@ -145,12 +145,14 @@ export function planUpdates(rows: ParsedRow[], existing: LoggedViewing[]): Impor
       const oldValue = current[field as keyof LoggedViewing] as string | undefined;
       if (newValue !== oldValue) changes.push({ field, label, oldValue, newValue });
     }
-    if (row.geo && (row.geo.lat !== current.geo?.lat || row.geo.lon !== current.geo?.lon)) {
+    const { geo } = row;
+    const known = current.geo;
+    if (geo && (known === undefined || known.lat !== geo.lat || known.lon !== geo.lon)) {
       changes.push({
         field: "geo",
         label: "Coordinates",
-        oldValue: current.geo ? formatGeo(current.geo) : undefined,
-        newValue: formatGeo(row.geo),
+        oldValue: known ? formatGeo(known) : undefined,
+        newValue: formatGeo(geo),
       });
     }
     if (row.start && row.start !== current.start) {

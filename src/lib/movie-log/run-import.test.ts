@@ -334,6 +334,15 @@ describe("planUpdates and the venue's coordinates", () => {
     ]);
   });
 
+  test.each([
+    ["latitude", { lat: 52.36, lon: 9 }],
+    ["longitude", { lat: 9, lon: 4.87 }],
+  ])("offers the coordinates when only the %s differs", (_name, existingGeo) => {
+    const [entry] = planUpdates([row({ lat: 52.36, lon: 4.87 })], [{ ...base, geo: existingGeo }]);
+    expect(entry?.changes).toHaveLength(1);
+    expect(entry?.changes[0]?.field).toBe("geo");
+  });
+
   test("offers nothing when the coordinates are the same", () => {
     expect(
       planUpdates([row({ lat: 52.36, lon: 4.87 })], [{ ...base, geo: { lat: 52.36, lon: 4.87 } }]),
