@@ -9,7 +9,7 @@ import { importCheckRange } from "../lib/movie-log/run-import";
 import type { OmdbCandidate } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
-import { hasOmdbMetadata } from "../lib/omdb/metadata";
+import { isOmdbComplete } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
@@ -498,10 +498,11 @@ const mapPins = $derived.by((): MapPin[] =>
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 const pageNumbers = $derived(computePageNumbers(currentPage, pages));
 // #89: nothing to bulk-refresh once every title on this page already
-// has matched metadata — hide the control rather than offer an action
-// that would call OMDb for nobody.
+// has everything OMDb supplies (#896: a match, a poster, director, actors,
+// genre and synopsis) — hide the control rather than offer an action that
+// would call OMDb for nobody.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const showRefreshAll = $derived(omdbActive && currentPageItems.some((v) => !hasOmdbMetadata(v)));
+const showRefreshAll = $derived(omdbActive && currentPageItems.some((v) => !isOmdbComplete(v)));
 
 // #188: no explicit From/To has never meant "no filter" in practice —
 // it silently queried a fixed 3-months-back/1-year-forward window, so
@@ -782,14 +783,14 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 // screen (#59: the current page of the filtered/sorted set, not the
 // whole calendar or even the whole filtered result) — sequential
 // rather than parallel, since it's hitting OMDb's own rate limits, not
-// just this app's. #89: skips anything that already has matched
-// metadata (an imdbId) — the calendar entry is the source of truth
-// once it's been matched, so a bulk refresh doesn't spend quota
+// just this app's. #89: skips anything that already has everything OMDb
+// supplies (#896; isOmdbComplete) — the calendar entry is the source of
+// truth once it's complete, so a bulk refresh doesn't spend quota
 // re-confirming it.
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey) return;
-	const targets = currentPageItems.filter((v) => !hasOmdbMetadata(v));
+	const targets = currentPageItems.filter((v) => !isOmdbComplete(v));
 	if (targets.length === 0) return;
 
 	refreshingAll = true;
@@ -1104,8 +1105,8 @@ getPicklists(config).then((picklists) => {
         Refresh all metadata
       </button>
       <p class={STATUS_TEXT}>
-        Only touches titles missing metadata — the calendar entry is the source of truth once a
-        title's matched.
+        Only touches titles missing something OMDb supplies — a title that has it all is left
+        alone.
       </p>
     {/if}
   </div>

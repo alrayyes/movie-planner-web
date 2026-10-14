@@ -565,6 +565,40 @@ describe("refreshAllMetadata", () => {
   });
 });
 
+// #896: an entry OMDb can't complete (no poster or plot for the title) is
+// refreshed with what OMDb does have, not reported as a failure.
+describe("refreshAllMetadata and an entry OMDb can't complete", () => {
+  test("counts it as refreshed, keeps what it had, and writes what OMDb gave", async () => {
+    const fetchMock = routeFetch({
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: () =>
+        new Response(
+          JSON.stringify({
+            Response: "True",
+            Director: "George Roland",
+            Poster: "N/A",
+            Plot: "N/A",
+            imdbID: "tt0023991",
+          }),
+          { status: 200 },
+        ),
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await refreshAllMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      targets: [{ ...VIEWING, uid: "uid-1", imdbId: "tt0023991", genre: "Drama" }],
+      onProgress: () => {},
+    });
+
+    expect(result).toEqual({ refreshed: 1, misses: 0 });
+    const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(String(put?.[1]?.body)).toContain("George Roland");
+    expect(String(put?.[1]?.body)).toContain("Drama");
+  });
+});
+
 describe("bulkRefreshMessage", () => {
   test("counts what was refreshed", () => {
     expect(bulkRefreshMessage({ refreshed: 3, misses: 0 }, 3)).toBe("Refreshed 3 of 3.");
