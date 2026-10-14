@@ -5,11 +5,14 @@
 export function debounce<Args extends unknown[]>(
   fn: (...args: Args) => void,
   delayMs: number,
-): (...args: Args) => void {
+): ((...args: Args) => void) & { cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  return (...args: Args) => {
+  const debounced = (...args: Args) => {
     // Clearing a timer that never started is a no-op, so there's nothing to guard.
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delayMs);
   };
+  // #902: drops a call that has not fired yet (a dialog closing mid-typing).
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
 }
