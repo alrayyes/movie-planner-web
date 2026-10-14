@@ -80,9 +80,7 @@ test.describe("Refresh maps on the Venues page", () => {
     expect(server.updates.every((v) => v.geo?.lat === 52.36 && v.geo?.lon === 4.88)).toBe(true);
   });
 
-  test("writes nothing for a venue the visitor unticks or the geocoder can't find", async ({
-    page,
-  }) => {
+  test("writes nothing for a venue the geocoder can't find", async ({ page }) => {
     await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
       await route.fulfill({
         status: 200,
@@ -98,8 +96,29 @@ test.describe("Refresh maps on the Venues page", () => {
     await page.goto("/venues");
 
     await page.getByRole("button", { name: "Find missing maps" }).click();
-    await expect(page.getByRole("cell", { name: "Nothing found" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: /Nothing found/ })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Use the match for Nowhere" })).toBeDisabled();
+    await page.getByRole("button", { name: "Update viewings" }).click();
+    await expect(page.getByText("Updated 0 viewings.")).toBeVisible();
+    expect(server.updates).toHaveLength(0);
+  });
+
+  test("writes nothing for a found venue the visitor clears the box on", async ({ page }) => {
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([{ display_name: "Somewhere", lat: "52.36", lon: "4.88" }]),
+      });
+    });
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [viewing("a", "Dune", VENUE)]);
+    await connect(page);
+    await page.goto("/venues");
+
+    await page.getByRole("button", { name: "Find missing maps" }).click();
+    await expect(page.getByRole("cell", { name: "Somewhere (52.36, 4.88)" })).toBeVisible();
+    await page.getByRole("checkbox", { name: `Use the match for ${VENUE}` }).uncheck();
     await page.getByRole("button", { name: "Update viewings" }).click();
     await expect(page.getByText("Updated 0 viewings.")).toBeVisible();
     expect(server.updates).toHaveLength(0);
