@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.30.2...movie-planner-web-v1.31.0) (2026-10-14)
+
+
+### Features
+
+* **venues:** refresh the maps a venue's viewings lost ([#872](https://github.com/alrayyes/movie-planner-web/issues/872)) ([c0bbecd](https://github.com/alrayyes/movie-planner-web/commit/c0bbecd53d43ff7922e9063b4997554d87abc5e4))
+
 ## [1.30.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.30.1...movie-planner-web-v1.30.2) (2026-10-14)
 
 
