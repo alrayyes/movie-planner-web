@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.33.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.32.0...movie-planner-web-v1.33.0) (2026-10-14)
+
+
+### Features
+
+* **log:** say why a viewing was logged without OMDb metadata ([#899](https://github.com/alrayyes/movie-planner-web/issues/899)) ([5384d4a](https://github.com/alrayyes/movie-planner-web/commit/5384d4a502dfa95b1196ede4332fe9e7fee4abc8)), closes [#893](https://github.com/alrayyes/movie-planner-web/issues/893)
+* **omdb:** stop re-sending titles OMDb already answered without completing ([#904](https://github.com/alrayyes/movie-planner-web/issues/904)) ([368efa8](https://github.com/alrayyes/movie-planner-web/commit/368efa82bcf1dd09c35541be47bd90ae62556e0e))
+
+
+### Bug Fixes
+
+* **overview:** include entries missing a director or synopsis in Refresh all ([#897](https://github.com/alrayyes/movie-planner-web/issues/897)) ([ac9b301](https://github.com/alrayyes/movie-planner-web/commit/ac9b301b247102d223395a6fae0d986bcf5c019f))
+* **venues:** a search that is no longer wanted leaves no trace ([2e3338c](https://github.com/alrayyes/movie-planner-web/commit/2e3338ca011e69602b6c3d5d30d5fb01c336c439))
+* **venues:** a search that is no longer wanted leaves no trace ([6b5cc8c](https://github.com/alrayyes/movie-planner-web/commit/6b5cc8cf4c911b3ce9ec5962a904dfaacd33ffab)), closes [#902](https://github.com/alrayyes/movie-planner-web/issues/902)
+* **venues:** show the address search results for what was typed last ([#901](https://github.com/alrayyes/movie-planner-web/issues/901)) ([4a5036e](https://github.com/alrayyes/movie-planner-web/commit/4a5036eab5cc0201a6d4c761829be7bedb9c9f93))
+* **wizard:** give way to the picker after logging, and keep the logged viewing ([#906](https://github.com/alrayyes/movie-planner-web/issues/906)) ([3a4722a](https://github.com/alrayyes/movie-planner-web/commit/3a4722a5f0ff6d66a1f5c9345fd512458865313d))
+
 ## [1.32.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.31.2...movie-planner-web-v1.32.0) (2026-10-14)
 
 
