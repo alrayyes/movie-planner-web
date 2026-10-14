@@ -60,6 +60,10 @@ let dialogEl = $state<HTMLDialogElement>();
 let pickerArea = $state<HTMLDivElement>();
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let formError = $state("");
+// #893: set when the viewing was logged but OMDb couldn't add metadata, so the
+// dialog stays open long enough to say why.
+// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
+let skippedNotice = $state("");
 // #636/#646: venue names seen in viewing history but not yet in the
 // picklist — computed lazily (see loadMissingVenues below) on opening
 // this wizard, not on page mount, so the wizard's own header button
@@ -247,6 +251,7 @@ function resetWizard() {
 	medium = "Cinema";
 	venue = "";
 	formError = "";
+	skippedNotice = "";
 	pickerArea?.replaceChildren();
 }
 
@@ -394,6 +399,8 @@ async function handleSubmit() {
 		if (result.omdbCandidates?.length) {
 			lastLoggedUid = result.viewing.uid;
 			showOmdbPicker(result.omdbCandidates);
+		} else if (result.omdbSkippedBecause) {
+			skippedNotice = `Logged without metadata. ${result.omdbSkippedBecause}`;
 		} else {
 			dialogEl?.close();
 		}
@@ -570,6 +577,16 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
     {/if}
     {#if formError}
       <ErrorToast message={formError} onDismiss={() => (formError = "")} />
+    {/if}
+    {#if skippedNotice}
+      <div class="flex flex-col gap-2">
+        <p class={STATUS_TEXT} role="status">{skippedNotice}</p>
+        <div>
+          <button type="button" class={BUTTON_SECONDARY} onclick={() => dialogEl?.close()}>
+            Close
+          </button>
+        </div>
+      </div>
     {/if}
     <div bind:this={pickerArea}></div>
   </div>

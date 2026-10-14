@@ -2,7 +2,13 @@ import { createViewing } from "../caldav/client";
 import type { CaldavConfig, LoggedViewing, NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
 import { CINEMA } from "../medium/display";
-import { lookupMovie, type MovieMetadata, type OmdbCandidate, searchMovies } from "../omdb/client";
+import {
+  lookupMovie,
+  type MovieMetadata,
+  type OmdbCandidate,
+  OmdbUnavailableError,
+  searchMovies,
+} from "../omdb/client";
 import { enrichWithTmdb } from "../tmdb/client";
 
 // #603: log-viewing-button.ts dispatches this on `window` when clicked;
@@ -22,11 +28,15 @@ export const OPEN_LOG_VIEWING_WIZARD_EVENT = "movie-planner-web:open-log-viewing
 interface OmdbEnrichment {
   fields: Partial<NewViewing>;
   candidates?: OmdbCandidate[];
+  // #893: set when OMDb refused or couldn't be reached, so the viewing was
+  // logged without metadata for a reason the visitor can be told.
+  skippedBecause?: string;
 }
 
 export interface LogResult {
   viewing: LoggedViewing;
   omdbCandidates?: OmdbCandidate[];
+  omdbSkippedBecause?: string;
 }
 
 // OMDb enrichment for a new viewing, kept in one place so the form and the
@@ -51,8 +61,12 @@ async function enrichWithOmdb(
     }
     const candidates = await searchMovies(credentials.omdbApiKey, title);
     return candidates.length > 0 ? { fields: {}, candidates } : { fields: {} };
-  } catch {
-    return { fields: {} };
+  } catch (error) {
+    // Logging never depends on OMDb. A refusal is reported, anything else (TMDb,
+    // an odd answer) is left as the silent skip it always was.
+    return error instanceof OmdbUnavailableError
+      ? { fields: {}, skippedBecause: error.message }
+      : { fields: {} };
   }
 }
 
@@ -80,5 +94,9 @@ export async function logManualViewing(
       }
     : await enrichWithOmdb(credentials, viewing.title, viewing.start);
   const created = await createViewing(config, { ...viewing, ...enrichment.fields });
-  return { viewing: created, omdbCandidates: enrichment.candidates };
+  return {
+    viewing: created,
+    omdbCandidates: enrichment.candidates,
+    omdbSkippedBecause: "skippedBecause" in enrichment ? enrichment.skippedBecause : undefined,
+  };
 }
