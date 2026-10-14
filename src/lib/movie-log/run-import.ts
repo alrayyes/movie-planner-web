@@ -87,7 +87,23 @@ const COMPARABLE_FIELDS: { field: keyof NewViewing; label: string }[] = [
   { field: "ratingImdb", label: "IMDb rating" },
   { field: "ratingRottenTomatoes", label: "Rotten Tomatoes rating" },
   { field: "ratingMetacritic", label: "Metacritic rating" },
+  // #870: the venue's location, so a re-import can restore what an event lost.
+  { field: "city", label: "City" },
+  { field: "country", label: "Country" },
+  { field: "streetAddress", label: "Street address" },
+  { field: "postalCode", label: "Postal code" },
 ];
+
+// A review row shows a string, so coordinates travel as "lat, lon" and are
+// read back the same way when the change is applied.
+function formatGeo(geo: { lat: number; lon: number }): string {
+  return `${geo.lat}, ${geo.lon}`;
+}
+
+function parseGeo(text: string): { lat: number; lon: number } {
+  const [lat, lon] = text.split(",").map(Number);
+  return { lat: lat as number, lon: lon as number };
+}
 
 export interface FieldChange {
   field: keyof NewViewing;
@@ -125,6 +141,14 @@ export function planUpdates(rows: ParsedRow[], existing: LoggedViewing[]): Impor
       if (typeof newValue !== "string" || newValue === "") continue;
       const oldValue = current[field as keyof LoggedViewing] as string | undefined;
       if (newValue !== oldValue) changes.push({ field, label, oldValue, newValue });
+    }
+    if (row.geo && (row.geo.lat !== current.geo?.lat || row.geo.lon !== current.geo?.lon)) {
+      changes.push({
+        field: "geo",
+        label: "Coordinates",
+        oldValue: current.geo ? formatGeo(current.geo) : undefined,
+        newValue: formatGeo(row.geo),
+      });
     }
     if (row.start && row.start !== current.start) {
       changes.push({
@@ -214,11 +238,14 @@ export async function applyImportUpdate(
   const updated: NewViewing = { ...current };
   for (const change of entry.changes) {
     if (approvedFields.has(change.field)) {
-      // #8/#203: NewViewing has a non-string `geo` field, which `change.field`
-      // never names (the comparable fields are all strings), but it's enough
-      // to break a direct `as` (no longer a sufficient structural overlap),
-      // hence the `unknown` hop.
-      (updated as unknown as Record<string, string>)[change.field] = change.newValue;
+      if (change.field === "geo") {
+        updated.geo = parseGeo(change.newValue);
+      } else {
+        // #8/#203: NewViewing has a non-string `geo` field, handled above, but
+        // it's enough to break a direct `as` (no longer a sufficient
+        // structural overlap), hence the `unknown` hop.
+        (updated as unknown as Record<string, string>)[change.field] = change.newValue;
+      }
     }
   }
   await updateViewing(configFromCredentials(credentials), entry.uid, updated);

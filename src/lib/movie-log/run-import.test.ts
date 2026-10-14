@@ -307,6 +307,46 @@ describe("planImport compares dates as the viewer's local date", () => {
 
 // Every comparable field is reported under its own label, which the review
 // page shows the visitor as the name of the checkbox.
+// #870: a uid match whose event has lost its venue coordinates offers them back.
+describe("planUpdates and the venue's coordinates", () => {
+  const base: LoggedViewing = {
+    uid: "u",
+    title: "Dune",
+    start: "2026-01-01T19:00:00.000Z",
+    end: "2026-01-01T21:30:00.000Z",
+    medium: "cinema",
+  };
+  const row = (geo?: { lat: number; lon: number }) =>
+    exportedRow(2, { uid: "u", ...(geo ? { geo } : {}) });
+
+  test("offers coordinates the existing event lacks", () => {
+    const [entry] = planUpdates([row({ lat: 52.36, lon: 4.87 })], [base]);
+    expect(entry?.changes).toEqual([
+      { field: "geo", label: "Coordinates", oldValue: undefined, newValue: "52.36, 4.87" },
+    ]);
+  });
+
+  test("offers different coordinates, showing the old ones", () => {
+    const [entry] = planUpdates(
+      [row({ lat: 52.36, lon: 4.87 })],
+      [{ ...base, geo: { lat: 1, lon: 2 } }],
+    );
+    expect(entry?.changes).toEqual([
+      { field: "geo", label: "Coordinates", oldValue: "1, 2", newValue: "52.36, 4.87" },
+    ]);
+  });
+
+  test("offers nothing when the coordinates are the same", () => {
+    expect(
+      planUpdates([row({ lat: 52.36, lon: 4.87 })], [{ ...base, geo: { lat: 52.36, lon: 4.87 } }]),
+    ).toEqual([]);
+  });
+
+  test("a row without coordinates leaves the event's own alone", () => {
+    expect(planUpdates([row()], [{ ...base, geo: { lat: 1, lon: 2 } }])).toEqual([]);
+  });
+});
+
 describe("planUpdates labels every comparable field", () => {
   const labels: [keyof ImportRow & keyof NewViewing, string][] = [
     ["title", "Title"],
@@ -325,6 +365,11 @@ describe("planUpdates labels every comparable field", () => {
     ["ratingImdb", "IMDb rating"],
     ["ratingRottenTomatoes", "Rotten Tomatoes rating"],
     ["ratingMetacritic", "Metacritic rating"],
+    // #870
+    ["city", "City"],
+    ["country", "Country"],
+    ["streetAddress", "Street address"],
+    ["postalCode", "Postal code"],
   ];
   const existing: LoggedViewing[] = [
     {
@@ -506,6 +551,29 @@ describe("writing to the calendar", () => {
       expect(body).not.toContain("Odeon");
       expect(body).not.toContain("Denis Villeneuve");
       expect(body).toContain("SUMMARY:Dune");
+    });
+
+    test("an approved coordinates change is written as GEO, and left alone when not approved", async () => {
+      const geoEntry = {
+        rowNumber: 2,
+        uid: "u",
+        title: "Dune",
+        changes: [{ field: "geo", label: "Coordinates", newValue: "52.36, 4.87" }],
+      } as const;
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...geoEntry, changes: [...geoEntry.changes] },
+        new Set<keyof NewViewing>(["geo"]),
+      );
+      expect(unfold(puts[0]?.body ?? "")).toContain("GEO:52.36;4.87");
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...geoEntry, changes: [...geoEntry.changes] },
+        new Set<keyof NewViewing>(),
+      );
+      expect(unfold(puts[1]?.body ?? "")).not.toContain("GEO:");
     });
 
     test("approving nothing writes the entry back unchanged", async () => {
