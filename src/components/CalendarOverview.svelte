@@ -9,7 +9,7 @@ import { importCheckRange } from "../lib/movie-log/run-import";
 import type { OmdbCandidate } from "../lib/omdb/client";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { imdbUrl, letterboxdHref, rottenTomatoesSearchUrl } from "../lib/omdb/links";
-import { hasOmdbMetadata } from "../lib/omdb/metadata";
+import { isOmdbComplete } from "../lib/omdb/metadata";
 import { splitMultiValue } from "../lib/omdb/multi-value";
 import { buildOmdbPicker } from "../lib/omdb/picker";
 import {
@@ -500,7 +500,7 @@ const pageNumbers = $derived(computePageNumbers(currentPage, pages));
 // has matched metadata — hide the control rather than offer an action
 // that would call OMDb for nobody.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const showRefreshAll = $derived(omdbActive && currentPageItems.some((v) => !hasOmdbMetadata(v)));
+const showRefreshAll = $derived(omdbActive && currentPageItems.some((v) => !isOmdbComplete(v)));
 
 // #188: no explicit From/To has never meant "no filter" in practice —
 // it silently queried a fixed 3-months-back/1-year-forward window, so
@@ -788,7 +788,7 @@ function showOmdbPicker(viewing: LoggedViewing, candidates: OmdbCandidate[]) {
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey) return;
-	const targets = currentPageItems.filter((v) => !hasOmdbMetadata(v));
+	const targets = currentPageItems.filter((v) => !isOmdbComplete(v));
 	if (targets.length === 0) return;
 
 	refreshingAll = true;
