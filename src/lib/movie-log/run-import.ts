@@ -4,7 +4,7 @@ import { fetchFreshViewings } from "../caldav/viewings-source";
 import type { Credentials } from "../credentials/types";
 import { isLikelyDuplicateTitle } from "./duplicates";
 import { localDateAndTime } from "./export-viewings";
-import { EXTRA_FIELDS, type ExtraField } from "./extra-fields";
+import { EXTRA_FIELDS, EXTRA_LABELS, type ExtraField } from "./extra-fields";
 import type { ImportRow, ParsedRow } from "./import-rows";
 
 export interface ImportPlanEntry {
@@ -93,6 +93,8 @@ const COMPARABLE_FIELDS: { field: keyof NewViewing; label: string }[] = [
   { field: "country", label: "Country" },
   { field: "streetAddress", label: "Street address" },
   { field: "postalCode", label: "Postal code" },
+  // #879: the synopsis, seat and OMDb extras, from the same table the export uses.
+  ...Object.values(EXTRA_FIELDS).map((field) => ({ field, label: EXTRA_LABELS[field] })),
 ];
 
 // A review row shows a string, so coordinates travel as "lat, lon" and are
