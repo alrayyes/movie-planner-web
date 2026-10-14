@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.31.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.31.0...movie-planner-web-v1.31.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* **export:** carry the synopsis, seat and OMDb extras through export and import ([#878](https://github.com/alrayyes/movie-planner-web/issues/878)) ([356ae77](https://github.com/alrayyes/movie-planner-web/commit/356ae7755dd311bcd2b3a69b7dd3d2079eb78213))
+* **movie-details:** make Refresh metadata and Search OMDb fill in what's missing ([#880](https://github.com/alrayyes/movie-planner-web/issues/880)) ([aa40a11](https://github.com/alrayyes/movie-planner-web/commit/aa40a11d935d7c3c2ef2c85bee7d7e479df23897)), closes [#881](https://github.com/alrayyes/movie-planner-web/issues/881)
+
 ## [1.31.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.30.2...movie-planner-web-v1.31.0) (2026-10-14)
 
 
