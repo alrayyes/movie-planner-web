@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.30.1...movie-planner-web-v1.30.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **export:** carry the venue's location through export and import ([#868](https://github.com/alrayyes/movie-planner-web/issues/868)) ([a9ab8d4](https://github.com/alrayyes/movie-planner-web/commit/a9ab8d46a5363ce450fd4e4b5ba88ff0aa4f73c9))
+
 ## [1.30.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.30.0...movie-planner-web-v1.30.1) (2026-10-13)
 
 
