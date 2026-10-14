@@ -14,6 +14,7 @@ describe("createLatest", () => {
     const latest = createLatest();
     const older = latest.next();
     const newer = latest.next();
+    expect(newer).toBeGreaterThan(older);
     expect(latest.isLatest(older)).toBe(false);
     expect(latest.isLatest(newer)).toBe(true);
   });
@@ -23,6 +24,8 @@ describe("createLatest", () => {
     const ticket = latest.next();
     latest.cancel();
     expect(latest.isLatest(ticket)).toBe(false);
+    // A cancel moves on, it doesn't step back to an earlier ticket.
+    expect(latest.next()).toBeGreaterThan(ticket + 1);
   });
 
   test("a ticket taken after a cancel is the latest again", () => {
