@@ -85,7 +85,7 @@ export async function logManualViewing(
     username: credentials.caldavUsername,
     password: credentials.caldavPassword,
   };
-  const enrichment = preselectedOmdb
+  const enrichment: OmdbEnrichment = preselectedOmdb
     ? {
         fields: {
           ...preselectedOmdb,
@@ -97,6 +97,6 @@ export async function logManualViewing(
   return {
     viewing: created,
     omdbCandidates: enrichment.candidates,
-    omdbSkippedBecause: "skippedBecause" in enrichment ? enrichment.skippedBecause : undefined,
+    omdbSkippedBecause: enrichment.skippedBecause,
   };
 }

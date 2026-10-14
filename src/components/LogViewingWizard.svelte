@@ -64,6 +64,11 @@ let formError = $state("");
 // dialog stays open long enough to say why.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 let skippedNotice = $state("");
+let closeButton = $state<HTMLButtonElement | undefined>();
+// Moves focus to the way out when the notice replaces the form.
+$effect(() => {
+	if (skippedNotice) closeButton?.focus();
+});
 // #636/#646: venue names seen in viewing history but not yet in the
 // picklist — computed lazily (see loadMissingVenues below) on opening
 // this wizard, not on page mount, so the wizard's own header button
@@ -458,7 +463,19 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
 >
   {#if everOpened}
   <div class="flex flex-col gap-4">
-    {#if step === 1}
+    {#if skippedNotice}
+      <!-- Logged already: only a way out, so a second click can't log it twice. -->
+      <div>
+        <button
+          type="button"
+          class={BUTTON_SECONDARY}
+          bind:this={closeButton}
+          onclick={() => dialogEl?.close()}
+        >
+          Close
+        </button>
+      </div>
+    {:else if step === 1}
       <div class="flex flex-col gap-3">
         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Find the movie</h2>
         <div class="flex items-end gap-2">
@@ -578,16 +595,9 @@ window.addEventListener(OPEN_LOG_VIEWING_WIZARD_EVENT, () => void openWizard());
     {#if formError}
       <ErrorToast message={formError} onDismiss={() => (formError = "")} />
     {/if}
-    {#if skippedNotice}
-      <div class="flex flex-col gap-2">
-        <p class={STATUS_TEXT} role="status">{skippedNotice}</p>
-        <div>
-          <button type="button" class={BUTTON_SECONDARY} onclick={() => dialogEl?.close()}>
-            Close
-          </button>
-        </div>
-      </div>
-    {/if}
+    <!-- One live region that is always in the dialog, so a screen reader
+    hears the notice when its text appears (#893). -->
+    <p class={STATUS_TEXT} role="status">{skippedNotice}</p>
     <div bind:this={pickerArea}></div>
   </div>
   {/if}

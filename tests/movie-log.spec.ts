@@ -637,9 +637,38 @@ test.describe("log a viewing wizard (header button)", () => {
     await expect(dialog.getByRole("status")).toHaveText(
       "Logged without metadata. OMDb isn't answering (HTTP 429). Try again in a moment.",
     );
+    // The form is gone: the only thing left is the way out, so no second log.
+    await expect(dialog.getByRole("button", { name: "Log viewing" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
     expect(server.creates).toHaveLength(1);
     await dialog.getByRole("button", { name: "Close" }).click();
     await expect(dialog).toBeHidden();
+
+    // Reopening starts clean, with no notice left over, also after Escape.
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    await expect(dialog.getByRole("status")).toHaveText("");
+    await expect(page.locator("#wizard-title")).toBeVisible();
+  });
+
+  test("Escape closes the notice and the next opening is clean", async ({ page }) => {
+    await connectOnCurrentPage(page, "test-omdb-key");
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      await route.fulfill({ status: 429, body: "" });
+    });
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+    await expect(dialog.getByRole("status")).toContainText("Logged without metadata.");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+
+    await expect(dialog.getByRole("status")).toHaveText("");
+    await expect(page.locator("#wizard-title")).toBeVisible();
   });
 
   test("searching OMDb and picking a candidate carries the exact match into step two", async ({
