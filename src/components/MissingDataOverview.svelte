@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
+import { accountKeyFor } from "../lib/caldav/viewings-cache";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -10,10 +11,12 @@ import {
 	applyOmdbCandidate,
 	bulkRefreshMessage,
 	noMatchMessage,
+	planBulkRefresh,
 	type RefreshResult,
 	refreshAllMetadata,
 	refreshMetadata,
 } from "../lib/omdb/refresh-actions";
+import { browserStorage, createRefreshAttempts } from "../lib/omdb/refresh-attempts";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import {
@@ -264,8 +267,16 @@ async function handleRefresh(viewing: LoggedViewing) {
 // biome-ignore lint/correctness/noUnusedVariables: bound in the template below, which Biome does not parse for .svelte files
 async function handleRefreshAll() {
 	if (!omdbActive || !omdbApiKey || !config) return;
-	const targets = currentPageItems.map((g) => g.viewing).filter((v) => !isOmdbComplete(v));
-	if (targets.length === 0) return;
+	// #898: titles OMDb already answered without completing are left out.
+	const attempts = createRefreshAttempts(browserStorage(), await accountKeyFor(config));
+	const { targets, skipped } = planBulkRefresh(
+		currentPageItems.map((g) => g.viewing).filter((v) => !isOmdbComplete(v)),
+		attempts.wasTried,
+	);
+	if (targets.length === 0) {
+		if (skipped > 0) actionStatusText = bulkRefreshMessage({ refreshed: 0, misses: 0 }, 0, skipped);
+		return;
+	}
 
 	refreshingAll = true;
 	actionError = "";
@@ -280,8 +291,9 @@ async function handleRefreshAll() {
 				actionStatusText = `Refreshing ${currentRefreshed + currentMisses} of ${total}…`;
 			},
 		});
+		attempts.record(result.stillIncomplete);
 		await load();
-		actionStatusText = bulkRefreshMessage(result, targets.length);
+		actionStatusText = bulkRefreshMessage(result, targets.length, skipped);
 	} finally {
 		refreshingAll = false;
 	}

@@ -522,6 +522,61 @@ test.describe("refreshing OMDb metadata from the overview", () => {
     expect(server.updates[0]?.synopsis).toBe("A detective at a private island.");
   });
 
+  // #898: a title OMDb answers for but can't complete would be sent again on every
+  // press and spend quota for nothing.
+  test("refresh all leaves out a title OMDb already answered without completing, but a per-row refresh still asks", async ({
+    page,
+  }) => {
+    const eternal = {
+      uid: "eternal-uid",
+      title: "The Eternal Jew",
+      start: ONE_MONTH_AGO.toISOString(),
+      end: new Date(ONE_MONTH_AGO.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      medium: "cinema",
+      imdbId: "tt0023991",
+      director: "George Roland",
+      actors: "Louis Waldman",
+      genre: "Drama",
+    };
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [eternal]);
+    await connect(page, "test-omdb-key");
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          Response: "True",
+          Director: "George Roland",
+          Actors: "Louis Waldman",
+          Genre: "Drama",
+          Poster: "N/A",
+          Plot: "N/A",
+          imdbID: "tt0023991",
+        }),
+      });
+    });
+    const refreshAll = page.getByRole("button", { name: "Refresh all metadata" });
+
+    // Never refreshed: it is a target.
+    await refreshAll.click();
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    expect(omdbCalls).toBe(1);
+
+    // OMDb answered and it is still incomplete: a second press leaves it out.
+    await refreshAll.click();
+    await expect(page.getByRole("status").last()).toHaveText(
+      "Nothing sent to OMDb. 1 title was left out: OMDb already answered without completing it. Refresh it on its own to ask again.",
+    );
+    expect(omdbCalls).toBe(1);
+
+    // Refreshing the title on its own always asks.
+    await page.getByRole("button", { name: "Refresh metadata" }).click();
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
+    expect(omdbCalls).toBe(2);
+  });
+
   test("no Refresh all control appears when every title on the page already has matched metadata", async ({
     page,
   }) => {

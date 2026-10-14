@@ -280,6 +280,33 @@ test.describe("missing-data overview", () => {
     expect(server.updates).toHaveLength(1);
   });
 
+  // #898
+  test("Refresh all metadata leaves out a title OMDb already answered without completing", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [MISSING_POSTER]);
+    await connect(page, "test-omdb-key");
+    await page.goto("/missing-data");
+    let omdbCalls = 0;
+    await page.route("https://www.omdbapi.com/**", async (route: Route) => {
+      omdbCalls++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ Response: "True", imdbID: "tt1160419", Poster: "N/A" }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+    await expect(page.getByRole("status").last()).toHaveText("Refreshed 1 of 1.");
+    await page.getByRole("button", { name: "Refresh all metadata" }).click();
+
+    await expect(page.getByRole("status").last()).toHaveText(
+      "Nothing sent to OMDb. 1 title was left out: OMDb already answered without completing it. Refresh it on its own to ask again.",
+    );
+    expect(omdbCalls).toBe(1);
+  });
+
   test("paginates a large result set", async ({ page }) => {
     const many = Array.from({ length: 26 }, (_, i) =>
       viewing(`missing-genre-${i}`, `Missing Genre ${i}`, { ...OMDB_FIELDS, genre: undefined }),

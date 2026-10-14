@@ -6,8 +6,10 @@ import {
   applyOmdbCandidate,
   bulkRefreshMessage,
   noMatchMessage,
+  planBulkRefresh,
   refreshAllMetadata,
   refreshMetadata,
+  skippedNote,
 } from "./refresh-actions";
 
 const CONFIG: CaldavConfig = {
@@ -300,7 +302,7 @@ describe("refreshMetadata", () => {
       onProgress: () => {},
     });
 
-    expect(result).toEqual({ refreshed: 1, misses: 0 });
+    expect(result).toMatchObject({ refreshed: 1, misses: 0 });
     expect(asked).toEqual(["tt0087182"]);
   });
 
@@ -365,7 +367,7 @@ describe("refreshMetadata", () => {
     });
 
     expect(asked).toEqual(["First", "Second"]);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       refreshed: 1,
       misses: 0,
       stoppedBecause: "OMDb refused the request: Request limit reached!",
@@ -525,7 +527,7 @@ describe("refreshAllMetadata", () => {
       onProgress: (refreshed, misses, total) => progress.push([refreshed, misses, total]),
     });
 
-    expect(result).toEqual({ refreshed: 1, misses: 1 });
+    expect(result).toMatchObject({ refreshed: 1, misses: 1 });
     expect(progress.at(-1)).toEqual([1, 1, 2]);
   });
 
@@ -561,7 +563,7 @@ describe("refreshAllMetadata", () => {
       onProgress: () => {},
     });
 
-    expect(result).toEqual({ refreshed: 1, misses: 1 });
+    expect(result).toMatchObject({ refreshed: 1, misses: 1 });
   });
 });
 
@@ -592,10 +594,120 @@ describe("refreshAllMetadata and an entry OMDb can't complete", () => {
       onProgress: () => {},
     });
 
-    expect(result).toEqual({ refreshed: 1, misses: 0 });
+    expect(result).toMatchObject({ refreshed: 1, misses: 0 });
     const put = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
     expect(String(put?.[1]?.body)).toContain("George Roland");
     expect(String(put?.[1]?.body)).toContain("Drama");
+  });
+});
+
+// #898
+describe("refreshAllMetadata and what stays incomplete", () => {
+  const COMPLETE = {
+    Response: "True",
+    Director: "D",
+    Actors: "A",
+    Genre: "G",
+    Plot: "P",
+    Poster: "https://example.com/p.jpg",
+  };
+
+  async function run(answers: Record<string, unknown>, ids: string[]) {
+    globalThis.fetch = routeFetch({
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: (id) =>
+        new Response(JSON.stringify({ ...(answers[id] as object), imdbID: id }), { status: 200 }),
+    }) as unknown as typeof fetch;
+    return refreshAllMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      targets: ids.map((id) => ({ ...VIEWING, uid: `uid-${id}`, imdbId: id })),
+      onProgress: () => {},
+    });
+  }
+
+  test("lists the titles OMDb answered for but that are still incomplete", async () => {
+    const result = await run(
+      {
+        done: COMPLETE,
+        partial: { ...COMPLETE, Poster: "N/A" },
+        noplot: { ...COMPLETE, Plot: "N/A" },
+      },
+      ["done", "partial", "noplot"],
+    );
+    expect(result.refreshed).toBe(3);
+    expect(result.stillIncomplete).toEqual([
+      { uid: "uid-partial", imdbId: "partial" },
+      { uid: "uid-noplot", imdbId: "noplot" },
+    ]);
+  });
+
+  test("does not list a title OMDb had no answer for, or one that is now complete", async () => {
+    const result = await run(
+      { done: COMPLETE, gone: { Response: "False", Error: "Incorrect IMDb ID." } },
+      ["done", "gone"],
+    );
+    expect(result.misses).toBe(1);
+    expect(result.stillIncomplete).toEqual([]);
+  });
+
+  test("counts what the entry already had towards complete", async () => {
+    globalThis.fetch = routeFetch({
+      caldavPut: () => new Response("", { status: 201 }),
+      omdbById: () =>
+        new Response(JSON.stringify({ Response: "True", Poster: "N/A", imdbID: "tt1" }), {
+          status: 200,
+        }),
+    }) as unknown as typeof fetch;
+
+    const result = await refreshAllMetadata({
+      config: CONFIG,
+      omdbApiKey: "test-key",
+      targets: [
+        {
+          ...VIEWING,
+          uid: "u",
+          imdbId: "tt1",
+          posterUrl: "https://example.com/p.jpg",
+          director: "D",
+          actors: "A",
+          genre: "G",
+          synopsis: "P",
+        },
+      ],
+      onProgress: () => {},
+    });
+
+    expect(result.stillIncomplete).toEqual([]);
+  });
+});
+
+describe("planBulkRefresh", () => {
+  test("leaves out titles already tried and counts them", () => {
+    const entries = [{ uid: "a" }, { uid: "b" }, { uid: "c" }];
+    const plan = planBulkRefresh(entries, ({ uid }) => uid === "b");
+    expect(plan.targets).toEqual([{ uid: "a" }, { uid: "c" }]);
+    expect(plan.skipped).toBe(1);
+  });
+
+  test("sends everything when nothing was tried", () => {
+    const plan = planBulkRefresh([{ uid: "a" }], () => false);
+    expect(plan).toEqual({ targets: [{ uid: "a" }], skipped: 0 });
+  });
+});
+
+describe("skippedNote", () => {
+  test("says nothing when nothing was left out", () => {
+    expect(skippedNote(0)).toBe("");
+  });
+
+  test("says how many and why, singular and plural", () => {
+    expect(skippedNote(1)).toBe(
+      " 1 title was left out: OMDb already answered without completing it. Refresh it on its own to ask again.",
+    );
+    expect(skippedNote(2)).toBe(
+      " 2 titles were left out: OMDb already answered without completing them. Refresh them on their own to ask again.",
+    );
   });
 });
 
@@ -607,6 +719,22 @@ describe("bulkRefreshMessage", () => {
   test("mentions the misses", () => {
     expect(bulkRefreshMessage({ refreshed: 2, misses: 1 }, 3)).toBe(
       "Refreshed 2 of 3 (1 had no OMDb match or failed).",
+    );
+  });
+
+  test("a run over nothing, with nothing left out, still reads as a refresh of none", () => {
+    expect(bulkRefreshMessage({ refreshed: 0, misses: 0 }, 0, 0)).toBe("Refreshed 0 of 0.");
+  });
+
+  test("adds the note about titles left out", () => {
+    expect(bulkRefreshMessage({ refreshed: 2, misses: 0 }, 2, 1)).toBe(
+      "Refreshed 2 of 2. 1 title was left out: OMDb already answered without completing it. Refresh it on its own to ask again.",
+    );
+  });
+
+  test("says nothing was sent when everything was left out", () => {
+    expect(bulkRefreshMessage({ refreshed: 0, misses: 0 }, 0, 2)).toBe(
+      "Nothing sent to OMDb. 2 titles were left out: OMDb already answered without completing them. Refresh them on their own to ask again.",
     );
   });
 
