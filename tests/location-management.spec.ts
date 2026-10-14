@@ -228,10 +228,59 @@ test.describe("structured venue picklist", () => {
     await page.locator("#log-add-venue-geo-search").fill("amsterdam");
     await expect(page.getByRole("button", { name: "New result" })).toBeVisible();
 
+    const olderLanded = page.waitForResponse((r) => r.url().includes("q=ams&"));
     answerOlder();
-    // The older answer lands now and must not replace the newer results.
-    await expect.poll(() => queries).toEqual(["ams", "amsterdam"]);
+    // The older answer reaches the page now and must not replace the newer results.
+    await olderLanded;
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
     await expect(page.getByRole("button", { name: "New result" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Old result" })).toHaveCount(0);
+  });
+
+  // #894: the same race when the newer search is the one that failed.
+  test("an older search that succeeds late doesn't clear the alert of a newer one that failed", async ({
+    page,
+  }) => {
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [], { media: ["cinema"], venues: [] });
+    await connect(page);
+    const queries: string[] = [];
+    let answerOlder: () => void = () => {};
+    const olderMayAnswer = new Promise<void>((resolve) => {
+      answerOlder = resolve;
+    });
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      const q = new URL(route.request().url()).searchParams.get("q") ?? "";
+      queries.push(q);
+      if (q === "ams") {
+        await olderMayAnswer;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: { "access-control-allow-origin": "*" },
+          body: JSON.stringify([{ display_name: "Old result", lat: "1", lon: "2" }]),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 429,
+        headers: { "access-control-allow-origin": "*" },
+        body: "",
+      });
+    });
+    await page.goto("/log");
+
+    await page.getByRole("button", { name: "Add venue" }).click();
+    await page.locator("#log-add-venue-geo-search").fill("ams");
+    await expect.poll(() => queries).toEqual(["ams"]);
+    await page.locator("#log-add-venue-geo-search").fill("amsterdam");
+    const alert = page.getByRole("alert").filter({ hasText: "address lookup" });
+    await expect(alert).toBeVisible();
+
+    const olderLanded = page.waitForResponse((r) => r.url().includes("q=ams&"));
+    answerOlder();
+    await olderLanded;
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    await expect(alert).toBeVisible();
     await expect(page.getByRole("button", { name: "Old result" })).toHaveCount(0);
   });
 
