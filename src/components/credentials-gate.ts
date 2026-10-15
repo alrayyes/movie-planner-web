@@ -1,8 +1,6 @@
-import { mount } from "svelte";
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
 import { BUTTON_PRIMARY, FIELD_WRAPPER, FORM, INPUT, LABEL } from "../lib/ui/classes";
-import CalendarOverview from "./CalendarOverview.svelte";
 
 // The first thing a visitor with no stored credentials sees, and what a
 // returning visitor's stored credentials skip past — see the `credentials`
@@ -13,7 +11,7 @@ export class CredentialsGate extends HTMLElement {
     const store = getCredentialsStore();
     const credentials = await store.get();
     if (credentials) {
-      this.renderConnected(credentials);
+      await this.renderConnected(credentials);
     } else {
       this.renderForm();
     }
@@ -32,12 +30,18 @@ export class CredentialsGate extends HTMLElement {
       const credentials = readCredentialsForm(form);
       await getCredentialsStore().save(credentials);
       window.dispatchEvent(new Event(CREDENTIALS_CONNECTED_EVENT));
-      this.renderConnected(credentials);
+      await this.renderConnected(credentials);
     });
     this.appendChild(form);
   }
 
-  private renderConnected(credentials: Credentials) {
+  private async renderConnected(credentials: Credentials) {
+    // #932: Svelte and the overview load here, not at the top of the file, so a
+    // visitor who only needs the connect form doesn't wait on them.
+    const [{ mount }, { default: CalendarOverview }] = await Promise.all([
+      import("svelte"),
+      import("./CalendarOverview.svelte"),
+    ]);
     this.innerHTML = "";
     // #127: the nav (Log a viewing/Import/Venues/Settings) used to be
     // built here — moved to <site-nav> (mounted once in Layout.astro)
