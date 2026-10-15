@@ -16,6 +16,9 @@ on:
 permissions:
   contents: read
 
+env:
+  LEFTHOOK: "0"
+
 jobs:
   scan:
     runs-on: ubuntu-24.04
