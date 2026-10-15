@@ -123,11 +123,21 @@ test.describe("deleting a logged viewing", () => {
     const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connectAndOpenDetails(page);
 
-    page.once("dialog", (dialog) => dialog.dismiss());
+    const dismissed = new Promise<void>((resolve) => {
+      page.once("dialog", async (dialog) => {
+        await dialog.dismiss();
+        resolve();
+      });
+    });
     await page.getByRole("button", { name: "Delete" }).click();
 
-    // Dismissed — nothing should have been deleted.
-    await page.waitForTimeout(100);
+    // Dismissed — nothing should have been deleted. A delete is only issued
+    // after the confirm returns true, so once the click handler has run past
+    // the dismissed dialog (one frame) there is nothing left to wait for.
+    await dismissed;
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
     expect(server.deletes).toHaveLength(0);
   });
 

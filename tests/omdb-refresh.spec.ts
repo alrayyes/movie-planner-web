@@ -734,12 +734,16 @@ test.describe("refreshing OMDb metadata from the overview", () => {
         await route.fallback();
       });
 
+      const refetch = page.waitForRequest(
+        (request) =>
+          request.method() === "REPORT" && request.url().startsWith(CREDENTIALS["caldav-url"]),
+      );
       await page.getByRole("button", { name: "Refresh metadata" }).click();
-      // Mid-flight, still inside the artificial 300ms CalDAV delay — a
-      // short assertion timeout so this actually checks the state at
-      // this moment rather than waiting out the delay for the text to
-      // read correctly again regardless.
-      await page.waitForTimeout(100);
+      // Mid-flight, the CalDAV re-fetch is out and held by the artificial
+      // 300ms delay — a short assertion timeout so this actually checks the
+      // state at this moment rather than waiting out the delay for the text
+      // to read correctly again regardless.
+      await refetch;
       await expect(countStatus).toHaveText("1 logged viewing.", { timeout: 100 });
 
       await expect(page.getByRole("status").last()).toHaveText("Refreshed.");
