@@ -23,11 +23,21 @@ const VIEWPORTS = [
   { name: "desktop", width: 1280, height: 800 },
 ];
 
-async function assertNoHorizontalOverflow(page: Page) {
+async function assertNoHorizontalOverflow(page: Page, label = "page") {
   const overflow = await page.evaluate(() => {
     return document.documentElement.scrollWidth - document.documentElement.clientWidth;
   });
-  expect(overflow).toBeLessThanOrEqual(1);
+  expect(overflow, `${label} overflows sideways`).toBeLessThanOrEqual(1);
+}
+
+// #914: a page's layout at three widths is one journey, not three. Load and
+// connect once, then resize the same page through each width, instead of paying
+// for a sign-in per width.
+async function atEachViewport(page: Page, check: (viewport: string) => Promise<void>) {
+  for (const viewport of VIEWPORTS) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await check(viewport.name);
+  }
 }
 
 // iOS Safari auto-zooms the whole page when a visitor focuses any input
@@ -94,120 +104,94 @@ async function connect(page: Page) {
   await expect(page.getByRole("link", { name: "Dune", exact: true })).toBeVisible();
 }
 
-for (const viewport of VIEWPORTS) {
-  test.describe(`${viewport.name} layout`, () => {
-    test.use({ viewport: { width: viewport.width, height: viewport.height } });
-
-    test("credentials form has no horizontal overflow", async ({ page }) => {
-      await page.goto("/");
-      await assertNoHorizontalOverflow(page);
+test.describe("no horizontal overflow across viewports", () => {
+  test("credentials form", async ({ page }) => {
+    await page.goto("/");
+    await atEachViewport(page, async (viewport) => {
+      await assertNoHorizontalOverflow(page, `${viewport} credentials form`);
       await assertInputFontSizeAtLeast16px(page);
-    });
-
-    test("calendar overview (with a full-metadata row) has no horizontal overflow", async ({
-      page,
-    }) => {
-      await connect(page);
-      await assertNoHorizontalOverflow(page);
-    });
-
-    // #93: editing moved to the details page — the "edit mode" half of
-    // the check above now lives here instead.
-    test("movie details edit form has no horizontal overflow", async ({ page }) => {
-      await connect(page);
-      await page.getByRole("link", { name: "Dune", exact: true }).click();
-      await assertNoHorizontalOverflow(page);
-
-      await page.getByRole("button", { name: "Edit" }).click();
-      await assertNoHorizontalOverflow(page);
-      await assertInputFontSizeAtLeast16px(page);
-    });
-
-    // #403: the read-mode action row (Edit/Export/Refresh metadata/
-    // Search OMDb/Delete) is a different code path from the edit form
-    // above and was never covered on its own — confirmed live, this
-    // exact gap is what let it overflow a narrow viewport unnoticed.
-    test("movie details view-mode action buttons have no horizontal overflow", async ({ page }) => {
-      await connect(page);
-      await page.getByRole("link", { name: "Dune", exact: true }).click();
-      await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
-      await assertNoHorizontalOverflow(page);
-    });
-
-    // #414: the trailer embed used to sit inside the same squeezed
-    // label/value grid column as every other field, so it rendered far
-    // narrower than the page's actual available width — this asserts it
-    // now uses (most of) the full content width, not just "doesn't
-    // overflow".
-    test("the trailer embed uses most of the available content width", async ({ page }) => {
-      await mockYoutubeEmbed(page);
-      mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-        {
-          uid: "dune-uid",
-          title: "Dune",
-          start: ONE_MONTH_AGO.toISOString(),
-          end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
-          medium: "cinema",
-          trailerUrl: "https://www.youtube.com/watch?v=8g18jFHCLXk",
-        },
-      ]);
-      await page.goto("/");
-      await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
-      await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
-      await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
-      await page.getByRole("button", { name: "Connect" }).click();
-      await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
-      await page.getByRole("link", { name: "Dune", exact: true }).click();
-
-      // Compared against the "Trailer" heading's own width, not the
-      // whole page — on a desktop-width viewport the poster column sits
-      // beside this content column, so "close to the full page width"
-      // isn't the right bar. What matters is that the embed uses the
-      // same available width as everything else in its own column,
-      // rather than a further-squeezed sub-column the way the old
-      // max-w-xl-inside-the-dl layout did.
-      const iframeBox = await page.locator("iframe").boundingBox();
-      const headingBox = await page.getByRole("heading", { name: "Trailer" }).boundingBox();
-      expect(iframeBox).not.toBeNull();
-      expect(headingBox).not.toBeNull();
-      expect((iframeBox?.width ?? 0) / (headingBox?.width ?? 1)).toBeGreaterThan(0.95);
-      await assertNoHorizontalOverflow(page);
-    });
-
-    test("log form has no horizontal overflow", async ({ page }) => {
-      await connect(page);
-      await page.goto("/log");
-      await assertNoHorizontalOverflow(page);
-      await assertInputFontSizeAtLeast16px(page);
-    });
-
-    test("import page has no horizontal overflow", async ({ page }) => {
-      await connect(page);
-      // #436: reached from Settings now, not a top-level nav link — a
-      // direct navigation stands in for that click.
-      await page.goto("/import");
-      await assertNoHorizontalOverflow(page);
-      await assertInputFontSizeAtLeast16px(page);
-    });
-
-    test("settings page has no horizontal overflow", async ({ page }) => {
-      await connect(page);
-      await page.goto("/settings");
-      await assertNoHorizontalOverflow(page);
-      await assertInputFontSizeAtLeast16px(page);
-    });
-
-    // #198/#204/#536: a year's worth of week columns is far wider than
-    // any phone viewport — same overflow-x-auto wrapper pattern the
-    // table uses (TABLE_WRAP), so the grid itself scrolls instead of
-    // the page.
-    test("calendar heatmap has no horizontal overflow", async ({ page }) => {
-      await connect(page);
-      await page.goto("/calendar");
-      await assertNoHorizontalOverflow(page);
     });
   });
-}
+
+  test("calendar overview (with a full-metadata row)", async ({ page }) => {
+    await connect(page);
+    await atEachViewport(page, (viewport) =>
+      assertNoHorizontalOverflow(page, `${viewport} calendar overview`),
+    );
+  });
+
+  // #93: editing moved to the details page. #403: the read-mode action row
+  // (Edit/Export/Refresh metadata/Search OMDb/Delete) is a different code path
+  // from the edit form and was once the thing that overflowed a narrow
+  // viewport unnoticed, so both modes are checked.
+  test("movie details, in view mode and in the edit form", async ({ page }) => {
+    await connect(page);
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+    await atEachViewport(page, (viewport) =>
+      assertNoHorizontalOverflow(page, `${viewport} details, view mode`),
+    );
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await atEachViewport(page, async (viewport) => {
+      await assertNoHorizontalOverflow(page, `${viewport} details, edit form`);
+      await assertInputFontSizeAtLeast16px(page);
+    });
+  });
+
+  // #414: the trailer embed used to sit inside the same squeezed label/value
+  // grid column as every other field, so it rendered far narrower than the
+  // page's actual available width. Compared against the "Trailer" heading's own
+  // width, not the whole page: on a desktop-width viewport the poster column
+  // sits beside this content column.
+  test("the trailer embed uses most of the available content width", async ({ page }) => {
+    await mockYoutubeEmbed(page);
+    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: ONE_MONTH_AGO.toISOString(),
+        end: new Date(ONE_MONTH_AGO.getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+        trailerUrl: "https://www.youtube.com/watch?v=8g18jFHCLXk",
+      },
+    ]);
+    await page.goto("/");
+    await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
+    await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
+    await page.locator("#caldav-password").fill(CREDENTIALS["caldav-password"]);
+    await page.getByRole("button", { name: "Connect" }).click();
+    await expect(page.getByRole("button", { name: "Log a viewing" })).toBeVisible();
+    await page.getByRole("link", { name: "Dune", exact: true }).click();
+
+    await atEachViewport(page, async (viewport) => {
+      const iframeBox = await page.locator("iframe").boundingBox();
+      const headingBox = await page.getByRole("heading", { name: "Trailer" }).boundingBox();
+      expect(iframeBox, `${viewport} embed`).not.toBeNull();
+      expect(headingBox, `${viewport} heading`).not.toBeNull();
+      expect(
+        (iframeBox?.width ?? 0) / (headingBox?.width ?? 1),
+        `${viewport} embed width against its column`,
+      ).toBeGreaterThan(0.95);
+      await assertNoHorizontalOverflow(page, `${viewport} trailer`);
+    });
+  });
+
+  // #436: Import is reached from Settings, so a direct navigation stands in for
+  // that click. #198/#204/#536: a year's worth of week columns is far wider
+  // than any phone viewport, so the heatmap's wrapper has to scroll instead of
+  // the page.
+  test("the log, import, settings and calendar pages", async ({ page }) => {
+    await connect(page);
+    for (const path of ["/log", "/import", "/settings", "/calendar"]) {
+      await page.goto(path);
+      await atEachViewport(page, async (viewport) => {
+        await assertNoHorizontalOverflow(page, `${viewport} ${path}`);
+        if (path !== "/calendar") await assertInputFontSizeAtLeast16px(page);
+      });
+    }
+  });
+});
 
 // #217: an ordinary row (nothing pathological — a title/venue/director of
 // real-world length) still forced the table's own overflow-x-auto wrapper
