@@ -53,6 +53,14 @@ export interface HeatmapYearGrid {
 
 const MONTH_LABEL_LOCALE = "en-US";
 
+// The grid's rows, Sunday first like HeatmapWeek.days, so a row's index is
+// Date#getDay() of every date in it.
+export const WEEKDAY_ROW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function isWeekendRow(dayOfWeek: number): boolean {
+  return dayOfWeek === 0 || dayOfWeek === 6;
+}
+
 function dateKey(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

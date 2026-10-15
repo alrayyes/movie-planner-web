@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { LoggedViewing } from "../caldav/types";
-import { bucketViewingsByLocalDay, buildYearGrids, groupViewingsByLocalDay } from "./heatmap";
+import {
+  bucketViewingsByLocalDay,
+  buildYearGrids,
+  groupViewingsByLocalDay,
+  isWeekendRow,
+  WEEKDAY_ROW_LABELS,
+} from "./heatmap";
 
 function viewing(uid: string, start: string): LoggedViewing {
   return { uid, title: uid, start, end: start, medium: "cinema" };
@@ -220,5 +226,31 @@ describe("buildYearGrids, where a grid ends", () => {
     ]);
     const years = buildYearGrids(counts, new Date(2026, 8, 10)).map((grid) => grid.year);
     expect(years).toEqual(["2025", "2024", "2023"]);
+  });
+});
+
+describe("weekday rows", () => {
+  test("names the seven rows Sunday first, matching the grid's row order", () => {
+    expect(WEEKDAY_ROW_LABELS).toEqual(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+  });
+
+  test("only the Sunday and Saturday rows are weekend rows", () => {
+    expect([0, 1, 2, 3, 4, 5, 6].map(isWeekendRow)).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]);
+  });
+
+  test("a grid cell's row index is the real weekday of its date", () => {
+    const [grid] = buildYearGrids(new Map([["2025-06-12", 1]]), new Date(2025, 11, 31));
+    const thursdays = grid?.weeks.flatMap((week) => week.days[4] ?? []) ?? [];
+
+    expect(thursdays.find((day) => day.date === "2025-06-12")).toBeDefined();
+    expect(new Date(2025, 5, 12).getDay()).toBe(4);
   });
 });

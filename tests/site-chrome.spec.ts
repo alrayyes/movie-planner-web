@@ -677,7 +677,7 @@ test.describe("footer", () => {
       page.getByRole("heading", { name: "Every venue you've been to, with a count" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "A GitHub-style heatmap of your viewing habits" }),
+      page.getByRole("heading", { name: "A GitHub-style calendar of the days you went" }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Every located viewing, pinned on one map" }),
