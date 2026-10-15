@@ -93,3 +93,58 @@ describe("ci.yml's mutation job", () => {
     expect(at("bun install")).toBeLessThan(at("astro sync"));
   });
 });
+
+// #931: rules/dependencies.md. A dependency audit blocks only the pull request
+// that introduces an advisory, and a scan on the default branch keeps one
+// ticket for the rest. No pipeline carries an ignore.
+const ADVISORY_SCAN = "alrayyes/advisory-scan@425418a63e80eb10142fbd2e82127b7ef3a51d68";
+
+describe("dependency audit", () => {
+  test("no workflow or package script carries an --ignore", () => {
+    const scripts = Object.values(
+      (JSON.parse(readFileSync("package.json", "utf8")) as { scripts?: Record<string, string> })
+        .scripts ?? {},
+    );
+
+    for (const { file, text } of workflows) expect(text, file).not.toContain("--ignore");
+    for (const script of scripts) expect(script).not.toContain("--ignore");
+  });
+
+  test("ci.yml's audit job is the shared action in gate mode, on pull requests", () => {
+    const job = workflows.find((w) => w.file === "ci.yml")?.doc.jobs.audit as unknown as {
+      if?: string;
+      steps: { uses?: string; with?: Record<string, string>; run?: string }[];
+    };
+    const gate = job.steps.find((step) => step.uses?.startsWith("alrayyes/advisory-scan@"));
+
+    expect(gate?.uses).toStartWith(ADVISORY_SCAN);
+    expect(gate?.with).toMatchObject({ mode: "gate", command: "bun audit" });
+    expect(job.if).toContain("pull_request");
+    expect(job.steps.some((step) => step.run?.includes("bun audit"))).toBe(false);
+  });
+
+  describe("advisory-scan.yml", () => {
+    const scan = workflows.find((w) => w.file === "advisory-scan.yml");
+
+    test("exists, and scans daily, on lockfile pushes to main and on demand", () => {
+      const on = scan?.doc.on as Record<string, { branches?: string[]; paths?: string[] }>;
+
+      expect(scan).toBeDefined();
+      expect(Object.keys(on).sort()).toEqual(["push", "schedule", "workflow_dispatch"]);
+      expect(on.push?.branches).toEqual(["main"]);
+      expect(on.push?.paths).toEqual(["package.json", "bun.lock"]);
+    });
+
+    test("runs the shared action in scan mode and may write issues, nothing more", () => {
+      const job = Object.values(scan?.doc.jobs ?? {})[0] as unknown as {
+        permissions?: Record<string, string>;
+        steps: { uses?: string; with?: Record<string, string> }[];
+      };
+      const step = job.steps.find((s) => s.uses?.startsWith("alrayyes/advisory-scan@"));
+
+      expect(step?.uses).toStartWith(ADVISORY_SCAN);
+      expect(step?.with).toMatchObject({ mode: "scan", command: "bun audit" });
+      expect(job.permissions).toEqual({ contents: "read", issues: "write" });
+    });
+  });
+});
