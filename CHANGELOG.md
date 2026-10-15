@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.34.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.1...movie-planner-web-v1.34.2) (2026-10-15)
+
+
+### Performance Improvements
+
+* keep the overview and WebMCP tools out of the connect form's path ([#933](https://github.com/alrayyes/movie-planner-web/issues/933)) ([88df6c5](https://github.com/alrayyes/movie-planner-web/commit/88df6c50eea0251706af5cf7210477f8536a7e18)), closes [#932](https://github.com/alrayyes/movie-planner-web/issues/932)
+
 ## [1.34.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.0...movie-planner-web-v1.34.1) (2026-10-15)
 
 
