@@ -128,10 +128,10 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
-    // Give the background activity-log sync (fire-and-forget, #432) a
-    // moment to have started too — if it were still issuing its own
-    // separate request, it doesn't wait on anything visible in the DOM.
-    await page.waitForTimeout(200);
+    // The background activity-log sync (fire-and-forget, #432) doesn't wait on
+    // anything visible in the DOM, so wait for the network to go quiet: if it
+    // were still issuing its own separate request, that would show up here.
+    await page.waitForLoadState("networkidle");
 
     const fifteenYearsAgo = new Date();
     fifteenYearsAgo.setFullYear(fifteenYearsAgo.getFullYear() - 15);
@@ -467,9 +467,19 @@ test.describe("calendar overview", () => {
     await connect(page);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
-    page.once("dialog", (dialog) => dialog.dismiss());
+    const dismissed = new Promise<void>((resolve) => {
+      page.once("dialog", async (dialog) => {
+        await dialog.dismiss();
+        resolve();
+      });
+    });
     await page.getByRole("button", { name: "Delete Dune" }).click();
-    await page.waitForTimeout(100);
+    // A delete is only issued after the confirm returns true, so once the
+    // handler has run past the dismissed dialog there is nothing to wait for.
+    await dismissed;
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
     expect(server.deletes).toHaveLength(0);
     await expect(page.locator("tbody tr")).toHaveCount(2);
 
@@ -625,12 +635,15 @@ test.describe("calendar overview", () => {
     const firstReleased = new Promise<void>((resolve) => {
       releaseFirst = resolve;
     });
+    let firstSettled: (() => void) | undefined;
+    const firstResponded = new Promise<void>((resolve) => {
+      firstSettled = resolve;
+    });
     await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route) => {
-      if (route.request().method() === "REPORT") {
-        reportCount += 1;
-        if (reportCount === 1) await firstReleased;
-      }
+      const isFirstReport = route.request().method() === "REPORT" && ++reportCount === 1;
+      if (isFirstReport) await firstReleased;
       await route.fallback();
+      if (isFirstReport) firstSettled?.();
     });
 
     await connect(page);
@@ -649,9 +662,12 @@ test.describe("calendar overview", () => {
     await expect(page.locator("tbody tr")).toContainText("Dune");
 
     releaseFirst?.();
-    // Give the stale first response a moment to resolve and, if it were
+    // Wait for the stale first response to be delivered and, if it were
     // still wired up, clobber the correct state above.
-    await page.waitForTimeout(200);
+    await firstResponded;
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
 
     await expect(page.locator("tbody tr")).toHaveCount(1);
     await expect(page.locator("tbody tr")).toContainText("Dune");
@@ -1729,6 +1745,7 @@ test.describe("calendar overview", () => {
       });
       await openFilters(page);
       await page.locator("#overview-title").fill("Anything");
+      await page.clock.install();
       await page.getByRole("button", { name: "Filter", exact: true }).click();
 
       const toast = page.getByRole("alert");
@@ -1737,7 +1754,7 @@ test.describe("calendar overview", () => {
 
       // No auto-dismiss timer — still visible well after any short
       // success-confirmation-style delay would have cleared it.
-      await page.waitForTimeout(1000);
+      await page.clock.fastForward(1000);
       await expect(toast).toBeVisible();
 
       const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();

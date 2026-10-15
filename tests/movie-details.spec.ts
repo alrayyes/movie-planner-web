@@ -1425,6 +1425,7 @@ test.describe("movie details page", () => {
 
       await page.getByRole("button", { name: "Edit" }).click();
       await page.locator("#details-venue").selectOption("Regal Union Square");
+      await page.clock.install();
       await page.getByRole("button", { name: "Save" }).click();
 
       const toast = page.getByRole("alert");
@@ -1434,7 +1435,7 @@ test.describe("movie details page", () => {
       // ever the success confirmation, not blended with the error.
       await expect(page.locator("#movie-status")).not.toHaveText("Saved.");
 
-      await page.waitForTimeout(1000);
+      await page.clock.fastForward(1000);
       await expect(toast).toBeVisible();
 
       const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();

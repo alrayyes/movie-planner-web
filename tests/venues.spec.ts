@@ -290,12 +290,15 @@ test.describe("venues overview", () => {
     const firstReleased = new Promise<void>((resolve) => {
       releaseFirst = resolve;
     });
+    let firstSettled: (() => void) | undefined;
+    const firstResponded = new Promise<void>((resolve) => {
+      firstSettled = resolve;
+    });
     await page.route(`${new URL(CREDENTIALS["caldav-url"]).origin}/**`, async (route) => {
-      if (route.request().method() === "REPORT") {
-        reportCount += 1;
-        if (reportCount === 1) await firstReleased;
-      }
+      const isFirstReport = route.request().method() === "REPORT" && ++reportCount === 1;
+      if (isFirstReport) await firstReleased;
       await route.fallback();
+      if (isFirstReport) firstSettled?.();
     });
 
     await page.getByRole("link", { name: "Venues" }).click();
@@ -311,7 +314,11 @@ test.describe("venues overview", () => {
     await expect(page.locator("tbody tr")).toContainText(["1"]);
 
     releaseFirst?.();
-    await page.waitForTimeout(200);
+    // The stale response has been delivered; one frame lets the page act on it.
+    await firstResponded;
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
 
     await expect(page.locator("tbody tr")).toContainText(["1"]);
     expect(server.listRequests.length).toBeGreaterThanOrEqual(2);

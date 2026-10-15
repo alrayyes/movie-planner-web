@@ -29,14 +29,22 @@ function manyViewings(count: number) {
 // under CI load, failing with a different snapshot each run. Waiting for
 // two consecutive reads to agree is the real "the scroll has settled".
 async function stableScrollY(page: Page): Promise<number> {
-  let last = await page.evaluate(() => window.scrollY);
-  for (let i = 0; i < 50; i++) {
-    await page.waitForTimeout(50);
-    const current = await page.evaluate(() => window.scrollY);
-    if (current === last) return current;
-    last = current;
-  }
-  return last;
+  return page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let last = window.scrollY;
+        let still = 0;
+        let frames = 0;
+        const tick = () => {
+          const current = window.scrollY;
+          still = current === last ? still + 1 : 0;
+          last = current;
+          if (still >= 3 || ++frames > 300) return resolve(current);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
 }
 
 async function connect(page: Page) {
