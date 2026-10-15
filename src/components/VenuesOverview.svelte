@@ -8,6 +8,7 @@ import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
 import { venueHref } from "../lib/venue/display";
+import { buildVenueInfos, groupByLocation, pinsFor, type VenueInfo } from "../lib/venue/overview";
 import ConnectLink from "./ConnectLink.svelte";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import ErrorToast from "./ErrorToast.svelte";
@@ -53,15 +54,6 @@ let disconnected = $state(false);
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
 let loadError = $state("");
 
-interface VenueInfo {
-	venue: string;
-	count: number;
-	city?: string;
-	country?: string;
-	lat?: number;
-	lon?: number;
-}
-
 // #277/#267: a venue's own geo/city/country come from whichever of its
 // viewings happened to carry them first — every viewing at the same
 // venue shares the same location data, so which one doesn't matter.
@@ -103,66 +95,13 @@ function cityHref(city: string): string {
 	return `/?city=${encodeURIComponent(city)}${range}`;
 }
 
-interface CityGroup {
-	city: string;
-	venues: VenueInfo[];
-	pins: { lat: number; lon: number; label: string; href: string }[];
-}
-
-// #277: shared by every rendered table (the flat ungrouped view, "Other
-// locations", and each city group below) — a venue's own row still
-// gets a pin here even without city/country grouping, same as this
-// page's map showed before #267.
-function pinsFor(list: VenueInfo[]): { lat: number; lon: number; label: string; href: string }[] {
-	return list
-		.filter(
-			(v): v is VenueInfo & { lat: number; lon: number } =>
-				v.lat !== undefined && v.lon !== undefined,
-		)
-		.map((v) => ({ lat: v.lat, lon: v.lon, label: v.venue, href: venueHref(v.venue) }));
-}
-
-interface CountryGroup {
-	country: string;
-	cities: CityGroup[];
-}
-
-// #267: only a venue with BOTH city and country groups at all — the
-// CLI's own hardcoded chain table always sets both together or
-// neither (docs/calendar-schema.md), so a venue with just one of the
-// two isn't a real shape to expect; treating it as ungrouped rather
-// than guessing which axis it belongs under is the same "omit, don't
-// guess" rule city/country themselves already follow.
+// #267: only a venue with BOTH city and country groups at all — see
+// groupByLocation in ../lib/venue/overview.ts.
+const grouped = $derived(groupByLocation(venueInfos));
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
-const countryGroups = $derived.by((): CountryGroup[] => {
-	const byCountry = new Map<string, Map<string, VenueInfo[]>>();
-	for (const info of venueInfos) {
-		if (!info.city || !info.country) continue;
-		let byCity = byCountry.get(info.country);
-		if (!byCity) {
-			byCity = new Map();
-			byCountry.set(info.country, byCity);
-		}
-		const list = byCity.get(info.city) ?? [];
-		list.push(info);
-		byCity.set(info.city, list);
-	}
-	return [...byCountry.entries()]
-		.sort(([a], [b]) => a.localeCompare(b))
-		.map(([country, byCity]) => ({
-			country,
-			cities: [...byCity.entries()]
-				.sort(([a], [b]) => a.localeCompare(b))
-				.map(([city, cityVenues]) => ({
-					city,
-					venues: cityVenues,
-					pins: pinsFor(cityVenues),
-				})),
-		}));
-});
-
+const countryGroups = $derived(grouped.countries);
 // biome-ignore lint/correctness/noUnusedVariables: used in the template below, which Biome does not parse for .svelte files
-const ungroupedVenues = $derived(venueInfos.filter((v) => !v.city || !v.country));
+const ungroupedVenues = $derived(grouped.ungrouped);
 
 // Aborts a still-in-flight load when a newer one starts (a mount-time
 // load overlapping a bfcache-restore reload) — same reasoning as
@@ -194,39 +133,7 @@ async function load() {
 		caldavConfig = config;
 		const apply = (venues: VenueEntry[], viewings: LoggedViewing[]) => {
 			loadedViewings = viewings;
-			// #452: a picklist entry now carries its own city/country/geo
-			// directly — seeded here so a venue with zero viewings (still
-			// worth showing, #99's own scenario) can be grouped/pinned from
-			// its own structured data alone, same as one only known from a
-			// viewing already was.
-			const infoByVenue = new Map<string, VenueInfo>(
-				venues.map((entry) => [
-					entry.name,
-					{
-						venue: entry.name,
-						count: 0,
-						city: entry.city,
-						country: entry.country,
-						lat: entry.geo?.lat,
-						lon: entry.geo?.lon,
-					},
-				]),
-			);
-			for (const viewing of viewings) {
-				if (!viewing.venue) continue;
-				const info = infoByVenue.get(viewing.venue) ?? { venue: viewing.venue, count: 0 };
-				info.count += 1;
-				if (viewing.geo && info.lat === undefined) {
-					info.lat = viewing.geo.lat;
-					info.lon = viewing.geo.lon;
-				}
-				if (viewing.city && info.city === undefined) info.city = viewing.city;
-				if (viewing.country && info.country === undefined) info.country = viewing.country;
-				infoByVenue.set(viewing.venue, info);
-			}
-			venueInfos = [...infoByVenue.values()].sort(
-				(a, b) => b.count - a.count || a.venue.localeCompare(b.venue),
-			);
+			venueInfos = buildVenueInfos(venues, viewings);
 			status = `${venueInfos.length} venue${venueInfos.length === 1 ? "" : "s"}.`;
 		};
 		const viewings = await listAllViewings(config, {
