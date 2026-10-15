@@ -138,3 +138,47 @@ test.describe("calendar heatmap, unchanged behaviour", () => {
     await expect(page.getByRole("dialog", { name: "Viewings on 2025-06-12" })).toBeVisible();
   });
 });
+
+// #918: 53 weekly columns can't fit a phone, so under the sm breakpoint the grid
+// turns on its side: one row per week, the weekdays across the top.
+for (const width of [320, 390]) {
+  test.describe(`calendar heatmap at ${width}px`, () => {
+    test.use({ viewport: { width, height: 800 } });
+
+    test("fits the card with no horizontal scrollbar", async ({ page }) => {
+      await openCalendar(page);
+
+      const { scrollWidth, clientWidth } = await page
+        .getByRole("heading", { name: "2025" })
+        .evaluate((heading) => {
+          const grid = (heading.closest("div.flex-col") as HTMLElement).querySelector(
+            "div.grid",
+          ) as HTMLElement;
+          const wrapper = grid.parentElement as HTMLElement;
+          return { scrollWidth: wrapper.scrollWidth, clientWidth: wrapper.clientWidth };
+        });
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+    });
+
+    test("weekday names head the columns, left to right Sun to Sat", async ({ page }) => {
+      await openCalendar(page);
+
+      const section = page.getByRole("heading", { name: "2025" }).locator("xpath=ancestor::div[1]");
+      const xs: number[] = [];
+      for (const weekday of ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) {
+        const box = await section.getByText(weekday, { exact: true }).boundingBox();
+        expect(box, weekday).not.toBeNull();
+        xs.push(box?.x ?? 0);
+      }
+      expect(xs).toEqual([...xs].sort((a, b) => a - b));
+      expect(new Set(xs).size).toBe(7);
+    });
+
+    test("a day cell is still tappable and opens that day", async ({ page }) => {
+      await openCalendar(page);
+
+      await page.getByRole("button", { name: "2025-06-12: 2 viewings" }).click();
+      await expect(page.getByRole("dialog", { name: "Viewings on 2025-06-12" })).toBeVisible();
+    });
+  });
+}
