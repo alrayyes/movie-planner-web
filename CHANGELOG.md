@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.34.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.0...movie-planner-web-v1.34.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* **calendar:** turn the heatmap on its side on phones so it needs no sideways scroll ([#919](https://github.com/alrayyes/movie-planner-web/issues/919)) ([7c786c9](https://github.com/alrayyes/movie-planner-web/commit/7c786c9673f1f00c5069d5f0bd8299fb33d6cce8)), closes [#918](https://github.com/alrayyes/movie-planner-web/issues/918)
+
+
+### Performance Improvements
+
+* **wizard:** load the log wizard on the first click, not on every page ([#923](https://github.com/alrayyes/movie-planner-web/issues/923)) ([9a5605a](https://github.com/alrayyes/movie-planner-web/commit/9a5605aa12b2775e7b37def5da0e3d076deec95d)), closes [#920](https://github.com/alrayyes/movie-planner-web/issues/920)
+
 ## [1.34.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.33.0...movie-planner-web-v1.34.0) (2026-10-15)
 
 
