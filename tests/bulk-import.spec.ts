@@ -42,6 +42,8 @@ test.describe("CSV/JSON import", () => {
       buffer: Buffer.from(CSV_TWO_MOVIES),
     });
     await expect(page.getByRole("row", { name: /Paddington/ }).first()).toBeVisible();
+    // This app's own format never asks for a medium; a Letterboxd diary does.
+    await expect(page.getByLabel("Medium for these viewings")).toBeHidden();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     expect(results.violations).toEqual([]);
@@ -138,18 +140,6 @@ test.describe("a Letterboxd diary", () => {
     await expect(page.getByRole("status")).toHaveText("Imported 2, skipped 0, failed 0.");
     expect(server.creates.map((v) => v.title).sort()).toEqual(["Anora", "Dune: Part Two"]);
     expect(server.creates.every((v) => v.medium === "cinema")).toBe(true);
-  });
-
-  test("doesn't ask for a medium on this app's own format", async ({ page }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-    await connect(page);
-    await page.locator("#import-file").setInputFiles({
-      name: "movies.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(CSV_TWO_MOVIES),
-    });
-    await expect(page.getByRole("row", { name: /Paddington/ }).first()).toBeVisible();
-    await expect(page.getByLabel("Medium for these viewings")).toBeHidden();
   });
 });
 

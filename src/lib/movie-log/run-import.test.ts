@@ -727,6 +727,36 @@ describe("writing to the calendar", () => {
       expect(unfold(puts[1]?.body ?? "")).not.toContain("GEO:");
     });
 
+    // #879: the extras an export carries can be restored onto an existing event.
+    test("an approved synopsis and trailer are written, and left alone when not approved", async () => {
+      const extras = {
+        rowNumber: 2,
+        uid: "u",
+        title: "Dune",
+        changes: [
+          { field: "synopsis", label: "Synopsis", newValue: "A desert planet." },
+          { field: "trailerUrl", label: "Trailer URL", newValue: "https://example.com/t" },
+        ],
+      } as const;
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...extras, changes: [...extras.changes] },
+        new Set<keyof NewViewing>(["synopsis", "trailerUrl"]),
+      );
+      const written = unfold(puts[0]?.body ?? "");
+      expect(written).toContain("X-SYNOPSIS:A desert planet.");
+      expect(written).toContain("X-TRAILER-URL:https://example.com/t");
+      await applyImportUpdate(
+        CREDENTIALS,
+        current,
+        { ...extras, changes: [...extras.changes] },
+        new Set<keyof NewViewing>(),
+      );
+      expect(unfold(puts[1]?.body ?? "")).not.toContain("X-SYNOPSIS");
+      expect(unfold(puts[1]?.body ?? "")).not.toContain("X-TRAILER-URL");
+    });
+
     test("negative and fractional coordinates are written as given", async () => {
       const entry = {
         rowNumber: 2,
