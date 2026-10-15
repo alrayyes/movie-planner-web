@@ -10,16 +10,10 @@
 // credentials gate, so a docs page shows no nav links either until a
 // visitor has connected, exactly like everywhere else.
 //
-// #603: LogViewingWizard mounted here too, once per page alongside its
-// own trigger — log-viewing-button.ts has no direct reference to it
-// (OPEN_LOG_VIEWING_WIZARD_EVENT decouples them), but the dialog still
-// has to exist somewhere on the page before that event can open it.
-// client:only, not client:load: it reads stored credentials on mount,
-// which don't exist during the static build (same reasoning
-// LogViewingForm.svelte and every other credential-reading island
-// already documents).
-// biome-ignore lint/correctness/noUnusedImports: used in the template below the frontmatter fence, which Biome does not parse for .astro files
-import LogViewingWizard from "./LogViewingWizard.svelte";
+// #603: the log wizard's own <dialog> needs somewhere on the page to live. #920:
+// it isn't mounted here any more — log-viewing-button.ts imports and mounts it
+// into this persisted placeholder on the first click, so no page pays for the
+// wizard's code until someone logs a viewing.
 ---
 
 <header class="mb-6 flex items-center justify-between max-[640px]:flex-wrap max-[640px]:gap-y-2">
@@ -62,7 +56,7 @@ import LogViewingWizard from "./LogViewingWizard.svelte";
 padding, 1px border, 24px margin). Reserve that height so <main> doesn't
 jump down when it appears. -->
 <site-nav class="block empty:min-h-[3.8125rem]"></site-nav>
-<LogViewingWizard client:only="svelte" />
+<div data-log-wizard-root transition:persist="log-wizard-root"></div>
 
 <script>
   import "./keyboard-nav";

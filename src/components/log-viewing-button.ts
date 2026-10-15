@@ -16,6 +16,10 @@ import { BUTTON_PRIMARY } from "../lib/ui/classes";
 // OPEN_LOG_VIEWING_WIZARD_EVENT) rather than navigating to a page, so a
 // <button> is the correct semantic element now, not just the design's
 // name for it. /log itself is unaffected and still reachable directly.
+// #920: the wizard's code loads on the first click. Every click awaits the same
+// import, so a double click mounts one wizard and opens it twice.
+let wizardLoaded: Promise<unknown> | undefined;
+
 export class LogViewingButton extends HTMLElement {
   private readonly handleConnected = () => void this.render();
 
@@ -43,7 +47,12 @@ export class LogViewingButton extends HTMLElement {
     button.type = "button";
     button.className = `${BUTTON_PRIMARY} whitespace-nowrap`;
     button.textContent = "Log a viewing";
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
+      wizardLoaded ??= import("./mount-log-viewing-wizard").catch((error) => {
+        wizardLoaded = undefined;
+        throw error;
+      });
+      await wizardLoaded;
       window.dispatchEvent(new CustomEvent(OPEN_LOG_VIEWING_WIZARD_EVENT));
     });
     this.replaceChildren(button);
