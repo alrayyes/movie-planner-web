@@ -58,13 +58,18 @@ jobs:
       - name: take the screenshots
         if: steps.guard.outputs.skip != 'true'
         run: bun run screenshots
+      # The README's top pair and the About page's tour come from their own
+      # spec, which the gallery run above doesn't touch (#929).
+      - name: take the README's top pair and the About page's pictures
+        if: steps.guard.outputs.skip != 'true'
+        run: ./scripts/in-private-network.sh bunx playwright test tests/screenshots.spec.ts
       - name: update the README gallery
         if: steps.guard.outputs.skip != 'true'
         run: bun scripts/readme-gallery.ts
       - name: commit what changed
         if: steps.guard.outputs.skip != 'true'
         run: |
-          git add docs/screenshots/pages README.md
+          git add docs/screenshots public/screenshots README.md
           if git diff --cached --quiet; then
             echo "screenshots are already current"
             exit 0

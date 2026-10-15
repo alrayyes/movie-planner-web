@@ -178,7 +178,9 @@ visitor (or agent) more than the two extra lines would have.
 demo data (`tests/support/demo.ts`) with the browser's clock fixed, and
 `bun scripts/readme-gallery.ts` rewrites the README's gallery from the same
 list in `scripts/page-gallery.ts`. Normal test runs skip it, since it rewrites
-tracked files. You don't run either by hand for a release: the `screenshots`
+tracked files. The README's top pair (`docs/screenshots/overview-*.png`) and the
+About page's pictures (`public/screenshots/`) come from `tests/screenshots.spec.ts`
+instead. You don't run any of it by hand for a release: the `screenshots`
 workflow does it on release-please's pull request and pushes one commit to
 it, so merging the release ships the new pictures.
 
