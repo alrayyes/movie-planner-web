@@ -140,14 +140,20 @@ test.describe("calendar heatmap, unchanged behaviour", () => {
 });
 
 // #918: 53 weekly columns can't fit a phone, so under the sm breakpoint the grid
-// turns on its side: one row per week, the weekdays across the top.
-for (const width of [320, 390]) {
-  test.describe(`calendar heatmap at ${width}px`, () => {
-    test.use({ viewport: { width, height: 800 } });
+// turns on its side: one row per week, the weekdays across the top. #914: the
+// two phone widths are one journey, so the calendar opens once and the page is
+// resized, not reloaded.
+test.describe("calendar heatmap at phone widths", () => {
+  async function atEachPhoneWidth(page: Page, check: (width: number) => Promise<void>) {
+    await openCalendar(page);
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      await check(width);
+    }
+  }
 
-    test("fits the card with no horizontal scrollbar", async ({ page }) => {
-      await openCalendar(page);
-
+  test("fits the card with no horizontal scrollbar", async ({ page }) => {
+    await atEachPhoneWidth(page, async (width) => {
       const { scrollWidth, clientWidth } = await page
         .getByRole("heading", { name: "2025" })
         .evaluate((heading) => {
@@ -157,28 +163,29 @@ for (const width of [320, 390]) {
           const wrapper = grid.parentElement as HTMLElement;
           return { scrollWidth: wrapper.scrollWidth, clientWidth: wrapper.clientWidth };
         });
-      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+      expect(scrollWidth, `heatmap at ${width}px`).toBeLessThanOrEqual(clientWidth);
     });
+  });
 
-    test("weekday names head the columns, left to right Sun to Sat", async ({ page }) => {
-      await openCalendar(page);
-
+  test("weekday names head the columns, left to right Sun to Sat", async ({ page }) => {
+    await atEachPhoneWidth(page, async (width) => {
       const section = page.getByRole("heading", { name: "2025" }).locator("xpath=ancestor::div[1]");
       const xs: number[] = [];
       for (const weekday of ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) {
         const box = await section.getByText(weekday, { exact: true }).boundingBox();
-        expect(box, weekday).not.toBeNull();
+        expect(box, `${weekday} at ${width}px`).not.toBeNull();
         xs.push(box?.x ?? 0);
       }
-      expect(xs).toEqual([...xs].sort((a, b) => a - b));
+      expect(xs, `weekday order at ${width}px`).toEqual([...xs].sort((a, b) => a - b));
       expect(new Set(xs).size).toBe(7);
     });
-
-    test("a day cell is still tappable and opens that day", async ({ page }) => {
-      await openCalendar(page);
-
-      await page.getByRole("button", { name: "2025-06-12: 2 viewings" }).click();
-      await expect(page.getByRole("dialog", { name: "Viewings on 2025-06-12" })).toBeVisible();
-    });
   });
-}
+
+  test("a day cell is still tappable and opens that day", async ({ page }) => {
+    await openCalendar(page);
+    await page.setViewportSize({ width: 320, height: 800 });
+
+    await page.getByRole("button", { name: "2025-06-12: 2 viewings" }).click();
+    await expect(page.getByRole("dialog", { name: "Viewings on 2025-06-12" })).toBeVisible();
+  });
+});
