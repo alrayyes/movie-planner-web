@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.34.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.33.0...movie-planner-web-v1.34.0) (2026-10-15)
+
+
+### Features
+
+* **calendar:** show went-or-not marks, weekday labels and a weekend tint ([#915](https://github.com/alrayyes/movie-planner-web/issues/915)) ([fa58af8](https://github.com/alrayyes/movie-planner-web/commit/fa58af8638a8c690c7f9dfe759b644619e58e4ba)), closes [#911](https://github.com/alrayyes/movie-planner-web/issues/911)
+
 ## [1.33.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.32.0...movie-planner-web-v1.33.0) (2026-10-14)
 
 
