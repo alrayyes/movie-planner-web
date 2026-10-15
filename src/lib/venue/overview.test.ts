@@ -71,6 +71,19 @@ describe("buildVenueInfos", () => {
     });
   });
 
+  test("a venue only known from entries takes city and country from the first viewing that has each", () => {
+    const infos = buildVenueInfos(
+      [],
+      [
+        viewing({ uid: "a", venue: "Odeon" }),
+        viewing({ uid: "b", venue: "Odeon", city: "London" }),
+        viewing({ uid: "c", venue: "Odeon", city: "Leeds", country: "UK" }),
+      ],
+    );
+
+    expect(infos[0]).toMatchObject({ venue: "Odeon", count: 3, city: "London", country: "UK" });
+  });
+
   test("orders by count, most first, then by name", () => {
     const infos = buildVenueInfos(
       [{ name: "Zeta" }, { name: "Alpha" }],
@@ -91,8 +104,8 @@ describe("groupByLocation", () => {
 
   test("groups by country, then city, each sorted by name", () => {
     const { countries } = groupByLocation([
-      info("a", "Paris", "France"),
       info("b", "Amsterdam", "Netherlands"),
+      info("a", "Paris", "France"),
       info("c", "Lyon", "France"),
       info("d", "Amsterdam", "Netherlands"),
     ]);
@@ -131,7 +144,8 @@ describe("pinsFor", () => {
     const pins = pinsFor([
       { venue: "A B", count: 1, lat: 1, lon: 2 },
       { venue: "No coords", count: 1 },
-      { venue: "Half", count: 1, lat: 1 },
+      { venue: "Latitude only", count: 1, lat: 1 },
+      { venue: "Longitude only", count: 1, lon: 2 },
     ]);
 
     expect(pins).toEqual([{ lat: 1, lon: 2, label: "A B", href: "/venue?venue=A%20B" }]);
