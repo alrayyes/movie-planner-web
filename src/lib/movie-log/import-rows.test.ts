@@ -155,6 +155,32 @@ describe("parseJsonImport with the exported/round-trip format (the CLI's own sna
     });
   });
 
+  test("carries the venue's location, mapped from the CLI's own snake_case names", () => {
+    const rows = parseJsonImport(
+      JSON.stringify([
+        {
+          title: "Dune",
+          date: "2026-01-01",
+          medium: "cinema",
+          city: "Amsterdam",
+          country: "Netherlands",
+          street_address: "Kinkerstraat 1",
+          postal_code: "1053 AA",
+          latitude: 52.36,
+          longitude: 4.87,
+        },
+      ]),
+    );
+
+    expect(rows[0]?.row).toMatchObject({
+      city: "Amsterdam",
+      country: "Netherlands",
+      streetAddress: "Kinkerstraat 1",
+      postalCode: "1053 AA",
+      geo: { lat: 52.36, lon: 4.87 },
+    });
+  });
+
   test("a missing title still fails that row", () => {
     const rows = parseJsonImport(
       JSON.stringify([
