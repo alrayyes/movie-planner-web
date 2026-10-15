@@ -206,6 +206,18 @@ reading.
 
 <!-- screenshots:start -->
 
+### Connect a calendar
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/connect-dark.png">
+  <img
+    src="docs/screenshots/pages/connect-light.png"
+    alt="Connect a calendar"
+    width="640">
+</picture>
+
 ### Overview
 
 <picture>
@@ -218,15 +230,15 @@ reading.
     width="640">
 </picture>
 
-### Connect a calendar
+### Log a viewing wizard
 
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="docs/screenshots/pages/connect-dark.png">
+    srcset="docs/screenshots/pages/wizard-dark.png">
   <img
-    src="docs/screenshots/pages/connect-light.png"
-    alt="Connect a calendar"
+    src="docs/screenshots/pages/wizard-light.png"
+    alt="Log a viewing wizard"
     width="640">
 </picture>
 
@@ -242,39 +254,15 @@ reading.
     width="640">
 </picture>
 
-### Import
+### Movie details
 
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="docs/screenshots/pages/import-dark.png">
+    srcset="docs/screenshots/pages/movie-dark.png">
   <img
-    src="docs/screenshots/pages/import-light.png"
-    alt="Import"
-    width="640">
-</picture>
-
-### Settings
-
-<picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="docs/screenshots/pages/settings-dark.png">
-  <img
-    src="docs/screenshots/pages/settings-light.png"
-    alt="Settings"
-    width="640">
-</picture>
-
-### Activity
-
-<picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="docs/screenshots/pages/activity-dark.png">
-  <img
-    src="docs/screenshots/pages/activity-light.png"
-    alt="Activity"
+    src="docs/screenshots/pages/movie-light.png"
+    alt="Movie details"
     width="640">
 </picture>
 
@@ -290,15 +278,15 @@ reading.
     width="640">
 </picture>
 
-### Missing data
+### Activity
 
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="docs/screenshots/pages/missing-data-dark.png">
+    srcset="docs/screenshots/pages/activity-dark.png">
   <img
-    src="docs/screenshots/pages/missing-data-light.png"
-    alt="Missing data"
+    src="docs/screenshots/pages/activity-light.png"
+    alt="Activity"
     width="640">
 </picture>
 
@@ -566,15 +554,27 @@ reading.
     width="640">
 </picture>
 
-### Movie details
+### Missing data
 
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="docs/screenshots/pages/movie-dark.png">
+    srcset="docs/screenshots/pages/missing-data-dark.png">
   <img
-    src="docs/screenshots/pages/movie-light.png"
-    alt="Movie details"
+    src="docs/screenshots/pages/missing-data-light.png"
+    alt="Missing data"
+    width="640">
+</picture>
+
+### Import
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/import-dark.png">
+  <img
+    src="docs/screenshots/pages/import-light.png"
+    alt="Import"
     width="640">
 </picture>
 
@@ -587,6 +587,18 @@ reading.
   <img
     src="docs/screenshots/pages/shared-light.png"
     alt="Shared viewings"
+    width="640">
+</picture>
+
+### Settings
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="docs/screenshots/pages/settings-dark.png">
+  <img
+    src="docs/screenshots/pages/settings-light.png"
+    alt="Settings"
     width="640">
 </picture>
 

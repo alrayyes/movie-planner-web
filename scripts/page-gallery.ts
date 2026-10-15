@@ -34,6 +34,9 @@ export interface GalleryPage {
   route: string;
   // False for the first screen a visitor with no calendar connected sees.
   connected: boolean;
+  // The accessible name of a dialog to open from the page and photograph
+  // instead of the page itself.
+  dialog?: string;
   path: string | Resolve;
 }
 
@@ -64,21 +67,30 @@ function attributePages(): GalleryPage[] {
   });
 }
 
+// In the order a visitor meets them: connect, the overview, logging, the
+// per-title pages, the places and mediums, the attribute listings, then the
+// housekeeping pages.
 export const PAGES: GalleryPage[] = [
-  { slug: "overview", name: "Overview", route: "index", connected: true, path: "/" },
   { slug: "connect", name: "Connect a calendar", route: "index", connected: false, path: "/" },
-  { slug: "log", name: "Log a viewing", route: "log", connected: true, path: "/log" },
-  { slug: "import", name: "Import", route: "import", connected: true, path: "/import" },
-  { slug: "settings", name: "Settings", route: "settings", connected: true, path: "/settings" },
-  { slug: "activity", name: "Activity", route: "activity", connected: true, path: "/activity" },
-  { slug: "calendar", name: "Calendar", route: "calendar", connected: true, path: "/calendar" },
+  { slug: "overview", name: "Overview", route: "index", connected: true, path: "/" },
   {
-    slug: "missing-data",
-    name: "Missing data",
-    route: "missing-data",
+    slug: "wizard",
+    name: "Log a viewing wizard",
+    route: "index",
     connected: true,
-    path: "/missing-data",
+    dialog: "Log a viewing",
+    path: "/",
   },
+  { slug: "log", name: "Log a viewing", route: "log", connected: true, path: "/log" },
+  {
+    slug: "movie",
+    name: "Movie details",
+    route: "movie",
+    connected: true,
+    path: (viewings) => movieHref(first(viewings.map((v) => v.uid))),
+  },
+  { slug: "calendar", name: "Calendar", route: "calendar", connected: true, path: "/calendar" },
+  { slug: "activity", name: "Activity", route: "activity", connected: true, path: "/activity" },
   { slug: "venues", name: "Venues", route: "venues", connected: true, path: "/venues" },
   {
     slug: "venue",
@@ -97,12 +109,13 @@ export const PAGES: GalleryPage[] = [
   },
   ...attributePages(),
   {
-    slug: "movie",
-    name: "Movie details",
-    route: "movie",
+    slug: "missing-data",
+    name: "Missing data",
+    route: "missing-data",
     connected: true,
-    path: (viewings) => movieHref(first(viewings.map((v) => v.uid))),
+    path: "/missing-data",
   },
+  { slug: "import", name: "Import", route: "import", connected: true, path: "/import" },
   {
     slug: "shared",
     name: "Shared viewings",
@@ -113,6 +126,7 @@ export const PAGES: GalleryPage[] = [
       return `/shared?state=${await encodeSharedState(state)}`;
     },
   },
+  { slug: "settings", name: "Settings", route: "settings", connected: true, path: "/settings" },
 ];
 
 export async function pagePath(page: GalleryPage, viewings: LoggedViewing[]): Promise<string> {

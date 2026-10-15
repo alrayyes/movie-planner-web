@@ -32,7 +32,13 @@ for (const mode of ["light", "dark"] as const) {
       await expect(page.locator("#page-container")).toBeVisible();
       await page.waitForLoadState("networkidle");
       await page.evaluate(() => document.fonts.ready);
-      await page.locator("#page-container").screenshot({
+      let target = page.locator("#page-container");
+      if (entry.dialog) {
+        await page.getByRole("button", { name: entry.dialog }).click();
+        target = page.getByRole("dialog", { name: entry.dialog });
+        await expect(target.locator("#wizard-title")).toBeVisible();
+      }
+      await target.screenshot({
         path: `${OUT}/${entry.slug}-${mode}.png`,
         animations: "disabled",
       });
