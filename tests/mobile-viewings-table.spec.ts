@@ -69,11 +69,21 @@ const COUNT_LINES = `(el) => {
   return tops.size;
 }`;
 
-for (const width of [390, 320]) {
-  test.describe(`Viewings table at ${width}px`, () => {
-    test("the page and the table's own wrapper don't overflow sideways", async ({ page }) => {
-      await openViewings(page, width);
+// #914: the same page at each phone width is one journey: open it once, then
+// resize, rather than signing in again per width.
+const WIDTHS = [390, 320];
 
+async function atEachWidth(page: Page, check: (width: number) => Promise<void>) {
+  await openViewings(page, WIDTHS[0] as number);
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 800 });
+    await check(width);
+  }
+}
+
+test.describe("Viewings table at phone widths", () => {
+  test("the page and the table's own wrapper don't overflow sideways", async ({ page }) => {
+    await atEachWidth(page, async (width) => {
       const overflow = await page.evaluate(() => {
         const wrap = document.querySelector("table")?.parentElement as HTMLElement;
         return {
@@ -82,34 +92,34 @@ for (const width of [390, 320]) {
         };
       });
 
-      expect(overflow.page).toBeLessThanOrEqual(0);
-      expect(overflow.wrapper).toBeLessThanOrEqual(0);
+      expect(overflow.page, `page at ${width}px`).toBeLessThanOrEqual(0);
+      expect(overflow.wrapper, `table wrapper at ${width}px`).toBeLessThanOrEqual(0);
     });
+  });
 
-    test("edit and delete are fully on screen and at least 44x44", async ({ page }) => {
-      await openViewings(page, width);
-
+  test("edit and delete are fully on screen and at least 44x44", async ({ page }) => {
+    await atEachWidth(page, async (width) => {
       for (const name of [/^Edit Dune/, /^Delete Dune/]) {
         const box = await page
           .getByRole(name.source.startsWith("^Edit") ? "link" : "button", {
             name,
           })
           .boundingBox();
-        expect(box, String(name)).not.toBeNull();
+        expect(box, `${name} at ${width}px`).not.toBeNull();
         const { x, y, width: w, height: h } = box as NonNullable<typeof box>;
-        expect(x, `${name} left edge`).toBeGreaterThanOrEqual(0);
-        expect(x + w, `${name} right edge`).toBeLessThanOrEqual(width);
-        expect(w, `${name} width`).toBeGreaterThanOrEqual(44);
-        expect(h, `${name} height`).toBeGreaterThanOrEqual(44);
+        expect(x, `${name} left edge at ${width}px`).toBeGreaterThanOrEqual(0);
+        expect(x + w, `${name} right edge at ${width}px`).toBeLessThanOrEqual(width);
+        expect(w, `${name} width at ${width}px`).toBeGreaterThanOrEqual(44);
+        expect(h, `${name} height at ${width}px`).toBeGreaterThanOrEqual(44);
         expect(y).toBeGreaterThan(0);
       }
     });
+  });
 
-    // 390px is the ticket's width (#680): two lines. At 320px the title column
-    // is only about 80px wide, so a whole-minute date still wraps to three.
-    test("a viewing's date wraps over few lines", async ({ page }) => {
-      await openViewings(page, width);
-
+  // 390px is the ticket's width (#680): two lines. At 320px the title column
+  // is only about 80px wide, so a whole-minute date still wraps to three.
+  test("a viewing's date wraps over few lines", async ({ page }) => {
+    await atEachWidth(page, async (width) => {
       const dates = page
         .locator("tbody tr")
         .first()
@@ -118,12 +128,12 @@ for (const width of [390, 320]) {
       const lines = await dates
         .first()
         .evaluate(new Function(`return (${COUNT_LINES})(arguments[0])`) as never);
-      expect(lines).toBeLessThanOrEqual(width === 390 ? 2 : 3);
+      expect(lines, `date lines at ${width}px`).toBeLessThanOrEqual(width === 390 ? 2 : 3);
     });
+  });
 
-    test("the site name and the Log button each fit on one line", async ({ page }) => {
-      await openViewings(page, width);
-
+  test("the site name and the Log button each fit on one line", async ({ page }) => {
+    await atEachWidth(page, async (width) => {
       const logo = page.locator("header a").first();
       const log = page.getByRole("button", { name: "Log a viewing" });
       const logoLines = await logo.evaluate(
@@ -132,17 +142,17 @@ for (const width of [390, 320]) {
       const logLines = await log.evaluate(
         new Function(`return (${COUNT_LINES})(arguments[0])`) as never,
       );
-      expect(logoLines, "site name").toBe(1);
-      expect(logLines, "Log a viewing").toBe(1);
+      expect(logoLines, `site name at ${width}px`).toBe(1);
+      expect(logLines, `Log a viewing at ${width}px`).toBe(1);
     });
+  });
 
-    test("introduces no accessibility violations", async ({ page }) => {
-      await openViewings(page, width);
-
+  test("introduces no accessibility violations", async ({ page }) => {
+    await atEachWidth(page, async () => {
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();
       expect(results.violations).toEqual([]);
     });
   });
-}
+});
