@@ -78,6 +78,14 @@ pull request title lint and `secrets` is the `gitleaks` scan. Both live in their
 own workflows, which `ci-status` can't wait on, so they stay required beside
 it.
 
+The `audit` job runs `alrayyes/advisory-scan` in gate mode on pull requests: it
+audits the base and the head and fails only on advisories the pull request
+adds, so a new advisory never turns an unrelated pull request red. Everything
+already on `main` lives in one open `Dependency advisories` ticket, which the
+`advisory-scan` workflow keeps current daily, on lock file pushes, and on demand
+(`gh workflow run advisory-scan.yml`). Nothing is ignored: an advisory with no
+patched release stays in that ticket until one ships.
+
 ## Mutation testing
 
 Stryker mutates `src/lib` and checks that a test fails for each change. A
