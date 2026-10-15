@@ -9,7 +9,12 @@ import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 import { BUTTON_SECONDARY, STATUS_TEXT, TABLE_WRAP } from "../lib/ui/classes";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { formatTime } from "../lib/ui/datetime";
-import { buildYearGrids, groupViewingsByLocalDay } from "../lib/ui/heatmap";
+import {
+	buildYearGrids,
+	groupViewingsByLocalDay,
+	isWeekendRow,
+	WEEKDAY_ROW_LABELS,
+} from "../lib/ui/heatmap";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { venueDisplay } from "../lib/venue/display";
 import ConnectLink from "./ConnectLink.svelte";
@@ -89,30 +94,19 @@ function monthHref(monthKey: string): string {
 	return `/?from=${monthKey}-01&to=${monthKey}-${lastDay}`;
 }
 
-// A small fixed set of buckets, not a continuous gradient — easier to
-// keep distinguishable in both light and dark mode (design.md).
-// #230: an empty cell's own dark shade must never equal Layout.astro's
-// card background (dark:bg-slate-800) — it did, making every empty
-// cell on the page (the whole grid, on a fresh account with nothing
-// logged yet) genuinely invisible rather than just unshaded.
+// A cinema-goer rarely sees two films in a day and most days are empty, so
+// the data is binary: went, or didn't. One mark colour says so; the count
+// lives in the cell's label and the day's popup. An empty cell's own dark
+// shade must never equal Layout.astro's card background (dark:bg-slate-800,
+// #230). Weekend rows get a slightly darker empty shade so Saturday and
+// Sunday read apart from the weekdays without a label.
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-function shadeClass(count: number): string {
-	if (count === 0) return "bg-slate-100 dark:bg-slate-700";
-	if (count === 1) return "bg-indigo-200 dark:bg-indigo-900";
-	if (count <= 3) return "bg-indigo-400 dark:bg-indigo-600";
-	return "bg-indigo-600 dark:bg-indigo-400";
+function cellClass(count: number, dayOfWeek: number): string {
+	if (count > 0) return "bg-indigo-500 dark:bg-indigo-400";
+	return isWeekendRow(dayOfWeek)
+		? "bg-slate-200 dark:bg-slate-600"
+		: "bg-slate-100 dark:bg-slate-700";
 }
-
-// #681: the "Less … More" legend's swatches are built from shadeClass
-// itself (one representative count per bucket), so they can never drift
-// from the colours the real cells use.
-// biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
-const LEGEND_STEPS = [
-	{ bucket: "0", count: 0, title: "No viewings" },
-	{ bucket: "1", count: 1, title: "1 viewing" },
-	{ bucket: "2-3", count: 2, title: "2 to 3 viewings" },
-	{ bucket: "4+", count: 4, title: "4 or more viewings" },
-];
 
 // biome-ignore lint/correctness/noUnusedVariables: read in the template below, which Biome does not parse for .svelte files
 function cellLabel(day: string, count: number): string {
@@ -270,13 +264,21 @@ reloadOnBfcacheRestore(() => void load());
       <div class={TABLE_WRAP}>
         <div
           class="grid w-max auto-rows-min gap-1 p-2"
-          style={`grid-template-columns: repeat(${yearGrid.weeks.length}, 0.75rem); grid-template-rows: 1rem repeat(7, 0.75rem);`}
+          style={`grid-template-columns: 1.75rem repeat(${yearGrid.weeks.length}, 0.75rem); grid-template-rows: 1rem repeat(7, 0.75rem);`}
         >
+          {#each WEEKDAY_ROW_LABELS as weekday, dayOfWeek (weekday)}
+            <span
+              class="text-[10px] leading-3 text-slate-500 dark:text-slate-400"
+              style={`grid-column: 1; grid-row: ${dayOfWeek + 2};`}
+            >
+              {weekday}
+            </span>
+          {/each}
           {#each yearGrid.monthLabels as monthLabel (monthLabel.monthKey)}
             <a
               href={monthHref(monthLabel.monthKey)}
               class="text-xs text-slate-500 hover:underline dark:text-slate-400"
-              style={`grid-column: ${monthLabel.weekIndex + 1}; grid-row: 1;`}
+              style={`grid-column: ${monthLabel.weekIndex + 2}; grid-row: 1;`}
             >
               {monthLabel.label}
             </a>
@@ -289,13 +291,13 @@ reloadOnBfcacheRestore(() => void load());
                 keep the grid rectangular, not a real day. -->
                 <span
                   aria-hidden="true"
-                  style={`grid-column: ${weekIndex + 1}; grid-row: ${dayOfWeek + 2};`}
+                  style={`grid-column: ${weekIndex + 2}; grid-row: ${dayOfWeek + 2};`}
                 ></span>
               {:else if day.count > 0}
                 <button
                   type="button"
-                  class={`h-3 w-3 rounded-sm ${shadeClass(day.count)} hover:ring-2 hover:ring-indigo-500`}
-                  style={`grid-column: ${weekIndex + 1}; grid-row: ${dayOfWeek + 2};`}
+                  class={`h-3 w-3 rounded-sm ${cellClass(day.count, dayOfWeek)} hover:ring-2 hover:ring-indigo-500`}
+                  style={`grid-column: ${weekIndex + 2}; grid-row: ${dayOfWeek + 2};`}
                   aria-label={cellLabel(day.date, day.count)}
                   title={cellLabel(day.date, day.count)}
                   onclick={(event) => openDay(day.date, event)}
@@ -307,8 +309,8 @@ reloadOnBfcacheRestore(() => void load());
               {:else}
                 <span
                   role="img"
-                  class={`h-3 w-3 rounded-sm ${shadeClass(day.count)}`}
-                  style={`grid-column: ${weekIndex + 1}; grid-row: ${dayOfWeek + 2};`}
+                  class={`h-3 w-3 rounded-sm ${cellClass(day.count, dayOfWeek)}`}
+                  style={`grid-column: ${weekIndex + 2}; grid-row: ${dayOfWeek + 2};`}
                   aria-label={cellLabel(day.date, day.count)}
                   title={cellLabel(day.date, day.count)}
                 ></span>
@@ -319,27 +321,6 @@ reloadOnBfcacheRestore(() => void load());
       </div>
     </div>
   {/each}
-  {#if yearGrids.length > 0}
-    <!-- #681: a decorative colour-to-count key. Each real cell already
-    carries its own aria-label with date and count, so the swatches are
-    aria-hidden — a screen reader gains nothing from them. -->
-    <div
-      role="group"
-      aria-label="Viewings per day"
-      class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400"
-    >
-      <span>Less</span>
-      {#each LEGEND_STEPS as step (step.bucket)}
-        <span
-          data-legend-swatch={step.bucket}
-          title={step.title}
-          aria-hidden="true"
-          class={`h-3 w-3 rounded-sm ${shadeClass(step.count)}`}
-        ></span>
-      {/each}
-      <span>More</span>
-    </div>
-  {/if}
 </div>
 
 <!-- Same native <dialog> pattern as <keyboard-nav>'s own help overlay —
