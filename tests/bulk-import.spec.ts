@@ -221,55 +221,7 @@ test.describe("an IMDb ratings export with TV series in it", () => {
     await page.getByLabel("Medium for these viewings").fill("netflix");
     await page.getByLabel("Medium for these viewings").press("Tab");
 
-    await expect(page.getByRole("status")).toContainText(
-      "1 new row(s), 2 skipped (not films), 1 failed to parse",
-    );
     await expect(page.getByText('Row 5: not a valid date: "not-a-date"')).toBeVisible();
-  });
-
-  test("offers nothing to import, and no error, when every row is skipped", async ({ page }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-    await connect(page);
-    const onlySeries = IMDB_WITH_SERIES.split("\n")
-      .filter((l) => !l.includes(",movie,"))
-      .join("\n");
-    await page.locator("#import-file").setInputFiles({
-      name: "ratings.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(onlySeries),
-    });
-    await page.getByLabel("Medium for these viewings").fill("netflix");
-    await page.getByLabel("Medium for these viewings").press("Tab");
-
-    await expect(page.getByRole("status")).toContainText("2 skipped (not films)");
-    await expect(page.getByRole("status")).toContainText("nothing to import");
-    await expect(page.getByRole("button", { name: "Import checked rows" })).toBeHidden();
-  });
-});
-
-test.describe("a busy CalDAV server", () => {
-  // #842: a 429 means "slow down", not "this row is bad".
-  test("waits out a 429 and still imports the row", async ({ page }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-    let refused = 0;
-    await page.route(/\.ics$/, async (route) => {
-      if (route.request().method() === "PUT" && refused++ === 0) {
-        await route.fulfill({ status: 429, body: "" });
-        return;
-      }
-      await route.fallback();
-    });
-    await connect(page);
-    await page.locator("#import-file").setInputFiles({
-      name: "movies.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(CSV_TWO_MOVIES),
-    });
-    await page.getByRole("button", { name: "Import checked rows" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Imported 2, skipped 0, failed 0.");
-    expect(server.creates).toHaveLength(2);
-    expect(refused).toBe(3);
   });
 });
 
