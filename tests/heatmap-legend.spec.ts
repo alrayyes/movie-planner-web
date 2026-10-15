@@ -2,8 +2,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { mockCaldavServer } from "./support/mock-caldav";
 
-// #681: the calendar heatmap had no legend, so a pale or dark square had no
-// stated meaning. Measured first: the grid's width was not the problem. A full
+// #681 gave the heatmap a legend; #911 took it out again, because the data is
+// binary. #681 also measured that the grid's width was not the problem: a full
 // year already spans 83% of the card at 1280px and only an unfinished current
 // year is shorter, so sizing is left alone and guarded below.
 
@@ -51,34 +51,59 @@ async function openCalendar(page: Page) {
 
 const background = (el: Element) => getComputedStyle(el).backgroundColor;
 
-test.describe("calendar heatmap legend", () => {
-  test("a Less to More legend with four swatches is shown below the grids", async ({ page }) => {
+test.describe("calendar heatmap, binary marks and weekdays", () => {
+  test("has no intensity legend, since a day is either went or not", async ({ page }) => {
     await openCalendar(page);
 
-    const legend = page.getByRole("group", { name: /viewings per day/i });
-    await expect(legend).toBeVisible();
-    await expect(legend).toContainText("Less");
-    await expect(legend).toContainText("More");
-    await expect(legend.locator("[data-legend-swatch]")).toHaveCount(4);
+    await expect(page.getByRole("group", { name: /viewings per day/i })).toHaveCount(0);
+    await expect(page.locator("[data-legend-swatch]")).toHaveCount(0);
   });
 
-  test("each swatch is the colour of a real cell with that many viewings", async ({ page }) => {
+  test("a day with one viewing and a day with four share one colour", async ({ page }) => {
     await openCalendar(page);
 
-    const cases: [string, string][] = [
-      ["0", "2025-02-11: 0 viewings"],
-      ["1", "2025-02-10: 1 viewing"],
-      ["2-3", "2025-06-12: 2 viewings"],
-      ["4+", "2025-11-20: 4 viewings"],
-    ];
-    for (const [bucket, cellLabel] of cases) {
-      const swatch = await page.locator(`[data-legend-swatch="${bucket}"]`).evaluate(background);
-      const cell = await page.getByLabel(cellLabel, { exact: true }).first().evaluate(background);
-      expect(swatch, `legend swatch ${bucket} against cell "${cellLabel}"`).toBe(cell);
+    const one = await page
+      .getByLabel("2025-02-10: 1 viewing", { exact: true })
+      .evaluate(background);
+    const four = await page
+      .getByLabel("2025-11-20: 4 viewings", { exact: true })
+      .evaluate(background);
+    const empty = await page
+      .getByLabel("2025-02-11: 0 viewings", { exact: true })
+      .evaluate(background);
+
+    expect(four).toBe(one);
+    expect(one).not.toBe(empty);
+  });
+
+  test("the rows are labelled with weekday names", async ({ page }) => {
+    await openCalendar(page);
+
+    const section = page.getByRole("heading", { name: "2025" }).locator("xpath=ancestor::div[1]");
+    for (const weekday of ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) {
+      await expect(section.getByText(weekday, { exact: true })).toBeVisible();
     }
   });
 
-  test("the legend has no accessibility violations", async ({ page }) => {
+  test("an empty weekend cell is shaded apart from an empty weekday cell", async ({ page }) => {
+    await openCalendar(page);
+
+    // 2025-02-11 is a Tuesday, 2025-02-15 a Saturday, 2025-02-16 a Sunday.
+    const weekday = await page
+      .getByLabel("2025-02-11: 0 viewings", { exact: true })
+      .evaluate(background);
+    const saturday = await page
+      .getByLabel("2025-02-15: 0 viewings", { exact: true })
+      .evaluate(background);
+    const sunday = await page
+      .getByLabel("2025-02-16: 0 viewings", { exact: true })
+      .evaluate(background);
+
+    expect(saturday).not.toBe(weekday);
+    expect(sunday).toBe(saturday);
+  });
+
+  test("the page has no accessibility violations", async ({ page }) => {
     await openCalendar(page);
 
     const results = await new AxeBuilder({ page })

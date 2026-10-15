@@ -93,7 +93,7 @@ test.describe("viewing heatmap", () => {
     await expect(page.locator("tbody tr")).toHaveCount(1);
   });
 
-  test("shades a day cell by its own viewing count, distinguishable from an empty day", async ({
+  test("marks every day with viewings alike, whatever the count, and apart from an empty day", async ({
     page,
   }) => {
     const dayWithOne = atNoon(daysAgo(10));
@@ -127,8 +127,13 @@ test.describe("viewing heatmap", () => {
 
     const oneClass = await oneCell.getAttribute("class");
     const threeClass = await threeCell.getAttribute("class");
-    // Different bucket, different shade — not visually identical.
-    expect(oneClass).not.toBe(threeClass);
+    // Went or didn't (#911): one viewing and three look the same.
+    expect(oneClass).toBe(threeClass);
+    const emptyDay = toDateInputValue(atNoon(daysAgo(7)));
+    const emptyClass = await page
+      .getByLabel(`${emptyDay}: 0 viewings`, { exact: true })
+      .getAttribute("class");
+    expect(emptyClass).not.toBe(oneClass);
   });
 
   test("a day cell's accessible name states its date and real count, not shade alone", async ({

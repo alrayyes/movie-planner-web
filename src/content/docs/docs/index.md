@@ -23,7 +23,7 @@ optional OMDb key) and the developer setup.
 - **[The calendar overview](/docs/overview/)** — filtering, sorting, and
   the actions available on each row.
 - **[The viewing heatmap](/docs/heatmap/)** — a GitHub-contribution-style
-  view of your own viewing density.
+  view of the days you went.
 - **[Venues](/docs/venues/)** — every venue you've logged a viewing at,
   with a count and a map grouped by city.
 - **[Import and export](/docs/import-export/)** — moving your watch
