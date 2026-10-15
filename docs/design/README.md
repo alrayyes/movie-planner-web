@@ -19,6 +19,28 @@ each ticket say what must be true.
 | `stitch-viewings-table.png`   | Row density, time format, medium badge |
 | `stitch-activity-heatmap.png` | The heatmap's legend, fills the card   |
 
+## Calendar screens
+
+Two more screens from the same project, for the calendar tickets #911, #912
+and #913.
+
+- Desktop: "Movie Planner - Calendar (Weekday Focus & Habits)"
+  (`screens/afc36a1c478c406393ce788e48e8a83d`)
+- Mobile: "Movie Planner - Calendar Mobile (Agenda & Weekday Punch Card)"
+  (`screens/1f7dbb93948d4a9b8adf2e5e1d3c0afb`)
+
+| File                          | Used for                               |
+| ----------------------------- | -------------------------------------- |
+| `stitch-calendar-desktop.png` | The whole desktop screen               |
+| `stitch-calendar-grid.png`    | Weekday header and weekend tint (#911) |
+| `stitch-calendar-habits.png`  | The weekday habits card (#912)         |
+| `stitch-calendar-mobile.png`  | The agenda on a phone (#913)           |
+
+Not part of this design: the month grid itself (ours is a year heatmap), the
+"Immediate Screenings" and "CalDAV Calendars" cards, the format highlight, the
+Month/Week/Stats tabs, and the editorial tags "Peak Night", "Cheap ticket
+night" and "Late revival", which the app can't know.
+
 ## Not part of the design
 
 Stitch added things this app doesn't have. Ignore the "Overview Stats" card,
