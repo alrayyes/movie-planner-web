@@ -22,18 +22,15 @@ async function connect(page: Page) {
   await expect(page.getByRole("link", { name: "Viewings" })).toBeVisible();
 }
 
-// #450/#535: director/actor/genre/movie-country/movie-language/rated/
-// keyword all share the exact same listing+detail page shape
-// (AttributeOverview.svelte/AttributeDetail.svelte), so their own
-// coverage is one parametrized loop over this config — matching the
-// source's own "one generalized pattern, not near-duplicate
-// implementations" design — rather than seven near-identical spec
-// files. `field` is the raw LoggedViewing property a fixture sets
-// (`actors`, not `actor`); `paramName` is the query-string key both a
-// chip link and this page's own URL agree on. Released year/month are
-// NOT in this loop — see the "Released year/month pages" describe below
-// — since neither is a raw LoggedViewing field a fixture can just set
-// directly; both are computed from `released` via parseReleasedDate.
+// #450/#535/#914: director, actor, genre, movie-country, movie-language, rated
+// and keyword all share the exact same listing+detail page shape
+// (AttributeOverview.svelte/AttributeDetail.svelte), so one journey over one
+// kind proves the rendering. What differs per kind lives lower down:
+// attributes.test.ts checks how each kind reads its field and builds its link,
+// and pages.test.ts checks each page passes its own `kind`. `field` is the raw
+// LoggedViewing property a fixture sets; `paramName` is the query-string key a
+// chip link and this page's own URL agree on. Released year/month have their
+// own describe below, since both are computed from `released`.
 const ATTRIBUTE_KINDS = [
   {
     field: "director",
@@ -41,55 +38,6 @@ const ATTRIBUTE_KINDS = [
     listingPath: "/directors",
     detailPath: "/director",
     plural: "Directors",
-  },
-  {
-    field: "actors",
-    paramName: "actor",
-    listingPath: "/actors",
-    detailPath: "/actor",
-    plural: "Actors",
-  },
-  {
-    field: "genre",
-    paramName: "genre",
-    listingPath: "/genres",
-    detailPath: "/genre",
-    plural: "Genres",
-  },
-  {
-    field: "movieCountry",
-    paramName: "movieCountry",
-    listingPath: "/movie-countries",
-    detailPath: "/movie-country",
-    plural: "Movie countries",
-  },
-  {
-    field: "movieLanguage",
-    paramName: "movieLanguage",
-    listingPath: "/movie-languages",
-    detailPath: "/movie-language",
-    plural: "Movie languages",
-  },
-  // #535: single-valued (never comma-separated), but splitMultiValue
-  // already returns a comma-free string as its own single-element
-  // array, so this fits the loop with no special-casing — the listing
-  // path deliberately isn't "/ratings" (it's the field's own name,
-  // matching MovieDetails.svelte's "Rated" label), and the detail path
-  // ("/rating") deliberately differs from it — see attributes.ts's own
-  // comment on the `rated` config entry.
-  {
-    field: "rated",
-    paramName: "rated",
-    listingPath: "/rated",
-    detailPath: "/rating",
-    plural: "Ratings",
-  },
-  {
-    field: "keywords",
-    paramName: "keyword",
-    listingPath: "/keywords",
-    detailPath: "/keyword",
-    plural: "Keywords",
   },
 ] as const;
 
@@ -223,53 +171,12 @@ for (const { field, paramName, listingPath, detailPath, plural } of ATTRIBUTE_KI
   });
 }
 
-// #535: rated and keyword reuse the exact same components as the
-// original five #450 kinds, but get their own explicit a11y coverage
-// per this repo's a11y convention rather than leaning on the shared
-// behaviour block's director-only scan below to stand in for every kind.
-test.describe("rated and keyword pages accessibility", () => {
-  test("introduces no accessibility violations on either the listing or a per-value page", async ({
-    page,
-  }) => {
-    mockCaldavServer(page, CREDENTIALS["caldav-url"], [
-      {
-        uid: "dune-uid",
-        title: "Dune",
-        start: ONE_MONTH_AGO.toISOString(),
-        end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
-        medium: "cinema",
-        rated: "PG-13",
-        keywords: "desert, prophecy",
-      },
-    ]);
-    await connect(page);
-
-    await page.goto("/rated");
-    await expect(page.getByRole("heading", { name: "Ratings" })).toBeVisible();
-    let results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-
-    await page.goto(`/rating?rated=${encodeURIComponent("PG-13")}`);
-    await expect(page.getByRole("heading", { name: "PG-13" })).toBeVisible();
-    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-
-    await page.goto("/keywords");
-    await expect(page.getByRole("heading", { name: "Keywords" })).toBeVisible();
-    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-
-    await page.goto(`/keyword?keyword=${encodeURIComponent("desert")}`);
-    await expect(page.getByRole("heading", { name: "desert" })).toBeVisible();
-    results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-  });
-});
-
 // #535: released year/month aren't raw LoggedViewing fields a fixture
-// can just set (unlike every kind in ATTRIBUTE_KINDS above) — both are
+// can just set (unlike the kind in ATTRIBUTE_KINDS above) — both are
 // computed from `released` via parseReleasedDate, so a fixture sets
-// `released` and this asserts against the year/month it parses to.
+// `released` and this asserts against the year it parses to. The month page
+// is the same components over a different parse, covered by attributes.test.ts
+// and pages.test.ts (#914).
 const RELEASED_KINDS = [
   {
     paramName: "releasedYear",
@@ -280,16 +187,6 @@ const RELEASED_KINDS = [
     valueA: "2021",
     releasedB: "05 May 2020",
     valueB: "2020",
-  },
-  {
-    paramName: "releasedMonth",
-    listingPath: "/released-months",
-    detailPath: "/released-month",
-    plural: "Released months",
-    releasedA: "22 Oct 2021",
-    valueA: "2021-10",
-    releasedB: "05 May 2020",
-    valueB: "2020-05",
   },
 ] as const;
 
