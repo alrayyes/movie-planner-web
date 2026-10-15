@@ -197,7 +197,8 @@ works the same way.
 ## Screenshots
 
 Every page except the four the footer links to (About, Disclaimer, Privacy,
-and the changelog). Each comes in light and dark. They're drawn from demo
+and the changelog), plus the log-a-viewing wizard, which is a dialog. Each
+comes in light and dark. They're drawn from demo
 data and regenerated for each release, so they match the version you're
 reading.
 
