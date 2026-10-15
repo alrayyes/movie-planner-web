@@ -524,6 +524,7 @@ test.describe("error toasts", () => {
     await page.locator("#log-title").fill("Paddington");
     await page.locator("#log-date").fill("2026-02-01");
     await page.locator("#log-medium").selectOption("Cinema");
+    await page.clock.install();
     await page.getByRole("button", { name: "Log viewing" }).click();
 
     const toast = page.getByRole("alert");
@@ -531,7 +532,9 @@ test.describe("error toasts", () => {
     await expect(toast).toContainText(/the CalDAV server responded 500/);
     await expect(page.getByRole("status")).not.toHaveText("Logged.");
 
-    await page.waitForTimeout(1000);
+    // No auto-dismiss timer — still visible after any short
+    // success-confirmation-style delay would have cleared it.
+    await page.clock.fastForward(1000);
     await expect(toast).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
