@@ -255,21 +255,26 @@ reloadOnBfcacheRestore(() => void load());
       <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
         <a href={yearHref(yearGrid.year)} class="hover:underline">{yearGrid.year}</a>
       </h2>
-      <!-- #536: one continuous grid per year — weeks as columns
-      (`grid-template-columns`, one track per week), Sunday-to-Saturday
-      as rows (row 1 reserved for month labels, rows 2-8 for the days),
-      each cell placed by explicit grid-column/grid-row rather than
-      document order, so month labels and their columns share exactly
-      the same track sizing GitHub's own graph relies on. -->
+      <!-- #536: one continuous grid per year — weeks as columns, Sunday-to-Saturday
+      as rows (row 1 reserved for month labels, rows 2-8 for the days), each cell
+      placed by explicit grid-column/grid-row rather than document order, so month
+      labels and their columns share exactly the same track sizing GitHub's own
+      graph relies on.
+
+      #918: 53 weekly columns can't fit a phone, so below the sm breakpoint the grid
+      turns on its side — one row per week, the weekdays across the top, month
+      labels down the left. Every element carries its position on each axis as a
+      custom property (--w the week, --d the weekday, both already offset past the
+      label track) and the classes below swap which axis is the column. -->
       <div class={TABLE_WRAP}>
         <div
-          class="grid w-max auto-rows-min gap-1 p-2"
-          style={`grid-template-columns: 1.75rem repeat(${yearGrid.weeks.length}, 0.75rem); grid-template-rows: 1rem repeat(7, 0.75rem);`}
+          class="grid w-max auto-rows-min gap-1 p-2 [grid-template-columns:1.75rem_repeat(var(--weeks),0.75rem)] [grid-template-rows:1rem_repeat(7,0.75rem)] max-sm:[grid-template-columns:2.25rem_repeat(7,1.25rem)] max-sm:[grid-template-rows:1rem_repeat(var(--weeks),1.25rem)]"
+          style={`--weeks: ${yearGrid.weeks.length};`}
         >
           {#each WEEKDAY_ROW_LABELS as weekday, dayOfWeek (weekday)}
             <span
-              class="text-[10px] leading-3 text-slate-500 dark:text-slate-400"
-              style={`grid-column: 1; grid-row: ${dayOfWeek + 2};`}
+              class="text-[10px] leading-3 text-slate-500 dark:text-slate-400 [grid-column:1] [grid-row:var(--d)] max-sm:[grid-column:var(--d)] max-sm:[grid-row:1] max-sm:text-center"
+              style={`--d: ${dayOfWeek + 2};`}
             >
               {weekday}
             </span>
@@ -277,8 +282,8 @@ reloadOnBfcacheRestore(() => void load());
           {#each yearGrid.monthLabels as monthLabel (monthLabel.monthKey)}
             <a
               href={monthHref(monthLabel.monthKey)}
-              class="text-xs text-slate-500 hover:underline dark:text-slate-400"
-              style={`grid-column: ${monthLabel.weekIndex + 2}; grid-row: 1;`}
+              class="text-xs text-slate-500 hover:underline dark:text-slate-400 [grid-column:var(--w)] [grid-row:1] max-sm:[grid-column:1] max-sm:[grid-row:var(--w)]"
+              style={`--w: ${monthLabel.weekIndex + 2};`}
             >
               {monthLabel.label}
             </a>
@@ -291,13 +296,14 @@ reloadOnBfcacheRestore(() => void load());
                 keep the grid rectangular, not a real day. -->
                 <span
                   aria-hidden="true"
-                  style={`grid-column: ${weekIndex + 2}; grid-row: ${dayOfWeek + 2};`}
+                  class="[grid-column:var(--w)] [grid-row:var(--d)] max-sm:[grid-column:var(--d)] max-sm:[grid-row:var(--w)]"
+                  style={`--w: ${weekIndex + 2}; --d: ${dayOfWeek + 2};`}
                 ></span>
               {:else if day.count > 0}
                 <button
                   type="button"
-                  class={`h-3 w-3 rounded-sm ${cellClass(day.count, dayOfWeek)} hover:ring-2 hover:ring-indigo-500`}
-                  style={`grid-column: ${weekIndex + 2}; grid-row: ${dayOfWeek + 2};`}
+                  class={`h-3 w-3 max-sm:h-5 max-sm:w-5 rounded-sm ${cellClass(day.count, dayOfWeek)} hover:ring-2 hover:ring-indigo-500 [grid-column:var(--w)] [grid-row:var(--d)] max-sm:[grid-column:var(--d)] max-sm:[grid-row:var(--w)]`}
+                  style={`--w: ${weekIndex + 2}; --d: ${dayOfWeek + 2};`}
                   aria-label={cellLabel(day.date, day.count)}
                   title={cellLabel(day.date, day.count)}
                   onclick={(event) => openDay(day.date, event)}
@@ -309,8 +315,8 @@ reloadOnBfcacheRestore(() => void load());
               {:else}
                 <span
                   role="img"
-                  class={`h-3 w-3 rounded-sm ${cellClass(day.count, dayOfWeek)}`}
-                  style={`grid-column: ${weekIndex + 2}; grid-row: ${dayOfWeek + 2};`}
+                  class={`h-3 w-3 max-sm:h-5 max-sm:w-5 rounded-sm ${cellClass(day.count, dayOfWeek)} [grid-column:var(--w)] [grid-row:var(--d)] max-sm:[grid-column:var(--d)] max-sm:[grid-row:var(--w)]`}
+                  style={`--w: ${weekIndex + 2}; --d: ${dayOfWeek + 2};`}
                   aria-label={cellLabel(day.date, day.count)}
                   title={cellLabel(day.date, day.count)}
                 ></span>
