@@ -733,6 +733,8 @@ test.describe("calendar overview", () => {
       venues: ["Regal Union Square"],
     });
     await connect(page);
+    // The choices arrive with the picklist, a moment after the table.
+    await expect(page.locator("#overview-venue-choices option")).toHaveCount(2);
 
     const venueOptions = await page
       .locator("#overview-venue-choices option")

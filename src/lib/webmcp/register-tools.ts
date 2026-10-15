@@ -1,10 +1,4 @@
 import { loadEnabledCredentials } from "./credentials-guard";
-import { registerDeleteViewingTool } from "./tools/delete-viewing-tool";
-import { registerEditViewingTool } from "./tools/edit-viewing-tool";
-import { registerExportViewingsTool } from "./tools/export-viewings-tool";
-import { registerImportViewingsTool } from "./tools/import-viewings-tool";
-import { registerLogViewingTool } from "./tools/log-viewing-tool";
-import { registerSearchViewingsTool } from "./tools/search-viewings-tool";
 
 // #667: called once, site-wide, from Layout.astro — mirrors
 // registerServiceWorker()'s own "runs on every page, deferred, no-op
@@ -24,10 +18,21 @@ export async function registerWebMcpTools(): Promise<void> {
   const credentials = await loadEnabledCredentials();
   if (!credentials) return;
 
-  registerLogViewingTool();
-  registerEditViewingTool();
-  registerDeleteViewingTool();
-  registerSearchViewingsTool();
-  registerExportViewingsTool();
-  registerImportViewingsTool();
+  // #932: the tools pull in the CalDAV client, the import code and the export
+  // code, so they load only once a visitor has opted in. This runs on every
+  // page, and most visitors never opt in.
+  const [log, edit, remove, search, exportTool, importTool] = await Promise.all([
+    import("./tools/log-viewing-tool"),
+    import("./tools/edit-viewing-tool"),
+    import("./tools/delete-viewing-tool"),
+    import("./tools/search-viewings-tool"),
+    import("./tools/export-viewings-tool"),
+    import("./tools/import-viewings-tool"),
+  ]);
+  log.registerLogViewingTool();
+  edit.registerEditViewingTool();
+  remove.registerDeleteViewingTool();
+  search.registerSearchViewingsTool();
+  exportTool.registerExportViewingsTool();
+  importTool.registerImportViewingsTool();
 }
