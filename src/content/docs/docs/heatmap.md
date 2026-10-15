@@ -11,6 +11,10 @@ watched something is filled; every other day is empty, however many
 films you saw. The Saturday and Sunday rows are a shade darker when
 empty, so the weekend stands out. Hover or focus a day to see its count.
 
+On a phone the grid turns on its side so it fits the screen without
+sideways scrolling: one row per week, the weekdays across the top and the
+month labels down the left.
+
 Click a filled day to see what you watched, in a popup listing each
 viewing's title, showtime, medium, venue, and (when known) director,
 genre, and IMDb rating — each title links straight to its own details
