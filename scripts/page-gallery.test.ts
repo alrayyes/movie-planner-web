@@ -85,3 +85,11 @@ test("a detail page carries a value from the data", async () => {
     "/director?director=Denis%20Villeneuve",
   );
 });
+
+test("the gallery opens with connecting and the overview, and has the wizard", () => {
+  const slugs = PAGES.map((page) => page.slug);
+
+  expect(slugs.slice(0, 2)).toEqual(["connect", "overview"]);
+  expect(PAGES.find((page) => page.slug === "wizard")?.dialog).toBe("Log a viewing");
+  expect(slugs.at(-1)).toBe("settings");
+});
