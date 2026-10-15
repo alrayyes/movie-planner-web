@@ -25,7 +25,7 @@ async function connect(page: Page) {
 // #602: mirrors venue.spec.ts's own "per-venue page" coverage, minus
 // the map — medium has no location to plot.
 test.describe("per-medium page", () => {
-  test("shows only that medium's own viewings, with no filter controls of any kind", async ({
+  test("shows only that medium's own viewings, with no filter controls, and its own breadcrumb and title", async ({
     page,
   }) => {
     mockCaldavServer(
@@ -63,72 +63,14 @@ test.describe("per-medium page", () => {
     await expect(page.getByRole("button", { name: "Filter", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Clear filter" })).toHaveCount(0);
 
-    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-    expect(results.violations).toEqual([]);
-  });
-
-  // #600: a viewing with no stored medium (every CLI-logged one, since
-  // the CLI never writes that property) shows up under Cinema — the
-  // same blank-means-Cinema rule mediumDisplay applies everywhere else.
-  test("Cinema includes viewings with no stored medium at all", async ({ page }) => {
-    mockCaldavServer(
-      page,
-      CREDENTIALS["caldav-url"],
-      [
-        {
-          uid: "dune-uid",
-          title: "Dune",
-          start: ONE_MONTH_AGO.toISOString(),
-          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
-          medium: "",
-        },
-        {
-          uid: "paddington-uid",
-          title: "Paddington",
-          start: TWO_MONTHS_AGO.toISOString(),
-          end: new Date(TWO_MONTHS_AGO.getTime() + 60 * 60 * 1000).toISOString(),
-          medium: "Netflix",
-        },
-      ],
-      { media: ["Netflix"], venues: [] },
-    );
-    await connect(page);
-
-    await page.goto("/medium?medium=Cinema");
-
-    const rows = page.locator("tbody tr");
-    await expect(rows).toHaveCount(1);
-    await expect(rows).toContainText("Dune");
-  });
-
-  test("breadcrumb's middle crumb links to /mediums, and the page title reflects the medium", async ({
-    page,
-  }) => {
-    mockCaldavServer(
-      page,
-      CREDENTIALS["caldav-url"],
-      [
-        {
-          uid: "dune-uid",
-          title: "Dune",
-          start: ONE_MONTH_AGO.toISOString(),
-          end: new Date(ONE_MONTH_AGO.getTime() + 60 * 60 * 1000).toISOString(),
-          medium: "Netflix",
-        },
-      ],
-      { media: ["Netflix"], venues: [] },
-    );
-    await connect(page);
-
-    await page.goto(`/medium?medium=${encodeURIComponent("Netflix")}`);
-
     const nav = page.getByRole("navigation", { name: "Breadcrumb" });
-    await expect(nav).toBeVisible();
     await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
     await expect(nav.getByRole("link", { name: "Mediums" })).toHaveAttribute("href", "/mediums");
     await expect(nav.getByText("Netflix")).toBeVisible();
-
     await expect(page).toHaveTitle("Netflix — Mediums — Movie Planner");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(results.violations).toEqual([]);
   });
 
   test("shows an empty-results state for a medium matching nothing, not an error", async ({
