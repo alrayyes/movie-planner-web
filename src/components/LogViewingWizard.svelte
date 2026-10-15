@@ -119,10 +119,14 @@ async function loadCredentials() {
 	omdbApiKey = credentials.omdbApiKey;
 	omdbPaused = credentials.omdbPaused ?? false;
 }
-loadCredentials();
+// #920: the wizard now mounts on the button's first click and is opened the
+// moment it has, so an open can arrive before this read has finished.
+let credentialsLoaded = loadCredentials();
 // Mirrors log-viewing-button.ts's own listener: a visitor can connect
 // mid-session, after this island already mounted with no credentials.
-window.addEventListener(CREDENTIALS_CONNECTED_EVENT, () => void loadCredentials());
+window.addEventListener(CREDENTIALS_CONNECTED_EVENT, () => {
+	credentialsLoaded = loadCredentials();
+});
 
 // #600/#452: same auto-learn behaviour as LogViewingForm.svelte's own
 // handleAddMedium/handleAddVenue/handleEditVenue/learnFromViewing —
@@ -444,6 +448,7 @@ async function handleSubmit() {
 let everOpened = $state(false);
 
 async function openWizard() {
+	await credentialsLoaded;
 	if (!credentials) return;
 	everOpened = true;
 	resetWizard();
