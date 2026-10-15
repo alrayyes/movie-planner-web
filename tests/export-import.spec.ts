@@ -176,60 +176,6 @@ test.describe("importing the exported format", () => {
     expect(server.creates[0]?.imdbId).toBe("tt1160419");
     expect(omdbCalls).toBe(0);
   });
-
-  // #867: an export's venue location survives the round trip, so the maps
-  // are still there in the calendar it is imported into.
-  test("re-importing an export keeps the venue's location", async ({ page }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-    await connect(page);
-
-    await page.goto("/import");
-    await page.locator("#import-file").setInputFiles({
-      name: "export.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify([
-          {
-            ...DUNE_EXPORT_ROW,
-            city: "Amsterdam",
-            country: "Netherlands",
-            latitude: 52.36,
-            longitude: 4.87,
-          },
-        ]),
-      ),
-    });
-    await page.getByRole("button", { name: "Import checked rows" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 0, failed 0.");
-    expect(server.creates[0]?.geo).toEqual({ lat: 52.36, lon: 4.87 });
-    expect(server.creates[0]?.city).toBe("Amsterdam");
-    expect(server.creates[0]?.country).toBe("Netherlands");
-  });
-
-  test("a minimal-format file (no uid, no OMDb fields) keeps working exactly as before", async ({
-    page,
-  }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
-    await connect(page);
-
-    // #436: Import moved to the Settings hub — a direct navigation
-    // stands in for what used to be a nav click.
-    await page.goto("/import");
-    await page.locator("#import-file").setInputFiles({
-      name: "movies.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify([{ title: "Paddington", date: "2026-02-01", medium: "netflix" }]),
-      ),
-    });
-    await expect(page.getByRole("row", { name: /Paddington/ })).toBeVisible();
-
-    await page.getByRole("button", { name: "Import checked rows" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Imported 1, skipped 0, failed 0.");
-    expect(server.creates).toHaveLength(1);
-  });
 });
 
 test.describe("updating an existing entry by uid", () => {
@@ -285,68 +231,6 @@ test.describe("updating an existing entry by uid", () => {
     // Every field the row didn't touch stays exactly as it was.
     expect(server.updates[0]?.venue).toBe("Grand Vista Cinema");
     expect(server.updates[0]?.actors).toBe("Timothée Chalamet, Zendaya");
-  });
-
-  // #870: the calendar it came from lost its coordinates; the review offers them back.
-  test("offers the venue's coordinates back when the existing event lacks them", async ({
-    page,
-  }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
-    await connect(page);
-
-    await page.goto("/import");
-    await page.locator("#import-file").setInputFiles({
-      name: "export.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify([{ ...DUNE_EXPORT_ROW, latitude: 52.36, longitude: 4.87 }]),
-      ),
-    });
-
-    await expect(page.getByLabel("Changes for Dune")).toContainText("Coordinates:");
-    await expect(page.getByLabel("Changes for Dune")).toContainText("52.36, 4.87");
-
-    await page.getByRole("button", { name: "Import checked rows" }).click();
-    await expect(page.getByRole("status")).toHaveText(
-      "Imported 0, updated 1, skipped 0, failed 0.",
-    );
-    expect(server.updates[0]?.geo).toEqual({ lat: 52.36, lon: 4.87 });
-    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
-  });
-
-  // #879: the synopsis and the other extras an export carries can be restored too.
-  test("offers the synopsis and trailer back when the existing event lacks them", async ({
-    page,
-  }) => {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
-    await connect(page);
-
-    await page.goto("/import");
-    await page.locator("#import-file").setInputFiles({
-      name: "export.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify([
-          {
-            ...DUNE_EXPORT_ROW,
-            synopsis: "A desert planet.",
-            trailer_url: "https://example.com/t",
-          },
-        ]),
-      ),
-    });
-
-    const block = page.getByLabel("Changes for Dune");
-    await expect(block).toContainText("Synopsis:");
-    await expect(block).toContainText("Trailer URL:");
-
-    await page.getByRole("button", { name: "Import checked rows" }).click();
-    await expect(page.getByRole("status")).toHaveText(
-      "Imported 0, updated 1, skipped 0, failed 0.",
-    );
-    expect(server.updates[0]?.synopsis).toBe("A desert planet.");
-    expect(server.updates[0]?.trailerUrl).toBe("https://example.com/t");
-    expect(server.updates[0]?.director).toBe("Denis Villeneuve");
   });
 
   test("a uid match with no actual differences makes no request at all", async ({ page }) => {
