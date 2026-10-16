@@ -97,7 +97,7 @@ describe("ci.yml's mutation job", () => {
 // #931: rules/dependencies.md. A dependency audit blocks only the pull request
 // that introduces an advisory, and a scan on the default branch keeps one
 // ticket for the rest. No pipeline carries an ignore.
-const ADVISORY_SCAN = "alrayyes/advisory-scan@425418a63e80eb10142fbd2e82127b7ef3a51d68";
+const ADVISORY_SCAN = "alrayyes/advisory-scan@9801551dad16ce63853b2babfda885365d368232";
 
 describe("dependency audit", () => {
   test("no workflow or package script carries an --ignore", () => {
