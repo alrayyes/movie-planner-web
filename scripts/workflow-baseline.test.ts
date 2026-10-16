@@ -148,3 +148,16 @@ describe("dependency audit", () => {
     });
   });
 });
+
+// #937: release-please opens its pull request and adds `autorelease: pending` a
+// second later. The opened run's payload predates the label, so only a
+// `labeled` run can see it and arm auto-merge.
+describe("release-auto-merge.yml", () => {
+  const doc = workflows.find((w) => w.file === "release-auto-merge.yml")?.doc;
+
+  test("runs when a label is added, as well as on the default events", () => {
+    const on = doc?.on as Record<string, { types?: string[] }>;
+
+    expect(on.pull_request?.types).toEqual(["opened", "synchronize", "reopened", "labeled"]);
+  });
+});

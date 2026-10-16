@@ -6,9 +6,18 @@
 # pull_request, not pull_request_target: release-please's pull request
 # comes from a branch on this repo, never a fork, so there's no untrusted
 # checkout to guard against.
+#
+# types names labeled on top of the defaults (opened, synchronize, reopened):
+# release-please opens the pull request and adds the autorelease: pending label
+# in two separate calls, and the opened run's payload predates the second, so
+# without labeled nothing re-checks the label once it lands (#937). Any other
+# label still skips on the job's own if, and arming auto-merge twice is
+# harmless.
 name: release-auto-merge
 
-on: pull_request
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 # No write permission anywhere: the merge below runs as RELEASE_TOKEN, not as
 # this workflow's own GITHUB_TOKEN.
