@@ -3,10 +3,12 @@
 // `lighthouse@13.0.1` through bunx, not as a devDependency (its tree carries
 // ten advisories `bun audit` fails on), and checks them here.
 //
-// network-dependency-tree-insight stays at warn: on a static page whose app
-// is a chain of ES modules it scores 0 with a 126 ms longest chain and no LCP
-// saving, and there's no cheaper chain to build without bundling the app into
-// one file.
+// network-dependency-tree-insight stays at warn because it can't reach 1 on a
+// page that has a script. Lighthouse fails it when any critical chain is two
+// requests or longer, and the document counts as the first, so one high-priority
+// script or manifest.json is enough. modulepreload links flatten the real
+// module chain to one level and the audit still scores 0; bundling into one
+// file would fail it the same way. It reports no LCP saving either (#942).
 export const ASSERTIONS: Record<string, "warn" | "error"> = {
   "cache-insight": "error",
   "document-latency-insight": "error",
