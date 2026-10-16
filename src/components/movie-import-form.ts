@@ -4,6 +4,7 @@ import type { Credentials } from "../lib/credentials/types";
 import { executeImport, type ImportBatch } from "../lib/movie-log/execute-import";
 import { SAMPLE_CSV, validateImportFile } from "../lib/movie-log/import-file";
 import { detectCsvFormat, parseCsvImport, parseJsonImport } from "../lib/movie-log/import-rows";
+import { reviewSummary } from "../lib/movie-log/review-summary";
 import {
   fetchExistingForImportCheck,
   type ImportPlanEntry,
@@ -211,13 +212,12 @@ export class MovieImportForm extends HTMLElement {
       this.plan = planImport(parsed, existing);
       this.updates = planUpdates(parsed, existing);
       this.renderReview();
-      const parts = [`${this.plan.length} new row(s)`];
-      if (this.updates.length > 0) parts.push(`${this.updates.length} existing entry update(s)`);
-      if (this.skippedRows.length > 0) parts.push(`${this.skippedRows.length} skipped (not films)`);
-      if (this.parseErrors.length > 0) parts.push(`${this.parseErrors.length} failed to parse`);
-      const nothingToImport =
-        this.skippedRows.length > 0 && this.plan.length === 0 && this.updates.length === 0;
-      this.statusEl.textContent = `${parts.join(", ")}${nothingToImport ? "; nothing to import." : " ready to review."}`;
+      this.statusEl.textContent = reviewSummary({
+        newRows: this.plan.length,
+        updates: this.updates.length,
+        skipped: this.skippedRows.length,
+        failed: this.parseErrors.length,
+      });
     } catch (error) {
       this.statusEl.textContent =
         error instanceof Error ? error.message : "Failed to check for duplicates.";

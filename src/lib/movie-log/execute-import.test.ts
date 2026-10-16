@@ -161,4 +161,26 @@ describe("executeImport with the real writers", () => {
     expect(puts).toHaveLength(2);
     expect(puts[1]).toContain("/cal/u1.ics");
   });
+
+  // #935: the retry itself is retry.test.ts and the wrapping is the test above,
+  // but this is the one that shows a real PUT's 429 reaches it.
+  test("waits out a 429 on a real PUT and still writes the row", async () => {
+    let attempts = 0;
+    globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
+      if (init?.method !== "PUT") return new Response("", { status: 404 });
+      attempts += 1;
+      return attempts === 1
+        ? new Response("", { status: 429, headers: { "Retry-After": "0" } })
+        : new Response("", { status: 201 });
+    }) as unknown as typeof fetch;
+
+    const result = await executeImport(
+      credentials,
+      { creates: [create(1)], updates: [] },
+      () => {},
+    );
+
+    expect(attempts).toBe(2);
+    expect(result).toEqual({ imported: 1, updated: 0, failed: 0 });
+  });
 });
