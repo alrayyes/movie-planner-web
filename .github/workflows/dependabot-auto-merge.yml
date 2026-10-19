@@ -41,13 +41,9 @@ jobs:
 
       # ci.yml is the gate; this only arms the merge and lets GitHub wait
       # for that gate itself, rather than polling it from inside the job.
-      # Patch and minor only — dependabot.yml already groups those two
-      # together for the same reason. A major stays a pull request someone
-      # reads, the same as any other breaking change would.
-      - name: Enable auto-merge for patch and minor updates
-        if: |
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+      # Every update type, majors included: a breaking bump that breaks
+      # something fails the same checks, and a red one never merges.
+      - name: Enable auto-merge
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
