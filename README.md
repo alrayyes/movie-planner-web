@@ -635,6 +635,10 @@ for the home page and the docs.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the toolchain, the hooks, and how
 a change gets reviewed and released.
 
+CI runs the browser tests in a prebuilt Playwright image, so a Playwright
+bump has to move the image tag in the workflows too. CONTRIBUTING.md has the
+detail.
+
 ## Licence
 
 [GPL-3.0-or-later](LICENSE).
