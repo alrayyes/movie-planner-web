@@ -1,17 +1,17 @@
 ## Purpose
 
-Keeps CI's browser jobs off the network for browsers: they run in a prebuilt
+Keeps CI's Playwright jobs off the network for browsers: they run in a prebuilt
 image, and a test stops the image and the Playwright library drifting apart.
 
 ## Requirements
 
-### Requirement: CI browser jobs run in a digest-pinned Playwright image
+### Requirement: CI Playwright jobs run in a digest-pinned Playwright image
 
-The system SHALL run every CI job that drives a browser in the
+The system SHALL run every Playwright CI job in the
 `ghcr.io/alrayyes/ci-playwright` image, referenced as `tag@sha256:digest`, and
 SHALL NOT download browsers in those jobs.
 
-#### Scenario: A browser job has no browser download
+#### Scenario: A Playwright job has no browser download
 
 - **WHEN** a workflow job runs Playwright
 - **THEN** it SHALL run in the pinned image and contain no `playwright install` step
