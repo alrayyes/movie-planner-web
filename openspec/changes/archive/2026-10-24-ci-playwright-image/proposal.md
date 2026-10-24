@@ -12,7 +12,7 @@ movie-planner-web#952.
   digest, with no `playwright install` and no `setup-bun` step.
 - `@playwright/test` moves to 1.64.1, the version the image exists for, and
   `playwright-core` is deduped to one copy.
-- A test fails CI when the image tag differs from the lockfile's
+- A test fails CI when the image tag differs from the lock file's
   `@playwright/test` version, or the image is not digest-pinned.
 
 ## Capabilities

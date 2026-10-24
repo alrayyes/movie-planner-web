@@ -11,7 +11,7 @@
 ## 3. Drift guard
 
 - [x] 3.1 `scripts/playwright-image.test.ts` fails when the tag and the
-      lockfile version differ, or the digest is missing
+      lock file version differ, or the digest is missing
 
 ## 4. Docs
 

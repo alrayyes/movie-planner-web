@@ -16,12 +16,12 @@ SHALL NOT download browsers in those jobs.
 - **WHEN** a workflow references the image without a `@sha256:` digest
 - **THEN** the drift test SHALL fail
 
-### Requirement: The image tag equals the lockfile's Playwright version
+### Requirement: The image tag equals the lock file's Playwright version
 
 The image tag's Playwright version SHALL equal the `@playwright/test` version
 in `bun.lock`, in every workflow that uses the image.
 
 #### Scenario: A Playwright bump forgets the workflows
 
-- **WHEN** `@playwright/test` changes in the lockfile and a workflow's image tag does not
+- **WHEN** `@playwright/test` changes in the lock file and a workflow's image tag does not
 - **THEN** the drift test SHALL fail, naming the file and both versions
