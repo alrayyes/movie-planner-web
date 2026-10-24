@@ -21,6 +21,6 @@ fi
 status=0
 for file in "${files[@]}"; do
   echo "cclint: $file"
-  bunx cclint lint "$file" || status=1
+  bun x cclint lint "$file" || status=1
 done
 exit "$status"
