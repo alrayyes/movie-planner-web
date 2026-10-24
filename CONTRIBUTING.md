@@ -171,6 +171,15 @@ Playwright pattern against the built output rather than the dev server —
 see `playwright.config.ts`'s comment for why `wrangler dev` serves it
 instead of `astro preview`.
 
+CI runs the two jobs that drive a browser (`test` in `ci.yml` and `screenshots`)
+in [`ghcr.io/alrayyes/ci-playwright`](https://github.com/alrayyes/ci-playwright),
+an image that already holds the Playwright browsers and bun, so no job downloads
+Chromium. Its tag must equal the `@playwright/test` version exactly, and it is
+pinned by digest as well. `scripts/playwright-image.test.ts` fails when a
+workflow's image tag, `package.json` and `bun.lock` disagree, so a Playwright
+bump changes all of them together. Locally the suite uses the browser you
+installed once with `bunx playwright install chromium`.
+
 ## Keeping docs and the about page current
 
 `src/content/docs/docs/*.md` (the `/docs/*` site) and `src/pages/about.astro`
