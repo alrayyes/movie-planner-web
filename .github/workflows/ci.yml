@@ -135,7 +135,7 @@ jobs:
     # @playwright/test version exactly; scripts/playwright-image.test.ts fails
     # when they differ, so bump both together (#952).
     container:
-      image: ghcr.io/alrayyes/ci-playwright:1.64.1@sha256:e44eec3f49f8fad2dbfb926fd8cbd0cadf1b9ebca94a960a45daac90a3bd9258
+      image: ghcr.io/alrayyes/ci-playwright:1.64.1@sha256:8475bb332de43de88e3a442ed5c168586a378790b6a5c109753e7de93bc1dd3d
       # Chromium shares memory through IPC; Playwright's Docker guide asks for this.
       options: --ipc=host
     steps:
@@ -206,8 +206,10 @@ jobs:
           cp coverage/junit-unit.xml site/reports/tests/unit.xml
           cp playwright-report/junit.xml site/reports/tests/e2e.xml
           cp coverage/lcov.info site/reports/coverage/lcov.info
+          # The image has neither pipx nor lcov, and no apt lists to install them from.
+          apt-get update
+          apt-get install --no-install-recommends --yes lcov pipx
           pipx run lcov_cobertura==2.1.1 coverage/lcov.info --output site/reports/coverage/coverage.xml
-          sudo apt-get install --no-install-recommends --yes lcov
           genhtml coverage/lcov.info --output-directory site/reports/coverage --quiet
           {
             echo '<!doctype html><meta charset="utf-8"><title>movie-planner-web reports</title>'
