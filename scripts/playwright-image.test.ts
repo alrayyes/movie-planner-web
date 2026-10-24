@@ -49,6 +49,15 @@ describe("playwrightImageProblems", () => {
     expect(problems.join("\n")).toContain("is not pinned as <version>@sha256:<digest>");
   });
 
+  test("fails when two workflows use the same version with different digests", () => {
+    const other = workflow("1.64.1").replace("a".repeat(64), "b".repeat(64));
+    const problems = playwrightImageProblems({
+      ...good,
+      workflows: { ...good.workflows, "screenshots.yml": other },
+    });
+    expect(problems).toEqual([expect.stringContaining("the jobs use different images")]);
+  });
+
   test("fails when no workflow uses the image", () => {
     expect(playwrightImageProblems({ ...good, workflows: { "ci.yml": "jobs: {}\n" } })).toContain(
       "no workflow job runs in the Playwright image",

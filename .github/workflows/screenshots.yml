@@ -31,7 +31,7 @@ jobs:
     # @playwright/test version exactly; scripts/playwright-image.test.ts fails
     # when they differ, so bump both together (#952).
     container:
-      image: ghcr.io/alrayyes/ci-playwright:1.64.1@sha256:8475bb332de43de88e3a442ed5c168586a378790b6a5c109753e7de93bc1dd3d
+      image: ghcr.io/alrayyes/ci-playwright:1.64.1@sha256:765bb40296d41f38491a94991273af4cb7a88ce9b136e53b1e5e841c4e694f27
       # Chromium shares memory through IPC; Playwright's Docker guide asks for this.
       options: --ipc=host
     steps:
