@@ -130,24 +130,22 @@ jobs:
     # install/build overhead, needs more headroom than 18 gave at the
     # 2-worker pace.
     timeout-minutes: 24
+    # Prebuilt image with the Playwright browsers, Bun, git and gh in it, so no
+    # step downloads Chromium or installs Bun. The tag must equal the
+    # @playwright/test version exactly; scripts/playwright-image.test.ts fails
+    # when they differ, so bump both together (#952).
+    container:
+      image: ghcr.io/alrayyes/ci-playwright:1.64.1@sha256:e44eec3f49f8fad2dbfb926fd8cbd0cadf1b9ebca94a960a45daac90a3bd9258
+      # Chromium shares memory through IPC; Playwright's Docker guide asks for this.
+      options: --ipc=host
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
+      # The container runs as root over a workspace the runner owns; git
+      # otherwise refuses it with "dubious ownership".
+      - name: trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: bun install
         run: bun install --frozen-lockfile
-      # `--with-deps` shells out to `apt-get` against Google's own Chrome
-      # repo, not Ubuntu's mirrors — a repo that flakes on its own rotation
-      # with a Hash Sum mismatch, unrelated to anything in this repo.
-      # ubuntu-24.04 runners already ship the system libraries Playwright's
-      # own downloaded Chromium needs, so this skips that dependency
-      # entirely rather than racing it. Retry once regardless, since a
-      # download can still fail transiently for unrelated reasons.
-      - name: install playwright's browser
-        run: |
-          bunx playwright install chromium ||
-            (sleep 5 && bunx playwright install chromium)
       - name: playwright test
         # webServer builds and serves through wrangler itself, the same
         # thing the Cloudflare Worker deploy runs — see playwright.config.ts.
