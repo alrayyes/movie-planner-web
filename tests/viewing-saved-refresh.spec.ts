@@ -71,3 +71,36 @@ test.describe("a viewing logged from the header wizard shows on the page behind 
     await expect(page.getByText("Paddington").first()).toBeVisible();
   });
 });
+
+// #968: a day's popup that is open while the wizard saves a viewing for that
+// day lists it too. The popup reads the same data the grid does.
+test("an open day popup on the heatmap lists a viewing logged for that day", async ({ page }) => {
+  const now = new Date();
+  const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+  mockCaldavServer(page, CREDENTIALS["caldav-url"], [
+    {
+      ...DUNE,
+      start: now.toISOString(),
+      end: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+    },
+  ]);
+  await connect(page);
+  await page.goto("/calendar");
+  await page.getByRole("button", { name: `${today}: 1 viewing` }).hover();
+  const popup = page.getByRole("dialog", { name: `Viewings on ${today}` });
+  await expect(popup).toContainText("Dune");
+
+  // A synthetic click leaves the pointer on the cell, so the hover popup stays
+  // open under the wizard.
+  await page.getByRole("button", { name: "Log a viewing" }).dispatchEvent("click");
+  const wizard = page.getByRole("dialog", { name: "Log a viewing" });
+  await page.locator("#wizard-title").fill("Paddington");
+  await wizard.getByRole("button", { name: "Next" }).click();
+  await page.locator("#wizard-date").fill(today);
+  await wizard.getByRole("button", { name: "Log viewing" }).click();
+  await expect(wizard).toBeHidden();
+
+  await expect(popup).toContainText("Paddington");
+});
