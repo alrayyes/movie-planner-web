@@ -2,6 +2,7 @@
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
+import { reloadOnViewingSaved } from "../lib/movie-log/log-viewing";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
@@ -201,7 +202,12 @@ function closeDialog() {
 	dialogMode = "closed";
 }
 
+let loadController: AbortController | undefined;
+
 async function load() {
+	loadController?.abort();
+	const controller = new AbortController();
+	loadController = controller;
 	loadError = "";
 	const credentials = await getCredentialsStore().get();
 	disconnected = !credentials;
@@ -217,6 +223,7 @@ async function load() {
 	try {
 		// #715: cached list first, redrawn if the background refresh differs.
 		const apply = (viewings: LoggedViewing[]) => {
+			if (controller.signal.aborted) return;
 			viewingsByDay = groupViewingsByLocalDay(viewings);
 			status =
 				viewings.length === 0
@@ -225,6 +232,7 @@ async function load() {
 		};
 		apply(
 			await listAllViewings(config, {
+				signal: controller.signal,
 				onRefresh: apply,
 				onRefreshError: (error) => {
 					loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
@@ -232,6 +240,8 @@ async function load() {
 			}),
 		);
 	} catch (error) {
+		// Superseded by a newer load, which updates status itself.
+		if (error instanceof DOMException && error.name === "AbortError") return;
 		status = "";
 		loadError = error instanceof Error ? error.message : "Failed to load the heatmap.";
 	}
@@ -240,6 +250,8 @@ async function load() {
 load();
 // #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call.
 reloadOnBfcacheRestore(() => void load());
+// #960: the header wizard saves apart from this page, so it announces it.
+reloadOnViewingSaved(() => void load());
 </script>
 
 <div class="flex flex-col gap-6">

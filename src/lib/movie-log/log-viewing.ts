@@ -23,6 +23,19 @@ export const OPEN_LOG_VIEWING_WIZARD_EVENT = "movie-planner-web:open-log-viewing
 // it announces a saved viewing on `window` for a list on that page to re-read.
 export const VIEWING_SAVED_EVENT = "movie-planner-web:viewing-saved";
 
+// Runs `reload` each time the wizard saves a viewing, until the page is swapped
+// out. A ClientRouter swap keeps `window`, so the listener has to come off with
+// the page that added it or the next page would inherit a stale reload.
+export function reloadOnViewingSaved(reload: () => void): void {
+  const onViewingSaved = () => reload();
+  window.addEventListener(VIEWING_SAVED_EVENT, onViewingSaved);
+  document.addEventListener(
+    "astro:before-swap",
+    () => window.removeEventListener(VIEWING_SAVED_EVENT, onViewingSaved),
+    { once: true },
+  );
+}
+
 // #49: the outcome of a logged/refreshed OMDb lookup — either a confident
 // match (attached automatically) or, when there's none, the candidates a
 // visitor can pick from (empty/absent when OMDb's search itself found

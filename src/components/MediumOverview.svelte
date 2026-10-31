@@ -3,6 +3,7 @@ import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
 import { sameMedium } from "../lib/medium/display";
+import { reloadOnViewingSaved } from "../lib/movie-log/log-viewing";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { movieHref } from "../lib/movie-log/movie-link";
 import { ACTIVE_FILTER_LABEL_EVENT } from "../lib/ui/active-filter";
@@ -131,6 +132,8 @@ async function load() {
 
 load();
 reloadOnBfcacheRestore(() => void load());
+// #960: the header wizard saves apart from this page, so it announces it.
+reloadOnViewingSaved(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">
