@@ -53,11 +53,12 @@ test.describe("a viewing logged from the header wizard shows on the page behind 
     mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
     await connect(page);
     await page.goto("/mediums");
-    await expect(page.locator("tbody tr").first()).toContainText("1");
+    const cinema = page.locator("tbody tr").filter({ hasText: "cinema" });
+    await expect(cinema.locator("td").nth(1)).toHaveText("1");
 
     await logPaddingtonFromWizard(page);
 
-    await expect(page.locator("tbody tr").first()).toContainText("2");
+    await expect(cinema.locator("td").nth(1)).toHaveText("2");
   });
 
   test("the missing-data list includes it", async ({ page }) => {
