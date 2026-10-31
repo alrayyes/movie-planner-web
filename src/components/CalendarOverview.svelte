@@ -5,6 +5,7 @@ import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { accountKeyFor } from "../lib/caldav/viewings-cache";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { filterViewings } from "../lib/movie-log/filter-viewings";
+import { VIEWING_SAVED_EVENT } from "../lib/movie-log/log-viewing";
 import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import type { OmdbCandidate } from "../lib/omdb/client";
@@ -854,6 +855,17 @@ function syncActivityLogUntilNavigatedAway() {
 
 reload();
 syncActivityLogUntilNavigatedAway();
+// The wizard in the header saves a viewing this list never fetched. The cache is
+// already current by then, so a silent reload shows it straight away.
+{
+	const onViewingSaved = () => void reload({ silent: true });
+	window.addEventListener(VIEWING_SAVED_EVENT, onViewingSaved);
+	document.addEventListener(
+		"astro:before-swap",
+		() => window.removeEventListener(VIEWING_SAVED_EVENT, onViewingSaved),
+		{ once: true },
+	);
+}
 // #223: a visitor deleting a viewing on the details page, then hitting
 // Back, can land on this exact pre-delete DOM restored from the
 // browser's bfcache rather than a fresh load — reload() never re-runs

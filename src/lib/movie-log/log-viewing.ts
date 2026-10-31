@@ -19,6 +19,10 @@ import { enrichWithTmdb } from "../tmdb/client";
 // island) have no direct reference to each other.
 export const OPEN_LOG_VIEWING_WIZARD_EVENT = "movie-planner-web:open-log-viewing-wizard";
 
+// The wizard lives in the header, apart from whatever page is open behind it, so
+// it announces a saved viewing on `window` for a list on that page to re-read.
+export const VIEWING_SAVED_EVENT = "movie-planner-web:viewing-saved";
+
 // #49: the outcome of a logged/refreshed OMDb lookup — either a confident
 // match (attached automatically) or, when there's none, the candidates a
 // visitor can pick from (empty/absent when OMDb's search itself found

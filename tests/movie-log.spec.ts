@@ -621,6 +621,23 @@ test.describe("log a viewing wizard (header button)", () => {
     await expect(dialog.getByRole("combobox", { name: "Medium" })).toBeVisible();
   });
 
+  test("the overview on the page behind the dialog shows the new viewing without a reload", async ({
+    page,
+  }) => {
+    await connectOnCurrentPage(page);
+    await expect(page.getByText("Paddington")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+    await expect(dialog).toBeHidden();
+
+    await expect(page.getByRole("link", { name: "Paddington" }).first()).toBeVisible();
+  });
+
   // #900: a log that fails leaves the form as it was, ready for a retry.
   test("a failed log keeps the form and its button for another try", async ({ page }) => {
     const server = await connectOnCurrentPage(page);
