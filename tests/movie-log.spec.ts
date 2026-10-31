@@ -585,8 +585,12 @@ test.describe("error toasts", () => {
 // two is everything else, reusing MediumPicker/VenuePicker and
 // logManualViewing exactly as /log's own form does.
 test.describe("log a viewing wizard (header button)", () => {
-  async function connectOnCurrentPage(page: Page, omdbApiKey?: string) {
-    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], []);
+  async function connectOnCurrentPage(
+    page: Page,
+    omdbApiKey?: string,
+    existing: Parameters<typeof mockCaldavServer>[2] = [],
+  ) {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], existing);
     await page.goto("/");
     await page.locator("#caldav-url").fill(CREDENTIALS["caldav-url"]);
     await page.locator("#caldav-username").fill(CREDENTIALS["caldav-username"]);
@@ -619,6 +623,51 @@ test.describe("log a viewing wizard (header button)", () => {
     await dialog.getByRole("button", { name: "Next" }).click();
     await expect(page.locator("#wizard-date")).toBeVisible();
     await expect(dialog.getByRole("combobox", { name: "Medium" })).toBeVisible();
+  });
+
+  test("the overview on the page behind the dialog shows the new viewing without a reload", async ({
+    page,
+  }) => {
+    await connectOnCurrentPage(page);
+    await expect(page.getByText("Paddington")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill("2026-02-01");
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+    await expect(dialog).toBeHidden();
+
+    await expect(page.getByRole("link", { name: "Paddington" }).first()).toBeVisible();
+  });
+
+  // The first load adopts the earliest and latest viewing dates as From/To, so a
+  // viewing logged after the latest one lies outside that range.
+  test("the overview shows a viewing logged after its latest one, which is outside the range it loaded", async ({
+    page,
+  }) => {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await connectOnCurrentPage(page, undefined, [
+      {
+        uid: "dune-uid",
+        title: "Dune",
+        start: monthAgo.toISOString(),
+        end: new Date(monthAgo.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+        medium: "cinema",
+      },
+    ]);
+    await expect(page.getByRole("link", { name: "Dune" }).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Log a viewing" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log a viewing" });
+    await page.locator("#wizard-title").fill("Paddington");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#wizard-date").fill(new Date().toISOString().slice(0, 10));
+    await dialog.getByRole("button", { name: "Log viewing" }).click();
+    await expect(dialog).toBeHidden();
+
+    await expect(page.getByRole("link", { name: "Paddington" }).first()).toBeVisible();
   });
 
   // #900: a log that fails leaves the form as it was, ready for a retry.
