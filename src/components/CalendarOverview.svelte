@@ -856,9 +856,15 @@ function syncActivityLogUntilNavigatedAway() {
 reload();
 syncActivityLogUntilNavigatedAway();
 // The wizard in the header saves a viewing this list never fetched. The cache is
-// already current by then, so a silent reload shows it straight away.
-{
-	const onViewingSaved = () => void reload({ silent: true });
+// already current by then. A From/To still holding the range the first load
+// adopted would send the reload to the server for just that range, which leaves
+// out a viewing dated after the latest one, so those go back to unset first.
+function reloadOnViewingSavedUntilNavigatedAway() {
+	const onViewingSaved = () => {
+		if (fromValue === autoFrom) fromValue = "";
+		if (toValue === autoTo) toValue = "";
+		void reload({ silent: true });
+	};
 	window.addEventListener(VIEWING_SAVED_EVENT, onViewingSaved);
 	document.addEventListener(
 		"astro:before-swap",
@@ -866,6 +872,7 @@ syncActivityLogUntilNavigatedAway();
 		{ once: true },
 	);
 }
+reloadOnViewingSavedUntilNavigatedAway();
 // #223: a visitor deleting a viewing on the details page, then hitting
 // Back, can land on this exact pre-delete DOM restored from the
 // browser's bfcache rather than a fresh load — reload() never re-runs

@@ -381,13 +381,13 @@ function showOmdbPicker(candidates: OmdbCandidate[]) {
 								...metadata,
 								...tmdbFields,
 							});
+							window.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
 						}
 					}
 				} catch (error) {
 					formError =
 						error instanceof Error ? error.message : "Failed to attach the selected match.";
 				} finally {
-					window.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
 					dialogEl?.close();
 				}
 			},
