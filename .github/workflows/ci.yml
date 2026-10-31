@@ -130,8 +130,9 @@ jobs:
     # install/build overhead, needs more headroom than 18 gave at the
     # 2-worker pace.
     timeout-minutes: 24
-    # Prebuilt image with the Playwright browsers, Bun, git and gh in it, so no
-    # step downloads Chromium or installs Bun. The tag must equal the
+    # Prebuilt image with the Playwright browsers, git and gh in it, so no step
+    # downloads Chromium. Its bun is not the pinned one; setup-bun below is (#963).
+    # The tag must equal the
     # @playwright/test version exactly; scripts/playwright-image.test.ts fails
     # when they differ, so bump both together (#952).
     container:
@@ -144,6 +145,11 @@ jobs:
       # otherwise refuses it with "dubious ownership".
       - name: trust the workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      # The image's own bun is whatever it was built with; install the pinned
+      # one so this job runs the same bun as the rest (#963).
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
       - name: bun install
         run: bun install --frozen-lockfile
       - name: playwright test

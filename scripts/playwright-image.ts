@@ -39,6 +39,19 @@ export function playwrightImageProblems({ packageJson, lockfile, workflows }: So
     }
   }
 
+  // #963: the image carries a bun of its own, which drifts from `packageManager`.
+  // Each job in it installs the pinned one, the way every job outside it does.
+  for (const [file, text] of Object.entries(workflows)) {
+    const jobs = text.split(/^(?= {2}[\w-]+:\s*$)/m).filter((job) => new RegExp(IMAGE).test(job));
+    for (const job of jobs) {
+      if (!/oven-sh\/setup-bun@/.test(job) || !/bun-version-file:\s*package\.json/.test(job)) {
+        problems.push(
+          `${file}: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json`,
+        );
+      }
+    }
+  }
+
   const digests = new Set(found.map(({ image }) => image));
   if (digests.size > 1) problems.push(`the jobs use different images: ${[...digests].join(", ")}`);
 
