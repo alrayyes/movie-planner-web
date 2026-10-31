@@ -71,7 +71,9 @@ async function load() {
 				loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
 			},
 		});
-		apply((await picklists).media, viewings);
+		const { media } = await picklists;
+		if (controller.signal.aborted) return;
+		apply(media, viewings);
 	} catch (error) {
 		// Superseded by a newer load — the newer call's own catch/success
 		// block is what should actually update status now, not this one.

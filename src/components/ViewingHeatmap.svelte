@@ -202,7 +202,12 @@ function closeDialog() {
 	dialogMode = "closed";
 }
 
+let loadController: AbortController | undefined;
+
 async function load() {
+	loadController?.abort();
+	const controller = new AbortController();
+	loadController = controller;
 	loadError = "";
 	const credentials = await getCredentialsStore().get();
 	disconnected = !credentials;
@@ -218,6 +223,7 @@ async function load() {
 	try {
 		// #715: cached list first, redrawn if the background refresh differs.
 		const apply = (viewings: LoggedViewing[]) => {
+			if (controller.signal.aborted) return;
 			viewingsByDay = groupViewingsByLocalDay(viewings);
 			status =
 				viewings.length === 0
@@ -226,6 +232,7 @@ async function load() {
 		};
 		apply(
 			await listAllViewings(config, {
+				signal: controller.signal,
 				onRefresh: apply,
 				onRefreshError: (error) => {
 					loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
@@ -233,6 +240,8 @@ async function load() {
 			}),
 		);
 	} catch (error) {
+		// Superseded by a newer load, which updates status itself.
+		if (error instanceof DOMException && error.name === "AbortError") return;
 		status = "";
 		loadError = error instanceof Error ? error.message : "Failed to load the heatmap.";
 	}
