@@ -290,8 +290,8 @@ describe("planImport compares dates as the viewer's local date", () => {
   });
 
   test("a viewing logged just after midnight in summer time matches its own local day", () => {
-    // One zone throughout: switching between two zones in one process isn't
-    // reliable on the bun CI runs (1.3.14), and a second offset is what's wanted.
+    // One zone throughout, and a July date for the second offset: bun before 1.4
+    // ignored a change of `process.env.TZ` after start-up (#760).
     inZone("Europe/Amsterdam", () => {
       // 00:30 on 15 July in Amsterdam is UTC+2, so 22:30Z on the 14th.
       const summer: LoggedViewing = {
