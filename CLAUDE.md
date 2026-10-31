@@ -76,10 +76,6 @@ bun run lint                 # biome check .
   - One flake is left, about 1% on "removes the event once confirmed", with
     a different cause (#747). A test that fails with `Viewing not found.` and
     passes alone is that one.
-- **A test that sets `process.env.TZ` can pass here and fail in CI.** The `test`
-  job's bun (1.3.14, from the `ci-playwright` image) keeps the old zone on a
-  `Date` made before a `TZ` change (#760). Use one zone per test file and a July
-  date for a second offset; `bunx bun@1.3.14 test <file>` reproduces it.
 - **Stryker runs on Node, and only its test children run on bun** (#728).
   - `stryker.config.mjs` builds `bun.testFiles` from `src/lib/**/*.test.ts`. The
     runner takes an explicit list and with none it discovers every test in the

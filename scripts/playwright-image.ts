@@ -39,6 +39,19 @@ export function playwrightImageProblems({ packageJson, lockfile, workflows }: So
     }
   }
 
+  // #963: the image carries a bun of its own, which drifts from `packageManager`.
+  // Each job in it installs the pinned one, the way every job outside it does,
+  // and does so before any step that runs bun.
+  for (const [file, text] of Object.entries(workflows)) {
+    for (const job of jobsInImage(text)) {
+      if (!installsPinnedBunFirst(job)) {
+        problems.push(
+          `${file}: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json before it uses bun`,
+        );
+      }
+    }
+  }
+
   const digests = new Set(found.map(({ image }) => image));
   if (digests.size > 1) problems.push(`the jobs use different images: ${[...digests].join(", ")}`);
 
@@ -49,6 +62,29 @@ export function playwrightImageProblems({ packageJson, lockfile, workflows }: So
   }
 
   return problems;
+}
+
+// The jobs whose container is the image. Quoted job keys and comments are
+// stripped first so neither can fake or hide a match.
+function jobsInImage(workflow: string): string[] {
+  const text = workflow.replace(/^\s*#.*$/gm, "");
+  return text.split(/^(?= {2}["']?[\w-]+["']?:\s*$)/m).filter((job) => new RegExp(IMAGE).test(job));
+}
+
+function installsPinnedBunFirst(job: string): boolean {
+  const afterSteps = job.split(/^[ \t]+steps:[ \t]*$/m)[1] ?? "";
+  const indent = /^([ \t]+)- /m.exec(afterSteps)?.[1];
+  if (indent === undefined) return false;
+  const steps: string[] = [];
+  for (const line of afterSteps.split("\n")) {
+    if (line.startsWith(`${indent}- `)) steps.push(line);
+    else if (steps.length > 0) steps[steps.length - 1] += `\n${line}`;
+  }
+  const isPinnedSetup = (step: string) =>
+    /uses:\s*oven-sh\/setup-bun@/.test(step) && /bun-version-file:\s*package\.json/.test(step);
+  const at = steps.findIndex(isPinnedSetup);
+  if (at === -1) return false;
+  return !steps.slice(0, at).some((step) => /\bbun(x)?\s/.test(step));
 }
 
 export async function readSources(root: string): Promise<Sources> {
