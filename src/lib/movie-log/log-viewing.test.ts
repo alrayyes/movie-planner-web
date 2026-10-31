@@ -252,3 +252,9 @@ describe("reloadOnViewingSaved", () => {
     expect(reloads).toBe(0);
   });
 });
+
+describe("VIEWING_SAVED_EVENT", () => {
+  test("names the event the wizard dispatches and the overview listens for", () => {
+    expect(VIEWING_SAVED_EVENT).toBe("movie-planner-web:viewing-saved");
+  });
+});
