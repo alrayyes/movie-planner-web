@@ -251,6 +251,19 @@ describe("reloadOnViewingSaved", () => {
     target.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
     expect(reloads).toBe(0);
   });
+
+  test("drops its swap listener after the first swap", () => {
+    let removals = 0;
+    const remove = target.removeEventListener.bind(target);
+    target.removeEventListener = (...args: Parameters<typeof remove>) => {
+      removals++;
+      remove(...args);
+    };
+    reloadOnViewingSaved(() => {});
+    target.dispatchEvent(new Event("astro:before-swap"));
+    target.dispatchEvent(new Event("astro:before-swap"));
+    expect(removals).toBe(1);
+  });
 });
 
 describe("VIEWING_SAVED_EVENT", () => {
