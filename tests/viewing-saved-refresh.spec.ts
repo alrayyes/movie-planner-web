@@ -105,3 +105,56 @@ test("an open day popup on the heatmap lists a viewing logged for that day", asy
 
   await expect(popup).toContainText("Paddington");
 });
+
+// #967: a load that is still waiting on its response when a newer one starts
+// must not overwrite the newer data when that response finally arrives.
+test.describe("a late response to an older load doesn't overwrite a newer one", () => {
+  const LATE = {
+    uid: "late-uid",
+    title: "Paddington",
+    start: new Date(MONTH_AGO.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    end: new Date(MONTH_AGO.getTime() + 26 * 60 * 60 * 1000).toISOString(),
+    medium: "dvd",
+    venue: "Odeon",
+  };
+
+  async function loadThenSupersede(page: Page, path: string, beforeRelease: () => Promise<void>) {
+    const server = mockCaldavServer(page, CREDENTIALS["caldav-url"], [DUNE]);
+    await connect(page);
+    const release = server.holdNextReport();
+    const requestsBefore = server.listRequests.length;
+    await page.goto(path);
+    // Its request means the page has hydrated and is listening for the event.
+    await expect.poll(() => server.listRequests.length).toBeGreaterThan(requestsBefore);
+    // The page's first load is now waiting on a response that still shows
+    // only Dune. Another viewing lands and a second load answers at once.
+    server.viewings.set(LATE.uid, LATE);
+    await page.evaluate(() => window.dispatchEvent(new Event("movie-planner-web:viewing-saved")));
+    await beforeRelease();
+    release();
+    // Give the late response time to land. A guard that fails shows up as
+    // the page going back to Dune alone, so the check after it is the real one.
+    await page.waitForTimeout(500);
+  }
+
+  test("the calendar heatmap keeps both viewings", async ({ page }) => {
+    await loadThenSupersede(page, "/calendar", () =>
+      expect(page.getByRole("status").first()).toHaveText("2 logged viewings."),
+    );
+    await expect(page.getByRole("status").first()).toHaveText("2 logged viewings.");
+  });
+
+  test("the mediums list keeps the newer medium", async ({ page }) => {
+    const row = page.locator("tbody tr").filter({ hasText: "dvd" });
+    await loadThenSupersede(page, "/mediums", () => expect(row).toContainText("1"));
+    await expect(row).toBeVisible();
+    await expect(row.locator("td").nth(1)).toHaveText("1");
+  });
+
+  test("the venues list keeps the newer venue", async ({ page }) => {
+    await loadThenSupersede(page, "/venues", () =>
+      expect(page.getByRole("status").first()).toHaveText("1 venue."),
+    );
+    await expect(page.getByRole("status").first()).toHaveText("1 venue.");
+  });
+});
