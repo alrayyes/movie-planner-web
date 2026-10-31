@@ -5,7 +5,7 @@ import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { accountKeyFor } from "../lib/caldav/viewings-cache";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { filterViewings } from "../lib/movie-log/filter-viewings";
-import { VIEWING_SAVED_EVENT } from "../lib/movie-log/log-viewing";
+import { reloadOnViewingSaved } from "../lib/movie-log/log-viewing";
 import { movieHref } from "../lib/movie-log/movie-link";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import type { OmdbCandidate } from "../lib/omdb/client";
@@ -859,20 +859,11 @@ syncActivityLogUntilNavigatedAway();
 // already current by then. A From/To still holding the range the first load
 // adopted would send the reload to the server for just that range, which leaves
 // out a viewing dated after the latest one, so those go back to unset first.
-function reloadOnViewingSavedUntilNavigatedAway() {
-	const onViewingSaved = () => {
-		if (fromValue === autoFrom) fromValue = "";
-		if (toValue === autoTo) toValue = "";
-		void reload({ silent: true });
-	};
-	window.addEventListener(VIEWING_SAVED_EVENT, onViewingSaved);
-	document.addEventListener(
-		"astro:before-swap",
-		() => window.removeEventListener(VIEWING_SAVED_EVENT, onViewingSaved),
-		{ once: true },
-	);
-}
-reloadOnViewingSavedUntilNavigatedAway();
+reloadOnViewingSaved(() => {
+	if (fromValue === autoFrom) fromValue = "";
+	if (toValue === autoTo) toValue = "";
+	void reload({ silent: true });
+});
 // #223: a visitor deleting a viewing on the details page, then hitting
 // Back, can land on this exact pre-delete DOM restored from the
 // browser's bfcache rather than a fresh load — reload() never re-runs

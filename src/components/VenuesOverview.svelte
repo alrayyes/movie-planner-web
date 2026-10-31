@@ -3,6 +3,7 @@ import { getPicklists } from "../lib/caldav/client";
 import type { CaldavConfig, LoggedViewing, VenueEntry } from "../lib/caldav/types";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
+import { reloadOnViewingSaved } from "../lib/movie-log/log-viewing";
 import { importCheckRange } from "../lib/movie-log/run-import";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
@@ -160,6 +161,8 @@ async function load() {
 load();
 // #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call.
 reloadOnBfcacheRestore(() => void load());
+// #960: the header wizard saves apart from this page, so it announces it.
+reloadOnViewingSaved(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">

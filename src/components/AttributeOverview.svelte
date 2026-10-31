@@ -9,6 +9,7 @@ import {
 import type { CaldavConfig, LoggedViewing } from "../lib/caldav/types";
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { getCredentialsStore } from "../lib/credentials/store";
+import { reloadOnViewingSaved } from "../lib/movie-log/log-viewing";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
@@ -111,6 +112,8 @@ load();
 // #223: same bfcache-restore gap as every other page reading live CalDAV
 // data — see CalendarOverview.svelte's own call for why.
 reloadOnBfcacheRestore(() => void load());
+// #960: the header wizard saves apart from this page, so it announces it.
+reloadOnViewingSaved(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">
