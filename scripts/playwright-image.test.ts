@@ -7,8 +7,10 @@ import { playwrightImageProblems, readSources, type Sources } from "./playwright
 // real files, which is what fails a Playwright bump that forgets a workflow.
 const DIGEST = `sha256:${"a".repeat(64)}`;
 const image = (version: string) => `ghcr.io/alrayyes/ci-playwright:${version}@${DIGEST}`;
+const SETUP_BUN =
+  "      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6\n        with:\n          bun-version-file: package.json\n";
 const workflow = (version: string) =>
-  `jobs:\n  test:\n    container:\n      image: ${image(version)}\n      options: --ipc=host\n`;
+  `jobs:\n  test:\n    container:\n      image: ${image(version)}\n      options: --ipc=host\n    steps:\n${SETUP_BUN}`;
 
 const good: Sources = {
   packageJson: '{ "devDependencies": { "@playwright/test": "1.64.1" } }',
@@ -73,6 +75,67 @@ describe("playwrightImageProblems", () => {
       },
     });
     expect(problems.join("\n")).toContain("ci.yml still runs 'playwright install'");
+  });
+
+  // #963: the image's own bun is whatever it was built with, so a job in it
+  // has to install the one package.json pins, like every other job does.
+  test("fails when a job in the image doesn't install the pinned bun", () => {
+    const bare = workflow("1.64.1").replace(SETUP_BUN, "      - run: bun install\n");
+    const problems = playwrightImageProblems({
+      ...good,
+      workflows: { ...good.workflows, "ci.yml": bare },
+    });
+    expect(problems).toContain(
+      "ci.yml: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json before it uses bun",
+    );
+  });
+
+  test("looks at the job in the image, not setup-bun in a neighbour", () => {
+    const elsewhere = `jobs:\n  lint:\n    steps:\n${SETUP_BUN}${workflow("1.64.1").replace("jobs:\n", "").replace(SETUP_BUN, "")}`;
+    const problems = playwrightImageProblems({
+      ...good,
+      workflows: { ...good.workflows, "ci.yml": elsewhere },
+    });
+    expect(problems.join("\n")).toContain(
+      "ci.yml: the job in the Playwright image doesn't run setup-bun",
+    );
+  });
+
+  test("ignores a commented-out setup-bun", () => {
+    const commented = workflow("1.64.1").replace(
+      SETUP_BUN,
+      SETUP_BUN.replace(/^/gm, "#").replace("#      -", "      #"),
+    );
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": commented } }),
+    ).toContain(
+      "ci.yml: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json before it uses bun",
+    );
+  });
+
+  test("wants bun-version-file on the setup-bun step itself, not on another step", () => {
+    const split = workflow("1.64.1").replace(
+      SETUP_BUN,
+      "      - uses: oven-sh/setup-bun@abc\n        with:\n          bun-version: 1.0\n      - uses: other/action@abc\n        with:\n          bun-version-file: package.json\n",
+    );
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": split } })
+        .length,
+    ).toBe(1);
+  });
+
+  test("wants setup-bun before the first step that uses bun", () => {
+    const late = workflow("1.64.1").replace(SETUP_BUN, `      - run: bun install\n${SETUP_BUN}`);
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": late } }).length,
+    ).toBe(1);
+  });
+
+  test("reads a quoted job key", () => {
+    const quoted = workflow("1.64.1").replace("  test:", '  "test":');
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": quoted } }),
+    ).toEqual([]);
   });
 
   test("the repository's own files agree", async () => {
