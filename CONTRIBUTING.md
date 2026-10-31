@@ -5,7 +5,7 @@ for whoever runs it.
 
 ## Getting set up
 
-- **[bun](https://bun.sh) 1.3 or newer.** Runtime, test runner, package
+- **[bun](https://bun.sh) 1.4 or newer.** Runtime, test runner, package
   manager for the linter, and the [lefthook](https://lefthook.dev) that
   runs the git hooks — bun is the only thing to install.
 - **[Vale](https://vale.sh)** for the style tier of the prose lint. Nothing to
