@@ -6,6 +6,7 @@ import { getCredentialsStore } from "../lib/credentials/store";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { mediumHref } from "../lib/medium/display";
 import { groupMediums, type MediumInfo } from "../lib/medium/group";
+import { reloadOnViewingSaved } from "../lib/movie-log/log-viewing";
 import { reloadOnBfcacheRestore } from "../lib/ui/bfcache";
 // biome-ignore lint/correctness/noUnusedImports: used in the template below, which Biome does not parse for .svelte files
 import { STATUS_TEXT, TABLE, TABLE_WRAP, TD, TH, TR_BODY } from "../lib/ui/classes";
@@ -70,7 +71,9 @@ async function load() {
 				loadError = error instanceof Error ? error.message : "Failed to refresh viewings.";
 			},
 		});
-		apply((await picklists).media, viewings);
+		const { media } = await picklists;
+		if (controller.signal.aborted) return;
+		apply(media, viewings);
 	} catch (error) {
 		// Superseded by a newer load — the newer call's own catch/success
 		// block is what should actually update status now, not this one.
@@ -83,6 +86,8 @@ async function load() {
 load();
 // #223: see CalendarOverview.svelte's own reloadOnBfcacheRestore call.
 reloadOnBfcacheRestore(() => void load());
+// #960: the header wizard saves apart from this page, so it announces it.
+reloadOnViewingSaved(() => void load());
 </script>
 
 <div class="flex flex-col gap-4">

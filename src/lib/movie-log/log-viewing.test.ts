@@ -4,6 +4,7 @@ import type { Credentials } from "../credentials/types";
 import {
   logManualViewing,
   OPEN_LOG_VIEWING_WIZARD_EVENT,
+  reloadOnViewingSaved,
   VIEWING_SAVED_EVENT,
 } from "./log-viewing";
 
@@ -217,6 +218,51 @@ describe("logManualViewing", () => {
 
     expect(result.viewing.director).toBe("Denis Villeneuve");
     expect(requests.some((u) => u.host === "api.themoviedb.org")).toBe(false);
+  });
+});
+
+describe("reloadOnViewingSaved", () => {
+  const originalWindow = (globalThis as { window?: unknown }).window;
+  const originalDocument = (globalThis as { document?: unknown }).document;
+  let target: EventTarget;
+
+  beforeEach(() => {
+    target = new EventTarget();
+    (globalThis as { window?: unknown }).window = target;
+    (globalThis as { document?: unknown }).document = target;
+  });
+  afterEach(() => {
+    (globalThis as { window?: unknown }).window = originalWindow;
+    (globalThis as { document?: unknown }).document = originalDocument;
+  });
+
+  test("reloads each time a viewing is saved", () => {
+    let reloads = 0;
+    reloadOnViewingSaved(() => reloads++);
+    target.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
+    target.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
+    expect(reloads).toBe(2);
+  });
+
+  test("stops once the page is swapped out", () => {
+    let reloads = 0;
+    reloadOnViewingSaved(() => reloads++);
+    target.dispatchEvent(new Event("astro:before-swap"));
+    target.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
+    expect(reloads).toBe(0);
+  });
+
+  test("drops its swap listener after the first swap", () => {
+    let removals = 0;
+    const remove = target.removeEventListener.bind(target);
+    target.removeEventListener = (...args: Parameters<typeof remove>) => {
+      removals++;
+      remove(...args);
+    };
+    reloadOnViewingSaved(() => {});
+    target.dispatchEvent(new Event("astro:before-swap"));
+    target.dispatchEvent(new Event("astro:before-swap"));
+    expect(removals).toBe(1);
   });
 });
 
