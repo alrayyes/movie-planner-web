@@ -76,11 +76,10 @@ bun run lint                 # biome check .
   - One flake is left, about 1% on "removes the event once confirmed", with
     a different cause (#747). A test that fails with `Viewing not found.` and
     passes alone is that one.
-- **A test that sets `process.env.TZ` can pass here and fail in CI.** CI runs
-  bun 1.3.14 (the `packageManager` pin); a local bun may be newer.
-  - Switching between two non-UTC zones in one process didn't take effect there
-    (#760). Use one zone per test file and a July date for a second offset, and
-    run `bunx bun@1.3.14 test <file>` to check it the way CI will.
+- **A test that sets `process.env.TZ` can pass here and fail in CI.** The `test`
+  job's bun (1.3.14, from the `ci-playwright` image) keeps the old zone on a
+  `Date` made before a `TZ` change (#760). Use one zone per test file and a July
+  date for a second offset; `bunx bun@1.3.14 test <file>` reproduces it.
 - **Stryker runs on Node, and only its test children run on bun** (#728).
   - `stryker.config.mjs` builds `bun.testFiles` from `src/lib/**/*.test.ts`. The
     runner takes an explicit list and with none it discovers every test in the
@@ -90,6 +89,8 @@ bun run lint                 # biome check .
     whole project, and `src/content.config.ts` needs the `astro:content` types
     that Astro generates into `.astro/`. A clean checkout has none, so without it
     the job dies at start-up (#767). Move `.astro/` away to reproduce.
+  - The `mutation` job's bun is the `packageManager` pin, and the Stryker bun
+    runner (1.6.0 on) needs 1.4.0 or newer (#961). Move the two together.
   - `bun.inspectorTimeout` is 20 seconds. The default 5 failed the dry run here
     with `Timeout waiting for inspector URL`.
   - The CI job mutates only changed lines, because a full run takes about nine
