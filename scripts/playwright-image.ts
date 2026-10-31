@@ -75,7 +75,11 @@ function installsPinnedBunFirst(job: string): boolean {
   const afterSteps = job.split(/^[ \t]+steps:[ \t]*$/m)[1] ?? "";
   const indent = /^([ \t]+)- /m.exec(afterSteps)?.[1];
   if (indent === undefined) return false;
-  const steps = afterSteps.split(new RegExp(`^(?=${indent}- )`, "m")).filter((step) => step.trim());
+  const steps: string[] = [];
+  for (const line of afterSteps.split("\n")) {
+    if (line.startsWith(`${indent}- `)) steps.push(line);
+    else if (steps.length > 0) steps[steps.length - 1] += `\n${line}`;
+  }
   const isPinnedSetup = (step: string) =>
     /uses:\s*oven-sh\/setup-bun@/.test(step) && /bun-version-file:\s*package\.json/.test(step);
   const at = steps.findIndex(isPinnedSetup);
