@@ -28,9 +28,9 @@ jobs:
     timeout-minutes: 20
     # Prebuilt image with the Playwright browsers, git and gh in it, so no step
     # downloads Chromium. Its bun is not the pinned one; setup-bun below is (#963).
-    # The tag must equal the
-    # @playwright/test version exactly; scripts/playwright-image.test.ts fails
-    # when they differ, so bump both together (#952).
+    # The tag must equal the @playwright/test version exactly;
+    # scripts/playwright-image.test.ts fails when they differ, so bump both
+    # together (#952).
     container:
       image: ghcr.io/alrayyes/ci-playwright:1.64.1@sha256:765bb40296d41f38491a94991273af4cb7a88ce9b136e53b1e5e841c4e694f27
       # Chromium shares memory through IPC; Playwright's Docker guide asks for this.

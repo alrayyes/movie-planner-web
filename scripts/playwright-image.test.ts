@@ -86,7 +86,7 @@ describe("playwrightImageProblems", () => {
       workflows: { ...good.workflows, "ci.yml": bare },
     });
     expect(problems).toContain(
-      "ci.yml: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json",
+      "ci.yml: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json before it uses bun",
     );
   });
 
@@ -99,6 +99,43 @@ describe("playwrightImageProblems", () => {
     expect(problems.join("\n")).toContain(
       "ci.yml: the job in the Playwright image doesn't run setup-bun",
     );
+  });
+
+  test("ignores a commented-out setup-bun", () => {
+    const commented = workflow("1.64.1").replace(
+      SETUP_BUN,
+      SETUP_BUN.replace(/^/gm, "#").replace("#      -", "      #"),
+    );
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": commented } }),
+    ).toContain(
+      "ci.yml: the job in the Playwright image doesn't run setup-bun with bun-version-file: package.json before it uses bun",
+    );
+  });
+
+  test("wants bun-version-file on the setup-bun step itself, not on another step", () => {
+    const split = workflow("1.64.1").replace(
+      SETUP_BUN,
+      "      - uses: oven-sh/setup-bun@abc\n        with:\n          bun-version: 1.0\n      - uses: other/action@abc\n        with:\n          bun-version-file: package.json\n",
+    );
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": split } })
+        .length,
+    ).toBe(1);
+  });
+
+  test("wants setup-bun before the first step that uses bun", () => {
+    const late = workflow("1.64.1").replace(SETUP_BUN, `      - run: bun install\n${SETUP_BUN}`);
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": late } }).length,
+    ).toBe(1);
+  });
+
+  test("reads a quoted job key", () => {
+    const quoted = workflow("1.64.1").replace("  test:", '  "test":');
+    expect(
+      playwrightImageProblems({ ...good, workflows: { ...good.workflows, "ci.yml": quoted } }),
+    ).toEqual([]);
   });
 
   test("the repository's own files agree", async () => {
