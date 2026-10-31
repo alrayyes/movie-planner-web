@@ -4,7 +4,11 @@ import type { CaldavConfig, LoggedViewing, Picklists, VenueEntry } from "../lib/
 import { listAllViewings } from "../lib/caldav/viewings-source";
 import { CREDENTIALS_CONNECTED_EVENT, getCredentialsStore } from "../lib/credentials/store";
 import type { Credentials } from "../lib/credentials/types";
-import { logManualViewing, OPEN_LOG_VIEWING_WIZARD_EVENT } from "../lib/movie-log/log-viewing";
+import {
+	logManualViewing,
+	OPEN_LOG_VIEWING_WIZARD_EVENT,
+	VIEWING_SAVED_EVENT,
+} from "../lib/movie-log/log-viewing";
 import { toIsoDateTime } from "../lib/movie-log/run-import";
 import {
 	lookupByImdbId,
@@ -377,6 +381,7 @@ function showOmdbPicker(candidates: OmdbCandidate[]) {
 								...metadata,
 								...tmdbFields,
 							});
+							window.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
 						}
 					}
 				} catch (error) {
@@ -417,6 +422,7 @@ async function handleSubmit() {
 			},
 			selectedOmdbMatch,
 		);
+		window.dispatchEvent(new Event(VIEWING_SAVED_EVENT));
 		await learnFromViewing(loggedMedium, loggedVenue);
 		if (result.omdbCandidates?.length) {
 			loggedViewing = result.viewing;
