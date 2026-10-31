@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { NewViewing } from "../caldav/types";
 import type { Credentials } from "../credentials/types";
-import { logManualViewing, OPEN_LOG_VIEWING_WIZARD_EVENT } from "./log-viewing";
+import {
+  logManualViewing,
+  OPEN_LOG_VIEWING_WIZARD_EVENT,
+  VIEWING_SAVED_EVENT,
+} from "./log-viewing";
 
 const VIEWING: NewViewing = {
   title: "Dune",
@@ -213,5 +217,11 @@ describe("logManualViewing", () => {
 
     expect(result.viewing.director).toBe("Denis Villeneuve");
     expect(requests.some((u) => u.host === "api.themoviedb.org")).toBe(false);
+  });
+});
+
+describe("VIEWING_SAVED_EVENT", () => {
+  test("names the event the wizard dispatches and the overview listens for", () => {
+    expect(VIEWING_SAVED_EVENT).toBe("movie-planner-web:viewing-saved");
   });
 });
