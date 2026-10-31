@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.34.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.2...movie-planner-web-v1.34.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **lists:** drop a superseded load's result on the heatmap, mediums and venues ([b29f526](https://github.com/alrayyes/movie-planner-web/commit/b29f526d53d5b8498f1bb706ce1f54122e306395))
+* **lists:** re-read the list pages after a viewing is logged from the header wizard ([3ee577f](https://github.com/alrayyes/movie-planner-web/commit/3ee577fbb4c96bf83006a0e6ca599759ad736f51))
+* **lists:** re-read the list pages after a viewing is logged from the header wizard ([e2660f3](https://github.com/alrayyes/movie-planner-web/commit/e2660f3de38be810cbf15998faf2c457c1fefe31)), closes [#960](https://github.com/alrayyes/movie-planner-web/issues/960)
+* **overview:** reload the whole history after a viewing is logged ([a09e54b](https://github.com/alrayyes/movie-planner-web/commit/a09e54b32859584b0bc1a768a00a3945d60a1641))
+* **overview:** show a viewing logged from the header wizard without a reload ([1755290](https://github.com/alrayyes/movie-planner-web/commit/1755290008f10edf5dab5629349b25ac62a4b44e))
+* **overview:** show a viewing logged from the header wizard without a reload ([5140cf7](https://github.com/alrayyes/movie-planner-web/commit/5140cf77fe8576d9232d64380437fa131c54d4fb)), closes [#958](https://github.com/alrayyes/movie-planner-web/issues/958)
+
 ## [1.34.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.1...movie-planner-web-v1.34.2) (2026-10-15)
 
 
