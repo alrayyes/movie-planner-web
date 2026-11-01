@@ -33,6 +33,10 @@ export interface MockCaldavServer {
   // app under test (another tab, another device) and confirm a page
   // notices, e.g. after a bfcache restore.
   viewings: Map<string, LoggedViewing>;
+  // Holds the next REPORT and answers it with the data as it was when the
+  // request arrived, once the returned function is called. Lets a test make a
+  // response arrive late and stale, after a newer request has been answered.
+  holdNextReport: () => () => void;
 }
 
 function escapeXml(value: string): string {
@@ -96,7 +100,15 @@ export function mockCaldavServer(
         .filter((entry): entry is VenueEntry => entry !== undefined),
     },
     viewings,
+    holdNextReport: () => {
+      let release = () => {};
+      held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return release;
+    },
   };
+  let held: Promise<void> | undefined;
 
   const origin = new URL(baseUrl).origin;
   page.route(`${origin}/**`, async (route: Route) => {
@@ -138,10 +150,25 @@ export function mockCaldavServer(
         const start = new Date(v.start);
         return start >= range.from && start <= range.to;
       });
+      const multistatus = toMultistatus(inRange);
+      const hold = held;
+      held = undefined;
+      if (hold) {
+        await hold;
+        // The page may have given up on this request by now.
+        await route
+          .fulfill({
+            status: 207,
+            contentType: "application/xml",
+            body: multistatus,
+          })
+          .catch(() => {});
+        return;
+      }
       await route.fulfill({
         status: 207,
         contentType: "application/xml",
-        body: toMultistatus(inRange),
+        body: multistatus,
       });
       return;
     }
