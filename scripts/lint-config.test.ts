@@ -23,12 +23,12 @@ describe("lefthook.yml", () => {
 describe("biome.json", () => {
   const biome = JSON.parse(read("biome.json")) as {
     $schema: string;
-    linter: { rules: { nursery?: { useBaseline?: string } } };
+    linter: { rules: { suspicious?: { useBaseline?: string } } };
   };
   const pkg = JSON.parse(read("package.json")) as { devDependencies: Record<string, string> };
 
   test("warns on CSS outside Baseline widely available, and never fails the build for it", () => {
-    expect(biome.linter.rules.nursery?.useBaseline).toBe("warn");
+    expect(biome.linter.rules.suspicious?.useBaseline).toBe("warn");
   });
 
   // #837: a URL pinned to a version had to be edited by hand on every Biome
