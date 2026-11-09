@@ -89,12 +89,13 @@ test("an open day popup on the heatmap lists a viewing logged for that day", asy
   ]);
   await connect(page);
   await page.goto("/calendar");
-  await page.getByRole("button", { name: `${today}: 1 viewing` }).hover();
+  await page.getByRole("button", { name: `${today}: 1 viewing` }).click();
   const popup = page.getByRole("dialog", { name: `Viewings on ${today}` });
   await expect(popup).toContainText("Dune");
 
-  // A synthetic click leaves the pointer on the cell, so the hover popup stays
-  // open under the wizard.
+  // A click pins the popup, so it stays open under the wizard. A hover popup
+  // closes 150 ms after the pointer leaves the cell, and the wizard's own
+  // clicks move it (#976).
   await page.getByRole("button", { name: "Log a viewing" }).dispatchEvent("click");
   const wizard = page.getByRole("dialog", { name: "Log a viewing" });
   await page.locator("#wizard-title").fill("Paddington");
