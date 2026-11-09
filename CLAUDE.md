@@ -112,3 +112,7 @@ not provide an export named 'default'`. The failing code is a bundled `.mjs`
     dependents at `4.3.2` and nothing in `js-yaml@4`'s public API broke
     `markdownlint`'s usage.
   - Bump only after re-testing both `bun run build` and `bun run lint:md`.
+- **`package.json`'s `overrides.vite` keeps one copy of Vite** (#974).
+  - Astro nests its own Vite when the hoisted one is older, and
+    `@tailwindcss/vite` then types its plugin against the wrong copy, so
+    `astro check` fails on `tailwindcss()`. Match Astro's required version.
