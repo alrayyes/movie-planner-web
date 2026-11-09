@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.34.4](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.3...movie-planner-web-v1.34.4) (2026-11-09)
+
+
+### Bug Fixes
+
+* **deps:** bump the bun-dependencies group with 14 updates ([#971](https://github.com/alrayyes/movie-planner-web/issues/971)) ([d66ecde](https://github.com/alrayyes/movie-planner-web/commit/d66ecde43f7de7635795e1ab1fc5da735fcb7868))
+* **deps:** bump the bun-dependencies group with 8 updates ([71bec0f](https://github.com/alrayyes/movie-planner-web/commit/71bec0f22e69f798e68147a583f4a6e12e16908c))
+* **deps:** pin vite to one copy so astro check passes ([4710622](https://github.com/alrayyes/movie-planner-web/commit/47106220ac767ec04ec741687bd4d4d43869ac4f))
+
 ## [1.34.3](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.2...movie-planner-web-v1.34.3) (2026-10-31)
 
 
