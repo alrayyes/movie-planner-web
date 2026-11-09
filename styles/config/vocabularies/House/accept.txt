@@ -84,3 +84,4 @@ namespaces?
 Stryker
 Cobertura
 JUnit
+Vite
