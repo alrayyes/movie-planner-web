@@ -95,7 +95,8 @@ test("an open day popup on the heatmap lists a viewing logged for that day", asy
 
   // A click pins the popup, so it stays open under the wizard. A hover popup
   // closes 150 ms after the pointer leaves the cell, and the wizard's own
-  // clicks move it (#976).
+  // clicks move it (#976). The pinned popup is a modal, which makes the page
+  // behind it inert, so the button takes a dispatched click, not a real one.
   await page.getByRole("button", { name: "Log a viewing" }).dispatchEvent("click");
   const wizard = page.getByRole("dialog", { name: "Log a viewing" });
   await page.locator("#wizard-title").fill("Paddington");
