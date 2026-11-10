@@ -115,4 +115,4 @@ not provide an export named 'default'`. The failing code is a bundled `.mjs`
 - **`package.json`'s `overrides.vite` keeps one copy of Vite** (#974).
   - Astro nests its own Vite when the hoisted one is older, and
     `@tailwindcss/vite` then types its plugin against the wrong copy, so
-    `astro check` fails on `tailwindcss()`. Match Astro's required version.
+    `astro check` fails. Drop the override once one copy survives without it.
