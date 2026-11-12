@@ -16,7 +16,10 @@ for whoever runs it.
   to run on commit too.
 
   `ltex-cli-plus` needs nothing installed: the hook fetches and caches it
-  on first use.
+  on first use. The pre-push hook checks only the Markdown in your push, and
+  all of it when `.ltex.json` or `scripts/lint-mechanics.sh` changed, so a push
+  with no prose never starts the JVM. CI, and `bun run lint:mechanics` by hand,
+  check every document.
 
 - **[Docker](https://docs.docker.com/get-docker/)**, only for integration
   tests (`bun run test:integration:up`) — everything else needs nothing
@@ -58,7 +61,7 @@ bun run format                # biome check --write ., the fixer
 bun run format:check         # prettier --check (md/yml/astro), add --write to fix
 bun run lint:md
 bun run lint:prose           # vale
-bun run lint:mechanics       # ltex-cli-plus
+bun run lint:mechanics       # ltex-cli-plus, every document (the pre-push hook checks only the pushed ones)
 bun run lint:claude          # cclint on CLAUDE.md and .claude/settings*.json
 bun run mutation             # Stryker over all of src/lib: about nine minutes, scores about 50
 bun run lighthouse           # Lighthouse's cache, latency and render-blocking audits against a running `bun run preview`; add `--out <dir>` to keep the reports
