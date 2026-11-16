@@ -186,6 +186,15 @@ installing the pinned bun, so a Playwright bump changes all of them together.
 Locally the suite uses the browser you installed once with
 `bunx playwright install chromium`.
 
+Dependabot can't edit the image pin, so its Playwright pull request fails
+`scripts/playwright-image.test.ts` until you push one commit to its branch. In
+both `ci.yml` and `screenshots.yml`, set the image to the new version's tag and
+digest (`docker buildx imagetools inspect ghcr.io/alrayyes/ci-playwright:<version>`
+prints it). Check first that the image has what the jobs need, such as `gpg` for
+`codecov-action`: `docker run --rm --entrypoint sh <image> -c 'command -v gpg'`.
+A tag only exists once the image repo has built that Playwright version, and the
+tag moves whenever it rebuilds, which is why the digest is pinned too (#985).
+
 ## Keeping docs and the about page current
 
 `src/content/docs/docs/*.md` (the `/docs/*` site) and `src/pages/about.astro`
