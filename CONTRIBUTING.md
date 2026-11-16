@@ -192,8 +192,9 @@ both `ci.yml` and `screenshots.yml`, set the image to the new version's tag and
 digest (`docker buildx imagetools inspect ghcr.io/alrayyes/ci-playwright:<version>`
 prints it). Check first that the image has what the jobs need, such as `gpg` for
 `codecov-action`: `docker run --rm --entrypoint sh <image> -c 'command -v gpg'`.
-A tag only exists once the image repo has built that Playwright version, and the
-tag moves whenever it rebuilds, which is why the digest is pinned too (#985).
+A tag only exists once the `ci-playwright` repo has built that Playwright
+version, and the tag moves whenever it rebuilds, which is why the digest is
+pinned too.
 
 ## Keeping docs and the about page current
 
