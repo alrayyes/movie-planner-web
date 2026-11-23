@@ -9,7 +9,12 @@
 #
 # RELEASE_TOKEN, not GITHUB_TOKEN: GitHub starts no workflow run for a push made
 # with GITHUB_TOKEN, so the repinned head would sit with no CI at all. The push
-# comes from the checkout's credentials, hence the token there.
+# comes from RELEASE_TOKEN, handed to the push step alone: the checkout keeps no
+# credentials, so the script run from Dependabot's branch never sees the token.
+#
+# The checkout is the head SHA, not the branch name, so a push between the
+# trigger and the checkout can't swap in a commit this run wasn't started for.
+# The push then fails as non-fast-forward if the branch has moved on.
 #
 # No loop: the run the push triggers has the token's owner as actor, so this
 # job skips it. A run that finds the pin already right commits nothing.
@@ -45,16 +50,34 @@ jobs:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.RELEASE_TOKEN }}
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      # A bump that leaves @playwright/test alone has nothing to repin, and
+      # resolving a digest would let a ghcr blip fail an unrelated pull request.
+      - name: Check whether @playwright/test changed
+        id: version
+        run: |
+          git fetch --depth=1 origin "$BASE_SHA"
+          before=$(git show "$BASE_SHA:package.json" | grep -oE '"@playwright/test": "[^"]+"' || true)
+          after=$(grep -oE '"@playwright/test": "[^"]+"' package.json || true)
+          if [ "$before" = "$after" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      - if: steps.version.outputs.changed == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
       # Fails, and so fails the pull request, when ci-playwright hasn't built
       # this Playwright version yet. Re-run the job once it has.
       - name: Repin the image
+        if: steps.version.outputs.changed == 'true'
         run: bun scripts/pin-playwright-image.ts
       - name: Commit the new pin
+        if: steps.version.outputs.changed == 'true'
         run: |
           if git diff --quiet; then
             echo "nothing to commit"
@@ -64,4 +87,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "build(deps): pin the ci-playwright image for ${version}"
-          git push
+          auth=$(printf 'x-access-token:%s' "$RELEASE_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push origin "HEAD:refs/heads/$HEAD_REF"
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}

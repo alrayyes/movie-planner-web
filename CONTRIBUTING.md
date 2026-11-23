@@ -186,15 +186,24 @@ installing the pinned bun, so a Playwright bump changes all of them together.
 Locally the suite uses the browser you installed once with
 `bunx playwright install chromium`.
 
-Dependabot can't edit the image pin, so `.github/workflows/pin-playwright-image.yml`
-does it. When a Dependabot pull request changes `package.json`, the workflow runs
-`bun scripts/pin-playwright-image.ts`, which reads the `@playwright/test` version,
+Dependabot can't edit the image pin, so
+`.github/workflows/pin-playwright-image.yml` does it. When a Dependabot pull
+request changes the `@playwright/test` version, the workflow runs
+`bun scripts/pin-playwright-image.ts`, which reads the `@playwright/test`
+version,
 asks `docker buildx imagetools inspect ghcr.io/alrayyes/ci-playwright:<version>`
-for the digest, rewrites the image in every workflow and pushes one commit to the
-branch. It pushes with `RELEASE_TOKEN`, since a push made with `GITHUB_TOKEN`
-starts no CI. Dependabot's runs read Dependabot secrets, so `RELEASE_TOKEN` must
-exist as one too: `gh secret set RELEASE_TOKEN --app dependabot`. The job fails
-with that hint when it is empty.
+for the digest, rewrites the image in every workflow and pushes one commit to
+the branch. It pushes with `RELEASE_TOKEN`, since a push made with
+`GITHUB_TOKEN` starts no CI. Only the push step gets that token, and the job
+checks out the head SHA, so a push in between fails rather than racing.
+Dependabot's runs read Dependabot secrets, so `RELEASE_TOKEN` must exist as one
+too: `gh secret set RELEASE_TOKEN --app dependabot`. The job fails with that
+hint when it is empty. A bump that leaves `@playwright/test` alone skips the
+job, so a registry blip can't fail it.
+
+Once the job has pushed, Dependabot stops rebasing that pull request, because
+the branch has a commit it didn't make. If the branch falls behind or conflicts,
+comment `@dependabot recreate`; the job pins the image again on the fresh branch.
 
 A tag only exists once the `ci-playwright` repo has built that Playwright
 version, and the job fails if it hasn't. Wait for that build, then re-run the

@@ -163,8 +163,9 @@ describe("release-auto-merge.yml", () => {
 });
 
 // #985: Dependabot can't edit the image pin, so this repins it on the PR branch.
-// A push made with GITHUB_TOKEN starts no workflow run, so the checkout (which
-// is what pushes) has to carry RELEASE_TOKEN or the repinned head gets no CI.
+// A push made with GITHUB_TOKEN starts no workflow run, so the push has to use
+// RELEASE_TOKEN or the repinned head gets no CI. #993: that token reaches the
+// push step alone, and the checkout is pinned to the head SHA.
 describe("pin-playwright-image.yml", () => {
   const found = workflows.find((w) => w.file === "pin-playwright-image.yml");
 
@@ -181,8 +182,27 @@ describe("pin-playwright-image.yml", () => {
     expect(found?.text).toContain("github.actor == 'dependabot[bot]'");
   });
 
+  type Step = { name?: string; uses?: string; with?: Record<string, unknown> };
+  const jobs = (found?.doc.jobs ?? {}) as { pin?: { steps: Step[] } };
+  const steps = jobs.pin?.steps ?? [];
+  const checkout = steps.find((s) => s.uses?.startsWith("actions/checkout@"));
+
   test("pushes with RELEASE_TOKEN so the new head gets CI", () => {
-    expect(found?.text).toMatch(/token: \$\{\{ secrets\.RELEASE_TOKEN \}\}/);
+    const push = found?.text.slice(found.text.indexOf("Commit the new pin"));
+    expect(push).toMatch(/RELEASE_TOKEN: \$\{\{ secrets\.RELEASE_TOKEN \}\}/);
+  });
+
+  test("keeps the token away from the checkout and the repin script", () => {
+    expect(checkout?.with?.token).toBeUndefined();
+    expect(checkout?.with?.["persist-credentials"]).toBe(false);
+  });
+
+  test("checks out the head SHA, not the branch name", () => {
+    expect(checkout?.with?.ref).toMatch(/github\.event\.pull_request\.head\.sha/);
+  });
+
+  test("skips the repin when @playwright/test is unchanged", () => {
+    expect(found?.text).toContain("steps.version.outputs.changed == 'true'");
   });
 
   test("runs the repin script from this repo", () => {
