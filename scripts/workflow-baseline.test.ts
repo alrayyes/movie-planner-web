@@ -161,3 +161,31 @@ describe("release-auto-merge.yml", () => {
     expect(on.pull_request?.types).toEqual(["opened", "synchronize", "reopened", "labeled"]);
   });
 });
+
+// #985: Dependabot can't edit the image pin, so this repins it on the PR branch.
+// A push made with GITHUB_TOKEN starts no workflow run, so the checkout (which
+// is what pushes) has to carry RELEASE_TOKEN or the repinned head gets no CI.
+describe("pin-playwright-image.yml", () => {
+  const found = workflows.find((w) => w.file === "pin-playwright-image.yml");
+
+  test("exists", () => {
+    expect(found).toBeDefined();
+  });
+
+  test("runs on pull requests that touch package.json", () => {
+    const on = found?.doc.on as Record<string, { paths?: string[] }>;
+    expect(on.pull_request?.paths).toEqual(["package.json"]);
+  });
+
+  test("only acts for Dependabot", () => {
+    expect(found?.text).toContain("github.actor == 'dependabot[bot]'");
+  });
+
+  test("pushes with RELEASE_TOKEN so the new head gets CI", () => {
+    expect(found?.text).toMatch(/token: \$\{\{ secrets\.RELEASE_TOKEN \}\}/);
+  });
+
+  test("runs the repin script from this repo", () => {
+    expect(found?.text).toContain("bun scripts/pin-playwright-image.ts");
+  });
+});
