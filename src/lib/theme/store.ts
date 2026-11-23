@@ -45,11 +45,13 @@ export function setTheme(theme: Theme): void {
 // this one on a docs page's first load. That only runs once, before
 // paint — a later in-page toggle (this function) needs to keep pushing
 // the same update itself, or the two would drift the moment a visitor
-// actually uses the toggle on a docs page. `window.StarlightThemeProvider`
-// is only ever defined by Starlight's own ThemeProvider.astro, so this
-// is a no-op on every non-docs page.
+// actually uses the toggle on a docs page. Starlight's own inline
+// ThemeProvider sets `<html data-theme>` before paint on every docs page,
+// and this app never sets it elsewhere, so its presence marks a docs page
+// and this is a no-op on every other. (`window.StarlightThemeProvider` used
+// to mark it, but Starlight 0.43 removed that global.)
 function syncStarlightTheme(theme: Theme): void {
-  if (!("StarlightThemeProvider" in window)) return;
+  if (document.documentElement.dataset.theme === undefined) return;
   try {
     localStorage.setItem("starlight-theme", theme);
   } catch {

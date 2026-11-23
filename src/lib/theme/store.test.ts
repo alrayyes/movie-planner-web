@@ -113,21 +113,21 @@ describe("setTheme", () => {
     expect(classes.get("dark")).toBe(true);
   });
 
-  test("leaves Starlight alone on a page without its theme provider", () => {
+  test("leaves Starlight alone on a page without Starlight's data-theme", () => {
     setTheme("dark");
     expect(storage.has("starlight-theme")).toBe(false);
     expect(dataset.theme).toBeUndefined();
   });
 
   test("keeps Starlight's own theme in step on a docs page", () => {
-    win.StarlightThemeProvider = {};
+    dataset.theme = "dark"; // Starlight's own ThemeProvider sets this before paint
     setTheme("light");
     expect(storage.get("starlight-theme")).toBe("light");
     expect(dataset.theme).toBe("light");
   });
 
   test("still sets Starlight's data-theme when its storage write fails", () => {
-    win.StarlightThemeProvider = {};
+    dataset.theme = "light";
     failStorage = true;
     setTheme("dark");
     expect(dataset.theme).toBe("dark");
