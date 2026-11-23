@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.5...movie-planner-web-v1.35.0) (2026-11-23)
+
+
+### Features
+
+* **ci:** repin the Playwright image on Dependabot bumps ([#989](https://github.com/alrayyes/movie-planner-web/issues/989)) ([2af3556](https://github.com/alrayyes/movie-planner-web/commit/2af355659ca3f817a77d2f8e77c824361bac1c3c)), closes [#985](https://github.com/alrayyes/movie-planner-web/issues/985)
+
 ## [1.34.5](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.4...movie-planner-web-v1.34.5) (2026-11-16)
 
 
