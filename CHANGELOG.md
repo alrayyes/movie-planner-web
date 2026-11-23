@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.35.0...movie-planner-web-v1.35.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **theme:** detect a docs page by Starlight's data-theme, not its removed global ([#995](https://github.com/alrayyes/movie-planner-web/issues/995)) ([57e79eb](https://github.com/alrayyes/movie-planner-web/commit/57e79ebf76d7e8103fb3cd30e1ed40d7a564e023)), closes [#992](https://github.com/alrayyes/movie-planner-web/issues/992)
+
 ## [1.35.0](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.34.5...movie-planner-web-v1.35.0) (2026-11-23)
 
 
