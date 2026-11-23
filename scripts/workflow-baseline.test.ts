@@ -201,8 +201,22 @@ describe("pin-playwright-image.yml", () => {
     expect(checkout?.with?.ref).toMatch(/github\.event\.pull_request\.head\.sha/);
   });
 
-  test("skips the repin when @playwright/test is unchanged", () => {
-    expect(found?.text).toContain("steps.version.outputs.changed == 'true'");
+  test("skips setup, repin and commit when @playwright/test is unchanged", () => {
+    const gated = steps.filter(
+      (s) =>
+        s.uses?.startsWith("oven-sh/setup-bun@") ||
+        s.name === "Repin the image" ||
+        s.name === "Commit the new pin",
+    ) as (Step & { if?: string })[];
+    expect(gated).toHaveLength(3);
+    for (const step of gated) expect(step.if).toBe("steps.version.outputs.changed == 'true'");
+  });
+
+  test("hands RELEASE_TOKEN to the push step and the empty-token check only", () => {
+    const holders = (steps as (Step & { env?: Record<string, string> })[])
+      .filter((s) => s.env && "RELEASE_TOKEN" in s.env)
+      .map((s) => s.name);
+    expect(holders).toEqual(["Check RELEASE_TOKEN reaches Dependabot runs", "Commit the new pin"]);
   });
 
   test("runs the repin script from this repo", () => {
