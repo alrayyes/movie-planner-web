@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.2](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.35.1...movie-planner-web-v1.35.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* **deps:** bump the bun-dependencies group across 1 directory with 9 updates ([#988](https://github.com/alrayyes/movie-planner-web/issues/988)) ([a4f1617](https://github.com/alrayyes/movie-planner-web/commit/a4f16170ef1580da4c8263179b2a914e7d76af5c))
+
 ## [1.35.1](https://github.com/alrayyes/movie-planner-web/compare/movie-planner-web-v1.35.0...movie-planner-web-v1.35.1) (2026-11-23)
 
 
