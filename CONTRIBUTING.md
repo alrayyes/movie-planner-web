@@ -186,15 +186,23 @@ installing the pinned bun, so a Playwright bump changes all of them together.
 Locally the suite uses the browser you installed once with
 `bunx playwright install chromium`.
 
-Dependabot can't edit the image pin, so its Playwright pull request fails
-`scripts/playwright-image.test.ts` until you push one commit to its branch. In
-both `ci.yml` and `screenshots.yml`, set the image to the new version's tag and
-digest (`docker buildx imagetools inspect ghcr.io/alrayyes/ci-playwright:<version>`
-prints it). Check first that the image has what the jobs need, such as `gpg` for
-`codecov-action`: `docker run --rm --entrypoint sh <image> -c 'command -v gpg'`.
+Dependabot can't edit the image pin, so `.github/workflows/pin-playwright-image.yml`
+does it. When a Dependabot pull request changes `package.json`, the workflow runs
+`bun scripts/pin-playwright-image.ts`, which reads the `@playwright/test` version,
+asks `docker buildx imagetools inspect ghcr.io/alrayyes/ci-playwright:<version>`
+for the digest, rewrites the image in every workflow and pushes one commit to the
+branch. It pushes with `RELEASE_TOKEN`, since a push made with `GITHUB_TOKEN`
+starts no CI. Dependabot's runs read Dependabot secrets, so `RELEASE_TOKEN` must
+exist as one too: `gh secret set RELEASE_TOKEN --app dependabot`. The job fails
+with that hint when it is empty.
+
 A tag only exists once the `ci-playwright` repo has built that Playwright
-version, and the tag moves whenever it rebuilds, which is why the digest is
-pinned too.
+version, and the job fails if it hasn't. Wait for that build, then re-run the
+job. The tag moves whenever the image rebuilds, which is why the digest is pinned
+too. If the job can't run, do the same by hand: set the image to the new tag and
+digest in both `ci.yml` and `screenshots.yml`, and check the image has what the
+jobs need, such as `gpg` for `codecov-action`:
+`docker run --rm --entrypoint sh <image> -c 'command -v gpg'`.
 
 ## Keeping docs and the about page current
 

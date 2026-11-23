@@ -3,8 +3,13 @@
 // image can't read package.json, so its tag is written out in each workflow
 // and this finds the places where it disagrees with the library (#952).
 
-const IMAGE = /^\s*image:\s*(ghcr\.io\/alrayyes\/ci-playwright:\S+)\s*$/gm;
+export const IMAGE = /^\s*image:\s*(ghcr\.io\/alrayyes\/ci-playwright:\S+)\s*$/gm;
 const PINNED = /^ghcr\.io\/alrayyes\/ci-playwright:(\d+\.\d+\.\d+)@sha256:[0-9a-f]{64}$/;
+
+/** The exact @playwright/test version package.json pins, if it pins one. */
+export function playwrightVersion(packageJson: string): string | undefined {
+  return /"@playwright\/test":\s*"(\d+\.\d+\.\d+)"/.exec(packageJson)?.[1];
+}
 
 export type Sources = {
   packageJson: string;
@@ -15,7 +20,7 @@ export type Sources = {
 export function playwrightImageProblems({ packageJson, lockfile, workflows }: Sources): string[] {
   const problems: string[] = [];
 
-  const lib = /"@playwright\/test":\s*"(\d+\.\d+\.\d+)"/.exec(packageJson)?.[1];
+  const lib = playwrightVersion(packageJson);
   if (!lib) problems.push("package.json pins no exact @playwright/test version");
 
   const locked = /"@playwright\/test@(\d+\.\d+\.\d+)"/.exec(lockfile)?.[1];
